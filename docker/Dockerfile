@@ -13,7 +13,7 @@ LABEL org.opencontainers.image.authors="Weina Ji <weina.ji@openblueinstitute.org
 # Using SHELL instruction to change default shell for subsequent RUN instructions
 SHELL ["/bin/bash", "-c"]
 
-ARG LIBSONATA_TAG=v0.1.29
+ARG LIBSONATA_TAG=master
 ARG LIBSONATAREPORT_TAG=master
 ARG NEURON_TAG=master
 ARG NEURON_COMMIT_ID
