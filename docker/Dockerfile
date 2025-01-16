@@ -42,7 +42,7 @@ RUN apt-get --yes -qq update \
  && python3 -m venv $USR_VENV \
  && source $USR_VENV/bin/activate \
  && pip install -U pip setuptools \
- && pip install -U pytest sympy jinja2 pyyaml numpy \
+ && pip install -U cython pytest sympy jinja2 pyyaml numpy \
                    numpy wheel pkgconfig
 
 # Install libsonata
