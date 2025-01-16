@@ -1,17 +1,27 @@
-FROM ubuntu:22.04
-MAINTAINER Weina Ji <weina.ji@epfl.ch>
+ARG TARGETARCH
+
+FROM ubuntu:22.04 AS linux_amd64
+ARG ARCH=x86_64
+
+FROM ubuntu:22.04 AS linux_arm64
+ARG ARCH=aarch64
+
+FROM linux_$TARGETARCH
+LABEL org.opencontainers.image.authors="Weina Ji <weina.ji@openblueinstitute.org>"
 
 # The default shell for the RUN instruction is ["/bin/sh", "-c"].
 # Using SHELL instruction to change default shell for subsequent RUN instructions
 SHELL ["/bin/bash", "-c"]
 
-ARG LIBSONATA_TAG=master
+ARG LIBSONATA_TAG=v0.1.29
 ARG LIBSONATAREPORT_TAG=master
 ARG NEURON_TAG=master
 ARG NEURON_COMMIT_ID
 ARG WORKDIR=/opt/software
 ARG INSTALL_DIR=/opt/software/install
 ARG USR_VENV=$WORKDIR/venv
+
+RUN echo "The targeting architecture is $ARCH"
 
 # Install needed libs
 RUN apt-get --yes -qq update \
@@ -32,7 +42,7 @@ RUN apt-get --yes -qq update \
  && python3 -m venv $USR_VENV \
  && source $USR_VENV/bin/activate \
  && pip install -U pip setuptools \
- && pip install -U "cython<3" pytest sympy jinja2 pyyaml numpy \
+ && pip install -U pytest sympy jinja2 pyyaml numpy \
                    numpy wheel pkgconfig
 
 # Install libsonata
@@ -47,7 +57,7 @@ RUN mkdir -p $WORKDIR \
  && cmake --build rep_build --parallel \
  && cmake --install rep_build \
  && rm -rf libsonatareport rep_build
-ENV SONATAREPORT_DIR "$INSTALL_DIR"
+ENV SONATAREPORT_DIR="$INSTALL_DIR"
 
 # Install neuron
 RUN source $USR_VENV/bin/activate \ 
@@ -68,7 +78,7 @@ RUN source $USR_VENV/bin/activate \
 # Build h5py with the local hdf5
 RUN source $USR_VENV/bin/activate \
  && pip install mpi4py \
- && CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
+ && CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/$ARCH-linux-gnu/hdf5/mpich \
     pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
 # Install neurodamus and prepare HOC_LIBRARY_PATH
@@ -78,16 +88,17 @@ RUN source $USR_VENV/bin/activate \
  && cd neurodamus \
  && pip install .
 
-ENV HOC_LIBRARY_PATH "$WORKDIR/neurodamus/neurodamus/data/hoc"
-ENV NEURODAMUS_PYTHON "$WORKDIR/neurodamus/neurodamus/data"
-ENV NEURODAMUS_MODS_DIR "$WORKDIR/neurodamus/neurodamus/data/mod"
-ENV PATH "$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
-ENV PYTHONPATH "$INSTALL_DIR/python:$PYTHONPATH"
+ENV HOC_LIBRARY_PATH="$WORKDIR/neurodamus/neurodamus/data/hoc"
+ENV NEURODAMUS_PYTHON="$WORKDIR/neurodamus/neurodamus/data"
+ENV NEURODAMUS_MODS_DIR="$WORKDIR/neurodamus/neurodamus/data/mod"
+ENV PATH="$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
+ENV PYTHONPATH="$INSTALL_DIR/python:$PYTHONPATH"
 
-# Copy module building script and test build
+# Copy and edit module building script and test build
 ADD build_neurodamus.sh $INSTALL_DIR/bin
-RUN build_neurodamus.sh $NEURODAMUS_MODS_DIR \
- && ./x86_64/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()" \
- && rm -rf x86_64/
+RUN sed -i "s/ARCH=\"x86_64\"/ARCH=\"$ARCH\"/g" $INSTALL_DIR/bin/build_neurodamus.sh \
+ && build_neurodamus.sh $NEURODAMUS_MODS_DIR \
+ && ./$ARCH/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()" \
+ && rm -rf $ARCH/
 
 ENTRYPOINT ["bash"]
