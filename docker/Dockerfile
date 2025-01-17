@@ -7,7 +7,7 @@ FROM ubuntu:22.04 AS linux_arm64
 ARG ARCH=aarch64
 
 FROM linux_$TARGETARCH
-LABEL org.opencontainers.image.authors="Weina Ji <weina.ji@openblueinstitute.org>"
+LABEL org.opencontainers.image.authors="Weina Ji <weina.ji@openbraininstitute.org>"
 
 # The default shell for the RUN instruction is ["/bin/sh", "-c"].
 # Using SHELL instruction to change default shell for subsequent RUN instructions
@@ -92,7 +92,7 @@ ENV HOC_LIBRARY_PATH="$WORKDIR/neurodamus/neurodamus/data/hoc"
 ENV NEURODAMUS_PYTHON="$WORKDIR/neurodamus/neurodamus/data"
 ENV NEURODAMUS_MODS_DIR="$WORKDIR/neurodamus/neurodamus/data/mod"
 ENV PATH="$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
-ENV PYTHONPATH="$INSTALL_DIR/python:$PYTHONPATH"
+ENV PYTHONPATH="$INSTALL_DIR/lib/python:$PYTHONPATH"
 
 # Copy and edit module building script and test build
 ADD build_neurodamus.sh $INSTALL_DIR/bin
