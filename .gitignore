@@ -28,7 +28,7 @@ venv
 .installed.cfg
 *.egg-info
 
-# Unittest and coverage
+# tests and coverage
 htmlcov/*
 .coverage
 .tox

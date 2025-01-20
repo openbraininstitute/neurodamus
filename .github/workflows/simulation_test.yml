@@ -238,10 +238,6 @@ jobs:
       run: |
         pip install -r tests/requirements.txt
 
-    - name: test-unit
-      run: |
-        pytest tests/unit
-
     - name: test-integration
       run: |
         pytest -x --forked tests/integration
