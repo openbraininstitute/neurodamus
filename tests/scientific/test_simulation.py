@@ -8,9 +8,6 @@ from tempfile import NamedTemporaryFile
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
-@pytest.mark.skipif(
-    os.environ.get("SLURM_JOB_ID") is None or os.environ.get("RUN_MPI") is None,
-    reason="Simulation tests require MPI")
 def test_simulation_sonata_config():
     from neurodamus import Neurodamus
     config_file = str(SIM_DIR / "usecase3" / "simulation_sonata.json")
