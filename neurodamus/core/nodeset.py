@@ -2,6 +2,7 @@
 Implementation of Gid Sets with the ability of self offsetting and avoid
 global overlapping
 """
+
 from contextlib import contextmanager
 import numpy
 from ..utils import compat, WeakList
@@ -143,7 +144,7 @@ class _NodeSetBase:
     """
 
     def __init__(self, *_, **_kw):
-        self._offset  = 0
+        self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
 
@@ -151,7 +152,7 @@ class _NodeSetBase:
     max_gid = property(lambda self: self._max_gid)
 
     def register_global(self, population_name, is_base_pop=False):
-        """ Registers a node set as being part of a population, potentially implying an offsett
+        """Registers a node set as being part of a population, potentially implying an offsett
 
         Args:
             population_name: The name of the population these ids belong to
@@ -286,8 +287,7 @@ class SelectionNodeSet(_NodeSetBase):
             yield gid + self._offset
 
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
-        """Computes intersection of two nodesets.
-        """
+        """Computes intersection of two nodesets."""
         # NOTE: A _quick_check param can be set to True so that we effectively only check for
         # intersection (True/False) instead of computing the actual intersection (internal).
         if self.population_name != other.population_name:

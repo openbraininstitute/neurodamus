@@ -1,6 +1,7 @@
 """
 A module implementing a high-level interface to Neuron cells.
 """
+
 from __future__ import absolute_import
 import logging
 from collections import defaultdict
@@ -17,6 +18,7 @@ class Cell(Neuron.HocEntity, _SpikeSource):
     A Cell abstraction. It allows users to instantiate Cells from morphologies or
     create them from scratch using the Cell.Builder
     """
+
     # We must override the basic tpl definition
     # Since the morphology parser expects several arrays
     __name__ = "Cell"
@@ -38,8 +40,8 @@ begintemplate {cls_name}
     }}
 endtemplate {cls_name}"""
 
-    _section_lists = ('all', 'somatic', 'axonal', 'basal', 'apical')
-    _section_arrays = ('soma', 'axon', 'dend', 'apic', 'myelin')
+    _section_lists = ("all", "somatic", "axonal", "basal", "apical")
+    _section_arrays = ("soma", "axon", "dend", "apic", "myelin")
 
     def __init__(self, gid=0, morpho=None):
         # type: (int, str) -> None
@@ -59,32 +61,33 @@ endtemplate {cls_name}"""
 
     # ---
     def load_morphology(self, morpho_path, export_commands=False):
-        """ Creates the cell compartments according to the given morphology
-        """
+        """Creates the cell compartments according to the given morphology"""
         h = Neuron.require("import3d", "MorphIO")
         # try and determine format
-        if morpho_path.endswith(('h5', 'H5')):
-            if(export_commands):
+        if morpho_path.endswith(("h5", "H5")):
+            if export_commands:
                 from neurodamus.morphio_wrapper import MorphIOWrapper
+
                 self._commands = MorphIOWrapper(morpho_path).morph_as_hoc()
             h.morphio_read(self.h, morpho_path)
             self._soma = self.h.soma[0]
 
-        elif morpho_path.endswith(('hoc', 'HOC')):
+        elif morpho_path.endswith(("hoc", "HOC")):
             h.load_file(1, morpho_path)
         else:
-            if morpho_path.endswith(('asc', 'ASC')):
+            if morpho_path.endswith(("asc", "ASC")):
                 imp = h.Import3d_Neurolucida3()
                 if not GlobalConfig.verbosity or export_commands:
                     imp.quiet = 1
-            elif morpho_path.endswith(('swc', 'SWC')):
+            elif morpho_path.endswith(("swc", "SWC")):
                 imp = h.Import3d_SWC_read()
-            elif morpho_path.endswith(('xml', 'XML')):
+            elif morpho_path.endswith(("xml", "XML")):
                 imp = h.Import3d_MorphML()
             else:
                 raise ValueError(
-                    "{} is not a recognised morphology file format".format(morpho_path) +
-                    "Should be either .hoc, .asc, .swc, .xml!")
+                    "{} is not a recognised morphology file format".format(morpho_path)
+                    + "Should be either .hoc, .asc, .swc, .xml!"
+                )
             try:
                 imp.input(morpho_path)
                 imprt = h.Import3d_GUI(imp, 0)
@@ -132,15 +135,17 @@ endtemplate {cls_name}"""
 
     def section_info(self, section):
         c = self.all[section] if isinstance(section, int) else section
-        return ("|lenght: {} um\n".format(c.L) +
-                "|diameter: {} um\n".format(c.diam) +
-                "|N_segments: {}\n".format(c.nseg) +
-                "|axial resistance: {} ohm.cm\n".format(c.Ra))
+        return (
+            "|lenght: {} um\n".format(c.L)
+            + "|diameter: {} um\n".format(c.diam)
+            + "|N_segments: {}\n".format(c.nseg)
+            + "|axial resistance: {} ohm.cm\n".format(c.Ra)
+        )
 
     # ---
     class Builder:
-        """Enables building a cell from soma/axon blocks
-        """
+        """Enables building a cell from soma/axon blocks"""
+
         class Section:
             SOMA = 0
             DENDRITE = 1
@@ -231,8 +236,9 @@ endtemplate {cls_name}"""
                 """
                 sec = self.get_root()  # type: self.__class__
                 if sec.parent is None:
-                    raise CellCreationError("Disconnected subtree. Attach to a CellBuilder root "
-                                            "node")
+                    raise CellCreationError(
+                        "Disconnected subtree. Attach to a CellBuilder root node"
+                    )
                 # If parent is True we must create the cell. Otherwise use it
                 c = Cell() if sec.parent is True else sec.parent
                 c.h.all.wholetree(sec=sec.this)
@@ -265,9 +271,13 @@ endtemplate {cls_name}"""
         class DendriteSection(Section):
             def __init__(self, name, length, n_segments=None, apical=False, **params):
                 Cell.Builder.Section.__init__(
-                    self, name, length, n_segments,
+                    self,
+                    name,
+                    length,
+                    n_segments,
                     sec_type=self.APICAL_DENDRITE if apical else self.DENDRITE,
-                    **params)
+                    **params,
+                )
 
         class AxonSection(Section):
             def __init__(self, name, length, n_segments=None, **params):
@@ -320,8 +330,9 @@ endtemplate {cls_name}"""
         """Creates a synapse between the current cell soma extremity and a given synapse receptor
         Notes: This is a relatively low-level f, there is no automatic registration of the netcon
         """
-        return self._add_connection(self.soma(1), synapse_receptor,
-                                    threshold=threshold, delay=delay, weight=weight)
+        return self._add_connection(
+            self.soma(1), synapse_receptor, threshold=threshold, delay=delay, weight=weight
+        )
 
     @staticmethod
     def _add_connection(src_segment, synapse_receptor, **props):
@@ -334,9 +345,10 @@ endtemplate {cls_name}"""
 
 class SectionList(object):
     """A SectionList wrapper providing convenience methods, inc len(),
-       and consolidating SectionList and hoc section arrays
+    and consolidating SectionList and hoc section arrays
     """
-    __slots__ = ('_hlist', '_harray')
+
+    __slots__ = ("_hlist", "_harray")
 
     def __init__(self, hoc_section_list, hoc_section_array=None):
         self._hlist = hoc_section_list
@@ -363,5 +375,4 @@ class SectionList(object):
 
 
 class CellCreationError(Exception):
-    """ An exception for errors in instantiating a cell
-    """
+    """An exception for errors in instantiating a cell"""

@@ -1,6 +1,7 @@
 """
 Stimulus implementation where incoming synaptic events are replayed for a single gid
 """
+
 from __future__ import absolute_import
 import os
 import logging
@@ -11,7 +12,7 @@ from .utils.timeit import timeit
 
 
 class SpikeManager:
-    """ Holds and manages gid spike time information, specially for Replay.
+    """Holds and manages gid spike time information, specially for Replay.
 
     A SynapseReplay stim can be used for a single gid that has all the synapses instantiated.
     Given a spikes file from a previous run, this object uses a NetStim object to retrigger
@@ -19,7 +20,8 @@ class SpikeManager:
 
     Internally the spikes are stored in a :py:class:`neurodamus.utils.multimap.GroupedMultiMap`
     """
-    _ascii_spike_dtype = [('time', 'double'), ('gid', 'uint32')]
+
+    _ascii_spike_dtype = [("time", "double"), ("gid", "uint32")]
 
     @timeit(name="Replay init")
     def __init__(self, spike_filename, delay=0, population=None):
@@ -61,6 +63,7 @@ class SpikeManager:
     @classmethod
     def _read_spikes_sonata(cls, filename, population):
         import libsonata
+
         spikes_file = libsonata.SpikeReader(filename)
         if population not in spikes_file.get_population_names():
             raise MissingSpikesPopulationError("Spikes population not found: " + population)
@@ -155,14 +158,15 @@ class SpikeManager:
             # If given a filename we assume a new file is wanted, with new header
             with open(f, "w") as fx:
                 fx.write("/scatter\n")
-                numpy.savetxt(fx, expanded_ds, fmt='%.3lf\t%d')
+                numpy.savetxt(fx, expanded_ds, fmt="%.3lf\t%d")
         else:
             # If given a file handle, user wants control so we directly dump
-            numpy.savetxt(f, expanded_ds, fmt='%.3lf\t%d')
+            numpy.savetxt(f, expanded_ds, fmt="%.3lf\t%d")
 
         log_verbose("Replay: Written %d entries", len(expanded_ds))
 
 
 class MissingSpikesPopulationError(Exception):
     """An exception triggered when a given node population is not found, we may want to handle"""
+
     pass

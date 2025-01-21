@@ -2,6 +2,7 @@
 Internal module which defines several wrapper classes for Hoc entities.
 They are then available as singletons objects in neurodamus.core package
 """
+
 from __future__ import absolute_import
 import logging
 import os  # os.environ
@@ -17,8 +18,8 @@ from ..utils import classproperty
 # Singleton, instantiated right below
 #
 class _Neuron(object):
-    """A wrapper over the neuron simulator.
-    """
+    """A wrapper over the neuron simulator."""
+
     __name__ = "_Neuron"
     _h = None  # We dont import it at module-level to avoid starting neuron
     _hocs_loaded = set()
@@ -28,14 +29,12 @@ class _Neuron(object):
 
     @classproperty
     def h(cls):
-        """The neuron hoc interpreter, initializing if needed.
-        """
+        """The neuron hoc interpreter, initializing if needed."""
         return cls._h or cls._init()
 
     @classmethod
     def _init(cls, mpi=False):
-        """Initializes the Neuron simulator.
-        """
+        """Initializes the Neuron simulator."""
         if cls._h is not None:
             return cls._h
         if mpi:
@@ -43,6 +42,7 @@ class _Neuron(object):
 
         from neuron import h
         from neuron import nrn
+
         cls.__cache = {}
         cls._h = h
         cls.Section = nrn.Section
@@ -54,39 +54,39 @@ class _Neuron(object):
 
     @classmethod
     def load_hoc(cls, mod_name):
-        """Loads a hoc module, available in the path.
-        """
+        """Loads a hoc module, available in the path."""
         if mod_name in cls._hocs_loaded:
             return
-        h = (cls._h or cls._init())
+        h = cls._h or cls._init()
         mod_filename = mod_name + ".hoc"
         if not h.load_file(mod_filename):
-            raise RuntimeError("Cant load HOC library {}. Consider checking HOC_LIBRARY_PATH (currently '{}')"
-                               .format(mod_filename, os.environ.get("HOC_LIBRARY_PATH")))
+            raise RuntimeError(
+                "Cant load HOC library {}. Consider checking HOC_LIBRARY_PATH (currently '{}')".format(
+                    mod_filename, os.environ.get("HOC_LIBRARY_PATH")
+                )
+            )
         cls._hocs_loaded.add(mod_name)
 
     @classmethod
     def require(cls, *hoc_mods):
-        """Load a set of hoc mods by name.
-        """
+        """Load a set of hoc mods by name."""
         for mod in hoc_mods:
             cls.load_hoc(mod)
         return cls._h
 
     @classmethod
     def load_dll(cls, dll_path):
-        """Loads a Neuron mod file (typically an .so file in linux).
-        """
-        h = (cls._h or cls._init())
+        """Loads a Neuron mod file (typically an .so file in linux)."""
+        h = cls._h or cls._init()
         rc = h.nrn_load_dll(dll_path)
         if rc == 0:
-            raise RuntimeError("Cant load MOD dll {}. Please check LD path and dependencies"
-                               .format(dll_path))
+            raise RuntimeError(
+                "Cant load MOD dll {}. Please check LD path and dependencies".format(dll_path)
+            )
 
     @contextmanager
     def section_in_stack(self, sec):
-        """A contect manager to push and pop a section to the Neuron stack.
-        """
+        """A contect manager to push and pop a section to the Neuron stack."""
         sec.push()
         yield
         self.h.pop_section()
@@ -132,7 +132,7 @@ class _Neuron(object):
             setattr(self.h, key, value)
 
     # public shortcuts
-    HocEntity = None   # type: HocEntity
+    HocEntity = None  # type: HocEntity
     Simulation = None  # type: Simulation
     LoadBalance = None  # type: type
     Section = None
@@ -229,8 +229,8 @@ class Simulation(object):
 
 
 class MComplexLoadBalancer(object):
-    """Wrapper of the load balance Hoc Module with mcomplex.
-    """
+    """Wrapper of the load balance Hoc Module with mcomplex."""
+
     def __init__(self, force_regenerate=False):
         # Can we use an existing mcomplex.dat?
         if force_regenerate or not os.path.isfile("mcomplex.dat"):

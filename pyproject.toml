@@ -77,3 +77,13 @@ source = [
 [tool.coverage.report]
 show_missing = true
 precision = 0
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint.isort]
+known-local-folder = [
+    "neurodamus",
+]
+combine-as-imports = true

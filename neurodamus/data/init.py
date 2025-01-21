@@ -4,6 +4,7 @@ Neurodamus is a software for handling neuronal simulation using neuron.
 Copyright (c) 2018 Blue Brain Project, EPFL.
 All rights reserved
 """
+
 import sys
 from neurodamus import commands
 from neurodamus.utils.cli import extract_arguments

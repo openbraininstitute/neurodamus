@@ -1,6 +1,7 @@
 """
 Implementation of the core Connection classes
 """
+
 import logging
 import numpy
 import re
@@ -13,8 +14,8 @@ from .utils.pyutils import append_recarray
 
 
 class ReplayMode(Enum):
-    """Replay instantiation mode.
-    """
+    """Replay instantiation mode."""
+
     NONE = 0
     """Instantiate no replay NetCons"""
 
@@ -28,8 +29,8 @@ class ReplayMode(Enum):
 
 
 class NetConType(Enum):
-    """NetCon Type
-    """
+    """NetCon Type"""
+
     NC_PRESYN = 0
     NC_SPONTMINI = 1
     NC_REPLAY = 2
@@ -43,17 +44,34 @@ class ConnectionBase:
     """
     The Base implementation for cell connections identified by src-dst gids
     """
-    __slots__ = ("sgid", "tgid", "locked", "_disabled", "_synapse_params",
-                 "_netcons", "_synapses", "_delay_vec", "_delayweight_vec",
-                 "weight_factor", "syndelay_override", "_syn_offset",
-                 "_src_pop_id", "_dst_pop_id")
 
-    def __init__(self,
-                 sgid, tgid,
-                 src_pop_id=0, dst_pop_id=0,
-                 weight_factor=1,
-                 syndelay_override=None,
-                 synapses_offset=0):
+    __slots__ = (
+        "sgid",
+        "tgid",
+        "locked",
+        "_disabled",
+        "_synapse_params",
+        "_netcons",
+        "_synapses",
+        "_delay_vec",
+        "_delayweight_vec",
+        "weight_factor",
+        "syndelay_override",
+        "_syn_offset",
+        "_src_pop_id",
+        "_dst_pop_id",
+    )
+
+    def __init__(
+        self,
+        sgid,
+        tgid,
+        src_pop_id=0,
+        dst_pop_id=0,
+        weight_factor=1,
+        syndelay_override=None,
+        synapses_offset=0,
+    ):
         """Initializes a base connection object
 
         Args:
@@ -84,8 +102,7 @@ class ConnectionBase:
     synapse_params = property(lambda self: self._synapse_params)
     synapses = property(lambda self: self._synapses)
     synapses_offset = property(lambda self: self._syn_offset)
-    population_id = property(lambda self: (self._src_pop_id,
-                                           self._dst_pop_id))
+    population_id = property(lambda self: (self._src_pop_id, self._dst_pop_id))
 
     # Subclasses must implement instantiation of their connections in the simulator
     def finalize(self, cell, base_seed=0, *args, **kw):
@@ -94,20 +111,18 @@ class ConnectionBase:
     # Parameters Live update / Configuration
     # --------------------------------------
     def update_conductance(self, new_g):
-        """ Updates all synapses conductance
-        """
+        """Updates all synapses conductance"""
         for syn in self._synapses:
             syn.g = new_g
 
     def update_synapse_parameters(self, **params):
-        """A generic function to update several parameters of all synapses
-        """
+        """A generic function to update several parameters of all synapses"""
         for syn in self._synapses:
             for key, val in params:
                 setattr(syn, key, val)
 
     def update_weights(self, weight):
-        """ Change the weights of the netcons generated when connecting
+        """Change the weights of the netcons generated when connecting
         the source and target gids represented in this connection
         """
         for nc in self._netcons:
@@ -134,8 +149,7 @@ class ConnectionBase:
             nc.active(False)
 
     def enable(self):
-        """(Re)enables connections, by activating all netcons
-        """
+        """(Re)enables connections, by activating all netcons"""
         self._disabled = False
         if self._netcons is None:
             return
@@ -178,8 +192,18 @@ class Connection(ConnectionBase):
     a presynaptic and a postsynaptic gid, including Points where those
     synapses are placed (stored in TPointList)
     """
-    __slots__ = ("minis_spont_rate", "_spont_minis", "_replay", "_mod_override", "_synapse_ids",
-                 "_configurations", "_conductances_bk", "_synapse_sections", "_synapse_points_x")
+
+    __slots__ = (
+        "minis_spont_rate",
+        "_spont_minis",
+        "_replay",
+        "_mod_override",
+        "_synapse_ids",
+        "_configurations",
+        "_conductances_bk",
+        "_synapse_sections",
+        "_synapse_points_x",
+    )
 
     _AMPANMDA_Helper = None
     _GABAAB_Helper = None
@@ -197,13 +221,18 @@ class Connection(ConnectionBase):
         cls._pc = Nd.pc
 
     # -
-    def __init__(self,
-                 sgid, tgid, src_pop_id=0, dst_pop_id=0,
-                 weight_factor=1.0,
-                 minis_spont_rate=None,
-                 configuration=None,
-                 mod_override=None,
-                 **kwargs):
+    def __init__(
+        self,
+        sgid,
+        tgid,
+        src_pop_id=0,
+        dst_pop_id=0,
+        weight_factor=1.0,
+        minis_spont_rate=None,
+        configuration=None,
+        mod_override=None,
+        **kwargs,
+    ):
         """Creates a connection object
 
         Args:
@@ -263,18 +292,24 @@ class Connection(ConnectionBase):
         """
 
         n_synapses = len(synapses_params)
-        synapse_ids = numpy.arange(base_id, base_id+n_synapses, dtype="uint64")
+        synapse_ids = numpy.arange(base_id, base_id + n_synapses, dtype="uint64")
         mask = numpy.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
         for i, syn_params in enumerate(synapses_params):
             syn_point = target_manager.location_to_point(
-                self.tgid, syn_params['isec'], syn_params['ipt'], syn_params['offset'])
-            syn_params['location'] = syn_point.x[0]
+                self.tgid, syn_params["isec"], syn_params["ipt"], syn_params["offset"]
+            )
+            syn_params["location"] = syn_point.x[0]
             section = syn_point.sclst[0]
 
             if section is None or not section.exists():
                 target_point_str = "({0.isec:.0f} {0.ipt:.0f} {0.offset:.4f})".format(syn_params)
-                logging.warning("SKIPPED Synapse %s on gid %d. Src gid: %d. Deleted TPoint %s",
-                                base_id + i, self.tgid, self.sgid, target_point_str)
+                logging.warning(
+                    "SKIPPED Synapse %s on gid %d. Src gid: %d. Deleted TPoint %s",
+                    base_id + i,
+                    self.tgid,
+                    self.sgid,
+                    target_point_str,
+                )
                 mask[i] = False
                 continue
 
@@ -290,8 +325,9 @@ class Connection(ConnectionBase):
             self._synapse_params = synapses_params
             self._synapse_ids = synapse_ids
         else:
-            self._synapse_params = numpy.concatenate((self._synapse_params, synapses_params),
-                                                     dtype=self._synapse_params.dtype)
+            self._synapse_params = numpy.concatenate(
+                (self._synapse_params, synapses_params), dtype=self._synapse_params.dtype
+            )
             self._synapse_ids = numpy.concatenate((self._synapse_ids, synapse_ids))
 
     # -
@@ -335,8 +371,8 @@ class Connection(ConnectionBase):
             self._synapse_params.append(syn_params)
 
     # -
-    def replay(self, tvec, start_delay=.0):
-        """ The synapses connecting these gids are to be activated using
+    def replay(self, tvec, start_delay=0.0):
+        """The synapses connecting these gids are to be activated using
         predetermined timings.
 
         Args:
@@ -354,11 +390,16 @@ class Connection(ConnectionBase):
         return len(self._replay)
 
     # -
-    def finalize(self, cell, base_seed=0, *,
-                 skip_disabled=False,
-                 replay_mode=ReplayMode.AS_REQUIRED,
-                 attach_src_cell=True):
-        """ When all parameters are set, create synapses and netcons
+    def finalize(
+        self,
+        cell,
+        base_seed=0,
+        *,
+        skip_disabled=False,
+        replay_mode=ReplayMode.AS_REQUIRED,
+        attach_src_cell=True,
+    ):
+        """When all parameters are set, create synapses and netcons
 
         Args:
             cell: The cell to create synapses and netcons on.
@@ -381,8 +422,9 @@ class Connection(ConnectionBase):
             syn_params = self._synapse_params[syn_i]
 
             with Nd.section_in_stack(sec):
-                syn_obj = self._create_synapse(cell, syn_params, x,
-                                               self._synapse_ids[syn_i], base_seed)
+                syn_obj = self._create_synapse(
+                    cell, syn_params, x, self._synapse_ids[syn_i], base_seed
+                )
                 n_syns += 1
 
             self._synapses.append(syn_obj)
@@ -404,7 +446,8 @@ class Connection(ConnectionBase):
                         "py-neurodamus no longer supports delayed connections in the legacy "
                         "format, which among others was incompatible with CoreNeuron. "
                         "Please consider updating your models with the lastest synapse"
-                        "implementation (from models/common) or use py-neurodamus <= 1.3.1")
+                        "implementation (from models/common) or use py-neurodamus <= 1.3.1"
+                    )
                     raise ValueError("%s does not support delayed connections" % syn_obj)
 
                 syn_obj.setup_delay_vecs(self._delay_vec, self._delayweight_vec)
@@ -422,8 +465,11 @@ class Connection(ConnectionBase):
 
     def _init_artificial_stims(self, cell, replay_mode=ReplayMode.AS_REQUIRED):
         shall_create_replay = (
-            replay_mode == ReplayMode.COMPLETE or
-            replay_mode == ReplayMode.AS_REQUIRED and self._replay and self._replay.has_data())
+            replay_mode == ReplayMode.COMPLETE
+            or replay_mode == ReplayMode.AS_REQUIRED
+            and self._replay
+            and self._replay.has_data()
+        )
 
         # Release objects if not needed
         if not shall_create_replay:
@@ -431,8 +477,9 @@ class Connection(ConnectionBase):
         # if spont_minis not set by user, set with default rates from circuit if available
         if self.minis_spont_rate is None:
             if cell.inh_mini_frequency or cell.exc_mini_frequency:
-                self._spont_minis = InhExcSpontMinis(cell.inh_mini_frequency,
-                                                     cell.exc_mini_frequency)
+                self._spont_minis = InhExcSpontMinis(
+                    cell.inh_mini_frequency, cell.exc_mini_frequency
+                )
         else:
             self._spont_minis = SpontMinis(self.minis_spont_rate)
         # Release spont_minis object if it evaluates to false (rates are 0)
@@ -478,7 +525,7 @@ class Connection(ConnectionBase):
                 MCellRan4's low index parameter
 
         """
-        is_inh = params_obj['synType'] < 100
+        is_inh = params_obj["synType"] < 100
         if self._mod_override is not None:
             mod_override = self._mod_override.get("ModOverride").s
             self._mod_overrides.add(mod_override)
@@ -494,11 +541,11 @@ class Connection(ConnectionBase):
         # set the synapse conductance obtained from the synapse file
         # this variable is exclusively used for delay connections
         if hasattr(syn_helper.synapse, "conductance"):
-            syn_helper.synapse.conductance = params_obj['weight']
+            syn_helper.synapse.conductance = params_obj["weight"]
 
         # set the default value of synapse NMDA_ratio/GABAB_ratio from circuit
-        conductance_ratio = float(params_obj['conductance_ratio'])
-        if conductance_ratio >= .0 and self._mod_override is None:
+        conductance_ratio = float(params_obj["conductance_ratio"])
+        if conductance_ratio >= 0.0 and self._mod_override is None:
             self._update_conductance_ratio(syn_helper.synapse, is_inh, conductance_ratio)
 
         cell.CellRef.synHelperList.append(syn_helper)
@@ -507,7 +554,7 @@ class Connection(ConnectionBase):
 
     # -
     def finalize_gap_junctions(self, cell, offset, end_offset):
-        """ When all parameters are set, create synapses and netcons
+        """When all parameters are set, create synapses and netcons
 
         Args:
             cell: The cell to create synapses and netcons on.
@@ -525,12 +572,22 @@ class Connection(ConnectionBase):
 
             dbg_conn = GlobalConfig.debug_conn
             if dbg_conn and dbg_conn in ([self.tgid], [self.sgid, self.tgid]):
-                log_all(logging.DEBUG, "connect %f to %f [D: %f + %f], [F: %f + %f] (weight: %f)",
-                        self.tgid, self.sgid, offset, active_params.D,
-                        end_offset, active_params.F, active_params.weight)
+                log_all(
+                    logging.DEBUG,
+                    "connect %f to %f [D: %f + %f], [F: %f + %f] (weight: %f)",
+                    self.tgid,
+                    self.sgid,
+                    offset,
+                    active_params.D,
+                    end_offset,
+                    active_params.F,
+                    active_params.weight,
+                )
 
             with Nd.section_in_stack(sec):
-                self._pc.target_var(gap_junction, gap_junction._ref_vgap, (offset+active_params.D))
+                self._pc.target_var(
+                    gap_junction, gap_junction._ref_vgap, (offset + active_params.D)
+                )
                 self._pc.source_var(sec(x)._ref_v, (end_offset + active_params.F))
             gap_junction.g = active_params.weight
             self._synapses.append(gap_junction)
@@ -541,7 +598,7 @@ class Connection(ConnectionBase):
     # ------------------------------------------------------------------
 
     def update_weights(self, weight, update_also_replay_netcons=False):
-        """ Change the weights of the existing netcons
+        """Change the weights of the existing netcons
 
         Args:
             weight: The new weight
@@ -554,14 +611,20 @@ class Connection(ConnectionBase):
                 nc.weight[0] = weight
 
     def _update_conductance_ratio(self, syn_obj, is_inhibitory, value):
-        """ Update the relevant conductance ratio of synapse object
-            inhibitory synapse : GABAB_ratio
-            excitatory synapse : NMDA_ratio
+        """Update the relevant conductance ratio of synapse object
+        inhibitory synapse : GABAB_ratio
+        excitatory synapse : NMDA_ratio
         """
         dbg_conn = GlobalConfig.debug_conn
         if dbg_conn and dbg_conn in ([self.tgid], [self.sgid, self.tgid]):
-            log_all(logging.DEBUG, "[%d->%d] Update synapse %s ratio to %.6f",
-                    self.sgid, self.tgid, "GABAB" if is_inhibitory else "NMDA", value)
+            log_all(
+                logging.DEBUG,
+                "[%d->%d] Update synapse %s ratio to %.6f",
+                self.sgid,
+                self.tgid,
+                "GABAB" if is_inhibitory else "NMDA",
+                value,
+            )
         if is_inhibitory:
             syn_obj.GABAB_ratio = value
         else:
@@ -573,21 +636,21 @@ class Connection(ConnectionBase):
             raise ConfigurationError(f"Errors found in configuration: {configuration}")
 
     def _configure_cell(self, cell):
-        """ Internal helper to apply all the configuration statements on
+        """Internal helper to apply all the configuration statements on
         a given cell synapses
         """
         for config in self._configurations:
             self._configure(cell.CellRef.synlist, config)
 
     def _configure_synapses(self):
-        """ Internal helper to apply all the configuration statements to
+        """Internal helper to apply all the configuration statements to
         the created synapses
         """
         for config in self._configurations:
             self.configure_synapses(config)
 
     def configure_synapses(self, configuration):
-        """ Helper function to execute a configuration statement (hoc)
+        """Helper function to execute a configuration statement (hoc)
         on all connection synapses.
         """
         self._configure(self._synapses, configuration)
@@ -613,7 +676,7 @@ class Connection(ConnectionBase):
         super().disable()
         if set_zero_conductance:
             self._conductances_bk = compat.Vector("d", (syn.g for syn in self._synapses))
-            self.update_conductance(.0)
+            self.update_conductance(0.0)
 
     def enable(self):
         """(Re)enables connections. It will activate all netcons and restore
@@ -626,8 +689,7 @@ class Connection(ConnectionBase):
             self._conductances_bk = None
 
     def __del__(self):
-        """Clear Random123 objects when connection is deleted
-        """
+        """Clear Random123 objects when connection is deleted"""
         for syn in self._synapses:
             try:
                 syn.clearRNG()
@@ -636,8 +698,8 @@ class Connection(ConnectionBase):
 
 
 class ArtificialStim:
-    """Base class for artificial Stims, namely Replay and Minis
-    """
+    """Base class for artificial Stims, namely Replay and Minis"""
+
     __slots__ = ("netstims", "netcons")
 
     _bbss = None
@@ -661,8 +723,8 @@ class ArtificialStim:
 
 
 class SpontMinis(ArtificialStim):
-    """A class creating/holding spont minis of a connection
-    """
+    """A class creating/holding spont minis of a connection"""
+
     __slots__ = ("_rng_info", "_keep_alive", "rate_vec")
 
     tbins_vec = None
@@ -702,12 +764,16 @@ class SpontMinis(ArtificialStim):
         return self.rate_vec is not None
 
     def create_on(self, conn, sec, position, syn_obj, syn_params, base_seed, _rate_vec=None):
-        """Inserts a SpontMini stim into the given synapse
-        """
+        """Inserts a SpontMini stim into the given synapse"""
         rate_vec = _rate_vec or self.rate_vec  # allow override (private API)
         if GlobalConfig.debug_conn in ([conn.tgid], [conn.sgid, conn.tgid]):
-            log_all(logging.DEBUG, "Creating Spont Minis on %d-%d, Rate: %f",
-                    conn.sgid, conn.tgid, rate_vec[0])
+            log_all(
+                logging.DEBUG,
+                "Creating Spont Minis on %d-%d, Rate: %f",
+                conn.sgid,
+                conn.tgid,
+                rate_vec[0],
+            )
 
         ips = Nd.InhPoissonStim(position, sec=sec)
         ips.setTbins(self.tbins_vec)
@@ -728,9 +794,15 @@ class SpontMinis(ArtificialStim):
         rng_seed = self._rng_info.getMinisSeed()
         tgid_seed = conn.tgid + 250
 
-        seed2 = (src_pop_id * 65536 + dst_pop_id + rng_seed)
-        ips.setRNGs(syn_obj.synapseID + 200, tgid_seed, seed2 + 300,
-                    syn_obj.synapseID + 200, tgid_seed, seed2 + 350)
+        seed2 = src_pop_id * 65536 + dst_pop_id + rng_seed
+        ips.setRNGs(
+            syn_obj.synapseID + 200,
+            tgid_seed,
+            seed2 + 300,
+            syn_obj.synapseID + 200,
+            tgid_seed,
+            seed2 + 350,
+        )
 
     def __bool__(self):
         """object is considered False in case rate is not positive"""
@@ -742,8 +814,7 @@ class SpontMinis(ArtificialStim):
 
 
 class InhExcSpontMinis(SpontMinis):
-    """Extends SpontMinis to handle two spont rates: Inhibitory & Excitatory
-    """
+    """Extends SpontMinis to handle two spont rates: Inhibitory & Excitatory"""
 
     rate_vec_inh = property(lambda self: self.rate_vec)
     """The inhibitory spont rate vector (alias to base class .rate_vec)"""
@@ -765,8 +836,7 @@ class InhExcSpontMinis(SpontMinis):
         return self.rate_vec is not None or self.rate_vec_exc is not None
 
     def get_rate(self):
-        return (super().get_rate(),
-                self.rate_vec_exc[0] if self.rate_vec_exc is not None else None)
+        return (super().get_rate(), self.rate_vec_exc[0] if self.rate_vec_exc is not None else None)
 
     def __bool__(self):
         """object is considered False in case no rate is positive"""
@@ -774,25 +844,29 @@ class InhExcSpontMinis(SpontMinis):
 
 
 class ReplayStim(ArtificialStim):
-    """A class creating/holding replays of a connection
-    """
-    __slots__ = ("time_vec")
+    """A class creating/holding replays of a connection"""
+
+    __slots__ = "time_vec"
 
     def __init__(self):
         super().__init__()
         self.time_vec = None
 
     def create_on(self, conn, sec, syn_obj, syn_params):
-        """Inserts a replay stim into the given synapse
-        """
+        """Inserts a replay stim into the given synapse"""
         vecstim = None
         if self.has_data():
             vecstim = Nd.VecStim(sec=sec)
             vecstim.play(self.time_vec)
 
         if GlobalConfig.debug_conn in ([conn.tgid], [conn.sgid, conn.tgid]):
-            log_all(logging.DEBUG, "Creating Replay on %d-%d, times: %s",
-                    conn.sgid, conn.tgid, self.time_vec.as_numpy() if self.has_data() else "N/A")
+            log_all(
+                logging.DEBUG,
+                "Creating Replay on %d-%d, times: %s",
+                conn.sgid,
+                conn.tgid,
+                self.time_vec.as_numpy() if self.has_data() else "N/A",
+            )
 
         nc = Nd.NetCon(
             vecstim,
@@ -800,7 +874,7 @@ class ReplayStim(ArtificialStim):
             10,
             conn.syndelay_override or syn_params.delay,
             syn_params.weight,
-            sec=sec
+            sec=sec,
         )
         nc.weight[0] = syn_params.weight * conn.weight_factor
         conn.netcon_set_type(nc, syn_obj, NetConType.NC_REPLAY)
@@ -808,8 +882,7 @@ class ReplayStim(ArtificialStim):
         return nc
 
     def add_spikes(self, hoc_tvec):
-        """Appends replay spikes from a time vector to the main replay vector
-        """
+        """Appends replay spikes from a time vector to the main replay vector"""
         if self.time_vec is None:
             self.time_vec = hoc_tvec
         else:

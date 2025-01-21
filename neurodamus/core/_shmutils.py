@@ -3,9 +3,10 @@ import psutil
 import subprocess
 import numpy as np
 
+
 class SHMUtil:
-    """Helper class for the SHM file transfer mechanism of CoreNEURON.
-    """
+    """Helper class for the SHM file transfer mechanism of CoreNEURON."""
+
     node_id = -1
     nnodes = -1
 
@@ -33,13 +34,13 @@ class SHMUtil:
         if MPI.rank == 0:
             node_info[0] = 0
             for i in range(1, MPI.size):
-                node_info[i] = node_info[i-1] + int(node_info[i] > 0)
+                node_info[i] = node_info[i - 1] + int(node_info[i] > 0)
 
         # At this point, the node ID for the rank and # nodes are determined
         SHMUtil.node_id = MPI.py_scatter(node_info, 0)
         SHMUtil.nnodes = MPI.py_broadcast((node_info[-1] + 1) if MPI.rank == 0 else 0, 0)
 
-        subprocess.call(['/bin/rm', '-rf', shmdir])
+        subprocess.call(["/bin/rm", "-rf", shmdir])
 
     @staticmethod
     def _get_approximate_node_rss():
@@ -49,13 +50,12 @@ class SHMUtil:
         a physical node.
         """
         vm = psutil.virtual_memory()
-        return (vm.total - vm.available)
+        return vm.total - vm.available
 
     @staticmethod
     def is_node_id_known():
         """Can MPI ranks be associated with physical nodes?"""
         return SHMUtil.get_datadir_shm() is not None
-
 
     @staticmethod
     def get_nodewise_rss():
@@ -107,13 +107,15 @@ class SHMUtil:
         return psutil.disk_usage("/dev/shm").free
 
     @staticmethod
-    def get_datadir_shm(datadir = ""):
+    def get_datadir_shm(datadir=""):
         shmdir = os.environ.get("SHMDIR")
-        return None if not shmdir or not shmdir.startswith("/dev/shm/") \
-                    else os.path.join(shmdir, os.path.abspath(datadir)[1:])
+        return (
+            None
+            if not shmdir or not shmdir.startswith("/dev/shm/")
+            else os.path.join(shmdir, os.path.abspath(datadir)[1:])
+        )
 
     @staticmethod
     def get_shm_factor():
         factor = os.environ.get("NEURODAMUS_SHM_FACTOR")
-        return 0.4 if not factor or not 0.0 <= float(factor) <= 1.0 \
-                   else float(factor)
+        return 0.4 if not factor or not 0.0 <= float(factor) <= 1.0 else float(factor)

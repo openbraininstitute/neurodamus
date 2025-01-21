@@ -1,6 +1,7 @@
 """
 Module to load configuration from a libsonata config
 """
+
 import json
 import libsonata
 import logging
@@ -17,32 +18,25 @@ class ConnectionTypes(str, Enum):
 
 
 class SonataConfig:
-
     __slots__ = (
         "_entries",
         "_sections",
-        '_config_dir',
-        '_config_json',
-        '_resolved_manifest',
-        'circuits',
-        '_circuit_networks',
-        '_sim_conf',
-        '_bc_circuits',
+        "_config_dir",
+        "_config_json",
+        "_resolved_manifest",
+        "circuits",
+        "_circuit_networks",
+        "_sim_conf",
+        "_bc_circuits",
     )
 
-    _config_entries = (
-        "network", "target_simulator", "node_sets_file", "node_set"
-    )
-    _config_sections = (
-        "run", "conditions", "output", "inputs", "reports", "beta_features"
-    )
+    _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
+    _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
     # New defaults in Sonata config
     _defaults = {
         "network": "circuit_config.json",
     }
-    _path_entries_without_suffix = (
-        "network",
-    )
+    _path_entries_without_suffix = ("network",)
 
     def __init__(self, config_path):
         self._config_dir = os.path.abspath(os.path.dirname(config_path))
@@ -53,16 +47,16 @@ class SonataConfig:
         with open(config_path) as config_fh:
             self._config_json: dict = json.load(config_fh)
         self._resolved_manifest = self._build_resolver(
-            self._config_json.get("manifest") or {},
-            self._config_dir
+            self._config_json.get("manifest") or {}, self._config_dir
         )
         for entry_name in self._config_entries:
             value = getattr(self._sim_conf, entry_name)
             self._entries[entry_name] = value
         for section_name in self._config_sections:
             section_value = self._config_json.get(section_name, {})
-            self._sections[section_name] = self._resolve_section(section_value,
-                                                                 self._resolved_manifest)
+            self._sections[section_name] = self._resolve_section(
+                section_value, self._resolved_manifest
+            )
 
         self.circuits = libsonata.CircuitConfig.from_file(self.network)
         self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
@@ -72,8 +66,10 @@ class SonataConfig:
     def _resolve(cls, entry, name, manifest: dict):
         if not isinstance(entry, str):
             return entry  # ints, floats... no need to resolve
-        if not name.lower().endswith(("_file", "_dir")) \
-                and name.lower() not in cls._path_entries_without_suffix:
+        if (
+            not name.lower().endswith(("_file", "_dir"))
+            and name.lower() not in cls._path_entries_without_suffix
+        ):
             return entry  # not a path
         slash_p = entry.find("/")
         if slash_p == 0:  # abs path
@@ -82,14 +78,13 @@ class SonataConfig:
             return os.path.normpath(os.path.join(manifest["$__CONFIG_DIR"], entry))
         # Handle variable substitution
         if slash_p > -1:
-            var_name = entry[: slash_p]
+            var_name = entry[:slash_p]
             remaining = entry[slash_p:]
         else:
             var_name = entry  # just alias
             remaining = ""
         if var_name not in manifest:
-            raise Exception("Cant decode path entry {}. Unknown var {}"
-                            .format(entry, var_name))
+            raise Exception("Cant decode path entry {}. Unknown var {}".format(entry, var_name))
         return os.path.normpath(manifest[var_name] + remaining)
 
     @classmethod
@@ -112,7 +107,6 @@ class SonataConfig:
         "StimulusInject": "inputs",
         "Connection": "connection_overrides",
         "parsedConfigures": False,
-
         # Section fields
         # --------------
         "run": {
@@ -124,19 +118,16 @@ class SonataConfig:
             "tstart": "Start",
             "spike_threshold": "SpikeThreshold",
             "integration_method": "SecondOrder",
-            "electrodes_file": "LFPWeightsPath"
+            "electrodes_file": "LFPWeightsPath",
         },
-        "conditions": {
-            "randomize_gaba_rise_time": "randomize_Gaba_risetime"
-        },
-        "projection": {
-        },
+        "conditions": {"randomize_gaba_rise_time": "randomize_Gaba_risetime"},
+        "projection": {},
         "connection_overrides": {
             "target": "Destination",
             "modoverride": "ModOverride",
             "synapse_delay_override": "SynDelayOverride",
             "neuromodulation_dtc": "NeuromodDtc",
-            "neuromodulation_strength": "NeuromodStrength"
+            "neuromodulation_strength": "NeuromodStrength",
         },
         "inputs": {
             "module": "Pattern",
@@ -146,7 +137,7 @@ class SonataConfig:
             "node_set": "Target",  # for StimulusInject
             "source": "Source",  # for StimulusInject
             "sd_percent": "SDPercent",
-            "relative_skew": "RelativeSkew"
+            "relative_skew": "RelativeSkew",
         },
         "reports": {
             "type": "Type",
@@ -160,11 +151,9 @@ class SonataConfig:
             "start_time": "StartTime",
             "end_time": "EndTime",
             "file_name": "FileName",
-            "enabled": "Enabled"
+            "enabled": "Enabled",
         },
-        "modifications": {
-            "node_set": "Target"
-        }
+        "modifications": {"node_set": "Target"},
     }
 
     @property
@@ -209,7 +198,7 @@ class SonataConfig:
             if key == "Mechanisms":
                 for suffix, dict_var in value.items():
                     for name, val in dict_var.items():
-                        conditions[name+"_"+suffix] = val
+                        conditions[name + "_" + suffix] = val
             else:
                 conditions[key] = value
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
@@ -217,10 +206,7 @@ class SonataConfig:
 
     def _blueconfig_circuits(self):
         """yield blue-config-style circuits"""
-        node_info_to_circuit = {
-            "nodes_file": "CellLibraryFile",
-            "type": "PopulationType"
-        }
+        node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
         if "node_set" not in self._entries:
             logging.warning("Simulating all populations from all node files...")
@@ -237,7 +223,7 @@ class SonataConfig:
                 **{
                     node_info_to_circuit.get(key, key): value
                     for key, value in population_info.items()
-                }
+                },
             )
             node_prop = self.circuits.node_population_properties(node_pop_name)
             circuit_conf["MorphologyPath"] = node_prop.morphologies_dir
@@ -245,8 +231,9 @@ class SonataConfig:
             circuit_conf["METypePath"] = node_prop.biophysical_neuron_models_dir
             if node_prop.alternate_morphology_formats:
                 if "neurolucida-asc" in node_prop.alternate_morphology_formats:
-                    circuit_conf["MorphologyPath"] = \
-                        node_prop.alternate_morphology_formats["neurolucida-asc"]
+                    circuit_conf["MorphologyPath"] = node_prop.alternate_morphology_formats[
+                        "neurolucida-asc"
+                    ]
                     circuit_conf["MorphologyType"] = "asc"
                 elif "h5v1" in node_prop.alternate_morphology_formats:
                     circuit_conf["MorphologyPath"] = node_prop.alternate_morphology_formats["h5v1"]
@@ -301,7 +288,7 @@ class SonataConfig:
             electrical=ConnectionTypes.GapJunction,
             synapse_astrocyte=ConnectionTypes.NeuroGlial,
             endfoot=ConnectionTypes.GlioVascular,
-            neuromodulatory=ConnectionTypes.NeuroModulation
+            neuromodulatory=ConnectionTypes.NeuroModulation,
         )
         internal_edge_pops = set(c_conf["nrnPath"] for c_conf in self._bc_circuits.values())
         projections = {}
@@ -328,18 +315,21 @@ class SonataConfig:
                     Path=edge_pop_path,
                     Source=edge_pop.source + ":",
                     Destination=edge_pop.target + ":",
-                    Type=projection_type_convert.get(pop_type)
+                    Type=projection_type_convert.get(pop_type),
                 )
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
                 if projection.get("Type") == ConnectionTypes.NeuroGlial:
-                    projection["Source"], projection["Destination"] = projection["Destination"], \
-                        projection["Source"]
+                    projection["Source"], projection["Destination"] = (
+                        projection["Destination"],
+                        projection["Source"],
+                    )
                 if projection.get("Type") == ConnectionTypes.GlioVascular:
                     for node_file_info in self._circuit_networks["nodes"]:
                         for pop_name, pop_info in node_file_info["populations"].items():
                             if pop_info.get("type") == "vasculature":
-                                projection["VasculaturePath"] =\
+                                projection["VasculaturePath"] = (
                                     self.circuits.node_population_properties(pop_name).elements_path
+                                )
 
                 proj_name = "{0}__{1.source}-{1.target}".format(edge_pop_name, edge_pop)
                 projections[proj_name] = projection
@@ -352,8 +342,10 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        return {libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
-                for libsonata_conn in self._sim_conf.connection_overrides()}
+        return {
+            libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
+            for libsonata_conn in self._sim_conf.connection_overrides()
+        }
 
     @property
     def parsedStimuli(self):
@@ -362,19 +354,17 @@ class SonataConfig:
             "current_clamp": "Current",
             "voltage_clamp": "Voltage",
             "extracellular_stimulation": "Extracellular",
-            "conductance": "Conductance"
+            "conductance": "Conductance",
         }
-        _module_translation = {
-            "seclamp": "SEClamp",
-            "subthreshold": "SubThreshold"
-        }
+        _module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
         stimuli = {}
         for name in self._sim_conf.list_input_names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
-            stimulus["Pattern"] = _module_translation.get(stimulus["Pattern"],
-                                                          snake_to_camel(stimulus["Pattern"]))
+            stimulus["Pattern"] = _module_translation.get(
+                stimulus["Pattern"], snake_to_camel(stimulus["Pattern"])
+            )
             stimulus["Mode"] = _input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
         return stimuli
@@ -387,15 +377,12 @@ class SonataConfig:
         for name in self._sections["inputs"].keys():
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
-            injects["inject"+name] = inj
+            injects["inject" + name] = inj
         return injects
 
     @property
     def parsedReports(self):
-        _report_type_translation = {
-            "summation": "Summation",
-            "synapse": "Synapse"
-        }
+        _report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
         reports = {}
         for name in self._sim_conf.list_report_names:
             rep = self._translate_dict("reports", self._sim_conf.report(name))
@@ -418,13 +405,20 @@ class SonataConfig:
         return result
 
     def _dir(self, obj):
-        return [x for x in dir(obj) if not x.startswith('__') and not callable(getattr(obj, x))]
+        return [x for x in dir(obj) if not x.startswith("__") and not callable(getattr(obj, x))]
 
     def _adapt_libsonata_fields(self, rep):
         for key in rep:
             # Convert enums to its string representation
-            if key in ("Type", "Sections", "Scaling", "Compartments", "Mode", "Pattern",
-                       "SpikeLocation"):
+            if key in (
+                "Type",
+                "Sections",
+                "Scaling",
+                "Compartments",
+                "Mode",
+                "Pattern",
+                "SpikeLocation",
+            ):
                 if not isinstance(rep[key], str):
                     rep[key] = rep[key].name
             # Convert comma separated variable names to space separated
@@ -459,4 +453,4 @@ class SonataConfig:
 
 
 def snake_to_camel(word):
-    return ''.join(x.capitalize() or '_' for x in word.split('_'))
+    return "".join(x.capitalize() or "_" for x in word.split("_"))
