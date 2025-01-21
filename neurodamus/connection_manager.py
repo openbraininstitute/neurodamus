@@ -884,7 +884,7 @@ class ConnectionManagerBase:
             return
 
         tgid_offset = self.target_pop_offset
-        conn_populations: List[ConnectionSet] = (
+        conn_populations: list[ConnectionSet] = (
             (conn_population,) if conn_population is not None else self._populations.values()
         )
 

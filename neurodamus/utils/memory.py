@@ -467,7 +467,7 @@ class DryRunStats:
     @run_only_rank0
     def distribute_cells(
         self, num_ranks: int, cycles: int = 1, metype_file=None, batch_size=10
-    ) -> Tuple[dict, dict, dict]:
+    ) -> tuple[dict, dict, dict]:
         """Distributes cells across ranks and cycles based on their memory load.
 
         This function uses a greedy algorithm to distribute cells across ranks and cycles such that
@@ -583,7 +583,7 @@ class DryRunStats:
     @run_only_rank0
     def distribute_cells_with_validation(
         self, num_ranks, cycles=None, metype_file=None
-    ) -> Tuple[dict, dict, dict]:
+    ) -> tuple[dict, dict, dict]:
         """Wrapper function to distribute cells across the specified number of ranks and cycles,
         ensuring that each bucket (combination of rank and cycle) has at least one GID assigned.
         The function attempts to find a valid distribution with the initially calculated batch

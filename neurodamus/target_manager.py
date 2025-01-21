@@ -437,7 +437,7 @@ class _TargetInterface(ABC):
 
 
 class NodesetTarget(_TargetInterface):
-    def __init__(self, name, nodesets: List[_NodeSetBase], local_nodes=None, **_kw):
+    def __init__(self, name, nodesets: list[_NodeSetBase], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
