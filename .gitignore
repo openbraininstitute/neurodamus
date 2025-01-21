@@ -25,11 +25,8 @@ venv
 *.egg-info
 
 # tests and coverage
-htmlcov/*
 .coverage
 .tox
-junit.xml
-coverage.xml
 tests/output
 
 # Build and docs folder/files
