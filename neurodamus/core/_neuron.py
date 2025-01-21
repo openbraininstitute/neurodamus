@@ -205,7 +205,7 @@ class Simulation:
 
     def plot(self):
         try:
-            from matplotlib import pyplot
+            from matplotlib import pyplot as plt
         except Exception:
             logging.exception("Matplotlib is not installed. Please install pyneurodamus[full]")
             return
@@ -216,7 +216,7 @@ class Simulation:
             logging.error("No Simulation data. Please run it first.")
             return
 
-        fig = pyplot.figure()
+        fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)  # (nrows, ncols, axnum)
         for name, y in self.recordings.items():
             ax.plot(self.t_vec, y, label=name)

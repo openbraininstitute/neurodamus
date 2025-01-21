@@ -4,7 +4,7 @@ import logging
 import re
 from enum import Enum
 
-import numpy
+import numpy as np
 
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
@@ -288,8 +288,8 @@ class Connection(ConnectionBase):
 
         """
         n_synapses = len(synapses_params)
-        synapse_ids = numpy.arange(base_id, base_id + n_synapses, dtype="uint64")
-        mask = numpy.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
+        synapse_ids = np.arange(base_id, base_id + n_synapses, dtype="uint64")
+        mask = np.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
         for i, syn_params in enumerate(synapses_params):
             syn_point = target_manager.location_to_point(
                 self.tgid, syn_params["isec"], syn_params["ipt"], syn_params["offset"]
@@ -323,10 +323,10 @@ class Connection(ConnectionBase):
             self._synapse_params = synapses_params
             self._synapse_ids = synapse_ids
         else:
-            self._synapse_params = numpy.concatenate(
+            self._synapse_params = np.concatenate(
                 (self._synapse_params, synapses_params), dtype=self._synapse_params.dtype
             )
-            self._synapse_ids = numpy.concatenate((self._synapse_ids, synapse_ids))
+            self._synapse_ids = np.concatenate((self._synapse_ids, synapse_ids))
 
     # -
     def add_synapse(self, syn_tpoints, params_obj, syn_id=None):

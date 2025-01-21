@@ -10,7 +10,7 @@ from io import StringIO
 from os import path as ospath
 from pathlib import Path
 
-import numpy
+import numpy as np
 
 from .connection_manager import ConnectionManagerBase
 from .core import (
@@ -171,7 +171,7 @@ class CellManagerBase(_CellManager):
         return compat.hoc_vector(self.local_nodes.final_gids())
 
     def get_final_gids(self):
-        return numpy.array(self.local_nodes.final_gids())
+        return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
         if not ospath.isabs(circuit_conf.CellLibraryFile):
@@ -254,7 +254,7 @@ class CellManagerBase(_CellManager):
         logging.info(" -> Distributing target '%s' using Load-Balance", target_spec.name)
         self._binfo = load_balancer.load_balance_info(target_spec)
         # self._binfo has gidlist, but gids can appear multiple times
-        all_gids = numpy.unique(self._binfo.gids.as_numpy().astype("uint32"))
+        all_gids = np.unique(self._binfo.gids.as_numpy().astype("uint32"))
         total_cells = len(all_gids)
         gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
         return gidvec, me_infos, total_cells, full_size
@@ -264,7 +264,7 @@ class CellManagerBase(_CellManager):
 
         population = targetspec.population
         all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
-        all_gids = numpy.array(all_gids, dtype="uint32")
+        all_gids = np.array(all_gids, dtype="uint32")
         logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
         total_cells = len(all_gids)
         if total_cells == 0:
@@ -488,7 +488,7 @@ class GlobalCellManager(_CellManager):
         return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
 
     def get_final_gids(self):
-        return numpy.concatenate([man.get_final_gids() for man in self._cell_managers])
+        return np.concatenate([man.get_final_gids() for man in self._cell_managers])
 
     def _find_manager(self, gid):
         cell_managers_iter = iter(self._cell_managers)
@@ -915,7 +915,7 @@ class LoadBalance:
                 fp.write(line)  # raw lines, include \n
 
     # -
-    def _get_target_raw_gids(self, target_spec) -> numpy.ndarray:
+    def _get_target_raw_gids(self, target_spec) -> np.ndarray:
         return self._target_manager.get_target(target_spec).get_raw_gids()
 
     def load_balance_info(self, target_spec):

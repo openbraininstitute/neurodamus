@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import List
 
 import libsonata
-import numpy
+import numpy as np
 
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, find_input_file
@@ -411,7 +411,7 @@ class _TargetInterface(ABC):
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
         gids = self.get_raw_gids() if raw_gids else self.get_gids()
-        contained = numpy.isin(items, gids, kind="table")
+        contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 
     def intersects(self, other):
@@ -449,11 +449,11 @@ class NodesetTarget(_TargetInterface):
         """Retrieve the final gids of the nodeset target"""
         if not self.nodesets:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
-            return numpy.array([])
+            return np.array([])
         nodesets = sorted(self.nodesets, key=lambda n: n.offset)  # Get gids ascending
         gids = nodesets[0].final_gids()
         for extra_nodes in nodesets[1:]:
-            gids = numpy.append(gids, extra_nodes.final_gids())
+            gids = np.append(gids, extra_nodes.final_gids())
         return gids
 
     def get_raw_gids(self):
@@ -463,7 +463,7 @@ class NodesetTarget(_TargetInterface):
             return []
         if len(self.nodesets) > 1:
             raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return numpy.array(self.nodesets[0].raw_gids())
+        return np.array(self.nodesets[0].raw_gids())
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target
@@ -517,7 +517,7 @@ class NodesetTarget(_TargetInterface):
         else:
             gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
 
-        return numpy.concatenate(gids_groups) if gids_groups else numpy.empty(0)
+        return np.concatenate(gids_groups) if gids_groups else np.empty(0)
 
     def getPointList(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and

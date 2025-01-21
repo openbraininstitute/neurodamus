@@ -1,6 +1,6 @@
 import logging
 
-import numpy
+import numpy as np
 
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError
@@ -46,7 +46,7 @@ class LFPManager:
     def get_node_id_subsets(self, node_id, population_name):
         node_ids = self._lfp_file[population_name]["node_ids"]
         # Look for the index of the node_id
-        index = numpy.where(numpy.array(node_ids) == node_id)[0][0]
+        index = np.where(np.array(node_ids) == node_id)[0][0]
         offsets_dataset = self._lfp_file[population_name]["offsets"]
         electrodes_dataset = self._lfp_file["electrodes"][population_name]["scaling_factors"]
         index_low = offsets_dataset[index]

@@ -314,9 +314,9 @@ class SignalSource:
 
     # PLOTTING
     def plot(self, ylims=None):
-        from matplotlib import pyplot
+        from matplotlib import pyplot as plt
 
-        fig = pyplot.figure()
+        fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)  # (nrows, ncols, axnum)
         ax.plot(self.time_vec, self.stim_vec, label="Signal amplitude")
         ax.legend()

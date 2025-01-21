@@ -4,7 +4,7 @@ global overlapping
 
 from contextlib import contextmanager
 
-import numpy
+import numpy as np
 
 from ..utils import WeakList, compat
 from . import MPI
@@ -180,7 +180,7 @@ class _NodeSetBase:
         return NotImplemented
 
     def final_gids(self):
-        return numpy.add(self.raw_gids(), self._offset, dtype="uint32")
+        return np.add(self.raw_gids(), self._offset, dtype="uint32")
 
     def intersection(self, _other, _raw_gids=False):
         return NotImplemented
@@ -234,7 +234,7 @@ class NodeSet(_NodeSetBase):
         return len(self._gidvec)
 
     def raw_gids(self):
-        return numpy.asarray(self._gidvec, dtype="uint32")
+        return np.asarray(self._gidvec, dtype="uint32")
 
     def items(self, final_gid=False):
         offset_add = self._offset if final_gid else 0
@@ -249,10 +249,10 @@ class NodeSet(_NodeSetBase):
         """
         if self.population_name != other.population_name:
             return []
-        intersect = numpy.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
+        intersect = np.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
         if raw_gids:
             return intersect
-        return numpy.add(intersect, self._offset, dtype="uint32")
+        return np.add(intersect, self._offset, dtype="uint32")
 
     def clear_cell_info(self):
         self._gid_info = None
@@ -272,7 +272,7 @@ class SelectionNodeSet(_NodeSetBase):
         return self._size
 
     def raw_gids(self):
-        return numpy.add(self._selection.flatten(), 1, dtype="uint32")
+        return np.add(self._selection.flatten(), 1, dtype="uint32")
 
     def raw_gids_iter(self):
         for r_start, r_end in self._selection.ranges:
@@ -294,7 +294,7 @@ class SelectionNodeSet(_NodeSetBase):
             intersect = _ranges_overlap(self._selection.ranges, sel2.ranges, True, _quick_check)
         else:
             # Selection ranges are 0-based. We must bring gids to 0-based
-            base_gids = numpy.subtract(other.raw_gids(), 1, dtype="uint32")
+            base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
             intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
 
         if _quick_check:
@@ -303,9 +303,9 @@ class SelectionNodeSet(_NodeSetBase):
             if raw_gids:
                 # TODO: We should change the return type to be another `SelectionNodeSet`
                 # Like that we could still keep ranges internally and have PROPER API to get raw ids
-                return numpy.add(intersect, 1, dtype=intersect.dtype)
-            return numpy.add(intersect, self.offset + 1, dtype=intersect.dtype)
-        return numpy.array([], dtype="uint32")
+                return np.add(intersect, 1, dtype=intersect.dtype)
+            return np.add(intersect, self.offset + 1, dtype=intersect.dtype)
+        return np.array([], dtype="uint32")
 
     def intersects(self, other):
         return self.intersection(other, _quick_check=True)
@@ -358,7 +358,7 @@ def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dt
         return all_ranges
     if not all_ranges:
         return []
-    return numpy.concatenate([numpy.arange(*r, dtype=dtype) for r in all_ranges])
+    return np.concatenate([np.arange(*r, dtype=dtype) for r in all_ranges])
 
 
 def _ranges_vec_overlap(ranges1, vector, quick_check=False):
@@ -373,7 +373,7 @@ def _ranges_vec_overlap(ranges1, vector, quick_check=False):
     """
     if not ranges1 or len(vector) == 0:
         return []
-    vector = numpy.asarray(vector)
+    vector = np.asarray(vector)
     all_ranges = []
 
     for r1 in ranges1:
@@ -382,7 +382,7 @@ def _ranges_vec_overlap(ranges1, vector, quick_check=False):
         if vector[0] >= r1[1]:  # r2 past over end r1
             continue
         mask = (r1[0] <= vector) & (vector < r1[1])
-        if numpy.any(mask):
+        if np.any(mask):
             if quick_check:
                 return True
             all_ranges.append(vector[mask])
@@ -391,4 +391,4 @@ def _ranges_vec_overlap(ranges1, vector, quick_check=False):
         return False
     if not all_ranges:
         return []
-    return numpy.concatenate(all_ranges)
+    return np.concatenate(all_ranges)

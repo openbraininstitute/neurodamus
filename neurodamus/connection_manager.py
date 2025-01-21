@@ -7,7 +7,7 @@ from itertools import chain
 from os import path as ospath
 from typing import List, Optional
 
-import numpy
+import numpy as np
 
 from .connection import Connection, ReplayMode
 from .core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
@@ -173,7 +173,7 @@ class ConnectionSet:
     def delete_group(self, post_gids, pre_gids=None):
         """Removes a set of connections from the population."""
         for conns, indices in self._find_connections(post_gids, pre_gids):
-            conns[:] = numpy.delete(conns, indices, axis=0).tolist()
+            conns[:] = np.delete(conns, indices, axis=0).tolist()
             self._conn_count -= len(indices)
 
     def count(self):
@@ -197,8 +197,8 @@ class ConnectionSet:
         return (
             (
                 conns,
-                numpy.searchsorted(
-                    numpy.fromiter((c.sgid for c in conns), dtype="int64", count=len(conns)),
+                np.searchsorted(
+                    np.fromiter((c.sgid for c in conns), dtype="int64", count=len(conns)),
                     sgids_interest,
                 ),
             )
@@ -667,9 +667,9 @@ class ConnectionManagerBase:
             if gids is None:
                 gids = self._raw_gids
             else:
-                gids = numpy.intersect1d(gids, self._raw_gids)
+                gids = np.intersect1d(gids, self._raw_gids)
             if dst_target:
-                gids = numpy.intersect1d(gids, dst_target.get_raw_gids())
+                gids = np.intersect1d(gids, dst_target.get_raw_gids())
             return gids
 
         gids = target_gids(gids)
@@ -706,7 +706,7 @@ class ConnectionManagerBase:
             # The first row of a range is found by numpy.diff
 
             sgids = syns_params[syns_params.dtype.names[0]].astype("int64")  # src gid in field 0
-            sgids_ranges = numpy.diff(sgids, prepend=numpy.nan, append=numpy.nan).nonzero()[0]
+            sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
             conn_count = len(sgids_ranges) - 1
             conn_debugger = self.ConnDebugger()
 
@@ -789,7 +789,7 @@ class ConnectionManagerBase:
                 continue
 
             logging.debug("Metype %s", metype)
-            me_gids = numpy.fromiter(me_gids, dtype="uint32")
+            me_gids = np.fromiter(me_gids, dtype="uint32")
 
             # NOTE:
             # Process the first 100 cells from increasingly large blocks
@@ -819,7 +819,7 @@ class ConnectionManagerBase:
                 for tgid, tgid_conn_counts in sample_counts.items():
                     total_connections += len(tgid_conn_counts)
                     if src_target:
-                        conn_sgids = numpy.fromiter(tgid_conn_counts.keys(), dtype="uint32")
+                        conn_sgids = np.fromiter(tgid_conn_counts.keys(), dtype="uint32")
                         sgids_in_target = conn_sgids[src_target.contains(conn_sgids, raw_gids=True)]
                     else:
                         sgids_in_target = tgid_conn_counts.keys()
@@ -893,10 +893,10 @@ class ConnectionManagerBase:
 
         for population in conn_populations:
             logging.debug("Connections from population %s", population)
-            tgids = numpy.fromiter(population.target_gids(), "uint32")
-            tgids = numpy.intersect1d(tgids, dst_target.get_gids())
+            tgids = np.fromiter(population.target_gids(), "uint32")
+            tgids = np.intersect1d(tgids, dst_target.get_gids())
             if selected_gids:
-                tgids = numpy.intersect1d(tgids, selected_gids + tgid_offset)
+                tgids = np.intersect1d(tgids, selected_gids + tgid_offset)
             for conn in population.get_connections(tgids):
                 if src_target is None or conn.sgid in src_gids:
                     yield conn
@@ -1038,9 +1038,7 @@ class ConnectionManagerBase:
             ):
                 conn.enable()
                 delete_indexes.append(i)
-        self._disabled_conns[tgid] = numpy.delete(
-            self._disabled_conns[tgid], delete_indexes
-        ).tolist()
+        self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], delete_indexes).tolist()
 
     def reenable_all(self, post_gids=None):
         """Re-enables all disabled connections
@@ -1107,9 +1105,7 @@ class ConnectionManagerBase:
                     conn.enable()
                     to_delete.append(i)
 
-            self._disabled_conns[tgid] = numpy.delete(
-                self._disabled_conns[tgid], to_delete
-            ).tolist()
+            self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], to_delete).tolist()
 
     def get_disabled(self, post_gid=None):
         """Returns the list of disabled connections, optionally for a
