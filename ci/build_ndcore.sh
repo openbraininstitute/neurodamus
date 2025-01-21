@@ -11,12 +11,11 @@ if [ -d _lib ]; then
 fi
 
 # Get the common synapses
-COMMON_DIR=_common
+COMMON_DIR=neurodamus-models/common
 if [ -d "$COMMON_DIR" ]; then
     ( cd "$COMMON_DIR" && git pull --quiet )
 else
-    # TODO: fix this
-    # git clone git@bbpgitlab.epfl.ch:hpc/sim/models/common.git $COMMON_DIR  --depth=1
+    git clone git@github.com:BlueBrain/neurodamus-models.git neurodamus-models  --depth=1
 fi
 
 MOD_BUILD_DIR="mods.tmp"
