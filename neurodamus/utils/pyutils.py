@@ -34,9 +34,9 @@ def docopt_sanitize(docopt_opts):
     for key, val in docopt_opts.items():
         key = key.strip("<>-").replace("-", "_")
         if isinstance(val, str):
-            if val.lower() in ("off", "false"):
+            if val.lower() in {"off", "false"}:
                 val = False
-            elif val.lower() in ("on", "true"):
+            elif val.lower() in {"on", "true"}:
                 val = True
         opts[key] = val
     return opts

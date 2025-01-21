@@ -2,10 +2,7 @@
 
 from array import array
 
-try:
-    import collections.abc as collections_abc  # Py >= 3.3
-except ImportError:
-    import collections as collections_abc
+import collections.abc
 
 
 class Vector(array):
@@ -44,7 +41,7 @@ class List(list):
         return self[int(idx)]
 
 
-class Map(collections_abc.Mapping):
+class Map(collections.abc.Mapping):
     """Class which bring Python map API to hoc Maps"""
 
     __slots__ = ("String", "_hoc_map", "_size")

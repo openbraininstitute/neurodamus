@@ -618,7 +618,7 @@ def _validate_circuit_morphology(config_dict, required=True):
         morph_path = os.path.join(morph_path, "ascii")
         config_dict["MorphologyType"] = morph_type
         config_dict["MorphologyPath"] = morph_path
-    assert morph_type in ("asc", "swc", "h5", "hoc"), "Invalid MorphologyType"
+    assert morph_type in {"asc", "swc", "h5", "hoc"}, "Invalid MorphologyType"
     log_verbose(" > MorphologyType = %s, src: %s", morph_type, morph_path)
 
 
@@ -710,7 +710,7 @@ def _set_simulator(config: _SimConfig, run_conf):
 
     if simulator is None:
         run_conf["Simulator"] = simulator = "NEURON"
-    if simulator not in ("NEURON", "CORENEURON"):
+    if simulator not in {"NEURON", "CORENEURON"}:
         raise ConfigurationError("'Simulator' value must be either NEURON or CORENEURON")
     if simulator == "NEURON" and (
         user_config.build_model is False or user_config.simulate_model is False
@@ -727,7 +727,7 @@ def _set_simulator(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _spike_parameters(config: _SimConfig, run_conf):
     spike_location = run_conf.get("SpikeLocation", "soma")
-    if spike_location not in ["soma", "AIS"]:
+    if spike_location not in {"soma", "AIS"}:
         raise ConfigurationError("Possible options for SpikeLocation are 'soma' and 'AIS'")
     spike_threshold = run_conf.get("SpikeThreshold", -30)
     log_verbose("Spike_Location = %s", spike_location)
@@ -797,7 +797,7 @@ def _second_order(config: _SimConfig, run_conf):
     if second_order is None:
         return
     second_order = int(second_order)
-    if second_order in (0, 1, 2):
+    if second_order in {0, 1, 2}:
         from neuron import h
 
         log_verbose("SecondOrder = %g", second_order)
@@ -837,7 +837,7 @@ def _randomize_gaba_risetime(config: _SimConfig, run_conf):
             "Models don't support setting RandomizeGabaRiseTime. "
             "Please load a more recent model or drop the option."
         )
-    assert randomize_risetime in ("True", "False", "0", "false")  # any non-"True" value is negative
+    assert randomize_risetime in {"True", "False", "0", "false"}  # any non-"True" value is negative
     log_verbose("randomize_Gaba_risetime = %s", randomize_risetime)
     h.randomize_Gaba_risetime = randomize_risetime
 
@@ -887,7 +887,7 @@ def _output_root(config: _SimConfig, run_conf):
     """confirm output_path exists and is usable"""
     output_path = run_conf.get("OutputRoot")
 
-    if config.cli_options.output_path not in (None, output_path):
+    if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
@@ -1014,7 +1014,7 @@ def _check_model_build_mode(config: _SimConfig, run_conf):
     except FileNotFoundError:
         core_data_exists = False
 
-    if config.build_model in (None, "AUTO"):
+    if config.build_model in {None, "AUTO"}:
         # If enable-shm option is given we have to rebuild the model and delete any previous files
         # in /dev/shm or gpfs
         # In any case when we start model building any data in the core_data_location_shm if it
@@ -1105,7 +1105,7 @@ def _report_vars(config: _SimConfig, run_conf):
             )
 
         if config.use_coreneuron and rep_config["Type"] == "compartment":
-            if rep_config["ReportOn"] not in ("v", "i_membrane"):
+            if rep_config["ReportOn"] not in {"v", "i_membrane"}:
                 logging.warning(
                     "Compartment reports on vars other than v and i_membrane "
                     " are still not fully supported (CoreNeuron)"
@@ -1117,7 +1117,7 @@ def _report_vars(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _spikes_sort_order(config: _SimConfig, run_conf):
     order = run_conf.get("SpikesSortOrder", "by_time")
-    if order not in ["none", "by_time"]:
+    if order not in {"none", "by_time"}:
         raise ConfigurationError(
             f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
         )
@@ -1286,10 +1286,10 @@ def _input_resistance(config: _SimConfig, target_manager):
         if stim_inject is None:
             continue  # not injected, do not care
         target_name = stim_inject["Target"]
-        if stim["Mode"] == "Conductance" and stim["Pattern"] in [
+        if stim["Mode"] == "Conductance" and stim["Pattern"] in {
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",
-        ]:
+        }:
             # NOTE: use target_manager to read the population names of hoc or NodeSet targets
             target = target_manager.get_target(target_name)
             for population in target.population_names:

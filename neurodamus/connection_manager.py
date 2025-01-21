@@ -109,7 +109,7 @@ class ConnectionSet:
         if conns:
             # optimize for ordered insertion, and handle when sgid is not used
             last_conn = conns[-1]
-            if last_conn.sgid in (sgid, None):
+            if last_conn.sgid in {sgid, None}:
                 return last_conn
             if last_conn.sgid < sgid:
                 pos = len(conns)

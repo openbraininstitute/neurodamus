@@ -147,7 +147,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
         self.reversal = float(stim_info.get("Reversal", 0.0))  # reversal potential [mV]
 
-        if stim_info["Mode"] not in ["Current", "Conductance"]:
+        if stim_info["Mode"] not in {"Current", "Conductance"}:
             raise Exception(
                 f"{self.__class__.__name__} must be used with mode Current or Conductance"
             )
@@ -283,7 +283,7 @@ class ShotNoise(BaseStim):
         ShotNoise.stimCount += 1  # increment global count
 
     def parse_check_all_parameters(self, stim_info: dict):
-        if stim_info["Mode"] not in ["Current", "Conductance"]:
+        if stim_info["Mode"] not in {"Current", "Conductance"}:
             raise Exception(
                 f"{self.__class__.__name__} must be used with mode Current or Conductance"
             )

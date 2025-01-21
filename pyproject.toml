@@ -107,7 +107,9 @@ ignore = [
     "FIX002",  # Line contains TODO, consider resolving the issue
     "TD",      # TODOs
     "D415",    # First line should end with a period, question mark, or exclamation point
+    ### TODO: these are low priority to fix, but perhaps should be considered in the future
     "FBT002",  # Boolean default positional argument in function definition
+    "S101",    # Use of `assert` detected
     ### TODO: remove rules temporarily ignored
     "ANN",     # Missing type annotation
     "D301",    # Use `r"""` if any backslashes in a docstring

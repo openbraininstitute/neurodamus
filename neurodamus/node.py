@@ -176,7 +176,7 @@ class CircuitManager:
         src_manager = self.node_managers.get(source) or self.virtual_node_managers.get(source)
         if src_manager is None:  # src manager may not exist -> virtual
             log_verbose("No known population %s. Creating Virtual src for projection", source)
-            if conn_type not in (SynapseRuleManager, _ngv.GlioVascularManager):
+            if conn_type not in {SynapseRuleManager, _ngv.GlioVascularManager}:
                 raise ConfigurationError("Custom connections require instantiated source nodes")
             src_manager = VirtualCellPopulation(source, None, src_target.name)
 
@@ -1046,7 +1046,7 @@ class Node:
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
-        if rep_type not in ("compartment", "Summation", "Synapse", "lfp"):
+        if rep_type not in {"compartment", "Summation", "Synapse", "lfp"}:
             raise ConfigurationError(f"Unsupported report type: {rep_type}")
 
         # Go through the target members, one cell at a time. We give a cell reference

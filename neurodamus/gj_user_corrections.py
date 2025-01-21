@@ -65,7 +65,7 @@ def load_user_modifications(gj_manager):
         _deterministic_stoch(node_manager)
 
     # update gap conductance
-    if settings.get("procedure_type") in ["validation_sim", "find_holding_current"]:
+    if settings.get("procedure_type") in {"validation_sim", "find_holding_current"}:
         process_gap_conns = _update_conductance(gjc, gj_manager)
         all_ranks_total = MPI.allreduce(process_gap_conns, MPI.SUM)
         logging.info(f"Set GJc = {gjc} for {int(all_ranks_total)} gap synapses")

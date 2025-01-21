@@ -76,7 +76,7 @@ class TTX:
                 sec.ttxo_level_TTXDynamicsSwitch = 1.0
 
     def compartment_cast(self, target, subset):
-        if subset not in ("soma", "apic", "dend", ""):
+        if subset not in {"soma", "apic", "dend", ""}:
             raise Exception(f"Unknown subset {subset} in compartment_cast")
 
         wrapper = Nd.Target("temp", "Compartment")
@@ -118,7 +118,7 @@ class ConfigureAllSections:
             )
 
     def compartment_cast(self, target, subset):
-        if subset not in ("soma", "apic", "dend", ""):
+        if subset not in {"soma", "apic", "dend", ""}:
             raise Exception(f"Unknown subset {subset} in compartment_cast")
 
         wrapper = Nd.Target("temp", "Compartment")

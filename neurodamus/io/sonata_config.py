@@ -409,7 +409,7 @@ class SonataConfig:
     def _adapt_libsonata_fields(self, rep):
         for key in rep:
             # Convert enums to its string representation
-            if key in (
+            if key in {
                 "Type",
                 "Sections",
                 "Scaling",
@@ -417,7 +417,7 @@ class SonataConfig:
                 "Mode",
                 "Pattern",
                 "SpikeLocation",
-            ):
+            }:
                 if not isinstance(rep[key], str):
                     rep[key] = rep[key].name
             # Convert comma separated variable names to space separated

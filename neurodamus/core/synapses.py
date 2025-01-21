@@ -61,7 +61,7 @@ class _SpikeSource:
     @staticmethod
     def _setup_netcon(netcon, weight=None, **props):
         for key, val in props.items():
-            if val is not None and key in ["threshold", "delay"]:
+            if val is not None and key in {"threshold", "delay"}:
                 setattr(netcon, key, val)
         if isinstance(weight, dict):
             for idx, val in weight.items():
