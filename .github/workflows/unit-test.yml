@@ -25,3 +25,8 @@ jobs:
     - name: Run tox
       run: |
         tox -eunit
+
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: unit
