@@ -52,7 +52,6 @@ addopts = [
     "--import-mode=importlib",
     "-vv",
     "-ra",
-    "--cov=neurodamus",
 ]
 markers = ["slow: marks tests as slow"]
 
@@ -64,6 +63,7 @@ max-line-length = 100
 [tool.coverage.run]
 branch = false
 parallel = false
+relative_files = true
 source_pkgs = [
     "neurodamus",
 ]
