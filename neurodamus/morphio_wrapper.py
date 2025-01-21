@@ -1,13 +1,12 @@
-"""
-A wrapper for MorphIO objects. Provides additional neuron
+"""A wrapper for MorphIO objects. Provides additional neuron
 features on top of MorphIO basic morphology handling.
 """
 
-import os
 import logging
+import os
+
 import numpy as np
 from numpy.linalg import eig, norm
-
 
 """
     [START] Implementations retrieved from nse/morph-tool (!= hpc/morpho-tool !!!)
@@ -19,25 +18,23 @@ X, Y, Z, R = 0, 1, 2, 3
 
 def split_morphology_path(morphology_path):
     """Split `{collection_path}/{morph_name}.{ext}`"""
-
     if os.path.exists(morphology_path):
         collection_path = os.path.dirname(morphology_path)
         morph_name, morph_ext = os.path.splitext(os.path.basename(morphology_path))
         return collection_path, morph_name, morph_ext
 
-    else:
-        collection_path = morphology_path
-        while not os.path.exists(collection_path):
-            assert collection_path != os.path.dirname(collection_path), "Failed to split path."
-            collection_path = os.path.dirname(collection_path)
+    collection_path = morphology_path
+    while not os.path.exists(collection_path):
+        assert collection_path != os.path.dirname(collection_path), "Failed to split path."
+        collection_path = os.path.dirname(collection_path)
 
-        morph_name, morph_ext = os.path.splitext(os.path.relpath(morphology_path, collection_path))
+    morph_name, morph_ext = os.path.splitext(os.path.relpath(morphology_path, collection_path))
 
-        return collection_path, morph_name, morph_ext
+    return collection_path, morph_name, morph_ext
 
 
 def contourcenter(xyz):
-    """python implementation of NEURON code: lib/hoc/import3d/import3d_sec.hoc"""
+    """Python implementation of NEURON code: lib/hoc/import3d/import3d_sec.hoc"""
     # xyz = xyz.astype('d')
     # print(xyz.dtype)
     # print(xyz[0])
@@ -57,12 +54,10 @@ def contourcenter(xyz):
 
 
 def get_sides(points, major, minor):
-    """
-    Circular permutation of the points so that the point with the largest
+    """Circular permutation of the points so that the point with the largest
     coordinate along the major axis becomes the last point
     tobj = major.c.mul(d.x[i])  ###### uneeded? line 1191
     """
-
     major_coord, minor_coord = np.dot(points, major), np.dot(points, minor)
 
     imax = np.argmax(major_coord)
@@ -105,7 +100,7 @@ def make_convex(sides, rads):
 
 
 def contour2centroid(mean, points):
-    """this follows the function in
+    """This follows the function in
          lib/hoc/import3d/import3d_gui.hoc
     most of the comments are from there, so if you want to follow along, it should
     break up the function the same way
@@ -148,7 +143,8 @@ def contour2centroid(mean, points):
 
 def _to_sphere(neuron):
     """Convert a 3-pts cylinder or a 1-pt sphere into a circular
-    contour that represents the same sphere"""
+    contour that represents the same sphere
+    """
     radius = neuron.soma.diameters[0] / 2.0
     N = 20
     points = np.zeros((N, 3))
@@ -162,7 +158,8 @@ def _to_sphere(neuron):
 
 def single_point_sphere_to_circular_contour(neuron):
     """Transform a single point soma that represents a sphere
-    into a circular contour that represents the same sphere"""
+    into a circular contour that represents the same sphere
+    """
     logging.debug(
         "Converting 1-point soma (sperical soma) to circular contour representing the same sphere"
     )
@@ -175,9 +172,7 @@ def single_point_sphere_to_circular_contour(neuron):
 
 
 class MorphIOWrapper:
-    """
-    A class that wraps a MorphIO object and gets everything ready for HOC usage
-    """
+    """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
 
     morph = property(lambda self: self._morph)
     section_index2name_dict = property(lambda self: self._sec_idx2names)
@@ -195,9 +190,7 @@ class MorphIOWrapper:
         """Build immutable morphology, going trough mutable and applying neuron adjustemnts"""
         try:
             # Lazy import morphio since it has an issue with execl
-            from morphio import SomaType, Option
-            from morphio import Morphology
-            from morphio import Collection
+            from morphio import Collection, Morphology, Option, SomaType
         except ImportError as e:
             raise RuntimeError("MorphIO is not available") from e
 
@@ -208,9 +201,7 @@ class MorphIOWrapper:
         # Re-compute the soma points as they are computed in import3d_gui.hoc
         if self._morph.soma_type not in {SomaType.SOMA_SINGLE_POINT, SomaType.SOMA_SIMPLE_CONTOUR}:
             raise Exception(
-                "A H5 file morphology is not supposed to have a soma of type: {}".format(
-                    self._morph.soma_type
-                )
+                f"A H5 file morphology is not supposed to have a soma of type: {self._morph.soma_type}"
             )
         logging.debug(
             "(%s, %s, %s) has soma type : %s",
@@ -234,7 +225,6 @@ class MorphIOWrapper:
 
     def _build_sec_idx2names(self):
         """Build section index to nrn section names mapping on top of MorphIO section.id"""
-
         # soma is not accounted for in sections
         self._sec_idx2names[0] = "soma"
 
@@ -251,7 +241,6 @@ class MorphIOWrapper:
 
     def _build_sec_typeid_distrib(self):
         """Build typeid distribution on top of MorphIO section_types"""
-
         """
             This will hold np.array that will map the different type ids to the
             start id wrt to section_types and their count. For example, axon type(2)
@@ -282,7 +271,6 @@ class MorphIOWrapper:
 
     def morph_as_hoc(self):
         """Uses morphio object to read and generate hoc commands just like import3d_gui.hoc"""
-
         cmds = []
 
         """
@@ -296,7 +284,7 @@ class MorphIOWrapper:
         # generate create commands
         for [(type_id, count)] in self._sec_typeid_distrib[["type_id", "count"]]:
             tstr = self.type2name(type_id)
-            tstr1 = "create {}[{}]".format(tstr, count)
+            tstr1 = f"create {tstr}[{count}]"
             cmds.append(tstr1)
             tstr1 = self.mksubset(type_id, count, tstr)
             cmds.append(tstr1)
@@ -306,7 +294,7 @@ class MorphIOWrapper:
         # generate 3D soma points commands. Order is reversed wrt NEURON's soma points.
         cmds.extend(
             (
-                "soma {{ pt3dadd({:.8g}, {:.8g}, {:.8g}, {:.8g}) }}".format(p[0], p[1], p[2], d)
+                f"soma {{ pt3dadd({p[0]:.8g}, {p[1]:.8g}, {p[2]:.8g}, {d:.8g}) }}"
                 for p, d in zip(
                     reversed(self._morph.soma.points), reversed(self._morph.soma.diameters)
                 )
@@ -322,10 +310,10 @@ class MorphIOWrapper:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
                     tstr1 = self._sec_idx2names[parent_index]
-                    tstr1 = "{} connect {}(0), {}".format(tstr1, tstr, 1)
+                    tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
-                tstr1 = "soma connect {}(0), {}".format(tstr, 0.5)
+                tstr1 = f"soma connect {tstr}(0), {0.5}"
                 cmds.append(tstr1)
 
                 # pt3dstyle does not impact simulation numbers. This will be kept for x-reference.
@@ -335,7 +323,7 @@ class MorphIOWrapper:
 
             # 3D point info
             cmds.extend(
-                "{} {{ pt3dadd({:.8g}, {:.8g}, {:.8g}, {:.8g}) }}".format(tstr, p[0], p[1], p[2], d)
+                f"{tstr} {{ pt3dadd({p[0]:.8g}, {p[1]:.8g}, {p[2]:.8g}, {d:.8g}) }}"
                 for p, d in zip(sec.points, sec.diameters)
             )
 
@@ -350,37 +338,35 @@ class MorphIOWrapper:
 
     @classmethod
     def type2name(cls, type_id):
-        """
-        :param type_id: id of section type
+        """:param type_id: id of section type
         :return: name representation of the section type.
                  If not found in _type2name_dict, then default is:
                     if (type < 0): "minus_{}".format(-type)
                     else: "dend_{}".format(type)
         """
         return cls._type2name_dict.get(type_id) or (
-            "minus_{}".format(-type_id) if type_id < 0 else "dend_{}".format(type_id)
+            f"minus_{-type_id}" if type_id < 0 else f"dend_{type_id}"
         )
 
     _mksubset_dict = {1: "somatic", 2: "axonal", 3: "basal", 4: "apical"}
 
     @classmethod
     def mksubset(cls, type_id, freq, type_name):
-        """
-        :param type_id: id of section type
+        """:param type_id: id of section type
         :param freq: frequency of that section type id
         :param type_name: the name of the section type
         :return: command to append section type to subset
         """
         tstr = cls._mksubset_dict.get(type_id) or (
-            "minus_{}set".format(-type_id) if type_id < 0 else "dendritic_{}".format(type_id)
+            f"minus_{-type_id}set" if type_id < 0 else f"dendritic_{type_id}"
         )
 
-        tstr1 = 'forsec "{}" {}.append'.format(type_name, tstr)
+        tstr1 = f'forsec "{type_name}" {tstr}.append'
         return tstr1
 
     @classmethod
     def name(cls, type_id, index):
-        return "{}[{}]".format(cls.type2name(type_id), index)
+        return f"{cls.type2name(type_id)}[{index}]"
 
     """
         [END] Python versions of import3d_gui.hoc helper functions

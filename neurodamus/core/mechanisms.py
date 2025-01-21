@@ -1,10 +1,7 @@
-"""
-Module defining cell mechanisms
-"""
+"""Module defining cell mechanisms"""
 
-from __future__ import absolute_import
-from ._neuron import Neuron
 from ..utils import ConfigT
+from ._neuron import Neuron
 
 
 class Mechanism(ConfigT):
@@ -22,7 +19,7 @@ class Mechanism(ConfigT):
     def _apply_f(self, section, opts_dict):
         section.insert(self._mec_name)
         for key, val in opts_dict.items():
-            setattr(section, "{}_{}".format(key, self._mec_name), val)
+            setattr(section, f"{key}_{self._mec_name}", val)
 
     def apply(self, obj_or_list, **kw):
         if not isinstance(obj_or_list, Neuron.Section):

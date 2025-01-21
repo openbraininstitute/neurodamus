@@ -1,5 +1,4 @@
-"""
-Classes to represent a task's progress in the form of a progress bar.
+"""Classes to represent a task's progress in the form of a progress bar.
 
 Here is some basic usage with the default options:
 
@@ -34,13 +33,12 @@ And here another example with different options:
     100% [####################]
 """
 
-from __future__ import print_function
 import sys
 import time
 from itertools import islice
 
 
-class Progress(object):
+class Progress:
     """Progress class holds the progress information.
 
     It can be queried for the current progress, and overloads __repr__ for a simple display.
@@ -153,19 +151,18 @@ class ProgressBar(Progress):
         tty_bar=None,
         name="",
     ):
-        """
-        Args:
-            end:   State in which the progress has terminated. False for unknown (-> spinner)
-            start: State from which start the progress. For example, if start is
-                   5 and the end is 10, the progress of this state is 50%
-            width: bar length
-            fill:  String to use for "filled" used to represent the progress
-            blank: String to use for "filled" used to represent remaining space.
-            stream: the destination stream (default: stdout),
-            clear: whether to clear the current line or keep time info (and add '\n')
-            fmt: Bar format string
-            tty_bar: Controls whether the bar should be enhanced for text terminals.
-                Default: None (auto-detect), False, True
+        """Args:
+        end:   State in which the progress has terminated. False for unknown (-> spinner)
+        start: State from which start the progress. For example, if start is
+               5 and the end is 10, the progress of this state is 50%
+        width: bar length
+        fill:  String to use for "filled" used to represent the progress
+        blank: String to use for "filled" used to represent remaining space.
+        stream: the destination stream (default: stdout),
+        clear: whether to clear the current line or keep time info (and add '\n')
+        fmt: Bar format string
+        tty_bar: Controls whether the bar should be enhanced for text terminals.
+            Default: None (auto-detect), False, True
         """
         self._tty_mode = (
             (hasattr(stream, "isatty") and stream.isatty()) if tty_bar is None else tty_bar
@@ -183,9 +180,8 @@ class ProgressBar(Progress):
     def _bar_len_progress(self):
         if self._end is not False:
             ratio = self.completion_ratio
-            return int(self._width * ratio), "{}%".format(int(ratio * 100))
-        else:
-            return self.progress % self._width, str(self.progress)
+            return int(self._width * ratio), f"{int(ratio * 100)}%"
+        return self.progress % self._width, str(self.progress)
 
     def __str__(self):
         bar_len, progress = self._bar_len_progress()
@@ -206,7 +202,7 @@ class ProgressBar(Progress):
         bar_len, _ = self._bar_len_progress()
         if self._prev_bar_len is None or bar_len < self._prev_bar_len:
             # We need to produce a new bar.
-            self._stream.write("\r{}|".format(self._name))
+            self._stream.write(f"\r{self._name}|")
             self._prev_bar_len = 0
 
         if bar_len > self._prev_bar_len:
@@ -222,7 +218,7 @@ class ProgressBar(Progress):
             self._stream.write("\r{}\r".format(" " * (self._width + 8 + len(self._name))))
         else:
             # Output a nice stat about time taken
-            self._stream.write("| [Time taken: {:.2f} s]\n".format(self.time_taken))
+            self._stream.write(f"| [Time taken: {self.time_taken:.2f} s]\n")
 
     def _set_progress(self, val):
         Progress._set_progress(self, val)

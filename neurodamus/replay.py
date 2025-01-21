@@ -1,11 +1,10 @@
-"""
-Stimulus implementation where incoming synaptic events are replayed for a single gid
-"""
+"""Stimulus implementation where incoming synaptic events are replayed for a single gid"""
 
-from __future__ import absolute_import
-import os
 import logging
+import os
+
 import numpy
+
 from .utils.logging import log_verbose
 from .utils.multimap import GroupedMultiMap
 from .utils.timeit import timeit
@@ -36,7 +35,6 @@ class SpikeManager:
         # Nd.distributedSpikes = 0  # Wonder the effects of this
         self.open_spike_file(spike_filename, delay, population)
 
-    #
     def open_spike_file(self, filename, delay, population=None):
         """Opens a given spike file.
 
@@ -113,7 +111,6 @@ class SpikeManager:
 
         return tvec, gidvec
 
-    #
     def _store_events(self, tvec, gidvec):
         """Stores the events in the _gid_fire_events GroupedMultiMap.
 
@@ -168,5 +165,3 @@ class SpikeManager:
 
 class MissingSpikesPopulationError(Exception):
     """An exception triggered when a given node population is not found, we may want to handle"""
-
-    pass

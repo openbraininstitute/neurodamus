@@ -4,7 +4,7 @@ import os
 from time import strftime
 
 from .core import Cell
-from .utils.logging import setup_logging, log_stage, log_verbose
+from .utils.logging import log_stage, log_verbose, setup_logging
 from .utils.progressbar import ProgressBar
 
 FASTHOC_DIRNAME = "_fasthoc"
@@ -18,7 +18,7 @@ def process_file(file_tuple):
         with open(dst_file, "w") as f:
             for cmd in c._commands:
                 if hasattr(cmd, "s"):
-                    f.write(cmd.s[1:] if cmd.s.startswith("~") else cmd.s)
+                    f.write(cmd.s.removeprefix("~"))
                 else:
                     f.write(cmd + "\n")
     except Exception as e:
@@ -27,7 +27,7 @@ def process_file(file_tuple):
     return src_file
 
 
-class Hocify(object):
+class Hocify:
     fasthoclogfile = "hocify-{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
 
     def __init__(self, morpho_path, neuron_nframe, log_level, output_dir, **_user_opts):

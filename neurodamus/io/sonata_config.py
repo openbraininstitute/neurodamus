@@ -1,12 +1,11 @@
-"""
-Module to load configuration from a libsonata config
-"""
+"""Module to load configuration from a libsonata config"""
 
 import json
-import libsonata
 import logging
 import os.path
 from enum import Enum
+
+import libsonata
 
 
 class ConnectionTypes(str, Enum):
@@ -19,15 +18,15 @@ class ConnectionTypes(str, Enum):
 
 class SonataConfig:
     __slots__ = (
-        "_entries",
-        "_sections",
+        "_bc_circuits",
+        "_circuit_networks",
         "_config_dir",
         "_config_json",
+        "_entries",
         "_resolved_manifest",
-        "circuits",
-        "_circuit_networks",
+        "_sections",
         "_sim_conf",
-        "_bc_circuits",
+        "circuits",
     )
 
     _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
@@ -84,7 +83,7 @@ class SonataConfig:
             var_name = entry  # just alias
             remaining = ""
         if var_name not in manifest:
-            raise Exception("Cant decode path entry {}. Unknown var {}".format(entry, var_name))
+            raise Exception(f"Cant decode path entry {entry}. Unknown var {var_name}")
         return os.path.normpath(manifest[var_name] + remaining)
 
     @classmethod
@@ -205,7 +204,7 @@ class SonataConfig:
         return {"Conditions": conditions}
 
     def _blueconfig_circuits(self):
-        """yield blue-config-style circuits"""
+        """Yield blue-config-style circuits"""
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
         if "node_set" not in self._entries:
@@ -254,7 +253,7 @@ class SonataConfig:
                 for edge_pop_name in edge_config["populations"].keys():
                     edge_storage = self.circuits.edge_population(edge_pop_name)
                     edge_type = self.circuits.edge_population_properties(edge_pop_name).type
-                    inner_pop_name = "{0}__{0}__chemical".format(node_pop_name)
+                    inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
                     if edge_pop_name == inner_pop_name or (
                         edge_storage.source == edge_storage.target == node_pop_name
                         and edge_type == "chemical"
@@ -331,7 +330,7 @@ class SonataConfig:
                                     self.circuits.node_population_properties(pop_name).elements_path
                                 )
 
-                proj_name = "{0}__{1.source}-{1.target}".format(edge_pop_name, edge_pop)
+                proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
         return projections

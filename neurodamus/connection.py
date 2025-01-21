@@ -1,13 +1,13 @@
-"""
-Implementation of the core Connection classes
-"""
+"""Implementation of the core Connection classes"""
 
 import logging
-import numpy
 import re
 from enum import Enum
+
+import numpy
+
 from .core import NeurodamusCore as Nd
-from .core.configuration import GlobalConfig, SimConfig, ConfigurationError
+from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .utils import compat
 from .utils.logging import log_all
 from .utils.pyutils import append_recarray
@@ -41,25 +41,23 @@ class NetConType(Enum):
 
 
 class ConnectionBase:
-    """
-    The Base implementation for cell connections identified by src-dst gids
-    """
+    """The Base implementation for cell connections identified by src-dst gids"""
 
     __slots__ = (
-        "sgid",
-        "tgid",
-        "locked",
-        "_disabled",
-        "_synapse_params",
-        "_netcons",
-        "_synapses",
         "_delay_vec",
         "_delayweight_vec",
-        "weight_factor",
-        "syndelay_override",
-        "_syn_offset",
-        "_src_pop_id",
+        "_disabled",
         "_dst_pop_id",
+        "_netcons",
+        "_src_pop_id",
+        "_syn_offset",
+        "_synapse_params",
+        "_synapses",
+        "locked",
+        "sgid",
+        "syndelay_override",
+        "tgid",
+        "weight_factor",
     )
 
     def __init__(
@@ -187,22 +185,21 @@ class ConnectionBase:
 # Connection class
 # ----------------------------------------------------------------------
 class Connection(ConnectionBase):
-    """
-    A Connection object serves as a container for synapses formed from
+    """A Connection object serves as a container for synapses formed from
     a presynaptic and a postsynaptic gid, including Points where those
     synapses are placed (stored in TPointList)
     """
 
     __slots__ = (
-        "minis_spont_rate",
-        "_spont_minis",
-        "_replay",
-        "_mod_override",
-        "_synapse_ids",
-        "_configurations",
         "_conductances_bk",
-        "_synapse_sections",
+        "_configurations",
+        "_mod_override",
+        "_replay",
+        "_spont_minis",
+        "_synapse_ids",
         "_synapse_points_x",
+        "_synapse_sections",
+        "minis_spont_rate",
     )
 
     _AMPANMDA_Helper = None
@@ -290,7 +287,6 @@ class Connection(ConnectionBase):
          - base_id: The synapse base id, usually absolute offset
 
         """
-
         n_synapses = len(synapses_params)
         synapse_ids = numpy.arange(base_id, base_id + n_synapses, dtype="uint64")
         mask = numpy.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
@@ -302,7 +298,9 @@ class Connection(ConnectionBase):
             section = syn_point.sclst[0]
 
             if section is None or not section.exists():
-                target_point_str = "({0.isec:.0f} {0.ipt:.0f} {0.offset:.4f})".format(syn_params)
+                target_point_str = (
+                    f"({syn_params.isec:.0f} {syn_params.ipt:.0f} {syn_params.offset:.4f})"
+                )
                 logging.warning(
                     "SKIPPED Synapse %s on gid %d. Src gid: %d. Deleted TPoint %s",
                     base_id + i,
@@ -456,7 +454,7 @@ class Connection(ConnectionBase):
         # Set global options in mod overrides
         for mod_override in self._mod_overrides:
             for syn_option, value in SimConfig.synapse_options.items():
-                syn_opt_name = "{}_{}".format(syn_option, mod_override)
+                syn_opt_name = f"{syn_option}_{mod_override}"
                 if hasattr(Nd.h, syn_opt_name):
                     setattr(Nd.h, syn_opt_name, value)
 
@@ -464,11 +462,8 @@ class Connection(ConnectionBase):
         return n_syns
 
     def _init_artificial_stims(self, cell, replay_mode=ReplayMode.AS_REQUIRED):
-        shall_create_replay = (
-            replay_mode == ReplayMode.COMPLETE
-            or replay_mode == ReplayMode.AS_REQUIRED
-            and self._replay
-            and self._replay.has_data()
+        shall_create_replay = replay_mode == ReplayMode.COMPLETE or (
+            replay_mode == ReplayMode.AS_REQUIRED and self._replay and self._replay.has_data()
         )
 
         # Release objects if not needed
@@ -700,7 +695,7 @@ class Connection(ConnectionBase):
 class ArtificialStim:
     """Base class for artificial Stims, namely Replay and Minis"""
 
-    __slots__ = ("netstims", "netcons")
+    __slots__ = ("netcons", "netstims")
 
     _bbss = None
     """SaveState object. Initialized on first use"""
@@ -725,7 +720,7 @@ class ArtificialStim:
 class SpontMinis(ArtificialStim):
     """A class creating/holding spont minis of a connection"""
 
-    __slots__ = ("_rng_info", "_keep_alive", "rate_vec")
+    __slots__ = ("_keep_alive", "_rng_info", "rate_vec")
 
     tbins_vec = None
     """Neurodamus uses a constant rate, so tbin is always containing only 0
@@ -805,7 +800,7 @@ class SpontMinis(ArtificialStim):
         )
 
     def __bool__(self):
-        """object is considered False in case rate is not positive"""
+        """Object is considered False in case rate is not positive"""
         return bool(self.get_rate())
 
     def __del__(self):
@@ -839,7 +834,7 @@ class InhExcSpontMinis(SpontMinis):
         return (super().get_rate(), self.rate_vec_exc[0] if self.rate_vec_exc is not None else None)
 
     def __bool__(self):
-        """object is considered False in case no rate is positive"""
+        """Object is considered False in case no rate is positive"""
         return any(self.get_rate())
 
 

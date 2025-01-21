@@ -1,8 +1,5 @@
-"""
-Runtime configuration
-"""
+"""Runtime configuration"""
 
-from __future__ import absolute_import
 import logging
 import os
 import os.path
@@ -28,16 +25,13 @@ class LogLevel:
 
 
 class ConfigurationError(Exception):
-    """
-    Error due to invalid settings in simulation config
+    """Error due to invalid settings in simulation config
     ConfigurationError should be raised by all ranks to be caught
     properly. Otherwise we might end up with deadlocks.
     For Exceptions that are raised by a single rank Exception
     should be used.
     This is due to the way Exceptions are caught from commands.py.
     """
-
-    pass
 
 
 class GlobalConfig:
@@ -182,7 +176,7 @@ class LoadBalanceMode(Enum):
             lb_mode = LoadBalanceMode.RoundRobin
             reason = "Single rank - not worth using Load Balance"
         elif use_neuron and MPI.size >= auto_params.multisplit_cpu_cell_ratio * cell_count:
-            logging.warn(
+            logging.warning(
                 "There's potentially a high number of empty ranks. "
                 "To activate multi-split set --lb-mode=MultiSplit"
             )
@@ -196,10 +190,8 @@ class LoadBalanceMode(Enum):
         return lb_mode, reason
 
 
-class _SimConfig(object):
-    """
-    A class initializing several HOC config objects and proxying to simConfig
-    """
+class _SimConfig:
+    """A class initializing several HOC config objects and proxying to simConfig"""
 
     __slots__ = ()
     config_file = None
@@ -769,7 +761,7 @@ _condition_checks = {
 @SimConfig.validator
 def _simulator_globals(config: _SimConfig, run_conf):
     if not hasattr(config._simulation_config, "Conditions"):
-        return None
+        return
     from neuron import h
 
     # Hackish but some constants only live in the helper
@@ -780,7 +772,7 @@ def _simulator_globals(config: _SimConfig, run_conf):
             validator = _condition_checks.get(key)
             if validator:
                 config_exception = validator[1] or ConfigurationError(
-                    "Value {} not valid for key {}. Allowed: {}".format(value, key, validator[0])
+                    f"Value {value} not valid for key {key}. Allowed: {validator[0]}"
                 )
                 if value not in validator[0]:
                     raise config_exception
@@ -805,7 +797,7 @@ def _simulator_globals(config: _SimConfig, run_conf):
 def _second_order(config: _SimConfig, run_conf):
     second_order = run_conf.get("SecondOrder")
     if second_order is None:
-        return None
+        return
     second_order = int(second_order)
     if second_order in (0, 1, 2):
         from neuron import h
@@ -880,8 +872,7 @@ def _current_dir(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _output_root(config: _SimConfig, run_conf):
     def check_oputput_directory(output_dir):
-        """
-        Checks if output directory exists and is a directory.
+        """Checks if output directory exists and is a directory.
         If it doesn't exists create it.
         This logic is based in old utility.mod.
         """
@@ -1004,9 +995,9 @@ def _check_model_build_mode(config: _SimConfig, run_conf):
     if config.use_coreneuron is False:
         if config.build_model is False:
             raise ConfigurationError("Skipping model build is only available with CoreNeuron")
-        else:  # was None
-            config.build_model = True
-            return
+        # was None
+        config.build_model = True
+        return
 
     # CoreNeuron restore is a bit special and already had its input dir checked
     if config.restore:
@@ -1018,7 +1009,7 @@ def _check_model_build_mode(config: _SimConfig, run_conf):
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        with open(os.path.join(config.output_root, "sim.conf"), "r") as f:
+        with open(os.path.join(config.output_root, "sim.conf")) as f:
             core_data_exists = "datpath='/dev/shm/" not in f.read() and os.path.isfile(
                 os.path.join(core_data_location, "files.dat")
             )
@@ -1072,13 +1063,13 @@ def _model_building_steps(config: _SimConfig, run_conf):
     if user_config.modelbuilding_steps is not None:
         ncycles = int(user_config.modelbuilding_steps)
     else:
-        return None
+        return
 
     assert ncycles > 0, "ModelBuildingSteps set to 0. Required value > 0"
 
     if not SimConfig.use_coreneuron:
         logging.warning("IGNORING ModelBuildingSteps since simulator is not CORENEURON")
-        return None
+        return
 
     if "CircuitTarget" not in run_conf:
         raise ConfigurationError(
@@ -1218,7 +1209,7 @@ def check_connections_configure(SimConfig, target_manager):
             logging.info(
                 " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
                 "(base)" if not conn.get("_overrides") else " ^",
-                "{0[_name]}  {0[Source]} -> {0[Destination]}".format(conn),
+                f"{conn['_name']}  {conn['Source']} -> {conn['Destination']}",
                 conn.get("Weight", "-"),
                 conn.get("SpontMinis", "-"),
                 ", ".join(get_syn_config_vars(conn)),

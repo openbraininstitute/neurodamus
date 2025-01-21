@@ -1,17 +1,14 @@
-"""
-Stimuli sources. inc current and conductance sources which can be attached to cells
-"""
+"""Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
-from __future__ import absolute_import
+import logging
+
 from . import Neuron
 from .random import RNG, gamma
-import logging
 
 
 class SignalSource:
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
-        """
-        Creates a new signal source, which can create composed signals
+        """Creates a new signal source, which can create composed signals
         Args:
             base_amp: The base (resting) amplitude of the signal (Default: 0)
             rng: The Random Number Generator. Used in the Noise functions
@@ -112,6 +109,7 @@ class SignalSource:
 
     def add_sin(self, amp, total_duration, freq, step=0.025, **kw):
         """Builds a sinusoidal signal.
+
         Args:
             amp: The max amplitude of the wave
             total_duration: Total duration, in ms
@@ -133,7 +131,7 @@ class SignalSource:
         return self
 
     def add_sinspec(self, start, dur):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def add_pulses(self, pulse_duration, amp, *more_amps, **kw):
         """Appends a set of pulsed signals without returning to zero
@@ -176,8 +174,7 @@ class SignalSource:
         return self
 
     def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):
-        """
-        Adds a Poisson shot noise signal with gamma-distributed amplitudes and
+        """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
         bi-exponential impulse response.
 
         tau_D: bi-exponential decay time [ms]
@@ -188,7 +185,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import sqrt, exp, log
+        from math import exp, log, sqrt
 
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
@@ -269,8 +266,7 @@ class SignalSource:
         return self
 
     def add_ornstein_uhlenbeck(self, tau, sigma, mean, duration, dt=0.25):
-        """
-        Adds an Ornstein-Uhlenbeck process with given correlation time,
+        """Adds an Ornstein-Uhlenbeck process with given correlation time,
         standard deviation and mean value.
 
         tau: correlation time [ms], white noise if zero
@@ -279,7 +275,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import sqrt, exp
+        from math import exp, sqrt
 
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
@@ -369,9 +365,7 @@ class CurrentSource(SignalSource):
     _all_sources = []
 
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, physical_electrode=False):
-        """
-        Creates a new current source that injects a signal under IClamp
-        """
+        """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
             base_amp, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
         )
@@ -451,8 +445,7 @@ class ConductanceSource(SignalSource):
     _all_sources = []
 
     def __init__(self, reversal=0.0, *, delay=0.0, rng=None, physical_electrode=False):
-        """
-        Creates a new conductance source that injects a conductance by driving
+        """Creates a new conductance source that injects a conductance by driving
         the rs of an SEClamp at a given reversal potential.
 
         reversal: reversal potential of conductance (mV)

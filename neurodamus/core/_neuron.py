@@ -1,23 +1,20 @@
-"""
-Internal module which defines several wrapper classes for Hoc entities.
+"""Internal module which defines several wrapper classes for Hoc entities.
 They are then available as singletons objects in neurodamus.core package
 """
 
-from __future__ import absolute_import
 import logging
 import os  # os.environ
 import os.path
 from contextlib import contextmanager
-from .configuration import NeuronStdrunDefaults
-from .configuration import GlobalConfig
-from .configuration import SimConfig
+
 from ..utils import classproperty
+from .configuration import GlobalConfig, NeuronStdrunDefaults, SimConfig
 
 
 #
 # Singleton, instantiated right below
 #
-class _Neuron(object):
+class _Neuron:
     """A wrapper over the neuron simulator."""
 
     __name__ = "_Neuron"
@@ -40,8 +37,7 @@ class _Neuron(object):
         if mpi:
             GlobalConfig.set_mpi()
 
-        from neuron import h
-        from neuron import nrn
+        from neuron import h, nrn
 
         cls.__cache = {}
         cls._h = h
@@ -81,7 +77,7 @@ class _Neuron(object):
         rc = h.nrn_load_dll(dll_path)
         if rc == 0:
             raise RuntimeError(
-                "Cant load MOD dll {}. Please check LD path and dependencies".format(dll_path)
+                f"Cant load MOD dll {dll_path}. Please check LD path and dependencies"
             )
 
     @contextmanager
@@ -143,7 +139,7 @@ Neuron = _Neuron()
 """A singleton wrapper for the Neuron library"""
 
 
-class HocEntity(object):
+class HocEntity:
     _hoc_cls = None
     _hoc_obj = None
     _hoc_cldef = """
@@ -169,7 +165,7 @@ endtemplate {cls_name}
         return self._hoc_obj
 
 
-class Simulation(object):
+class Simulation:
     # Some defaults from stdrun
     v_init = NeuronStdrunDefaults.v_init  # -65V
 
@@ -211,14 +207,14 @@ class Simulation(object):
         try:
             from matplotlib import pyplot
         except Exception:
-            logging.error("Matplotlib is not installed. Please install pyneurodamus[full]")
-            return None
+            logging.exception("Matplotlib is not installed. Please install pyneurodamus[full]")
+            return
         if len(self.recordings) == 0:
             logging.error("No recording sections defined")
-            return None
+            return
         if not self.t_vec:
             logging.error("No Simulation data. Please run it first.")
-            return None
+            return
 
         fig = pyplot.figure()
         ax = fig.add_subplot(1, 1, 1)  # (nrows, ncols, axnum)
@@ -228,7 +224,7 @@ class Simulation(object):
         fig.show()
 
 
-class MComplexLoadBalancer(object):
+class MComplexLoadBalancer:
     """Wrapper of the load balance Hoc Module with mcomplex."""
 
     def __init__(self, force_regenerate=False):

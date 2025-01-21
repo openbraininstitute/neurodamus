@@ -1,16 +1,14 @@
-"""
-Collection of core helpers / utilities
-"""
+"""Collection of core helpers / utilities"""
 
-from __future__ import absolute_import
 import time
 from array import array
 from datetime import timedelta
 from functools import wraps
 from inspect import Signature, signature
-from ._mpi import MPI
+
 from ..utils import progressbar
 from . import NeurodamusCore as Nd
+from ._mpi import MPI
 
 
 class ProgressBarRank0(progressbar.Progress):
@@ -74,8 +72,7 @@ class run_only_rank0:
 
 class SimulationProgress:
     def __init__(self):
-        """
-        Class which will set up a timer to perioducally check the amount of time lapsed
+        """Class which will set up a timer to perioducally check the amount of time lapsed
         in the simulation compared to the final tstop value. This is converted into a percentage
         of the job complete which is then printed to the console.
         """
@@ -84,8 +81,7 @@ class SimulationProgress:
         self.update_progress()
 
     def update_progress(self):
-        """
-        Callback function that refreshes the progress value (if enough time has elapsed) and then
+        """Callback function that refreshes the progress value (if enough time has elapsed) and then
         inserts the next call into the event queue.
         """
         current_time = time.time()

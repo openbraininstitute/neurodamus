@@ -1,22 +1,19 @@
-"""
-Module which defines and handles METypes config (v5/v6 cells)
-"""
+"""Module which defines and handles METypes config (v5/v6 cells)"""
 
-from __future__ import absolute_import, print_function
 import logging
 from abc import abstractmethod
 from os import path as ospath
-from .core.configuration import ConfigurationError, SimConfig
-from .core import NeurodamusCore as Nd
+
 import numpy as np
+
+from .core import NeurodamusCore as Nd
+from .core.configuration import ConfigurationError, SimConfig
 
 
 class BaseCell:
-    """
-    Class representing an basic cell, e.g. an artificial cell
-    """
+    """Class representing an basic cell, e.g. an artificial cell"""
 
-    __slots__ = ("_cellref", "_ccell", "raw_gid")
+    __slots__ = ("_ccell", "_cellref", "raw_gid")
 
     def __init__(self, gid, cell_info, circuit_info):
         self._cellref = None
@@ -40,9 +37,7 @@ class BaseCell:
 
 
 class METype(BaseCell):
-    """
-    Class representing an METype. Will instantiate a Hoc-level cell as well
-    """
+    """Class representing an METype. Will instantiate a Hoc-level cell as well"""
 
     morpho_extension = "asc"
     """The extension to be applied to morphology files"""
@@ -50,15 +45,15 @@ class METype(BaseCell):
     KEEP_AXON_FLAG = 400
 
     __slots__ = (
-        "_threshold_current",
+        "_emodel_name",
         "_hypAmp_current",
         "_netcons",
-        "_synapses",
         "_syn_helper_list",
-        "_emodel_name",
+        "_synapses",
+        "_threshold_current",
         "exc_mini_frequency",
-        "inh_mini_frequency",
         "extra_attrs",
+        "inh_mini_frequency",
     )
 
     def __init__(self, gid, etype_path, emodel, morpho_path, meinfos=None, detailed_axon=False):
@@ -92,7 +87,6 @@ class METype(BaseCell):
     @abstractmethod
     def _instantiate_cell(self, *args):
         """Method which instantiates the cell in the simulator"""
-        pass
 
     @property
     def synlist(self):
@@ -195,7 +189,7 @@ class Cell_V6(METype):
                 "To use local_to_global_coord_mapping please "
                 "run neurodamus with `enable_coord_mapping=True`"
             )
-        elif self.local_to_global_matrix is None:
+        if self.local_to_global_matrix is None:
             raise Exception("Nodes don't provide all 3d position/rotation info")
         return vector_rotate_translate(points, self.local_to_global_matrix)
 
@@ -210,8 +204,7 @@ class Cell_V6(METype):
 
 
 class EmptyCell(BaseCell):
-    """
-    Class representing an empty cell, e.g. an artificial cell
+    """Class representing an empty cell, e.g. an artificial cell
     Workaround for the neuron issue https://github.com/neuronsimulator/nrn/issues/635
     """
 
@@ -257,24 +250,24 @@ class PointCell:
 # --------
 
 
-class METypeItem(object):
+class METypeItem:
     """Metadata about an METype, each possibly used by several cells."""
 
     __slots__ = (
-        "morph_name",
-        "layer",
-        "fullmtype",
-        "etype",
-        "emodel_tpl",
+        "add_params",
         "combo_name",
+        "emodel_tpl",
+        "etype",
+        "exc_mini_frequency",
+        "extra_attrs",
+        "fullmtype",
+        "holding_current",
+        "inh_mini_frequency",
+        "layer",
+        "local_to_global_matrix",
+        "morph_name",
         "mtype",
         "threshold_current",
-        "holding_current",
-        "exc_mini_frequency",
-        "inh_mini_frequency",
-        "add_params",
-        "local_to_global_matrix",
-        "extra_attrs",
     )
 
     def __init__(

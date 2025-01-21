@@ -1,10 +1,7 @@
-"""
-High-Level wrapper to Neuron's cell synapse mechanisms
-"""
+"""High-Level wrapper to Neuron's cell synapse mechanisms"""
 
 from ..utils import ConfigT
 from . import Neuron
-
 
 # -------------------------
 # Synapse (receptor) config
@@ -55,10 +52,10 @@ class Exp2Syn(_SynapseReceptor):
 # ----------------------------------
 
 
-class _SpikeSource(object):
+class _SpikeSource:
     def connect_to(self, synapse_receptor, weights=None, threshold=None, delay=None):
         """Creates a synapse connection"""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @staticmethod
     def _setup_netcon(netcon, weight=None, **props):
@@ -74,9 +71,7 @@ class _SpikeSource(object):
 
 
 class VirtualSpikeSource(ConfigT, _SpikeSource):
-    """
-    Uses Neuron NetStim to create an artificial spike source
-    """
+    """Uses Neuron NetStim to create an artificial spike source"""
 
     interval = None  # ms (mean) time between spikes
     number = None  # number of spikes
@@ -90,9 +85,7 @@ class VirtualSpikeSource(ConfigT, _SpikeSource):
                 garbage-collection at the expense of some extra memory [default: True]
         """
         self._netstim = Neuron.h.NetStim()
-        ConfigT.__init__(
-            self, **{"interval": interval, "number": number, "start": start, "noise": noise}
-        )
+        ConfigT.__init__(self, interval=interval, number=number, start=start, noise=noise)
         self.apply(self._netstim)
         self._managed_objs = manage_objs
         self._objs = []

@@ -1,7 +1,6 @@
 # https://bbpteam.epfl.ch/project/spaces/display/BGLIB/Neurodamus
 # Copyright 2005-2021 Blue Brain Project, EPFL. All rights reserved.
-"""
-Implements coupling artificial stimulus into simulation
+"""Implements coupling artificial stimulus into simulation
 
 New Stimulus classes must be registered, using the appropriate decorator.
 Also, when instantiated by the framework, __init__ is passed three arguments
@@ -19,16 +18,15 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 """
 
 import logging
-from .core import NeurodamusCore as Nd
+
+from .core import NeurodamusCore as Nd, random
+from .core.configuration import ConfigurationError, SimConfig
+from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose
-from .core.configuration import SimConfig, ConfigurationError
-from .core.stimuli import CurrentSource, ConductanceSource
-from .core import random
 
 
 class StimulusManager:
-    """
-    A manager for synaptic artificial Stimulus.
+    """A manager for synaptic artificial Stimulus.
     Old stimulus resort to hoc implementation
     """
 
@@ -76,9 +74,7 @@ class StimulusManager:
 
 
 class BaseStim:
-    """
-    Barebones stimulus class
-    """
+    """Barebones stimulus class"""
 
     IsNoise = False
 
@@ -90,9 +86,7 @@ class BaseStim:
 
 @StimulusManager.register_type
 class OrnsteinUhlenbeck(BaseStim):
-    """
-    Ornstein-Uhlenbeck process, injected as current or conductance
-    """
+    """Ornstein-Uhlenbeck process, injected as current or conductance"""
 
     IsNoise = True
     stimCount = 0  # global count for seeding
@@ -103,7 +97,7 @@ class OrnsteinUhlenbeck(BaseStim):
         self.stimList = []  # sources go here
 
         if not self.parse_check_all_parameters(stim_info):
-            return None  # nothing to do, stim is a no-op
+            return  # nothing to do, stim is a no-op
 
         # setup random seeds
         seed1 = OrnsteinUhlenbeck.stimCount + 2997  # stimulus block seed
@@ -188,8 +182,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
 @StimulusManager.register_type
 class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
-    """
-    Ornstein-Uhlenbeck process, injected as current or conductance,
+    """Ornstein-Uhlenbeck process, injected as current or conductance,
     relative to cell threshold current or inverse input resistance
     """
 
@@ -226,8 +219,7 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
 
 @StimulusManager.register_type
 class ShotNoise(BaseStim):
-    """
-    ShotNoise stimulus handler implementing Poisson shot noise
+    """ShotNoise stimulus handler implementing Poisson shot noise
     with bi-exponential response and gamma-distributed amplitudes
     """
 
@@ -240,7 +232,7 @@ class ShotNoise(BaseStim):
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
-            return None  # nothing to do, stim is a no-op
+            return  # nothing to do, stim is a no-op
 
         # setup random seeds
         seed1 = ShotNoise.stimCount + 2997  # stimulus block seed
@@ -326,9 +318,7 @@ class ShotNoise(BaseStim):
         return True
 
     def parse_check_stim_parameters(self, stim_info: dict):
-        """
-        Parse parameters for ShotNoise stimulus
-        """
+        """Parse parameters for ShotNoise stimulus"""
         # event rate of Poisson process [Hz]
         self.rate = float(stim_info["Rate"])
 
@@ -350,8 +340,7 @@ class ShotNoise(BaseStim):
         pass
 
     def params_from_mean_sd(self, mean, sd):
-        """
-        Compute bi-exponential shot noise parameters from desired mean and std. dev. of signal.
+        """Compute bi-exponential shot noise parameters from desired mean and std. dev. of signal.
 
         Analytical result derived from a generalization of Campbell's theorem present in
         Rice, S.O., "Mathematical Analysis of Random Noise", BSTJ 23, 3 Jul 1944.
@@ -389,8 +378,7 @@ class ShotNoise(BaseStim):
 
 @StimulusManager.register_type
 class RelativeShotNoise(ShotNoise):
-    """
-    RelativeShotNoise stimulus handler, same as ShotNoise
+    """RelativeShotNoise stimulus handler, same as ShotNoise
     but parameters relative to cell threshold current or inverse input resistance
     """
 
@@ -400,9 +388,7 @@ class RelativeShotNoise(ShotNoise):
         super().__init__(target, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info: dict):
-        """
-        Parse parameters for RelativeShotNoise stimulus
-        """
+        """Parse parameters for RelativeShotNoise stimulus"""
         # signal mean as percent of cell's threshold [1],
         # when negative we invert the sign of the current
         self.mean_perc = float(stim_info["MeanPercent"])
@@ -438,8 +424,7 @@ class RelativeShotNoise(ShotNoise):
 
 @StimulusManager.register_type
 class AbsoluteShotNoise(ShotNoise):
-    """
-    AbsoluteShotNoise stimulus handler, same as ShotNoise
+    """AbsoluteShotNoise stimulus handler, same as ShotNoise
     but parameters from given mean and std. dev.
     """
 
@@ -449,9 +434,7 @@ class AbsoluteShotNoise(ShotNoise):
         super().__init__(target, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info: dict):
-        """
-        Parse parameters for AbsoluteShotNoise stimulus
-        """
+        """Parse parameters for AbsoluteShotNoise stimulus"""
         # signal mean [nA]
         self.mean = float(stim_info["Mean"])
 
@@ -473,9 +456,7 @@ class AbsoluteShotNoise(ShotNoise):
 
 @StimulusManager.register_type
 class Linear(BaseStim):
-    """
-    Injects a linear current ramp.
-    """
+    """Injects a linear current ramp."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -483,7 +464,7 @@ class Linear(BaseStim):
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
-            return None  # nothing to do, stim is a no-op
+            return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
@@ -525,9 +506,7 @@ class Linear(BaseStim):
 
 @StimulusManager.register_type
 class Hyperpolarizing(Linear):
-    """
-    Injects a constant step with a cell's hyperpolarizing current.
-    """
+    """Injects a constant step with a cell's hyperpolarizing current."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -543,9 +522,7 @@ class Hyperpolarizing(Linear):
 
 @StimulusManager.register_type
 class RelativeLinear(Linear):
-    """
-    Injects a linear current ramp relative to cell threshold.
-    """
+    """Injects a linear current ramp relative to cell threshold."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -568,9 +545,7 @@ class RelativeLinear(Linear):
 
 @StimulusManager.register_type
 class SubThreshold(Linear):
-    """
-    Injects a current step at some percent below a cell's threshold.
-    """
+    """Injects a current step at some percent below a cell's threshold."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -590,9 +565,7 @@ class SubThreshold(Linear):
 
 @StimulusManager.register_type
 class Noise(BaseStim):
-    """
-    Inject a noisy (gaussian) current step, relative to cell threshold or not.
-    """
+    """Inject a noisy (gaussian) current step, relative to cell threshold or not."""
 
     IsNoise = True
     stimCount = 0  # global count for seeding
@@ -697,9 +670,7 @@ class Noise(BaseStim):
 
 @StimulusManager.register_type
 class Pulse(BaseStim):
-    """
-    Inject a pulse train with given amplitude, frequency and width.
-    """
+    """Inject a pulse train with given amplitude, frequency and width."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -707,7 +678,7 @@ class Pulse(BaseStim):
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
-            return None  # nothing to do, stim is a no-op
+            return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
@@ -740,9 +711,7 @@ class Pulse(BaseStim):
 
 @StimulusManager.register_type
 class Sinusoidal(BaseStim):
-    """
-    Inject a sinusoidal current with given amplitude and frequency.
-    """
+    """Inject a sinusoidal current with given amplitude and frequency."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -750,7 +719,7 @@ class Sinusoidal(BaseStim):
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
-            return None  # nothing to do, stim is a no-op
+            return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
@@ -786,9 +755,7 @@ class Sinusoidal(BaseStim):
 
 @StimulusManager.register_type
 class SEClamp(BaseStim):
-    """
-    Apply a single electrode voltage clamp.
-    """
+    """Apply a single electrode voltage clamp."""
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)

@@ -1,17 +1,17 @@
-"""
-Implementation of Gid Sets with the ability of self offsetting and avoid
+"""Implementation of Gid Sets with the ability of self offsetting and avoid
 global overlapping
 """
 
 from contextlib import contextmanager
+
 import numpy
-from ..utils import compat, WeakList
+
+from ..utils import WeakList, compat
 from . import MPI
 
 
 class PopulationNodes:
-    """
-    Handle NodeSets belonging to a population. Given that Neuron doesnt
+    """Handle NodeSets belonging to a population. Given that Neuron doesnt
     inherently handle populations, we will have to apply gid offsetting.
     The class stores `NodeSet`s, and makes the required offsetting on-the-fly.
 
@@ -139,9 +139,7 @@ class PopulationNodes:
 
 
 class _NodeSetBase:
-    """
-    Common bits between nodesets, so they can be registered globally and get offsets
-    """
+    """Common bits between nodesets, so they can be registered globally and get offsets"""
 
     def __init__(self, *_, **_kw):
         self._offset = 0
@@ -261,9 +259,7 @@ class NodeSet(_NodeSetBase):
 
 
 class SelectionNodeSet(_NodeSetBase):
-    """
-    A lightweight shim over a `libsonata.Selection` so that gids get offset
-    """
+    """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
 
     def __init__(self, sonata_selection):
         super().__init__()
@@ -316,8 +312,7 @@ class SelectionNodeSet(_NodeSetBase):
 
 
 def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dtype="uint32"):
-    """
-    Detect overlaps between two lists of ranges.
+    """Detect overlaps between two lists of ranges.
     This is especially important for nodesets since we can access the ranges in no time
     without the need to flatten and consume GBs of memory
 
@@ -328,7 +323,6 @@ def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dt
         quick_check: Whether to short-circuit and return True if any overlap exists
         dtype: The output dtype in case flattened_out is requested [default: "uint32"]
     """
-
     if not ranges1 or not ranges2:
         return []
 
@@ -368,8 +362,7 @@ def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dt
 
 
 def _ranges_vec_overlap(ranges1, vector, quick_check=False):
-    """
-    Detect overlaps between a list of ranges and a vector of ints
+    """Detect overlaps between a list of ranges and a vector of ints
     This is particularly used to know the overlap between a SelectionNodeSet and a list
     of gids, e.g. the list of local gids.
 

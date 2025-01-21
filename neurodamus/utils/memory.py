@@ -1,27 +1,24 @@
-"""
-Collection of utility functions related to clearing the used memory in neurodamus-py or NEURON
-"""
+"""Collection of utility functions related to clearing the used memory in neurodamus-py or NEURON"""
 
 import ctypes
 import ctypes.util
+import gzip
+import heapq
+import json
 import logging
 import math
-import os
-import json
-import psutil
 import multiprocessing
-import heapq
+import os
 import pickle
-import gzip
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Tuple
 
-from ..core import MPI, NeurodamusCore as Nd, run_only_rank0
-from .compat import Vector
-from collections import defaultdict
-from ..io.sonata_config import ConnectionTypes
-
 import numpy as np
+import psutil
+
+from ..core import MPI, NeurodamusCore as Nd, run_only_rank0
+from ..io.sonata_config import ConnectionTypes
+from .compat import Vector
 
 # The factor to multiply the cell + synapses memory usage by to get the simulation memory estimate.
 # This is an heuristic estimate based on tests on multiple circuits.
@@ -31,8 +28,7 @@ MAX_ALLOCATION_STEPS = 10  # Maximum number of steps to reduce the batch size in
 
 
 def trim_memory():
-    """
-    malloc_trim - release free memory from the heap (back to the OS)
+    """malloc_trim - release free memory from the heap (back to the OS)
 
     * We should only run malloc_trim if we are using the default glibc memory allocator.
     When using a custom allocator such as jemalloc, this could cause unexpected behavior
@@ -42,7 +38,6 @@ def trim_memory():
     released back to the system, or 0 if it was not possible to
     release any memory.
     """
-
     if os.getenv("LD_PRELOAD") and "jemalloc" in os.getenv("LD_PRELOAD"):
         logging.warning(
             "malloc_trim works only with the default glibc memory allocator. "
@@ -57,13 +52,12 @@ def trim_memory():
             if memory_trimmed:
                 logging.info("malloc_trim: memory released back to the system.")
         except (OSError, AttributeError):
-            logging.error("Unable to call malloc_trim.")
+            logging.exception("Unable to call malloc_trim.")
             logging.info("malloc_trim: not possible to release any memory.")
 
 
 def pool_shrink():
-    """
-    Shrink NEURON ArrayPools to the exact size still being used by NEURON.
+    """Shrink NEURON ArrayPools to the exact size still being used by NEURON.
     This is useful when clearing all the Nodes from NEURON (cells and synapses) and the underlying
     data structures holding the data of their mechanisms need to be shrinked down since they are
     not used any more.
@@ -80,8 +74,7 @@ def pool_shrink():
 
 
 def free_event_queues():
-    """
-    Apart from the NEURON SelfEventQueue and TQItem pools being clear we also free them from any
+    """Apart from the NEURON SelfEventQueue and TQItem pools being clear we also free them from any
     memory still referencing to.
     """
     try:
@@ -133,7 +126,6 @@ def get_task_level_mem_usage():
 
 def print_task_level_mem_usage():
     """Print statistics of the memory usage per MPI task."""
-
     min_usage_mb, max_usage_mb, avg_usage_mb, dev_usage_mb = get_task_level_mem_usage()
 
     logging.info(
@@ -146,67 +138,56 @@ def print_task_level_mem_usage():
 
 
 def print_mem_usage():
-    """
-    Print memory usage information across all ranks.
-    """
-
+    """Print memory usage information across all ranks."""
     print_node_level_mem_usage()
     print_task_level_mem_usage()
 
 
 def get_mem_usage_kb():
-    """
-    Return memory usage information across all ranks, in KiloBytes
-    """
+    """Return memory usage information across all ranks, in KiloBytes"""
     usage_kb = psutil.Process(os.getpid()).memory_info().rss / 1024
 
     return usage_kb
 
 
 def pretty_printing_memory_mb(memory_mb):
-    """
-    A simple function that given a memory usage in MB
+    """A simple function that given a memory usage in MB
     returns a string with the most appropriate unit.
     """
     if memory_mb < 1024:
         return "%.2lf MB" % memory_mb
-    elif memory_mb < 1024**2:
+    if memory_mb < 1024**2:
         return "%.2lf GB" % (memory_mb / 1024)
-    elif memory_mb < 1024**3:
+    if memory_mb < 1024**3:
         return "%.2lf TB" % (memory_mb / 1024**2)
-    else:
-        return "%.2lf PB" % (memory_mb / 1024**3)
+    return "%.2lf PB" % (memory_mb / 1024**3)
 
 
 @run_only_rank0
 def print_allocation_stats(rank_memory):
-    """
-    Print statistics of the memory allocation across ranks.
+    """Print statistics of the memory allocation across ranks.
 
     Args:
         rank_memory (dict): A dictionary where keys are rank IDs
                             and values are the total memory load on each rank.
     """
-    logging.debug("Total memory per rank/cycle: {}".format(rank_memory))
+    logging.debug(f"Total memory per rank/cycle: {rank_memory}")
     import statistics
 
     for pop, rank_dict in rank_memory.items():
         values = list(rank_dict.values())
-        logging.info("Population: {}".format(pop))
-        logging.info("Mean allocation per rank [KB]: {}".format(round(statistics.mean(values))))
+        logging.info(f"Population: {pop}")
+        logging.info(f"Mean allocation per rank [KB]: {round(statistics.mean(values))}")
         try:
             stdev = round(statistics.stdev(values))
         except statistics.StatisticsError:
             stdev = 0
-        logging.info("Stdev of allocation per rank [KB]: {}".format(stdev))
+        logging.info(f"Stdev of allocation per rank [KB]: {stdev}")
 
 
 @run_only_rank0
 def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
-    """
-    Export allocation dictionary to a serialized pickle file.
-    """
-
+    """Export allocation dictionary to a serialized pickle file."""
     compressed_data = gzip.compress(pickle.dumps(rank_allocation))
     new_filename = f"{filename}_r{ranks}_c{cycles}.pkl.gz"
     with open(new_filename, "wb") as f:
@@ -215,21 +196,15 @@ def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
 
 @run_only_rank0
 def export_metype_memory_usage(memory_per_metype, memory_per_metype_file):
-    """
-    Export memory per METype dictionary to a JSON file.
-    """
-
+    """Export memory per METype dictionary to a JSON file."""
     with open(memory_per_metype_file, "w") as f:
         json.dump(memory_per_metype, f, indent=4)
 
 
 @run_only_rank0
 def import_metype_memory_usage(memory_per_metype_file):
-    """
-    Import memory per METype dictionary from a JSON file.
-    """
-
-    with open(memory_per_metype_file, "r") as f:
+    """Import memory per METype dictionary from a JSON file."""
+    with open(memory_per_metype_file) as f:
         memory_per_metype = json.load(f)
 
     return memory_per_metype
@@ -237,9 +212,7 @@ def import_metype_memory_usage(memory_per_metype_file):
 
 @run_only_rank0
 def allocation_stats_exists(filename):
-    """
-    Check if the allocation stats file exists.
-    """
+    """Check if the allocation stats file exists."""
     return os.path.exists(filename)
 
 
@@ -285,9 +258,7 @@ class DryRunStats:
         _, _, self.base_memory, _ = get_task_level_mem_usage()
 
     def import_allocation_stats(self, filename, cycle_i=0, ignore_cache=False) -> dict:
-        """
-        Import allocation dictionary from serialized pickle file.
-        """
+        """Import allocation dictionary from serialized pickle file."""
 
         def convert_to_standard_types(obj):
             """Converts an object containing defaultdicts of Vectors to standard Python types."""
@@ -332,9 +303,7 @@ class DryRunStats:
             metype_total = count * metype_mem
             memory_total += metype_total
             log_verbose(
-                "| {:<40s} | {:10.2f} | {:10.0f} | {:10.1f} |".format(
-                    metype, metype_mem, count, metype_total
-                )
+                f"| {metype:<40s} | {metype_mem:10.2f} | {count:10.0f} | {metype_total:10.1f} |"
             )
         log_verbose("+{:-^81}+".format(""))
         self.cell_memory_total = memory_total
@@ -361,7 +330,7 @@ class DryRunStats:
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
-        with open(self._MEMORY_USAGE_FILENAME, "r") as fp:
+        with open(self._MEMORY_USAGE_FILENAME) as fp:
             self.metype_memory = json.load(fp)
 
     def collect_display_syn_counts(self):
@@ -383,7 +352,7 @@ class DryRunStats:
             mem_mb = SynapseMemoryUsage.get_memory_usage(count, syn_type) / 1024
             self.synapse_memory_total += mem_mb
             mem_str = pretty_printing_memory_mb(mem_mb)
-            log_verbose("| {:<40s} | {:10.0f} | {:>10s} |".format(str(syn_type), count, mem_str))
+            log_verbose(f"| {syn_type!s:<40s} | {count:10.0f} | {mem_str:>10s} |")
 
         log_verbose("+{:-^68}+".format(""))  # Close table
         logging.info(" - TOTAL : %s", pretty_printing_memory_mb(self.synapse_memory_total))
@@ -413,25 +382,21 @@ class DryRunStats:
         logging.info("+{:-^57}+".format(""))
 
     def total_memory_available():
-        """
-        Returns the total memory available in the system in MB
-        """
+        """Returns the total memory available in the system in MB"""
         try:
             virtual_memory = psutil.virtual_memory()
             return virtual_memory.total / (1024 * 1024)  # Total available memory in MB
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.exception(f"Error: {e}")
             return None
 
     @run_only_rank0
     def suggest_nodes(self, margin):
-        """
-        A function to calculate the suggested number of nodes to run the simulation
+        """A function to calculate the suggested number of nodes to run the simulation
         The function takes into account the fact that the memory overhead is
         variable with the amount of ranks the simulation it's ran with.
         One can also specify a custom margin to add to the memory usage.
         """
-
         try:
             ranks_per_node = os.cpu_count()
         except AttributeError:
@@ -465,8 +430,7 @@ class DryRunStats:
 
     @run_only_rank0
     def display_node_suggestions(self):
-        """
-        Display suggestions for how many nodes are approximately
+        """Display suggestions for how many nodes are approximately
         necessary to run the simulation based on the memory available
         on the current node.
         """
@@ -493,22 +457,18 @@ class DryRunStats:
         )
 
     def get_num_target_ranks(self, num_ranks):
-        """
-        Return the number of ranks to target for dry-run load balancing
-        """
+        """Return the number of ranks to target for dry-run load balancing"""
         if num_ranks is None:
             logging.info("No number of ranks specified. Using suggested number of nodes.")
             logging.info("Detected number of physical cores: %d", psutil.cpu_count(logical=False))
             return self.suggested_nodes * psutil.cpu_count(logical=False)
-        else:
-            return int(num_ranks)
+        return int(num_ranks)
 
     @run_only_rank0
     def distribute_cells(
         self, num_ranks: int, cycles: int = 1, metype_file=None, batch_size=10
     ) -> Tuple[dict, dict, dict]:
-        """
-        Distributes cells across ranks and cycles based on their memory load.
+        """Distributes cells across ranks and cycles based on their memory load.
 
         This function uses a greedy algorithm to distribute cells across ranks and cycles such that
         the total memory load is balanced. Cells with higher memory load are distributed first.
@@ -527,7 +487,6 @@ class DryRunStats:
             metype_memory_usage (dict): A dictionary where keys are METype IDs
                                         and values are the memory load of each METype.
         """
-
         self.validate_inputs_distribute(num_ranks, batch_size)
         bucket_allocation = defaultdict(DryRunStats.defaultdict_vector)
         bucket_memory = defaultdict(DryRunStats.defaultdict_float)
@@ -545,9 +504,9 @@ class DryRunStats:
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
             logging.debug("Assigning batch to bucket (%d, %d)", rank_id, cycle_id)
-            rank_allocation[(rank_id, cycle_id)].extend(batch)
+            rank_allocation[rank_id, cycle_id].extend(batch)
             total_memory += batch_memory
-            rank_memory[(rank_id, cycle_id)] = total_memory
+            rank_memory[rank_id, cycle_id] = total_memory
             heapq.heappush(buckets, (total_memory, (rank_id, cycle_id)))
 
         # Loop over ALL the gids which would be instantiated, per metype
@@ -601,8 +560,7 @@ class DryRunStats:
         # assert all_metypes <= syn_count_metypes, all_metypes - syn_count_metypes
 
     def check_all_buckets_have_gids(self, bucket_allocation, population, num_ranks, cycles):
-        """
-        Checks if all possible buckets determined by num_ranks and cycles have at least one GID
+        """Checks if all possible buckets determined by num_ranks and cycles have at least one GID
         assigned.
 
         Args:
@@ -626,8 +584,7 @@ class DryRunStats:
     def distribute_cells_with_validation(
         self, num_ranks, cycles=None, metype_file=None
     ) -> Tuple[dict, dict, dict]:
-        """
-        Wrapper function to distribute cells across the specified number of ranks and cycles,
+        """Wrapper function to distribute cells across the specified number of ranks and cycles,
         ensuring that each bucket (combination of rank and cycle) has at least one GID assigned.
         The function attempts to find a valid distribution with the initially calculated batch
         sizes, raising an error if no distribution is found.

@@ -1,6 +1,6 @@
 import itertools
 import logging
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import List
 
@@ -9,7 +9,7 @@ import numpy
 
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, find_input_file
-from .core.nodeset import _NodeSetBase, NodeSet, SelectionNodeSet
+from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
 from .utils.logging import log_verbose
 
@@ -86,9 +86,7 @@ class TargetSpec:
 
 class TargetManager:
     def __init__(self, run_conf):
-        """
-        Initializes a new TargetManager
-        """
+        """Initializes a new TargetManager"""
         self._run_conf = run_conf
         self._cell_manager = None
         self._targets = {}
@@ -174,11 +172,9 @@ class TargetManager:
             self.register_target(target)
             return get_concrete_target(target)
 
-        raise ConfigurationError(
-            "Target {} can't be loaded. Check target sources".format(target_name)
-        )
+        raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
-    @lru_cache()
+    @lru_cache
     def intersecting(self, target1, target2):
         """Checks whether two targets intersect"""
         target1_spec = TargetSpec(target1)
@@ -222,8 +218,7 @@ class TargetManager:
         return target.getPointList(self._cell_manager, **kw)
 
     def getMETypes(self, target_name):
-        """
-        Convenience function for objects like StimulusManager to get access to METypes of cell
+        """Convenience function for objects like StimulusManager to get access to METypes of cell
         objects without having a direct line to the CellDistributor object.
 
         :param target_name: Target Name to get the GIDs and collect references to cell MEtypes
@@ -240,8 +235,7 @@ class TargetManager:
         return result_list
 
     def gid_to_sections(self, gid):
-        """
-        For a given gid, return a list of section references stored for random access.
+        """For a given gid, return a list of section references stored for random access.
         If the list does not exist, it is built and stored for future use.
 
         :param gid: GID of the cell
@@ -260,8 +254,7 @@ class TargetManager:
         return result_serial
 
     def location_to_point(self, gid, isec, ipt, offset):
-        """
-        Given a location for a cell, section id, segment id, and offset into the segment,
+        """Given a location for a cell, section id, segment id, and offset into the segment,
         create a list containing a section reference to there.
 
         :param gid: GID of the cell
@@ -271,8 +264,7 @@ class TargetManager:
         :return: List with 1 item, where the synapse should go
         """
         # Soma connection, just zero it
-        if offset < 0:
-            offset = 0
+        offset = max(offset, 0)
 
         result_point = TPointList(gid)
         cell_sections = self.gid_to_sections(gid)
@@ -314,9 +306,7 @@ class TargetManager:
 
 
 class NodeSetReader:
-    """
-    Implements reading Sonata Nodesets
-    """
+    """Implements reading Sonata Nodesets"""
 
     def __init__(self, config_nodeset_file, simulation_nodesets_file):
         def _load_nodesets_from_file(nodeset_file):
@@ -375,10 +365,8 @@ class NodeSetReader:
         return NodesetTarget(nodeset_name, nodesets)
 
 
-class _TargetInterface(metaclass=ABCMeta):
-    """
-    Methods that target/target wrappers should implement
-    """
+class _TargetInterface(ABC):
+    """Methods that target/target wrappers should implement"""
 
     @abstractmethod
     def gid_count(self):
@@ -394,8 +382,7 @@ class _TargetInterface(metaclass=ABCMeta):
 
     @abstractmethod
     def __contains__(self, final_gid):
-        """
-        Checks if a gid (with offset) is present in this target.
+        """Checks if a gid (with offset) is present in this target.
         All gids are taken into consideration, not only this ranks.
         """
         return NotImplemented
@@ -447,7 +434,6 @@ class _TargetInterface(metaclass=ABCMeta):
 
     def update_local_nodes(self, _local_nodes):
         """Allows setting the local gids"""
-        pass
 
 
 class NodesetTarget(_TargetInterface):
@@ -536,6 +522,7 @@ class NodesetTarget(_TargetInterface):
     def getPointList(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
+
         Args:
             cell_manager: a cell manager or global cell manager
             sections: section type, such as "soma", "axon", "dend", "apic" and "all",
@@ -562,7 +549,7 @@ class NodesetTarget(_TargetInterface):
         return pointList
 
     def generate_subtargets(self, n_parts):
-        """generate sub NodeSetTarget per population for multi-cycle runs
+        """Generate sub NodeSetTarget per population for multi-cycle runs
         Returns:
             list of [sub_target_n_pop1, sub_target_n_pop2, ...]
         """
@@ -578,7 +565,7 @@ class NodesetTarget(_TargetInterface):
         for cycle_i in range(n_parts):
             for pop in pop_names:
                 # name sub target per populaton, to be registered later
-                target_name = "{}__{}_{}".format(pop, self.name, cycle_i)
+                target_name = f"{pop}__{self.name}_{cycle_i}"
                 target = NodesetTarget(target_name, [NodeSet().register_global(pop)])
                 new_targets[pop].append(target)
 
@@ -633,8 +620,7 @@ class TPointList:
         self.x = []  # To store point values
 
     def append(self, *args):
-        """
-        Appends a point, optionally with a section or another TPointList object.
+        """Appends a point, optionally with a section or another TPointList object.
         Can be called with just a point (e.g., append(0.5)),
         with a section and a point (e.g., append(section, 0.5)),
         or with another TPointList object (e.g., append(tpointList)).
@@ -657,10 +643,8 @@ class TPointList:
             self.x.append(point)
             self.sclst.append(section)  # Create and append a SectionRef
         else:
-            raise ValueError("append() takes 1 or 2 arguments ({} given)".format(len(args)))
+            raise ValueError(f"append() takes 1 or 2 arguments ({len(args)} given)")
 
     def count(self):
-        """
-        Returns the number of points in the list.
-        """
+        """Returns the number of points in the list."""
         return len(self.sclst)
