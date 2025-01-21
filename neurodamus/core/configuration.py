@@ -428,7 +428,7 @@ def find_input_file(filepath, search_paths=(), alt_filename=None):
                 break
 
     if not file_found:
-        raise ConfigurationError("Could not find file %s" % filepath)
+        raise ConfigurationError(f"Could not find file {filepath}")
 
     logging.debug("data file %s path: %s", filepath, file_found)
     return file_found
@@ -447,7 +447,7 @@ def _check_params(
     for param in required_fields:
         if param not in data:
             raise ConfigurationError(
-                "simulation config mandatory param not present: [%s] %s" % (section_name, param)
+                f"simulation config mandatory param not present: [{section_name}] {param}"
             )
     for param in set(numeric_fields + non_negatives):
         val = data.get(param)
@@ -455,29 +455,27 @@ def _check_params(
             val and float(val)
         except ValueError:
             raise ConfigurationError(
-                "simulation config param must be numeric: [%s] %s" % (section_name, param)
+                f"simulation config param must be numeric: [{section_name}] {param}"
             )
     for param in non_negatives:
         val = data.get(param)
         if val and float(val) < 0:
             raise ConfigurationError(
-                "simulation config param must be positive: [%s] %s" % (section_name, param)
+                f"simulation config param must be positive: [{section_name}] {param}"
             )
 
     for param, valid in (valid_values or {}).items():
         val = data.get(param)
         if val and val not in valid:
             raise ConfigurationError(
-                "simulation config param value is invalid: [%s] %s = %s"
-                % (section_name, param, val)
+                f"simulation config param value is invalid: [{section_name}] {param} = {val}"
             )
 
     for param, deprecated in (deprecated_values or {}).items():
         val = data.get(param)
         if val and val in deprecated:
             logging.warning(
-                "simulation config param value is deprecated: [%s] %s = %s"
-                % (section_name, param, val)
+                f"simulation config param value is deprecated: [{section_name}] {param} = {val}"
             )
 
 
@@ -697,7 +695,7 @@ def _global_parameters(config: _SimConfig, run_conf):
     h.dt = run_conf.get("Dt", h.dt)
     h.steps_per_ms = 1.0 / h.dt
     props = ("celsius", "v_init", "extracellular_calcium", "tstop", "buffer_time")
-    log_verbose("Global params: %s", " | ".join(p + ": %s" % getattr(config, p) for p in props))
+    log_verbose("Global params: %s", " | ".join(p + f": {getattr(config, p)}" for p in props))
     if "CompartmentsPerSection" in run_conf:
         logging.warning(
             "CompartmentsPerSection is currently not supported. "
@@ -789,8 +787,7 @@ def _simulator_globals(config: _SimConfig, run_conf):
                 setattr(h, key, value)
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
-                    "Value of %s (%s) is not the same as extracellular_calcium (%s)"
-                    % (key, value, config.extracellular_calcium)
+                    f"Value of {key} ({value}) is not the same as extracellular_calcium ({config.extracellular_calcium})"
                 )
 
 
@@ -1122,7 +1119,7 @@ def _spikes_sort_order(config: _SimConfig, run_conf):
     order = run_conf.get("SpikesSortOrder", "by_time")
     if order not in ["none", "by_time"]:
         raise ConfigurationError(
-            "Unsupported spikes sort order %s, " % order + "BBP supports 'none' and 'by_time'"
+            f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
         )
 
 
@@ -1268,7 +1265,7 @@ def check_connections_configure(SimConfig, target_manager):
             not_overridden_weight_0.append(conn)
         elif full_overriden is False:  # incomplete override
             raise ConfigurationError(
-                "Partial Weight=0 override is not supported: Conn %s" % conn["_name"]
+                "Partial Weight=0 override is not supported: Conn {}".format(conn["_name"])
             )
     if not_overridden_weight_0:
         logging.warning(
@@ -1297,4 +1294,4 @@ def _input_resistance(config: _SimConfig, target_manager):
             target = target_manager.get_target(target_name)
             for population in target.population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
-                log_verbose("[cell] %s (%s:%s)" % (prop, population, target.name))
+                log_verbose(f"[cell] {prop} ({population}:{target.name})")

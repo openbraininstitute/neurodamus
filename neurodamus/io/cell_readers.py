@@ -201,9 +201,9 @@ def load_sonata(
         if prop_name.startswith("@dynamics:"):
             actual_prop_name = prop_name[len("@dynamics:") :]  # remove prefix
             if actual_prop_name not in dynamics_attr_names:
-                raise Exception("Required Dynamics property %s not present" % prop_name)
+                raise Exception(f"Required Dynamics property {prop_name} not present")
         elif prop_name not in attr_names:
-            raise Exception("Required extra property %s not present" % prop_name)
+            raise Exception(f"Required extra property {prop_name} not present")
 
     [validate_property(p) for p in load_dynamic_props]
 

@@ -165,7 +165,7 @@ class ConnectionBase:
     @classmethod
     def netcon_set_type(cls, netcon, syn_obj, nc_type):
         """Find nc_type_param from the synapse global variable and set via the netcon weight"""
-        nc_param_name = cls._match_index.sub("", "nc_type_param_%s" % syn_obj)
+        nc_param_name = cls._match_index.sub("", f"nc_type_param_{syn_obj}")
         nc_param_index = cls._netcon_signal_type_index_cache.get(nc_param_name)
         if nc_param_index is None:  # False -> not supported by this model
             nc_param_index = getattr(Nd, nc_param_name, False)
@@ -446,7 +446,7 @@ class Connection(ConnectionBase):
                         "Please consider updating your models with the lastest synapse"
                         "implementation (from models/common) or use py-neurodamus <= 1.3.1"
                     )
-                    raise ValueError("%s does not support delayed connections" % syn_obj)
+                    raise ValueError(f"{syn_obj} does not support delayed connections")
 
                 syn_obj.setup_delay_vecs(self._delay_vec, self._delayweight_vec)
 
@@ -746,7 +746,7 @@ class SpontMinis(ArtificialStim):
 
     def set_rate(self, rate):
         if rate < 0:
-            raise ValueError("Spont minis rate cannot be negative %g" % rate)
+            raise ValueError(f"Spont minis rate cannot be negative {rate:g}")
 
         # Check if initialized. Dont recreate in order to enable in-simulation udates
         if self.rate_vec is None:

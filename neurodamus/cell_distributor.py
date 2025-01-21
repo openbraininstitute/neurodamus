@@ -857,7 +857,7 @@ class LoadBalance:
     def _write_msdat(fp, ms):
         """Writes load balancing info to an output stream"""
         fp.write("%d" % ms.x[0])  # gid
-        fp.write(" %g" % ms.x[1])  # total complexity of cell
+        fp.write(f" {ms.x[1]:g}")  # total complexity of cell
         piece_count = int(ms.x[2])
         fp.write(" %d\n" % piece_count)
         i = 2

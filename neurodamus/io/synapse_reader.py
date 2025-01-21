@@ -241,7 +241,7 @@ class SonataReader(SynapseReader):
 
         storage = libsonata.EdgeStorage(src, hdf5_reader=hdf5_reader)
         if not population:
-            assert len(storage.population_names) == 1, "Populations: %s" % storage.population_names
+            assert len(storage.population_names) == 1, f"Populations: {storage.population_names}"
             population = next(iter(storage.population_names))
         self._population = storage.open_population(population)
         # A cache which stores all the fields for each gid. E.g. {1: {"sgid": property_numpy}}

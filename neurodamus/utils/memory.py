@@ -155,7 +155,7 @@ def pretty_printing_memory_mb(memory_mb):
     returns a string with the most appropriate unit.
     """
     if memory_mb < 1024:
-        return "%.2lf MB" % memory_mb
+        return f"{memory_mb:.2f} MB"
     if memory_mb < 1024**2:
         return "%.2lf GB" % (memory_mb / 1024)
     if memory_mb < 1024**3:

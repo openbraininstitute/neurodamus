@@ -71,7 +71,7 @@ class _LevelColorFormatter(_logging.Formatter):
     def _format_msg(self, record, style):
         msg = ""
         if self._with_time:
-            msg += "(%s) " % self.formatTime(record, self._datefmt) + msg
+            msg += f"({self.formatTime(record, self._datefmt)}) " + msg
         # Show rank only for ERRORs
         if self._rank is not None and record.levelno >= _logging.ERROR:
             msg += f"(rank {self._rank:d}) "

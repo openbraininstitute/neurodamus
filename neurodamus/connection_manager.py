@@ -535,7 +535,7 @@ class ConnectionManagerBase:
 
     def setup_delayed_connection(self, conn_config):
         raise NotImplementedError(
-            "Manager %s doesn't implement delayed connections" % self.__class__.__name__
+            f"Manager {self.__class__.__name__} doesn't implement delayed connections"
         )
 
     # -

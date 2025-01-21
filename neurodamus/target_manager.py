@@ -348,8 +348,7 @@ class NodeSetReader:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
                 logging.warning(
-                    'SonataError for nodeset %s from population "%s" : %s, skip'
-                    % (nodeset_name, pop_name, str(e))
+                    f'SonataError for nodeset {nodeset_name} from population "{pop_name}" : {e!s}, skip'
                 )
                 return None
             if node_selection:
