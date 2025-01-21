@@ -17,6 +17,7 @@ import psutil
 
 from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
 from neurodamus.io.sonata_config import ConnectionTypes
+
 from .compat import Vector
 
 # The factor to multiply the cell + synapses memory usage by to get the simulation memory estimate.

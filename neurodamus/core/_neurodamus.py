@@ -5,6 +5,7 @@ from time import strftime
 
 from neurodamus.utils import classproperty
 from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
+
 from ._engine import EngineBase
 from ._mpi import MPI
 from ._neuron import _Neuron

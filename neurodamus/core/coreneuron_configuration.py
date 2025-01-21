@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from neurodamus.report import get_section_index
+
 from . import NeurodamusCore as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError

@@ -7,6 +7,7 @@ from functools import wraps
 from inspect import Signature, signature
 
 from neurodamus.utils import progressbar
+
 from . import NeurodamusCore as Nd
 from ._mpi import MPI
 

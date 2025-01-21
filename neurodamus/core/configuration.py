@@ -11,6 +11,7 @@ from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils import compat
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT
+
 from ._shmutils import SHMUtil
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
