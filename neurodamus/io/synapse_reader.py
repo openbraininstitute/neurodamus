@@ -97,7 +97,7 @@ class SynapseReader:
         # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
         # while u_hill_coefficient can always be readif avail, conductance reader may not.
         self._uhill_property_avail = self.has_property("u_hill_coefficient")
-        self._extra_fields = tuple()
+        self._extra_fields = ()
         self._extra_scale_vars = []
 
     def preload_data(self, ids):

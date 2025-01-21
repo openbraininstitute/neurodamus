@@ -170,14 +170,14 @@ class _Timer:
 
 
 class _TimerManager:
-    _timers = dict()
+    _timers = {}
     _timers_sequence = 0
     _archived_timers = {}
 
     # archive current timers
     def archive(self, archive_name):
         self._archived_timers[archive_name] = self._timers
-        self._timers = dict()
+        self._timers = {}
 
     def init(self, name):
         self._timers.setdefault(name, _Timer(name))

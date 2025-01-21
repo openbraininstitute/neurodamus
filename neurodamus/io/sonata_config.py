@@ -282,13 +282,13 @@ class SonataConfig:
 
     @property
     def parsedProjections(self):
-        projection_type_convert = dict(
-            chemical=ConnectionTypes.Synaptic,
-            electrical=ConnectionTypes.GapJunction,
-            synapse_astrocyte=ConnectionTypes.NeuroGlial,
-            endfoot=ConnectionTypes.GlioVascular,
-            neuromodulatory=ConnectionTypes.NeuroModulation,
-        )
+        projection_type_convert = {
+            "chemical": ConnectionTypes.Synaptic,
+            "electrical": ConnectionTypes.GapJunction,
+            "synapse_astrocyte": ConnectionTypes.NeuroGlial,
+            "endfoot": ConnectionTypes.GlioVascular,
+            "neuromodulatory": ConnectionTypes.NeuroModulation,
+        }
         internal_edge_pops = set(c_conf["nrnPath"] for c_conf in self._bc_circuits.values())
         projections = {}
 
@@ -310,12 +310,12 @@ class SonataConfig:
                 if edge_pop_path in internal_edge_pops:
                     continue
 
-                projection = dict(
-                    Path=edge_pop_path,
-                    Source=edge_pop.source + ":",
-                    Destination=edge_pop.target + ":",
-                    Type=projection_type_convert.get(pop_type),
-                )
+                projection = {
+                    "Path": edge_pop_path,
+                    "Source": edge_pop.source + ":",
+                    "Destination": edge_pop.target + ":",
+                    "Type": projection_type_convert.get(pop_type),
+                }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
                 if projection.get("Type") == ConnectionTypes.NeuroGlial:
                     projection["Source"], projection["Destination"] = (
