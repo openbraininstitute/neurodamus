@@ -11,7 +11,6 @@ import multiprocessing
 import os
 import pickle
 from collections import Counter, defaultdict
-from typing import Tuple
 
 import numpy as np
 import psutil

@@ -2,7 +2,6 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import List
 
 import libsonata
 import numpy as np

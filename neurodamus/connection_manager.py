@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 
