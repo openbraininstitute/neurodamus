@@ -92,8 +92,59 @@ precision = 0
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "COM812",  # Trailing comma (to have similar behavior to black)
+    "CPY001",  # Missing copyright notice at top of file
+    "D105",    # Missing docstring in magic method
+    "ISC001",  # single line implicit string concatenation (disabling suggested by ruff formatter)
+    "N802",    # function name should be lowercase
+    "PLE1205", # Too many arguments for `logging` format string
+    "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
+    "S104",    # Possible binding to all interfaces
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "TD",      # TODOs
+    "D415",    # First line should end with a period, question mark, or exclamation point
+    ### TODO: remove rules temporarily ignored
+    "ANN",     # Missing type annotation
+    "DOC201",  # `return` is not documented in docstring
+    "DOC402",  # `yield` is not documented in docstring
+    "DOC501",  # Raised exception missing from docstring
+]
+
 [tool.ruff.lint.isort]
 known-local-folder = [
     "neurodamus",
 ]
 combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+    "ANN",     # Missing type annotation
+    "D",       # pydocstyle
+    "ERA001",  # Found commented-out code
+    "INP001",  # Missing `__init__.py`
+    "PLC2701", # Private name import from external module
+    "PLR2004", # magic value (constant) used in comparison (i.e. expected == 3)
+    "S101",    # Use of `assert` detected
+    "SLF001",  # private member access
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+# Maximum number of arguments for function / method
+max-args = 12
+# Maximum number of locals for function / method body
+max-locals = 15
+# Maximum number of return / yield for function / method body
+max-returns = 6
+# Maximum number of branch for function / method body
+max-branches = 12
+# Maximum number of statements in function / method body
+max-statements = 50
+# Maximum number of public methods for a class (see R0904).
+max-public-methods = 60
