@@ -1,6 +1,6 @@
 """Module defining cell mechanisms"""
 
-from ..utils import ConfigT
+from neurodamus.utils import ConfigT
 from ._neuron import Neuron
 
 

@@ -3,8 +3,8 @@ import os
 import sys
 from time import strftime
 
-from ..utils import classproperty
-from ..utils.logging import log_stage, log_verbose, setup_logging
+from neurodamus.utils import classproperty
+from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
 from ._engine import EngineBase
 from ._mpi import MPI
 from ._neuron import _Neuron

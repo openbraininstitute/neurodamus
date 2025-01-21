@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from ..utils import WeakList, compat
+from neurodamus.utils import WeakList, compat
 from . import MPI
 
 

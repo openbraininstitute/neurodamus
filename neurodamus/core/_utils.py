@@ -6,7 +6,7 @@ from datetime import timedelta
 from functools import wraps
 from inspect import Signature, signature
 
-from ..utils import progressbar
+from neurodamus.utils import progressbar
 from . import NeurodamusCore as Nd
 from ._mpi import MPI
 

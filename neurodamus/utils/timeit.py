@@ -112,7 +112,7 @@ from contextlib import ContextDecorator, contextmanager
 from itertools import chain
 from math import floor, log
 
-from ..core import MPI, NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
 from .logging import log_verbose
 
 

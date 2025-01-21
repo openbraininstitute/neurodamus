@@ -1,6 +1,6 @@
 """High-Level wrapper to Neuron's cell synapse mechanisms"""
 
-from ..utils import ConfigT
+from neurodamus.utils import ConfigT
 from . import Neuron
 
 # -------------------------

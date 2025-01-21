@@ -16,8 +16,8 @@ from typing import Tuple
 import numpy as np
 import psutil
 
-from ..core import MPI, NeurodamusCore as Nd, run_only_rank0
-from ..io.sonata_config import ConnectionTypes
+from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
+from neurodamus.io.sonata_config import ConnectionTypes
 from .compat import Vector
 
 # The factor to multiply the cell + synapses memory usage by to get the simulation memory estimate.
@@ -88,7 +88,7 @@ def free_event_queues():
 
 def print_node_level_mem_usage():
     """Print statistics of the memory usage per compute node."""
-    from ..core._shmutils import SHMUtil
+    from neurodamus.core._shmutils import SHMUtil
 
     # The association of MPI ranks to compute nodes isn't
     # always know. If unknown, don't print anything.

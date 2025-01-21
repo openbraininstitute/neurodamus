@@ -7,10 +7,10 @@ import re
 from collections import defaultdict
 from enum import Enum
 
-from ..io.sonata_config import SonataConfig
-from ..utils import compat
-from ..utils.logging import log_verbose
-from ..utils.pyutils import ConfigT
+from neurodamus.io.sonata_config import SonataConfig
+from neurodamus.utils import compat
+from neurodamus.utils.logging import log_verbose
+from neurodamus.utils.pyutils import ConfigT
 from ._shmutils import SHMUtil
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
@@ -339,7 +339,7 @@ class _SimConfig:
         Args:
             alias: A dict associating alias->real_name's
         """
-        from ..target_manager import TargetSpec  # avoid cyclic deps
+        from neurodamus.target_manager import TargetSpec  # avoid cyclic deps
 
         restrict_features = SimConfig.cli_options.restrict_features
         if Feature.SpontMinis not in restrict_features:
