@@ -625,7 +625,7 @@ class DryRunStats:
 
         valid_distribution = all(
             self.check_all_buckets_have_gids(bucket_allocation, population, num_ranks, cycles)
-            for population in self.pop_metype_gids.keys()
+            for population in self.pop_metype_gids
         )
 
         if not valid_distribution:

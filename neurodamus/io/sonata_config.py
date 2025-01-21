@@ -250,7 +250,7 @@ class SonataConfig:
                 if "nrnPath" in circuit_conf:
                     break  # Already found
 
-                for edge_pop_name in edge_config["populations"].keys():
+                for edge_pop_name in edge_config["populations"]:
                     edge_storage = self.circuits.edge_population(edge_pop_name)
                     edge_type = self.circuits.edge_population_properties(edge_pop_name).type
                     inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
@@ -373,7 +373,7 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sections["inputs"].keys():
+        for name in self._sections["inputs"]:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj

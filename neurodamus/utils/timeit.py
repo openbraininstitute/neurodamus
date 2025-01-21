@@ -184,7 +184,7 @@ class _TimerManager:
         self._timers[name].start()
 
     def update(self, name, verbose=True):
-        if name not in self._timers.keys():
+        if name not in self._timers:
             raise Exception(f"{name} not initialized in timers dict")
         self._timers[name].stop()
         if verbose:
