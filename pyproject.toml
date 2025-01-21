@@ -68,6 +68,12 @@ source_pkgs = [
     "neurodamus",
 ]
 
+[tool.coverage.paths]
+source = [
+    "neurodamus/",
+    "*/site-packages/neurodamus"
+]
+
 [tool.coverage.report]
 show_missing = true
 precision = 0
