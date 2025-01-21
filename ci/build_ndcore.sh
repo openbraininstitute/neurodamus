@@ -15,7 +15,8 @@ COMMON_DIR=_common
 if [ -d "$COMMON_DIR" ]; then
     ( cd "$COMMON_DIR" && git pull --quiet )
 else
-    git clone git@bbpgitlab.epfl.ch:hpc/sim/models/common.git $COMMON_DIR  --depth=1
+    # TODO: fix this
+    # git clone git@bbpgitlab.epfl.ch:hpc/sim/models/common.git $COMMON_DIR  --depth=1
 fi
 
 MOD_BUILD_DIR="mods.tmp"

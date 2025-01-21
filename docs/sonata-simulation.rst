@@ -28,7 +28,7 @@ For the complete reference please refer to `sonata_simulation documentation
 <https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html>`_
 
 As an example let's consider an Hippocampus sample simulation (
-`Hippocampus-mini-simultion-config <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json>`__)
+`Hippocampus-mini-simultion-config <https://github.com/BlueBrain/blueconfigs/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json>`__)
 
 Fundamental simulation parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +107,7 @@ Additional Examples
 -------------------
 
 You can find a number of examples of curated Sonata simulations in the
-`blueconfigs repository <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs>`__
+`blueconfigs repository <https://github.com/BlueBrain/blueconfigs>`__
 
 Here's a quick list of them which can be used as inspiration:
 
@@ -120,17 +120,21 @@ Here's a quick list of them which can be used as inspiration:
      - Circuit config
      - Node Sets
    * - Hippocampus
-     - `simulation_config.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json>`__
-     - `circuit_config.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/circuit_config.json>`__
-     - `node_sets.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/node_sets.json>`__
+     - `simulation_config.json <https://github.com/BlueBrain/blueconfigs/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json>`__
+     - `circuit_config.json <https://github.com/BlueBrain/blueconfigs/blob/main/sonataconf-quick-hip-multipopulation/circuit_config.json>`__
+     - `node_sets.json <https://github.com/BlueBrain/blueconfigs/blob/main/sonataconf-quick-hip-multipopulation/node_sets.json>`__
    * - SSCX
-     - `simulation_config.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/simulation_config.json>`__
-     - `circuit_config.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/circuit_config.json>`__
-     - `node_sets.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/node_sets.json>`__
+     - `simulation_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/simulation_config.json>`__
+..  TODO: circuit_config.json link does not exist for now. Fix it
+
+     - `circuit_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/circuit_config.json>`__
+     - `node_sets.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/node_sets.json>`__
    * - Thalamus
-     - `simulation_config.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-thalamus/simulation_config.json>`__
+     - `simulation_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-thalamus/simulation_config.json>`__
+.. TODO fix next link
+
      - `circuit_sonata.json <file:///gpfs/bbp.cscs.ch/project/proj12/SIT/thalamus_sonata/circuit_sonata.json>`__
-     - `node_sets.json <https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-thalamus/node_sets.json>`__
+     - `node_sets.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-thalamus/node_sets.json>`__
 
 
 Supported features
