@@ -347,9 +347,11 @@ class NodeSetReader:
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
-                logging.warning(
-                    f'SonataError for nodeset {nodeset_name} from population "{pop_name}" : {e!s}, skip'
+                msg = (
+                    f"SonataError for nodeset {nodeset_name} "
+                    f'from population "{pop_name}" : {e!s}, skip'
                 )
+                logging.warning(msg)
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gis from %s", nodeset_name, pop_name)

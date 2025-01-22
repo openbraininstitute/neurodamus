@@ -303,9 +303,8 @@ class ShotNoise(BaseStim):
         self.tau_R = float(stim_info["RiseTime"])  # rise time [ms]
         self.tau_D = float(stim_info["DecayTime"])  # decay time [ms]
         if self.tau_R >= self.tau_D:
-            raise Exception(
-                f"{self.__class__.__name__} bi-exponential rise time must be smaller than decay time"
-            )
+            klass = self.__class__.__name__
+            raise Exception(f"{klass} bi-exponential rise time must be smaller than decay time")
 
         # parse and check stimulus-specific parameters
         if not self.parse_check_stim_parameters(stim_info):

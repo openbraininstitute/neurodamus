@@ -553,9 +553,8 @@ class GlioVascularManager(ConnectionManagerBase):
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
                 # because soma glut must be the last
                 astrocyte._glut_list.insert(len(astrocyte._glut_list) - 1, glut)
-                exec(
-                    f"parent_sec = astrocyte.CellRef.{astrocyte._secidx2names[parent_section_id + 1]}; sec.connect(parent_sec)"
-                )
+                name = astrocyte._secidx2names[parent_section_id + 1]
+                exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
                 # astrocyte.CellRef.all.append(sec)
             # Some useful debug lines:
             # cell = astrocyte.CellRef

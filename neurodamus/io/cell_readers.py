@@ -249,12 +249,14 @@ def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
 
 
 def _get_rotations(node_reader, selection):
-    """Read rotations attributes, returns a double vector of size [N][4] with the rotation quaternions
-    in the order (x,y,z,w)
+    """Get quaternions to rotate the cells
 
     Args:
         node_reader: libsonata node population
         selection: libsonata selection
+
+    Returns:
+        double vector of size [N][4] with the rotation quaternions in the order (x,y,z,w)
     """
     attr_names = node_reader.attribute_names
     if set(["orientation_x", "orientation_y", "orientation_z", "orientation_w"]).issubset(
@@ -269,6 +271,7 @@ def _get_rotations(node_reader, selection):
                 node_reader.get_attribute("orientation_w", selection),
             ]
         ).T
+
     if set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
         attr_names
     ):
@@ -292,6 +295,7 @@ def _get_rotations(node_reader, selection):
         )
         euler_rots = np.array([angle_x, angle_y, angle_z]).T
         return Rotation.from_euler("xyz", euler_rots).as_quat()
+
     return None
 
 

@@ -294,7 +294,8 @@ class ConnectionManagerBase:
         self._dry_run_conns = defaultdict(set)
 
     def __str__(self):
-        return f"<{self.__class__.__name__:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
+        name = self.__class__.__name__
+        return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
     def open_edge_location(self, syn_source, circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")

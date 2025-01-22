@@ -74,9 +74,11 @@ class LFPManager:
                 for electrode_factors in subset_data:
                     scalar_factors.append(Nd.Vector(electrode_factors))
             except (KeyError, IndexError) as e:
-                logging.warning(
-                    f"Node id {node_id} not found in the electrodes file for population {population_name}: {e!s}"
+                msg = (
+                    f"Node id {node_id} missing in the electrodes file"
+                    f"for population {population_name}: {e!s}"
                 )
+                logging.warning(msg)
         return scalar_factors
 
     def get_number_electrodes(self, gid, population_info=("default", 0)):
@@ -88,7 +90,9 @@ class LFPManager:
                 subset_data = self.get_node_id_subsets(node_id, population_name)
                 num_electrodes = subset_data.shape[1]
             except (KeyError, IndexError) as e:
-                logging.warning(
-                    f"Node id {node_id} not found in the electrodes file for population {population_name}: {e!s}"
+                msg = (
+                    f"Node id {node_id} missing in the electrodes file"
+                    f"for population {population_name}: {e!s}"
                 )
+                logging.warning(msg)
         return num_electrodes

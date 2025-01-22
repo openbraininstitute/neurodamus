@@ -233,7 +233,9 @@ class _TimerManager:
         for t, (name, tinfo) in enumerate(timers.items()):
             base_name = delim.join("  ") * name.count(delim) + name.split(delim)[-1]
             logging.info(
-                f"| {base_name:<56s} | {avg_times.x[t] / MPI.size:8.2f} | {min_times.x[t]:8.2f} | {max_times.x[t]:8.2f} | {human_readable(tinfo.hits):>7s} / {human_readable(nof_hits.x[t]):<7s} |"
+                f"| {base_name:<56s} | {avg_times.x[t] / MPI.size:8.2f} | {min_times.x[t]:8.2f} | "
+                f"{max_times.x[t]:8.2f} | {human_readable(tinfo.hits):>7s} / "
+                f"{human_readable(nof_hits.x[t]):<7s} |"
             )
         logging.info("+{:-^111s}+".format("-"))
 

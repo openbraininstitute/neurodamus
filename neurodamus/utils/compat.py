@@ -1,8 +1,7 @@
 """Compatibility Classes to work similar to HOC types, recreating or wrapping them"""
 
-from array import array
-
 import collections.abc
+from array import array
 
 
 class Vector(array):

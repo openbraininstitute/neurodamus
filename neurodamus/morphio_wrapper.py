@@ -200,9 +200,8 @@ class MorphIOWrapper:
 
         # Re-compute the soma points as they are computed in import3d_gui.hoc
         if self._morph.soma_type not in {SomaType.SOMA_SINGLE_POINT, SomaType.SOMA_SIMPLE_CONTOUR}:
-            raise Exception(
-                f"A H5 file morphology is not supposed to have a soma of type: {self._morph.soma_type}"
-            )
+            msg = f"H5 morphology is not supposed to have a soma of type: {self._morph.soma_type}"
+            raise Exception(msg)
         logging.debug(
             "(%s, %s, %s) has soma type : %s",
             self._collection_dir,
