@@ -15,7 +15,7 @@ COMMON_DIR=neurodamus-models/common
 if [ -d "$COMMON_DIR" ]; then
     ( cd "$COMMON_DIR" && git pull --quiet )
 else
-    git clone git@github.com:BlueBrain/neurodamus-models.git neurodamus-models  --depth=1
+    git clone git@github.com:openbraininstitute/neurodamus-models.git neurodamus-models  --depth=1
 fi
 
 MOD_BUILD_DIR="mods.tmp"
