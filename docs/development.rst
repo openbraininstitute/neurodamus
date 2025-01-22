@@ -79,7 +79,7 @@ Let's now try to run some tests.
     # ...
 
     # In order to run on 4 MPI ranks:
-    srun -n4 [--account=proj16] neurodamus simulation_sonata.json
+    srun -n4 neurodamus simulation_sonata.json
 
 That looks good. Notice a couple of things:
 

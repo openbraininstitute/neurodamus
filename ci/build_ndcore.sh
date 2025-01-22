@@ -23,12 +23,13 @@ mkdir -p $MOD_BUILD_DIR
 cp -f $CORE_DIR/mod/*.mod $MOD_BUILD_DIR
 cp -f $COMMON_DIR/mod/*.mod $MOD_BUILD_DIR
 nrnivmodl -incflags "-DDISABLE_REPORTINGLIB -DDISABLE_HDF5 -DDISABLE_MPI" $MOD_BUILD_DIR
-if [ ! -f x86_64/special ]; then
+ARCH=$(uname -m)
+if [ ! -f $ARCH/special ]; then
     echo "Error running nrnivmodl"
     exit 1
 fi
 mkdir -p _lib
-cp -f x86_64/libnrnmech* _lib/
+cp -f $ARCH/libnrnmech* _lib/
 cp -f $CORE_DIR/hoc/*.hoc _lib/
 cp -f $COMMON_DIR/hoc/*.hoc _lib/
 
