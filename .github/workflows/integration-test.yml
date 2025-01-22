@@ -22,7 +22,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools tox coverage
 
-    - name: Run tox integration test
+    - name: Run tox
       run: |
         tox -e integration
 
