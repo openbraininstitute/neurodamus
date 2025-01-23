@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -17,9 +17,11 @@ from .io.synapse_reader import SynapseReader
 from .target_manager import TargetManager, TargetSpec
 from .utils import bin_search, compat, dict_filter_map
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
-from .utils.memory import DryRunStats
 from .utils.pyutils import gen_ranges
 from .utils.timeit import timeit
+
+if TYPE_CHECKING:
+    from .utils.memory import DryRunStats
 
 
 class ConnectionSet:
