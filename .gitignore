@@ -28,6 +28,7 @@ venv
 .coverage
 .tox
 tests/output
+neurodamus-models*
 
 # Build and docs folder/files
 build/*
