@@ -47,10 +47,33 @@ source = "vcs"
 local_scheme = "no-local-version"
 
 [tool.pytest.ini_options]
-addopts = "--verbose"
+minversion = "6.0"
+addopts = [
+    "--import-mode=importlib",
+    "-vv",
+    "-ra",
+]
 markers = ["slow: marks tests as slow"]
 
 [tool.flake8]
 exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
 extend-ignore = ["E127", "E221", "E226", "E701", "W503", "W504", "E731", "PT001", "PT023"]
 max-line-length = 100
+
+[tool.coverage.run]
+branch = false
+parallel = false
+relative_files = true
+source_pkgs = [
+    "neurodamus",
+]
+
+[tool.coverage.paths]
+source = [
+    "neurodamus/",
+    "*/site-packages/neurodamus"
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 0

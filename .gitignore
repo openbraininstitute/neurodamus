@@ -1,13 +1,9 @@
 # Temporary and binary files
 *~
-*.py[cod]
-*.so
-*.cfg
-!setup.cfg
 *.orig
 *.log
 *.pot
-__pycache__/*
+**/__pycache__/*
 .cache/*
 .*.swp
 */.ipynb_checkpoints/*
@@ -28,12 +24,9 @@ venv
 .installed.cfg
 *.egg-info
 
-# Unittest and coverage
-htmlcov/*
+# tests and coverage
 .coverage
 .tox
-junit.xml
-coverage.xml
 tests/output
 
 # Build and docs folder/files
