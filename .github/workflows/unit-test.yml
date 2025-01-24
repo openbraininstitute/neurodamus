@@ -7,7 +7,7 @@ on:
         - master
 
 jobs:
-  build:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
 
@@ -16,11 +16,10 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.9'
-        cache: 'pip'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools tox coverage
+        python -m pip install --upgrade pip tox coverage
 
     - name: Run tox
       run: |
@@ -30,3 +29,26 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
+
+  baseline-coverage:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip tox coverage
+
+    - name: Run tox
+      run: |
+        tox -ebaseline
+
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: baseline
