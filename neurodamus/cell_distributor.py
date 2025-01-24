@@ -1,6 +1,7 @@
 """
 Mechanisms to load and balance cells across the computing resources.
 """
+
 from __future__ import absolute_import, print_function
 import abc
 import hashlib
@@ -36,6 +37,7 @@ class VirtualCellPopulation:
     however it doesnt instantiate cells.
     It is mostly used as source of projections
     """
+
     _total_count = 0
 
     def __init__(self, population_name, gids=None, circuit_target=None):
@@ -46,11 +48,12 @@ class VirtualCellPopulation:
         """
         self.population_name = population_name
         self.circuit_target = circuit_target
-        self.local_nodes = NodeSet(gids).register_global(population_name or '')
+        self.local_nodes = NodeSet(gids).register_global(population_name or "")
         VirtualCellPopulation._total_count += 1
         if VirtualCellPopulation._total_count > 1:
-            logging.warning("For non-sonata circuit, "
-                            "only a single Virtual Cell Population works with REPLAY")
+            logging.warning(
+                "For non-sonata circuit, only a single Virtual Cell Population works with REPLAY"
+            )
 
     is_default = property(lambda self: False)
     is_virtual = property(lambda self: True)
@@ -60,14 +63,11 @@ class VirtualCellPopulation:
 
 
 class _CellManager(abc.ABC):
+    @abc.abstractmethod
+    def get_final_gids(self): ...
 
     @abc.abstractmethod
-    def get_final_gids(self):
-        ...
-
-    @abc.abstractmethod
-    def get_cell(self, gid):
-        ...
+    def get_cell(self, gid): ...
 
     def get_cellref(self, gid):
         """Retrieve a cell object given its gid.
@@ -84,8 +84,7 @@ class _CellManager(abc.ABC):
     # Methods for compat with hoc
 
     @abc.abstractmethod
-    def getGidListForProcessor(self):
-        ...
+    def getGidListForProcessor(self): ...
 
     def getMEType(self, gid):
         return self.get_cell(gid)
@@ -95,7 +94,6 @@ class _CellManager(abc.ABC):
 
 
 class CellManagerBase(_CellManager):
-
     CellType = NotImplemented  # please override
     """The underlying Cell type class
 
@@ -109,6 +107,7 @@ class CellManagerBase(_CellManager):
     signature:
         load(circuit_conf, gidvec, stride=1, stride_offset=0)
     """
+
     def __init__(self, circuit_conf, target_manager, _run_conf=None, **_kw):
         """Initializes CellDistributor
 
@@ -124,7 +123,7 @@ class CellManagerBase(_CellManager):
         self._target_spec = TargetSpec(circuit_conf.CircuitTarget)
         self._population_name = None
         self._local_nodes = None
-        self._total_cells = 0   # total cells in target, being simulated
+        self._total_cells = 0  # total cells in target, being simulated
         self._gid2cell = {}
 
         self._global_seed = 0
@@ -134,7 +133,7 @@ class CellManagerBase(_CellManager):
         self._conn_managers_per_src_pop = weakref.WeakValueDictionary()
 
         if type(circuit_conf.CircuitPath) is str:
-            self._init_config(circuit_conf, self._target_spec.population or '')
+            self._init_config(circuit_conf, self._target_spec.population or "")
         else:
             logging.info(" => %s Circuit has been disabled", self.circuit_name or "(default)")
 
@@ -171,7 +170,7 @@ class CellManagerBase(_CellManager):
     def _init_config(self, circuit_conf, pop):
         if not ospath.isabs(circuit_conf.CellLibraryFile):
             circuit_conf.CellLibraryFile = find_input_file(circuit_conf.CellLibraryFile)
-        if not pop:   # Last attempt to get pop name
+        if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
         if not pop and circuit_conf._name:
@@ -188,13 +187,13 @@ class CellManagerBase(_CellManager):
     @classmethod
     def _get_sonata_population_name(self, node_file):
         import libsonata  # only for SONATA
+
         pop_names = libsonata.NodeStorage(node_file).population_names
         assert len(pop_names) == 1
         return next(iter(pop_names), None)
 
     def load_nodes(self, load_balancer=None, *, _loader=None, loader_opts=None):
-        """Top-level loader of nodes.
-        """
+        """Top-level loader of nodes."""
         if self._local_nodes is None:
             return
         conf = self._circuit_conf
@@ -203,17 +202,19 @@ class CellManagerBase(_CellManager):
         loader_f = (lambda *args: _loader(*args, **loader_opts)) if loader_opts else _loader
 
         logging.info("Reading Nodes (METype) info from '%s'", conf.CellLibraryFile)
-        if load_balancer and \
-           hasattr(load_balancer, 'population') and \
-           load_balancer.population != self._target_spec.population:
+        if (
+            load_balancer
+            and hasattr(load_balancer, "population")
+            and load_balancer.population != self._target_spec.population
+        ):
             log_verbose("Load balance object doesn't apply to '%s'", self._target_spec.population)
             load_balancer = None
         if not load_balancer or SimConfig.dry_run:
             gidvec, me_infos, *cell_counts = self._load_nodes(loader_f)
         elif load_balancer and SimConfig.loadbal_mode == LoadBalanceMode.Memory:
-            gidvec, me_infos, *cell_counts = self._load_nodes_balance_mem(loader_f,
-                                                                          load_balancer,
-                                                                          cycle)
+            gidvec, me_infos, *cell_counts = self._load_nodes_balance_mem(
+                loader_f, load_balancer, cycle
+            )
         else:
             gidvec, me_infos, *cell_counts = self._load_nodes_balance(loader_f, load_balancer)
         self._local_nodes.add_gids(gidvec, me_infos)
@@ -239,15 +240,15 @@ class CellManagerBase(_CellManager):
     def _load_nodes_balance(self, loader_f, load_balancer):
         target_spec = self._target_spec
         if not load_balancer.valid_load_distribution(target_spec):
-            raise RuntimeError("No valid Load Balance info could be found or derived."
-                               "Please perform a full load balance.")
+            raise RuntimeError(
+                "No valid Load Balance info could be found or derived."
+                "Please perform a full load balance."
+            )
 
         logging.info(" -> Distributing target '%s' using Load-Balance", target_spec.name)
         self._binfo = load_balancer.load_balance_info(target_spec)
         # self._binfo has gidlist, but gids can appear multiple times
-        all_gids = numpy.unique(
-            self._binfo.gids.as_numpy().astype("uint32")
-        )
+        all_gids = numpy.unique(self._binfo.gids.as_numpy().astype("uint32"))
         total_cells = len(all_gids)
         gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
         return gidvec, me_infos, total_cells, full_size
@@ -327,8 +328,13 @@ class CellManagerBase(_CellManager):
             nonlocal prev_memory
             end_memory = get_mem_usage_kb()
             memory_allocated = end_memory - prev_memory
-            log_all(logging.DEBUG, " * METype %s: %.1f KiB averaged over %d cells",
-                    metype, memory_allocated/n_cells, n_cells)
+            log_all(
+                logging.DEBUG,
+                " * METype %s: %.1f KiB averaged over %d cells",
+                metype,
+                memory_allocated / n_cells,
+                n_cells,
+            )
             memory_dict[metype] = max(0, memory_allocated / n_cells)
             prev_memory = end_memory
 
@@ -359,8 +365,7 @@ class CellManagerBase(_CellManager):
         self._target_manager.register_local_nodes(self._local_nodes)
 
     def _init_cell_network(self):
-        """Init global gids for cell networking
-        """
+        """Init global gids for cell networking"""
         logging.info(" > Initializing cell network")
         self._init_rng()
         pc = self._pc
@@ -420,8 +425,7 @@ class CellManagerBase(_CellManager):
         return self._gid2cell[gid]._cellref
 
     def record_spikes(self, gids=None, append_spike_vecs=None):
-        """Setup recording of spike events (crossing of threshold) for cells on this node
-        """
+        """Setup recording of spike events (crossing of threshold) for cells on this node"""
         if not self._local_nodes:
             return
         spikevec, idvec = append_spike_vecs or (Nd.Vector(), Nd.Vector())
@@ -474,11 +478,11 @@ class GlobalCellManager(_CellManager):
     # Accessor methods (Keep CamelCase API for compatibility with existing hoc)
     # ----------------
     def getGidListForProcessor(self):
-
         def _hoc_append(vec_a, vec_b):
             return vec_a.append(vec_b)
 
         from functools import reduce
+
         return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
 
     def get_final_gids(self):
@@ -531,9 +535,9 @@ class GlobalCellManager(_CellManager):
 
 
 class CellDistributor(CellManagerBase):
-    """ Manages a group of cells for BBP simulations, V5 and V6
+    """Manages a group of cells for BBP simulations, V5 and V6
 
-        Instantiated cells are stored locally (.cells property)
+    Instantiated cells are stored locally (.cells property)
     """
 
     _sonata_with_extra_attrs = True  # Enable search extra node attributes
@@ -545,8 +549,7 @@ class CellDistributor(CellManagerBase):
         super()._init_config(circuit_conf, _pop)
 
     def load_nodes(self, load_balancer=None, **kw):
-        """gets gids from target, splits and returns a GidSet with all metadata
-        """
+        """gets gids from target, splits and returns a GidSet with all metadata"""
         loader_opts = kw.pop("loader_opts", {}).copy()
         all_cell_requirements = SimConfig.cell_requirements
         cell_requirements = all_cell_requirements.get(self._population_name) or (
@@ -575,8 +578,9 @@ class CellDistributor(CellManagerBase):
             CellType.morpho_extension = conf.MorphologyType
 
         log_verbose("Loading metypes from: %s", conf.METypePath)
-        log_verbose("Loading '%s' morphologies from: %s",
-                    CellType.morpho_extension, conf.MorphologyPath)
+        log_verbose(
+            "Loading '%s' morphologies from: %s", CellType.morpho_extension, conf.MorphologyPath
+        )
         if dry_run_stats_obj is None:
             super()._instantiate_cells(CellType, **opts)
         else:
@@ -603,9 +607,10 @@ class LoadBalance:
 
     For more information refer to the developer documentation.
     """
+
     _base_output_dir = "sim_conf"
-    _circuit_lb_dir_tpl = "_loadbal_%s.%s"      # Placeholders are (file_src_hash, population)
-    _cx_filename_tpl = "cx_%s#.dat"             # use # to well delimiter the target name
+    _circuit_lb_dir_tpl = "_loadbal_%s.%s"  # Placeholders are (file_src_hash, population)
+    _cx_filename_tpl = "cx_%s#.dat"  # use # to well delimiter the target name
     _cpu_assign_filename_tpl = "cx_%s#.%s.dat"  # prefix must be same (imposed by Neuron)
 
     def __init__(self, balance_mode, nodes_path, pop, target_manager, target_cpu_count=None):
@@ -637,7 +642,7 @@ class LoadBalance:
         """Inspects the load-balance folder and detects which targets are load balanced"""
         prefix, suffix = cls._cx_filename_tpl.split("%s")
         return set(
-            fname.name[len(prefix):-len(suffix)]
+            fname.name[len(prefix) : -len(suffix)]
             for fname in lb_dir.glob(cls._cx_filename_tpl.replace("%s", "*"))
         )
 
@@ -647,8 +652,11 @@ class LoadBalance:
         derive from larger target distributions if possible.
         """
         if (target_spec.population or "") != self.population:
-            logging.info(" => Load balance Population mismatch. Requested: %s, Existing: %s",
-                         target_spec.population, self.population)
+            logging.info(
+                " => Load balance Population mismatch. Requested: %s, Existing: %s",
+                target_spec.population,
+                self.population,
+            )
             return False
 
         target_name = target_spec.simple_name
@@ -685,7 +693,7 @@ class LoadBalance:
         """
         # Abort if there are no cx files yet or in case now we request full circuit
         # since its impossible to have a superset of it
-        if (not target_spec.name or not self._cx_targets):
+        if not target_spec.name or not self._cx_targets:
             logging.info(" => Target Cx reusing is not available.")
             return False
 
@@ -704,8 +712,12 @@ class LoadBalance:
             return False
 
         new_cx_filename = self._cx_filename(target_spec.simple_name)
-        logging.info("Target %s is a subset of the target %s. Generating %s",
-                     target_spec.name, previous_target, new_cx_filename)
+        logging.info(
+            "Target %s is a subset of the target %s. Generating %s",
+            target_spec.name,
+            previous_target,
+            new_cx_filename,
+        )
 
         # Write the new cx file since Neuron needs it to do CPU assignment
         with open(new_cx_filename, "w") as newfile:
@@ -740,8 +752,7 @@ class LoadBalance:
 
     @classmethod
     def _cx_contains_gids(cls, cxpath, target_gids, out_cx=None) -> bool:
-        """Checks a cx file contains complexities for given gids
-        """
+        """Checks a cx file contains complexities for given gids"""
         if not cxpath.is_file():
             log_verbose("  - cxpath doesnt exist: %s", cxpath)
             return False
@@ -777,11 +788,14 @@ class LoadBalance:
 
         cx_cells = self._compute_complexities(mcomplex, cell_distributor)
         total_cx, max_cx = self._cell_complexity_total_max(cx_cells)
-        lcx = self._get_optimal_piece_complexity(total_cx,
-                                                 self.target_cpu_count,
-                                                 msfactor)
-        logging.info("LB Info: TC=%.3f MC=%.3f OptimalCx=%.3f FileName=%s",
-                     total_cx, max_cx, lcx, out_filename)
+        lcx = self._get_optimal_piece_complexity(total_cx, self.target_cpu_count, msfactor)
+        logging.info(
+            "LB Info: TC=%.3f MC=%.3f OptimalCx=%.3f FileName=%s",
+            total_cx,
+            max_cx,
+            lcx,
+            out_filename,
+        )
 
         ms_list = []
         tmp = Nd.Vector()
@@ -810,8 +824,8 @@ class LoadBalance:
         """
         Returns: Tuple of (TotalComplexity, max_complexity)
         """
-        local_max = max(cx_cells) if len(cx_cells) > 0 else .0
-        local_sum = sum(cx_cells) if len(cx_cells) > 0 else .0
+        local_max = max(cx_cells) if len(cx_cells) > 0 else 0.0
+        local_sum = sum(cx_cells) if len(cx_cells) > 0 else 0.0
 
         global_total = MPI.allreduce(local_sum, MPI.SUM)
         global_max = MPI.allreduce(local_max, MPI.MAX)
@@ -833,7 +847,7 @@ class LoadBalance:
             nhost: Prospective no of hosts
         """
         lps = total_cx * msfactor / nhost
-        return int(lps+1)
+        return int(lps + 1)
 
     @run_only_rank0
     def _cpu_assign(self, target_name):
@@ -846,9 +860,8 @@ class LoadBalance:
 
     @staticmethod
     def _write_msdat(fp, ms):
-        """Writes load balancing info to an output stream
-        """
-        fp.write("%d" % ms.x[0])   # gid
+        """Writes load balancing info to an output stream"""
+        fp.write("%d" % ms.x[0])  # gid
         fp.write(" %g" % ms.x[1])  # total complexity of cell
         piece_count = int(ms.x[2])
         fp.write(" %d\n" % piece_count)
@@ -877,8 +890,7 @@ class LoadBalance:
 
     @staticmethod
     def _read_msdat(fp):
-        """read load balancing info from an input stream
-        """
+        """read load balancing info from an input stream"""
         cx_saved = {}  # dict with key = gid, value = line content
         piece_count = 0
         gid = None
@@ -889,7 +901,7 @@ class LoadBalance:
             if piece_count == 0:
                 gid, _cx, piece_count = [int(float(x)) for x in line.split()]
                 cx_saved[gid] = [line]
-            else:                               # Handle parts
+            else:  # Handle parts
                 cx_saved[gid].append(line)
                 for _ in range(2 * int(line)):  # each subtree has two lines
                     cx_saved[gid].append(next(fp))
@@ -899,8 +911,7 @@ class LoadBalance:
 
     @staticmethod
     def _write_msdat_dict(fp, cx_dict, gids=None):
-        """Write out selected gid cx lines from a cx_dict
-        """
+        """Write out selected gid cx lines from a cx_dict"""
         if gids is None:
             gids = cx_dict.keys()
         fp.write("1\n%d\n" % len(gids))
@@ -913,7 +924,7 @@ class LoadBalance:
         return self._target_manager.get_target(target_spec).get_raw_gids()
 
     def load_balance_info(self, target_spec):
-        """ Loads a load-balance info for a given target.
+        """Loads a load-balance info for a given target.
         NOTE: Please ensure the load balance exists or is derived before calling this function
         """
         bal_filename = self._cx_filename(target_spec.simple_name, True)
@@ -936,8 +947,7 @@ class LoadBalance:
 
     @staticmethod
     def select_lb_mode(sim_config, run_conf, target):
-        """ A method which selects the load balance mode according to run config
-        """
+        """A method which selects the load balance mode according to run config"""
         # Check / set load balance mode
         lb_mode = sim_config.loadbal_mode
         if lb_mode == LoadBalanceMode.MultiSplit:
@@ -954,9 +964,9 @@ class LoadBalance:
             if target.is_void():
                 lb_mode, reason = LoadBalanceMode.RoundRobin, "No target set, unknown cell count"
             else:
-                lb_mode, reason = LoadBalanceMode.auto_select(sim_config.use_neuron,
-                                                              target.gid_count(),
-                                                              run_conf["Duration"])
+                lb_mode, reason = LoadBalanceMode.auto_select(
+                    sim_config.use_neuron, target.gid_count(), run_conf["Duration"]
+                )
             logging.warning("Load Balance AUTO-SELECTED: %s. Reason: %s", lb_mode.name, reason)
 
         return lb_mode

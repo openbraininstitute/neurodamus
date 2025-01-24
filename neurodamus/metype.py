@@ -1,6 +1,7 @@
 """
 Module which defines and handles METypes config (v5/v6 cells)
 """
+
 from __future__ import absolute_import, print_function
 import logging
 from abc import abstractmethod
@@ -14,6 +15,7 @@ class BaseCell:
     """
     Class representing an basic cell, e.g. an artificial cell
     """
+
     __slots__ = ("_cellref", "_ccell", "raw_gid")
 
     def __init__(self, gid, cell_info, circuit_info):
@@ -30,7 +32,7 @@ class BaseCell:
         return self._ccell
 
     def connect2target(self, target_pp=None):
-        """ Connects empty cell to target """
+        """Connects empty cell to target"""
         return Nd.NetCon(self._cellref, target_pp)
 
     def re_init_rng(self, ion_seed):
@@ -41,15 +43,23 @@ class METype(BaseCell):
     """
     Class representing an METype. Will instantiate a Hoc-level cell as well
     """
+
     morpho_extension = "asc"
     """The extension to be applied to morphology files"""
 
     KEEP_AXON_FLAG = 400
 
-    __slots__ = ('_threshold_current', '_hypAmp_current', '_netcons',
-                 '_synapses', '_syn_helper_list', '_emodel_name',
-                 'exc_mini_frequency', 'inh_mini_frequency',
-                 'extra_attrs')
+    __slots__ = (
+        "_threshold_current",
+        "_hypAmp_current",
+        "_netcons",
+        "_synapses",
+        "_syn_helper_list",
+        "_emodel_name",
+        "exc_mini_frequency",
+        "inh_mini_frequency",
+        "extra_attrs",
+    )
 
     def __init__(self, gid, etype_path, emodel, morpho_path, meinfos=None, detailed_axon=False):
         """Instantite a new Cell from METype
@@ -74,8 +84,9 @@ class METype(BaseCell):
 
         self._instantiate_cell(gid, etype_path, emodel, morpho_path, meinfos, detailed_axon)
 
-    gid = property(lambda self: int(self._cellref.gid),
-                   lambda self, val: setattr(self._cellref, 'gid', val))
+    gid = property(
+        lambda self: int(self._cellref.gid), lambda self, val: setattr(self._cellref, "gid", val)
+    )
 
     # Ensure no METype instances created. Only Subclasses
     @abstractmethod
@@ -108,7 +119,7 @@ class METype(BaseCell):
         return 3
 
     def connect2target(self, target_pp=None):
-        """ Connects MEtype cell to target
+        """Connects MEtype cell to target
 
         Args:
             target_pp: target point process [default: None]
@@ -149,8 +160,7 @@ class Cell_V6(METype):
         super().__init__(gid, mepath, meinfo.emodel_tpl, morpho_path, meinfo, detailed_axon)
 
     def _instantiate_cell(self, gid, etype_path, emodel, morpho_path, meinfos_v6, detailed_axon):
-        """Instantiates a SSCx v6 cell
-        """
+        """Instantiates a SSCx v6 cell"""
         Nd.load_hoc(ospath.join(etype_path, emodel))
         EModel = getattr(Nd, emodel)
         morpho_file = meinfos_v6.morph_name + "." + self.morpho_extension
@@ -165,8 +175,10 @@ class Cell_V6(METype):
             self._cellref = EModel(gid, morpho_path, morpho_file, *add_params)
             Nd.pc.mpiabort_on_error(old_flag)
         except Exception as e:
-            raise RuntimeError("Error from NEURON when loading Gid %d: emodel: %s, Morphology: %s"
-                               ": %s" % (gid, emodel, morpho_file, str(e))) from e
+            raise RuntimeError(
+                "Error from NEURON when loading Gid %d: emodel: %s, Morphology: %s"
+                ": %s" % (gid, emodel, morpho_file, str(e))
+            ) from e
         self._ccell = self._cellref
         self._synapses = Nd.List()
         self._syn_helper_list = Nd.List()
@@ -179,8 +191,10 @@ class Cell_V6(METype):
 
     def local_to_global_coord_mapping(self, points):
         if self.local_to_global_matrix is False:
-            raise ConfigurationError("To use local_to_global_coord_mapping please "
-                                     "run neurodamus with `enable_coord_mapping=True`")
+            raise ConfigurationError(
+                "To use local_to_global_coord_mapping please "
+                "run neurodamus with `enable_coord_mapping=True`"
+            )
         elif self.local_to_global_matrix is None:
             raise Exception("Nodes don't provide all 3d position/rotation info")
         return vector_rotate_translate(points, self.local_to_global_matrix)
@@ -200,7 +214,8 @@ class EmptyCell(BaseCell):
     Class representing an empty cell, e.g. an artificial cell
     Workaround for the neuron issue https://github.com/neuronsimulator/nrn/issues/635
     """
-    __slots__ = ('gid',)
+
+    __slots__ = ("gid",)
 
     def __init__(self, gid, cell):
         super().__init__(gid, None, None)
@@ -241,19 +256,45 @@ class PointCell:
 # Metadata
 # --------
 
-class METypeItem(object):
-    """ Metadata about an METype, each possibly used by several cells.
-    """
-    __slots__ = ("morph_name", "layer", "fullmtype", "etype", "emodel_tpl", "combo_name",
-                 "mtype", "threshold_current", "holding_current",
-                 "exc_mini_frequency", "inh_mini_frequency", "add_params",
-                 "local_to_global_matrix",
-                 "extra_attrs")
 
-    def __init__(self, morph_name, layer=None, fullmtype=None, etype=None, emodel_tpl=None,
-                 combo_name=None, mtype=None, threshold_current=0, holding_current=0,
-                 exc_mini_frequency=0, inh_mini_frequency=0, add_params=None,
-                 position=None, rotation=None, scale=1.0):
+class METypeItem(object):
+    """Metadata about an METype, each possibly used by several cells."""
+
+    __slots__ = (
+        "morph_name",
+        "layer",
+        "fullmtype",
+        "etype",
+        "emodel_tpl",
+        "combo_name",
+        "mtype",
+        "threshold_current",
+        "holding_current",
+        "exc_mini_frequency",
+        "inh_mini_frequency",
+        "add_params",
+        "local_to_global_matrix",
+        "extra_attrs",
+    )
+
+    def __init__(
+        self,
+        morph_name,
+        layer=None,
+        fullmtype=None,
+        etype=None,
+        emodel_tpl=None,
+        combo_name=None,
+        mtype=None,
+        threshold_current=0,
+        holding_current=0,
+        exc_mini_frequency=0,
+        inh_mini_frequency=0,
+        add_params=None,
+        position=None,
+        rotation=None,
+        scale=1.0,
+    ):
         self.morph_name = morph_name
         self.layer = layer
         self.fullmtype = fullmtype
@@ -268,8 +309,11 @@ class METypeItem(object):
         self.add_params = add_params
         self.extra_attrs = {}
         cli_opts = SimConfig.cli_options
-        self.local_to_global_matrix = self._make_coord_map_matrix(position, rotation, scale) \
-            if cli_opts is None or cli_opts.enable_coord_mapping else False
+        self.local_to_global_matrix = (
+            self._make_coord_map_matrix(position, rotation, scale)
+            if cli_opts is None or cli_opts.enable_coord_mapping
+            else False
+        )
 
     @staticmethod
     def _make_coord_map_matrix(position, rotation, scale):
@@ -277,6 +321,7 @@ class METypeItem(object):
         if rotation is None:
             return None
         from scipy.spatial.transform import Rotation
+
         m = np.empty((3, 4), np.float32)
         r = Rotation.from_quat(rotation)  # scipy auto-normalizes
         m[:, :3] = r.as_matrix()
@@ -300,30 +345,37 @@ def vector_rotate_translate(points, transform_matrix):
         raise ValueError("Matrix of input coordinates needs 3 columns.")
     rot_matrix = transform_matrix[None, :, :3]
     translation = transform_matrix[:, 3]
-    return np.einsum('ijk,ik->ij', rot_matrix, points) + translation
+    return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
 
 
 class METypeManager(dict):
-    """ Map to hold specific METype info and provide retrieval by gid
-    """
+    """Map to hold specific METype info and provide retrieval by gid"""
 
     def insert(self, gid, morph_name, *me_data, **kwargs):
-        """Function to add an METypeItem to internal data structure
-        """
+        """Function to add an METypeItem to internal data structure"""
         self[int(gid)] = METypeItem(morph_name, *me_data, **kwargs)
 
-    def load_infoNP(self, gidvec, morph_list, model_templates, mtypes, etypes,
-                    threshold_currents=None, holding_currents=None,
-                    exc_mini_freqs=None, inh_mini_freqs=None,
-                    positions=None, rotations=None,
-                    add_params_list=None):
-        """Loads METype information in bulk from Numpy arrays
-        """
+    def load_infoNP(
+        self,
+        gidvec,
+        morph_list,
+        model_templates,
+        mtypes,
+        etypes,
+        threshold_currents=None,
+        holding_currents=None,
+        exc_mini_freqs=None,
+        inh_mini_freqs=None,
+        positions=None,
+        rotations=None,
+        add_params_list=None,
+    ):
+        """Loads METype information in bulk from Numpy arrays"""
         for idx, gid in enumerate(gidvec):
-            th_current = threshold_currents[idx] if threshold_currents is not None else .0
-            hd_current = holding_currents[idx] if holding_currents is not None else .0
-            exc_mini_freq = exc_mini_freqs[idx] if exc_mini_freqs is not None else .0
-            inh_mini_freq = inh_mini_freqs[idx] if inh_mini_freqs is not None else .0
+            th_current = threshold_currents[idx] if threshold_currents is not None else 0.0
+            hd_current = holding_currents[idx] if holding_currents is not None else 0.0
+            exc_mini_freq = exc_mini_freqs[idx] if exc_mini_freqs is not None else 0.0
+            inh_mini_freq = inh_mini_freqs[idx] if inh_mini_freqs is not None else 0.0
             position = positions[idx] if positions is not None else None
             rotation = rotations[idx] if rotations is not None else None
             mtype = mtypes[idx] if mtypes is not None else None
@@ -339,12 +391,11 @@ class METypeManager(dict):
                 inh_mini_frequency=inh_mini_freq,
                 position=position,
                 rotation=rotation,
-                add_params=add_params
+                add_params=add_params,
             )
 
     def retrieve_info(self, gid):
-        return self.get(gid) \
-            or logging.warning("No info for gid %d found.", gid)
+        return self.get(gid) or logging.warning("No info for gid %d found.", gid)
 
     @property
     def gids(self):

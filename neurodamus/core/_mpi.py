@@ -1,6 +1,7 @@
 """
 Internal module which defines an MPI object based on Neuron's ParallelContext
 """
+
 import logging
 import sys
 import time
@@ -12,8 +13,8 @@ class OtherRankError(RuntimeError):
 
 
 class _MPI(object):
-    """A singleton of MPI runtime information
-    """
+    """A singleton of MPI runtime information"""
+
     _size = 1
     _rank = 0
     _pc = None
@@ -47,6 +48,7 @@ class _MPI(object):
             logging.critical(str(value), exc_info=True)
             if cls._rank == 0:
                 import traceback
+
                 traceback.print_tb(tb)
 
             # Participate in check_no_errors allreduce, letting it know there was exception

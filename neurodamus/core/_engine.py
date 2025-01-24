@@ -9,8 +9,8 @@ import pkgutil
 
 
 class _EngineMeta(type):
-    """A metaclass providing registration for new Engines
-    """
+    """A metaclass providing registration for new Engines"""
+
     __engines = {}
     __connection_types = {}
     __instances = {}
@@ -45,7 +45,7 @@ class _EngineMeta(type):
             importlib.import_module(plugin_module)
         # Auto import correctly named modules
         for finder, name, ispkg in pkgutil.iter_modules():
-            if name.startswith('neurodamus_'):
+            if name.startswith("neurodamus_"):
                 importlib.import_module(name)
         logging.info(" => Engines Available: %s", list(cls.__engines.keys()))
         logging.info("  : Connections Types: %s", list(cls.__connection_types.keys()))
@@ -86,8 +86,7 @@ class EngineBase(metaclass=_EngineMeta):
         return cls.CellManagerCls(circuit_conf, target_parser, run_conf)
 
     def new_synapse_manager(cls, circuit_conf, target_manager, cell_manager):
-        """Routine responsible for creating connection managers.
-        """
+        """Routine responsible for creating connection managers."""
         if not cls.SynapseManagerCls:
             return NotImplemented
         if cell_manager is None:
@@ -95,8 +94,7 @@ class EngineBase(metaclass=_EngineMeta):
         return cls.SynapseManagerCls(circuit_conf, target_manager, cell_manager)
 
     def report(report, target_parser, rep_target, corenrn_conf, cell_manager):
-        """Create reports for this type of engine.
-        """
+        """Create reports for this type of engine."""
         if cell_manager is None:
             raise RuntimeError("Circuit Not Initialized. Please load_nodes() first")
         return NotImplemented

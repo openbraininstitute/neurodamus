@@ -23,15 +23,26 @@ def get_section_index(cell, section):
     elif "ais" in section_name:
         base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical
     elif "node" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical \
-                    + getattr(cell, 'nSecLastAIS', 0)
+        base_offset = (
+            cell.nSecSoma
+            + cell.nSecAxonalOrig
+            + cell.nSecBasal
+            + cell.nSecApical
+            + getattr(cell, "nSecLastAIS", 0)
+        )
     elif "myelin" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical \
-                    + getattr(cell, 'nSecLastAIS', 0) + getattr(cell, 'nSecNodal', 0)
+        base_offset = (
+            cell.nSecSoma
+            + cell.nSecAxonalOrig
+            + cell.nSecBasal
+            + cell.nSecApical
+            + getattr(cell, "nSecLastAIS", 0)
+            + getattr(cell, "nSecNodal", 0)
+        )
 
     # Extract the index from the section name
     try:
-        index_str = section_name.split('[')[-1].rstrip(']')
+        index_str = section_name.split("[")[-1].rstrip("]")
         section_index = int(index_str)
     except ValueError:
         logging.warning(f"Error while getting section index {index_str}")
@@ -41,24 +52,37 @@ def get_section_index(cell, section):
 
 class Report:
     INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
-    CURRENT_INJECTING_PROCESSES  = {"SEClamp", "IClamp"}
+    CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
 
-    def __init__(self, report_name, report_type, variable_name, unit, format, dt, start_time,
-                 end_time, output_dir, scaling_option=None, use_coreneuron=False):
+    def __init__(
+        self,
+        report_name,
+        report_type,
+        variable_name,
+        unit,
+        format,
+        dt,
+        start_time,
+        end_time,
+        output_dir,
+        scaling_option=None,
+        use_coreneuron=False,
+    ):
         self.variable_name = variable_name
         self.report_dt = dt
         self.scaling_mode = self.determine_scaling_mode(scaling_option)
         self.use_coreneuron = use_coreneuron
 
         self.alu_list = []
-        self.report = Nd.SonataReport(0.5, report_name, output_dir, start_time,
-                                      end_time, dt, unit, "compartment")
+        self.report = Nd.SonataReport(
+            0.5, report_name, output_dir, start_time, end_time, dt, unit, "compartment"
+        )
         Nd.BBSaveState().ignore(self.report)
 
     def determine_scaling_mode(self, scaling_option):
-        if scaling_option is None or scaling_option == 'Area':
+        if scaling_option is None or scaling_option == "Area":
             return 1  # SCALING_AREA
-        elif scaling_option == 'None':
+        elif scaling_option == "None":
             return 0  # SCALING_NONE
         else:
             return 2  # SCALING_ELECTRODE
@@ -75,12 +99,13 @@ class Report:
             x = point.x[i]
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
-            var_ref = getattr(section(x), '_ref_' + self.variable_name)
+            var_ref = getattr(section(x), "_ref_" + self.variable_name)
             section_index = get_section_index(cell_obj, section)
             self.report.AddVar(var_ref, section_index, gid, pop_name)
 
-    def add_summation_report(self, cell_obj, point, collapsed, vgid,
-                             pop_name="default", pop_offset=0):
+    def add_summation_report(
+        self, cell_obj, point, collapsed, vgid, pop_name="default", pop_offset=0
+    ):
         if self.use_coreneuron:
             return
         gid = cell_obj.gid
@@ -125,7 +150,7 @@ class Report:
                 if self.is_point_process_at_location(synapse, section, x):
                     synapse_list.append(synapse)
                     # Mark synapse as selected for report
-                    if hasattr(synapse, 'selected_for_report'):
+                    if hasattr(synapse, "selected_for_report"):
                         synapse.selected_for_report = True
                 Nd.pop_section()
 
@@ -136,7 +161,7 @@ class Report:
             self.report.AddNode(gid, pop_name, pop_offset)
             for synapse in synapse_list:
                 try:
-                    var_ref = getattr(synapse, '_ref_' + variable)
+                    var_ref = getattr(synapse, "_ref_" + variable)
                     self.report.AddVar(var_ref, synapse.synapseID, gid, pop_name)
                 except AttributeError:
                     raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
@@ -161,8 +186,9 @@ class Report:
         """Handle point processes for a given mechanism."""
         for point_process in point_processes:
             if self.is_point_process_at_location(point_process, section, x):
-                is_inverted = any(proc in point_process.hname()
-                                  for proc in self.CURRENT_INJECTING_PROCESSES)
+                is_inverted = any(
+                    proc in point_process.hname() for proc in self.CURRENT_INJECTING_PROCESSES
+                )
                 scalar = -1 if is_inverted else 1
                 self.add_variable_to_alu(alu_helper, point_process, variable, scalar)
             Nd.pop_section()
@@ -176,7 +202,7 @@ class Report:
     def add_variable_to_alu(self, alu_helper, obj, variable, scalar):
         """Add a variable to the ALU helper with error handling."""
         try:
-            var_ref = getattr(obj, '_ref_' + variable)
+            var_ref = getattr(obj, "_ref_" + variable)
             alu_helper.addvar(var_ref, scalar)
         except AttributeError:
             if variable in self.INTRINSIC_CURRENTS:
@@ -241,8 +267,8 @@ class Report:
         tokens = self.variable_name.split()  # Splitting by whitespace
 
         for token in tokens:
-            if '.' in token:
-                mechanism, var = token.split('.', 1)  # Splitting by the first period
+            if "." in token:
+                mechanism, var = token.split(".", 1)  # Splitting by the first period
                 tokens_with_vars.append((mechanism, var))
             else:
                 tokens_with_vars.append((token, "i"))  # Default internal variable

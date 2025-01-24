@@ -8,8 +8,8 @@ from ..report import get_section_index
 
 
 class CompartmentMapping:
-    """ Interface to register section segment mapping with NEURON.
-    """
+    """Interface to register section segment mapping with NEURON."""
+
     def __init__(self, cell_distributor):
         self.cell_distributor = cell_distributor
         self.pc = Nd.ParallelContext()
@@ -37,19 +37,20 @@ class CompartmentMapping:
             end_idx = (section_offset + num_segments) * num_electrodes - 1
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
-        self.pc.nrnbbcore_register_mapping(cell.gid, sections[1], secvec, segvec,
-                                           lfp_factors, num_electrodes)
+        self.pc.nrnbbcore_register_mapping(
+            cell.gid, sections[1], secvec, segvec, lfp_factors, num_electrodes
+        )
         return num_segments
 
     def register_mapping(self):
         sections = [
-            ('somatic', 'soma'),
-            ('axonal', 'axon'),
-            ('basal', 'dend'),
-            ('apical', 'apic'),
-            ('AIS', 'ais'),
-            ('nodal', 'node'),
-            ('myelinated', 'myelin')
+            ("somatic", "soma"),
+            ("axonal", "axon"),
+            ("basal", "dend"),
+            ("apical", "apic"),
+            ("AIS", "ais"),
+            ("nodal", "node"),
+            ("myelinated", "myelin"),
         ]
         gidvec = self.cell_distributor.getGidListForProcessor()
         for activegid in gidvec:
@@ -64,8 +65,9 @@ class CompartmentMapping:
 
             section_offset = 0
             for section in sections:
-                processed_segments = self.process_section(cellref, section, num_electrodes,
-                                                          all_lfp_factors, section_offset)
+                processed_segments = self.process_section(
+                    cellref, section, num_electrodes, all_lfp_factors, section_offset
+                )
                 section_offset += processed_segments
 
 
@@ -74,6 +76,7 @@ class _CoreNEURONConfig(object):
     The CoreConfig class is responsible for managing the configuration of the CoreNEURON simulation.
     It writes the simulation / report configurations and calls the CoreNEURON solver.
     """
+
     sim_config_file = "sim.conf"
     report_config_file = "report.conf"
     restore_path = None
@@ -98,11 +101,12 @@ class _CoreNEURONConfig(object):
                 # Copy the file to current location
                 report_conf.write_bytes(parent_report_conf.read_bytes())
             else:
-                raise ConfigurationError(f"Report config file not found in {report_conf} "
-                                         f"or {parent_report_conf}")
+                raise ConfigurationError(
+                    f"Report config file not found in {report_conf} or {parent_report_conf}"
+                )
 
         # Read all content
-        with report_conf.open('rb') as f:
+        with report_conf.open("rb") as f:
             lines = f.readlines()
 
         # Find and update the matching line
@@ -113,7 +117,7 @@ class _CoreNEURONConfig(object):
                 # Report name and target name must match in order to update the tstop
                 if parts[0:2] == [report_name, nodeset_name]:
                     parts[9] = f"{tstop:.6f}"
-                    lines[i] = (' '.join(parts) + '\n').encode()
+                    lines[i] = (" ".join(parts) + "\n").encode()
                     found = True
                     break
             except (UnicodeDecodeError, IndexError):
@@ -121,47 +125,76 @@ class _CoreNEURONConfig(object):
                 continue
 
         if not found:
-            raise ConfigurationError(f"Report '{report_name}' with target '{nodeset_name}' "
-                                     "not matching any report in the 'save' execution")
+            raise ConfigurationError(
+                f"Report '{report_name}' with target '{nodeset_name}' "
+                "not matching any report in the 'save' execution"
+            )
 
         # Write back
-        with report_conf.open('wb') as f:
+        with report_conf.open("wb") as f:
             f.writelines(lines)
 
     @run_only_rank0
     def write_report_config(
-            self, report_name, target_name, report_type, report_variable,
-            unit, report_format, target_type, dt, start_time, end_time, gids,
-            buffer_size=8):
+        self,
+        report_name,
+        target_name,
+        report_type,
+        report_variable,
+        unit,
+        report_format,
+        target_type,
+        dt,
+        start_time,
+        end_time,
+        gids,
+        buffer_size=8,
+    ):
         import struct
+
         num_gids = len(gids)
         logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
         report_conf = Path(self.output_root) / self.report_config_file
         report_conf.parent.mkdir(parents=True, exist_ok=True)
         with report_conf.open("ab") as fp:
             # Write the formatted string to the file
-            fp.write(("%s %s %s %s %s %s %d %lf %lf %lf %d %d\n" % (
-                report_name,
-                target_name,
-                report_type,
-                report_variable,
-                unit,
-                report_format,
-                target_type,
-                dt,
-                start_time,
-                end_time,
-                num_gids,
-                buffer_size
-            )).encode())
+            fp.write(
+                (
+                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"
+                    % (
+                        report_name,
+                        target_name,
+                        report_type,
+                        report_variable,
+                        unit,
+                        report_format,
+                        target_type,
+                        dt,
+                        start_time,
+                        end_time,
+                        num_gids,
+                        buffer_size,
+                    )
+                ).encode()
+            )
             # Write the array of integers to the file in binary format
-            fp.write(struct.pack(f'{num_gids}i', *gids))
-            fp.write(b'\n')
+            fp.write(struct.pack(f"{num_gids}i", *gids))
+            fp.write(b"\n")
 
     @run_only_rank0
     def write_sim_config(
-            self, tstop, dt, forwardskip, prcellgid, celsius, v_init,
-            pattern=None, seed=None, model_stats=False, enable_reports=True):
+        self,
+        tstop,
+        dt,
+        forwardskip,
+        prcellgid,
+        celsius,
+        v_init,
+        pattern=None,
+        seed=None,
+        model_stats=False,
+        enable_reports=True,
+    ):
         simconf = Path(self.output_root) / self.sim_config_file
         logging.info(f"Writing sim config file: {simconf}")
         simconf.parent.mkdir(parents=True, exist_ok=True)

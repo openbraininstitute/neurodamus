@@ -33,6 +33,7 @@ And here another example with different options:
     >>> print p
     100% [####################]
 """
+
 from __future__ import print_function
 import sys
 import time
@@ -48,7 +49,7 @@ class Progress(object):
     """
 
     def __init__(self, end, start=0, **kw):
-        """ Creates a progress bar
+        """Creates a progress bar
 
         Args:
             end:   State in which the progress has terminated. False for unknown (-> spinner)
@@ -116,8 +117,10 @@ class Progress(object):
             start: in which position to start iterating
         """
         if end is None:
-            try: end = len(iterable)
-            except TypeError: end = False
+            try:
+                end = len(iterable)
+            except TypeError:
+                end = False
         # __call__ 'end' cant be False -> None
         return cls(end, start, **kw)(iterable, end or None, start)
 
@@ -134,10 +137,22 @@ class ProgressBar(Progress):
     """ProgressBar implements a fully visual text-based representation of a progress.
     and may be any file-object to which send the progress status.
     """
+
     _no_tty_bar = "-------20%-------40%-------60%-------80%------100%"  # len 50
 
-    def __init__(self, end, start=0, width=60, fill='=', blank='.', stream=sys.stdout,
-                 clear=None, fmt='[%(fill)s>%(blank)s] %(progress)s', tty_bar=None, name=''):
+    def __init__(
+        self,
+        end,
+        start=0,
+        width=60,
+        fill="=",
+        blank=".",
+        stream=sys.stdout,
+        clear=None,
+        fmt="[%(fill)s>%(blank)s] %(progress)s",
+        tty_bar=None,
+        name="",
+    ):
         """
         Args:
             end:   State in which the progress has terminated. False for unknown (-> spinner)
@@ -152,8 +167,9 @@ class ProgressBar(Progress):
             tty_bar: Controls whether the bar should be enhanced for text terminals.
                 Default: None (auto-detect), False, True
         """
-        self._tty_mode = ((hasattr(stream, 'isatty') and stream.isatty())
-                          if tty_bar is None else tty_bar)
+        self._tty_mode = (
+            (hasattr(stream, "isatty") and stream.isatty()) if tty_bar is None else tty_bar
+        )
         self._width = width if self._tty_mode else 50
         self._fill = fill
         self._blank = blank
@@ -175,13 +191,13 @@ class ProgressBar(Progress):
         bar_len, progress = self._bar_len_progress()
         fill = self._fill * bar_len
         blank = self._blank * (self._width - bar_len)
-        return self._name + self._format % {'fill': fill, 'blank': blank, 'progress': progress}
+        return self._name + self._format % {"fill": fill, "blank": blank, "progress": progress}
 
     def show_progress(self):
         if self._end == 0:
             return
         if self._tty_mode:
-            self._stream.write('\r' + str(self))
+            self._stream.write("\r" + str(self))
         else:
             self._show_incremental_bar()
         self._stream.flush()
@@ -194,7 +210,7 @@ class ProgressBar(Progress):
             self._prev_bar_len = 0
 
         if bar_len > self._prev_bar_len:
-            self._stream.write(self._no_tty_bar[self._prev_bar_len:bar_len])
+            self._stream.write(self._no_tty_bar[self._prev_bar_len : bar_len])
             self._prev_bar_len = bar_len
 
     def __del__(self):
@@ -219,7 +235,7 @@ class ProgressBar(Progress):
 # QUICK TESTING
 # ------------------------
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     p = ProgressBar(100, width=80)
 
     while p.progress < 100:

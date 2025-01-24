@@ -1,6 +1,7 @@
 """
 Module implementing interfaces to the several synapse readers (eg.: synapsetool, Hdf5Reader)
 """
+
 import logging
 from abc import abstractmethod
 
@@ -24,8 +25,9 @@ class _SynParametersMeta(type):
         type.__init__(cls, name, bases, attrs)
         # Init public properties of the class
         assert hasattr(cls, "_synapse_fields"), "Please define _synapse_fields class attr"
-        cls.dtype = np.dtype({"names": cls._synapse_fields,
-                              "formats": ["f8"] * len(cls._synapse_fields)})
+        cls.dtype = np.dtype(
+            {"names": cls._synapse_fields, "formats": ["f8"] * len(cls._synapse_fields)}
+        )
         cls.empty = np.recarray(0, cls.dtype)
         if not hasattr(cls, "_optional"):
             cls._optional = ()
@@ -51,11 +53,26 @@ class _SynParametersMeta(type):
 
 
 class SynapseParameters(metaclass=_SynParametersMeta):
-    """Synapse parameters, internally implemented as numpy record
-    """
-    _synapse_fields = ("sgid", "delay", "isec", "ipt", "offset", "weight", "U", "D", "F",
-                       "DTC", "synType", "nrrp", "u_hill_coefficient", "conductance_ratio",
-                       "maskValue", "location")  # total: 16
+    """Synapse parameters, internally implemented as numpy record"""
+
+    _synapse_fields = (
+        "sgid",
+        "delay",
+        "isec",
+        "ipt",
+        "offset",
+        "weight",
+        "U",
+        "D",
+        "F",
+        "DTC",
+        "synType",
+        "nrrp",
+        "u_hill_coefficient",
+        "conductance_ratio",
+        "maskValue",
+        "location",
+    )  # total: 16
 
     _optional = ("u_hill_coefficient", "conductance_ratio")
     _reserved = ("maskValue", "location")
@@ -73,8 +90,8 @@ class SynapseParameters(metaclass=_SynParametersMeta):
 
 
 class SynapseReader:
-    """ Synapse Readers base class.
-        Factory create() will instantiate a SONATA reader.
+    """Synapse Readers base class.
+    Factory create() will instantiate a SONATA reader.
     """
 
     def __init__(self, src, population=None, *_, **kw):
@@ -100,8 +117,10 @@ class SynapseReader:
         # Read attribute names with format "attr1;attr2;attr3"
         attr_names = getattr(Nd, override_helper + "_NeededAttributes", None)
         if attr_names:
-            log_verbose('Reading parameters "{}" for mod override: {}'.format(
-                ", ".join(attr_names.split(";")), mod_override)
+            log_verbose(
+                'Reading parameters "{}" for mod override: {}'.format(
+                    ", ".join(attr_names.split(";")), mod_override
+                )
             )
             self._extra_fields = tuple(attr_names.split(";"))
 
@@ -111,8 +130,7 @@ class SynapseReader:
             self._extra_scale_vars = attr_names.split(";")
 
     def get_synapse_parameters(self, gid):
-        """Obtains the synapse parameters record for a given gid.
-        """
+        """Obtains the synapse parameters record for a given gid."""
         syn_params = self._syn_params.get(gid)
         if syn_params is None:
             syn_params = self._load_synapse_parameters(gid)
@@ -131,10 +149,10 @@ class SynapseReader:
 
     @staticmethod
     def _patch_delay_fp_inaccuracies(records):
-        if len(records) == 0 or 'delay' not in records.dtype.names:
+        if len(records) == 0 or "delay" not in records.dtype.names:
             return
         dt = Nd.dt
-        records.delay = (records.delay / dt + 1e-5).astype('i4') * dt
+        records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @staticmethod
     def _scale_U_param(syn_params, extra_cellular_calcium, extra_scale_vars):
@@ -143,8 +161,7 @@ class SynapseReader:
         if extra_cellular_calcium is None:
             return
 
-        scale_factors = _constrained_hill(syn_params.u_hill_coefficient,
-                                          extra_cellular_calcium)
+        scale_factors = _constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
         syn_params.U *= scale_factors
 
         for scale_var in extra_scale_vars:
@@ -152,26 +169,23 @@ class SynapseReader:
 
     @abstractmethod
     def _open_file(self, src, population, verbose=False):
-        """Initializes the reader, opens the synapse file
-        """
+        """Initializes the reader, opens the synapse file"""
 
     @abstractmethod
     def has_nrrp(self):
-        """Checks whether source data has the nrrp field.
-        """
+        """Checks whether source data has the nrrp field."""
 
     @abstractmethod
     def has_property(self, field_name):
-        """Checks whether source data has the given additional field.
-        """
+        """Checks whether source data has the given additional field."""
 
     @staticmethod
     def _get_sonata_circuit(path):
-        """Returns a SONATA edge file in path if present
-        """
+        """Returns a SONATA edge file in path if present"""
         if path.endswith(".h5"):
             import h5py
-            f = h5py.File(path, 'r')
+
+            f = h5py.File(path, "r")
             if "edges" in f:
                 return path
         return None
@@ -179,9 +193,9 @@ class SynapseReader:
     @classmethod
     def create(cls, syn_src, population=None, *args, **kw):
         """Instantiates a synapse reader, by default SonataReader.
-           syn_src must point to a SONATA edge file.
+        syn_src must point to a SONATA edge file.
         """
-        kw["verbose"] = (MPI.rank == 0)
+        kw["verbose"] = MPI.rank == 0
         if fn := cls._get_sonata_circuit(syn_src):
             if cls is not SynapseReader:
                 return cls(fn, population, *args, **kw)
@@ -227,6 +241,7 @@ class SonataReader(SynapseReader):
     def _open_file(self, src, population, _):
         try:
             from mpi4py import MPI
+
             hdf5_reader = libsonata.make_collective_reader(MPI.COMM_WORLD, False, True)
         except ModuleNotFoundError:
             hdf5_reader = libsonata.Hdf5Reader()
@@ -251,8 +266,7 @@ class SonataReader(SynapseReader):
         return field_name in self._population.attribute_names
 
     def get_property(self, gid, field_name):
-        """Retrieves a full pre-loaded property given a gid and the property name.
-        """
+        """Retrieves a full pre-loaded property given a gid and the property name."""
         return self._data[gid][field_name]
 
     def preload_data(self, gids, minimal_mode=False):
@@ -278,7 +292,7 @@ class SonataReader(SynapseReader):
         needed_gids = sorted(orig_needed_gids_set)
 
         def get_edge_and_lookup_gids(needed_gids: libsonata.Selection):
-            """Retrieve edge and corresponding gid for """
+            """Retrieve edge and corresponding gid for"""
             node_ids = np.array(needed_gids, dtype="int64") - 1
             if self.LOOKUP_BY_TARGET_IDS:
                 edge_ids = self._population.afferent_edges(node_ids)
@@ -293,7 +307,7 @@ class SonataReader(SynapseReader):
         # Find and exclude gids without data
         different_gids_edge_i = np.diff(lookup_gids, prepend=np.nan).nonzero()[0]
         needed_gids = sorted(lookup_gids[different_gids_edge_i])
-        for gid in (orig_needed_gids_set - set(needed_gids)):
+        for gid in orig_needed_gids_set - set(needed_gids):
             self._data.setdefault(gid, self.EMPTY_DATA)
 
         # In minimal mode read a single synapse (the first) of each target gid
@@ -329,9 +343,10 @@ class SonataReader(SynapseReader):
             _populate(name, needed_edge_ids.flatten())
 
         # Generic synapse parameters
-        fields_load_sonata = self.Parameters.fields(exclude=self.custom_parameters | compute_fields,
-                                                    with_translation=self.parameter_mapping)
-        for (field, sonata_attr, is_optional) in sorted(fields_load_sonata):
+        fields_load_sonata = self.Parameters.fields(
+            exclude=self.custom_parameters | compute_fields, with_translation=self.parameter_mapping
+        )
+        for field, sonata_attr, is_optional in sorted(fields_load_sonata):
             _populate(field, _read(sonata_attr, is_optional))
 
         if self.custom_parameters:
@@ -348,10 +363,13 @@ class SonataReader(SynapseReader):
         # We nevertheless can skip any base fields
         extra_fields = set(self._extra_fields) - (self.Parameters.all_fields | compute_fields)
         for field in sorted(extra_fields):
-            now_needed_gids = sorted(set(
-                gid for gid in gids
-                if (data := self._data[gid]) is not self.EMPTY_DATA and field not in data
-            ))
+            now_needed_gids = sorted(
+                set(
+                    gid
+                    for gid in gids
+                    if (data := self._data[gid]) is not self.EMPTY_DATA and field not in data
+                )
+            )
             if needed_gids != now_needed_gids:
                 needed_gids = now_needed_gids
                 needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
@@ -409,8 +427,10 @@ class SonataReader(SynapseReader):
         edge_count = len(next(iter(data.values())))
 
         if self._extra_fields:
+
             class CustomSynapseParameters(self.Parameters):
                 _synapse_fields = self.Parameters._synapse_fields + self._extra_fields
+
             conn_syn_params = CustomSynapseParameters.create_array(edge_count)
         else:
             conn_syn_params = self.Parameters.create_array(edge_count)
@@ -444,7 +464,7 @@ class SonataReader(SynapseReader):
         if missing_gids := set(tgids) - set(self._counts):
             missing_gids = np.fromiter(missing_gids, dtype="uint32")
             missing_gids.sort()
-            missing_nodes = missing_gids  - 1
+            missing_nodes = missing_gids - 1
             edge_ids = self._population.afferent_edges(missing_nodes)
             target_nodes = self._population.target_nodes(edge_ids)
             source_nodes = self._population.source_nodes(edge_ids)
@@ -456,7 +476,7 @@ class SonataReader(SynapseReader):
             pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]
 
             for conn_i, start_i in enumerate(pairs_start_i[:-1]):
-                end_i = pairs_start_i[conn_i+1]
+                end_i = pairs_start_i[conn_i + 1]
                 tgid = tgt_src_pairs["f0"][start_i]
                 tgid_counts = {tgt_src_pairs["f1"][j]: counts[j] for j in range(start_i, end_i)}
                 self._counts[tgid] = tgid_counts
@@ -465,6 +485,6 @@ class SonataReader(SynapseReader):
 
 
 class FormatNotSupported(Exception):
-    """Exception thrown when the circuit requires SynapseTool and it is NOT built-in.
-    """
+    """Exception thrown when the circuit requires SynapseTool and it is NOT built-in."""
+
     pass

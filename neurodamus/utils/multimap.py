@@ -1,6 +1,7 @@
 """
 A collection of Pure-Python MultiMaps
 """
+
 import numpy as np
 from functools import reduce
 from operator import add
@@ -8,8 +9,8 @@ from .compat import collections_abc
 
 
 class MultiMap(collections_abc.Mapping):
-    """A memory-efficient map, which accepts duplicates
-    """
+    """A memory-efficient map, which accepts duplicates"""
+
     __slots__ = ("_keys", "_values")
 
     def __init__(self, np_keys, values, presorted=False):
@@ -61,11 +62,11 @@ class MultiMap(collections_abc.Mapping):
         return self._values[idx]
 
     def get_items(self, key):
-        """An iterator over all the values of a key
-        """
+        """An iterator over all the values of a key"""
         idx = self.find(key)
         for k, v in zip(self._keys[idx:], self._values[idx:]):
-            if k != key: break
+            if k != key:
+                break
             yield v
 
     def __getitem__(self, key):
@@ -75,8 +76,10 @@ class MultiMap(collections_abc.Mapping):
         return self._values[idx]
 
     def __setitem__(self, key, value):
-        raise NotImplementedError("Setitem is not allowed for performance reasons. "
-                                  "Please build and add-inplace another MultiMap")
+        raise NotImplementedError(
+            "Setitem is not allowed for performance reasons. "
+            "Please build and add-inplace another MultiMap"
+        )
 
     def items(self):
         return zip(self._keys, self._values)
@@ -89,23 +92,25 @@ class MultiMap(collections_abc.Mapping):
     def __iadd__(self, other):
         """inplace add (incorporate other)"""
         self._keys, self._values = self.sort_together(
-            np.concatenate((self._keys, other._keys)), self.concat(self._values, other._values))
+            np.concatenate((self._keys, other._keys)), self.concat(self._values, other._values)
+        )
         return self
 
     @staticmethod
     def concat(v1, v2):
         if isinstance(v1, np.ndarray) and isinstance(v2, np.ndarray):
             return np.concatenate((v1, v2))
-        return (v1 if isinstance(v1, (list, tuple)) else list(v1)) + \
-               (v2 if isinstance(v2, (list, tuple)) else list(v2))
+        return (v1 if isinstance(v1, (list, tuple)) else list(v1)) + (
+            v2 if isinstance(v2, (list, tuple)) else list(v2)
+        )
 
     def data(self):
         return self._keys, self._values
 
 
 class GroupedMultiMap(MultiMap):
-    """A Multimap which groups values by key in a list.
-    """
+    """A Multimap which groups values by key in a list."""
+
     def __init__(self, np_keys, values, presorted=False):
         MultiMap.__init__(self, np_keys, values, presorted)
         self._keys, self._values = self._duplicates_to_list(self._keys, self._values)
@@ -118,7 +123,7 @@ class GroupedMultiMap(MultiMap):
         beg_it = iter(indexes)
         end_it = iter(indexes)
         next(end_it)  # Discard first
-        values = [values[next(beg_it):end] for end in end_it] + [values[indexes[-1]:]]  # Last
+        values = [values[next(beg_it) : end] for end in end_it] + [values[indexes[-1] :]]  # Last
         assert len(np_keys) == len(values)
         return np_keys, values
 
@@ -142,8 +147,7 @@ class GroupedMultiMap(MultiMap):
         return reduce(self.concat, self._values)
 
     def flatten(self):
-        """Transform the current Map to a plain Multimap, without groups.
-        """
+        """Transform the current Map to a plain Multimap, without groups."""
         keys = np.repeat(self._keys, [len(v) for v in self._values])
         values = np.concatenate(self._values)
         return MultiMap(keys, values, presorted=True)

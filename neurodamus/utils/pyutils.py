@@ -1,6 +1,7 @@
 """
 Collection of generic Python utilities.
 """
+
 import numpy as np
 import weakref
 from bisect import bisect_left
@@ -29,8 +30,7 @@ def dict_filter_map(dic, mapp):
 
 
 def docopt_sanitize(docopt_opts):
-    """Sanitizes docopt parsed key names
-    """
+    """Sanitizes docopt parsed key names"""
     opts = {}
     for key, val in docopt_opts.items():
         key = key.strip("<>-").replace("-", "_")
@@ -63,8 +63,10 @@ class ConfigT(object):
         mode = Enum("Mode", "BUILD_SIMULATE BUILD_ONLY")
         model_path = None
     """
+
     class _ConfigFlag:
         """A lightweith internal class to create flags"""
+
         __slots__ = ()
 
     REQUIRED = _ConfigFlag()
@@ -88,11 +90,10 @@ class ConfigT(object):
                 setattr(obj, name, value)
 
         for name, value in cls.__dict__.items():
-            if name not in obj.__dict__ and (value is cls.REQUIRED
-                                             or type(value) is EnumMeta):
+            if name not in obj.__dict__ and (value is cls.REQUIRED or type(value) is EnumMeta):
                 raise ValueError("Config field {} is mandatory".format(name))
 
-        setattr(obj, '_all', opts)
+        setattr(obj, "_all", opts)
 
     # dict interface for compat
     def __setitem__(self, name, value):
@@ -124,11 +125,14 @@ class ConfigT(object):
             self._apply_f(o, opts)
 
     def as_dict(self, subset=None, excludes=()):
-        return {key: val for key, val in vars(self).items()
-                if val is not None
-                    and not key.startswith("_")
-                    and key not in excludes
-                    and (subset is None or key in subset)}
+        return {
+            key: val
+            for key, val in vars(self).items()
+            if val is not None
+            and not key.startswith("_")
+            and key not in excludes
+            and (subset is None or key in subset)
+        }
 
 
 def bin_search(container, key, keyf=None):
@@ -159,8 +163,8 @@ def bin_search(container, key, keyf=None):
 
 
 class ConsoleColors:
-    """Helper class for formatting console text.
-    """
+    """Helper class for formatting console text."""
+
     BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, _, DEFAULT = range(30, 40)
     NORMAL, BOLD, DIM, UNDERLINED, BLINK, INVERTED, HIDDEN = [a << 8 for a in range(7)]
 
@@ -179,7 +183,7 @@ class ConsoleColors:
     @classmethod
     def format_text(cls, text, color, style=None):
         style = (style or color) >> 8
-        format_seq = str(color & 0x00ff) + ((";" + str(style)) if style else "")
+        format_seq = str(color & 0x00FF) + ((";" + str(style)) if style else "")
         return cls._CHANGE_SEQ.format(format_seq) + text + cls._RESET_SEQ
 
 
@@ -192,7 +196,7 @@ def append_recarray(target_array, record):
         raise TypeError("Can not append a recode with a different dtype to the target array")
     else:
         nrows = target_array.shape[0]
-        target_array.resize(nrows+1, refcheck=False)
+        target_array.resize(nrows + 1, refcheck=False)
         target_array[nrows] = record
     return target_array
 

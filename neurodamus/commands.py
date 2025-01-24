@@ -1,6 +1,7 @@
 """
 Module implementing entry functions
 """
+
 from __future__ import absolute_import
 
 import logging
@@ -67,6 +68,7 @@ def neurodamus(args=None):
                                      without writing model data to disk.
     """
     from . import __version__
+
     options = docopt_sanitize(docopt(neurodamus.__doc__, args, version=__version__))
     config_file = options.pop("ConfigFile")
     log_level = _pop_log_level(options)
@@ -91,7 +93,7 @@ def neurodamus(args=None):
         Neurodamus(config_file, True, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
     except ConfigurationError as e:  # Common, only show error in Rank 0
-        if MPI._rank == 0:           # Use _rank so that we avoid init
+        if MPI._rank == 0:  # Use _rank so that we avoid init
             logging.error(str(e))
         return 1
     except OtherRankError:
@@ -122,16 +124,16 @@ def hocify(args=None):
 
     # first check if it is a file
     if os.path.isfile(morph_path):
-        os.environ['NEURON_NFRAME'] = str(neuron_nframe)
+        os.environ["NEURON_NFRAME"] = str(neuron_nframe)
         # the dest file is the same as the morph file but with .hoc extension
-        dest_file = Path(morph_path).with_suffix('.hoc')
+        dest_file = Path(morph_path).with_suffix(".hoc")
 
         print("Hocifying {} -> {}".format(morph_path, dest_file))
         result = hocify_process_file((morph_path, str(dest_file)))
         if isinstance(result, Exception):
             logging.critical(str(result), exc_info=True)
             return 1
-        print('Done.')
+        print("Done.")
         return 0
 
     # otherwise it is a directory, use multiprocessing
@@ -141,6 +143,7 @@ def hocify(args=None):
         logging.critical(str(e), exc_info=True)
         return 1
     from neuron import version as nrn_version
+
     logging.info("Neuron version used for hocifying: " + nrn_version)
     return 0
 
@@ -153,6 +156,7 @@ def _pop_log_level(options):
         log_level = LogLevel.VERBOSE
     if log_level >= 3:
         from pprint import pprint
+
         pprint(options)
     return log_level
 
@@ -170,10 +174,10 @@ def show_exception_abort(err_msg, exc_info):
     if err_file.exists():
         return 1
 
-    with open(err_file, 'a') as f:
+    with open(err_file, "a") as f:
         f.write(str(MPI.rank) + "\n")
 
-    with open(err_file, 'r') as f:
+    with open(err_file, "r") as f:
         line0 = open(err_file).readline().strip()
     if str(MPI.rank) == line0:
         logging.critical(err_msg, exc_info=exc_info)
@@ -184,36 +188,38 @@ def show_exception_abort(err_msg, exc_info):
 
 def _attempt_launch_special(config_file):
     import shutil
+
     special = shutil.which("special")
     if os.path.isfile("x86_64/special"):  # prefer locally compiled special
         special = abspath("x86_64/special")
     if special is None:
-        logging.warning("special not found. Running neurodamus from Python with libnrnmech. "
-                        "-> DO NOT USE WITH PRODUCTION RUNS")
+        logging.warning(
+            "special not found. Running neurodamus from Python with libnrnmech. "
+            "-> DO NOT USE WITH PRODUCTION RUNS"
+        )
         return
     neurodamus_py_root = os.environ.get("NEURODAMUS_PYTHON")
     if not neurodamus_py_root:
-        logging.warning("No NEURODAMUS_PYTHON set. Running neurodamus from Python with libnrnmech. "
-                        "-> DO NOT USE WITH PRODUCTION RUNS")
+        logging.warning(
+            "No NEURODAMUS_PYTHON set. Running neurodamus from Python with libnrnmech. "
+            "-> DO NOT USE WITH PRODUCTION RUNS"
+        )
         return
     print("::INIT:: Special available. Replacing binary...")
     os.environ["neurodamus_special"] = "1"
     init_script = os.path.join(neurodamus_py_root, "init.py")
-    os.execl(special,
-             "-mpi",
-             "-python", init_script,
-             "--configFile=" + config_file,
-             *sys.argv[2:])
+    os.execl(special, "-mpi", "-python", init_script, "--configFile=" + config_file, *sys.argv[2:])
 
 
 def _mpi_abort():
     import ctypes
+
     c_api = ctypes.CDLL(None)
     c_api.MPI_Abort(0)
 
 
 def _filter_warnings():
-    """ Control matched warning to display once in rank 0.
+    """Control matched warning to display once in rank 0.
 
     Warning 1:
     "special" binaries built with %intel build_type=Release,RelWithDebInfo flushes
@@ -223,10 +229,14 @@ def _filter_warnings():
        in python (built with gcc) does not have such flush-to-zero warning.
     """
     import warnings
+
     if MPI.rank == 0:
         action = "once"
     else:
         action = "ignore"
-    warnings.filterwarnings(action=action,
-                            message="The value of the smallest subnormal for .* type is zero.",
-                            category=UserWarning, module="numpy")
+    warnings.filterwarnings(
+        action=action,
+        message="The value of the smallest subnormal for .* type is zero.",
+        category=UserWarning,
+        module="numpy",
+    )
