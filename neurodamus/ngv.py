@@ -124,12 +124,12 @@ class Astrocyte(BaseCell):
         """
         cmds = []
         # these parameters will be used in the near future by the model but temporarily disabled
-        #        cmds.extend(("{} {{ perimeter_mcd = {:g} cross_sectional_area_mcd = {:g} }}".format(
-        #            morph_wrap.section_index2name_dict[morph_sec_index + 1],
-        #            sec_perimeter,
-        #            sec_xsect_area)
-        #            for morph_sec_index, sec_perimeter, sec_xsect_area in
-        #            (Astrocyte._mcd_section_parameters(sec) for sec in morph_wrap.morph.sections)))
+        # cmds.extend(("{} {{ perimeter_mcd = {:g} cross_sectional_area_mcd = {:g} }}".format(
+        #     morph_wrap.section_index2name_dict[morph_sec_index + 1],
+        #     sec_perimeter,
+        #     sec_xsect_area)
+        #     for morph_sec_index, sec_perimeter, sec_xsect_area in
+        #     (Astrocyte._mcd_section_parameters(sec) for sec in morph_wrap.morph.sections)))
         return cmds
 
     @staticmethod
