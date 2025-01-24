@@ -37,12 +37,12 @@ RUN apt-get --yes -qq update \
 
 # Install libsonata
 RUN source $USR_VENV/bin/activate \
- &&CC=mpicc CXX=mpic++ pip install git+https://github.com/BlueBrain/libsonata@$LIBSONATA_TAG
+ &&CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@$LIBSONATA_TAG
 
 # Install libsonatareport
 RUN mkdir -p $WORKDIR \
  && cd $WORKDIR \
- && git clone https://github.com/BlueBrain/libsonatareport.git --recursive --depth 1 -b $LIBSONATAREPORT_TAG \
+ && git clone https://github.com/openbraininstitute/libsonatareport.git --recursive --depth 1 -b $LIBSONATAREPORT_TAG \
  && cmake -B rep_build -S libsonatareport -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DCMAKE_BUILD_TYPE=Release -DSONATA_REPORT_ENABLE_SUBMODULES=ON -DSONATA_REPORT_ENABLE_MPI=ON .. \
  && cmake --build rep_build --parallel \
  && cmake --install rep_build \
@@ -74,7 +74,7 @@ RUN source $USR_VENV/bin/activate \
 # Install neurodamus and prepare HOC_LIBRARY_PATH
 RUN source $USR_VENV/bin/activate \
  && cd $WORKDIR \
- && git clone https://github.com/BlueBrain/neurodamus.git \
+ && git clone https://github.com/openbraininstitute/neurodamus.git \
  && cd neurodamus \
  && pip install .
 
@@ -84,7 +84,7 @@ ENV NEURODAMUS_MODS_DIR="$WORKDIR/neurodamus/neurodamus/data/mod"
 ENV PATH="$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
 ENV PYTHONPATH="$INSTALL_DIR/lib/python:$PYTHONPATH"
 
-# Copy common hoc and mod files from neurodamus-models, required by instantiating neurodamus
+# Copy common bluebrain hoc and mod files from neurodamus-models, required for instantiating neurodamus
 RUN git clone https://github.com/openbraininstitute/neurodamus-models.git --recursive --depth 1 \
  && cp -rL neurodamus-models/common/mod/ProbAMPANMDA_EMS.mod $NEURODAMUS_MODS_DIR/ \
  && cp -rL neurodamus-models/common/mod/ProbGABAAB_EMS.mod $NEURODAMUS_MODS_DIR/ \
