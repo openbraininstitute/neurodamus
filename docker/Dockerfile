@@ -84,12 +84,21 @@ ENV NEURODAMUS_MODS_DIR="$WORKDIR/neurodamus/neurodamus/data/mod"
 ENV PATH="$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
 ENV PYTHONPATH="$INSTALL_DIR/lib/python:$PYTHONPATH"
 
-# Copy and edit module building script and test build
+# Copy common hoc and mod files from neurodamus-models, required by instantiating neurodamus
+RUN git clone https://github.com/openbraininstitute/neurodamus-models.git --recursive --depth 1 \
+ && cp -rL neurodamus-models/common/mod/ProbAMPANMDA_EMS.mod $NEURODAMUS_MODS_DIR/ \
+ && cp -rL neurodamus-models/common/mod/ProbGABAAB_EMS.mod $NEURODAMUS_MODS_DIR/ \
+ && cp -rL neurodamus-models/common/hoc/AMPANMDAHelper.hoc $HOC_LIBRARY_PATH/ \
+ && cp -rL neurodamus-models/common/hoc/GABAABHelper.hoc $HOC_LIBRARY_PATH/ \
+ && rm -rf neurodamus-models
+
+# Edit module building script and test build
 ADD build_neurodamus.sh $INSTALL_DIR/bin
 RUN ARCH=$(uname -m) \
  && sed -i "s/ARCH=\"x86_64\"/ARCH=\"$ARCH\"/g" $INSTALL_DIR/bin/build_neurodamus.sh \
  && build_neurodamus.sh $NEURODAMUS_MODS_DIR \
- && ./$ARCH/special -python -c "from neuron import h; from neurodamus import Neurodamus; h.quit()" \
+ && ./$ARCH/special -python -c "from neuron import h; h.quit()" \
+ && ./$ARCH/special -python -c "from neurodamus.core import NeurodamusCore as Nd; Nd.init()" \
  && rm -rf $ARCH/
 
 ENTRYPOINT ["bash"]
