@@ -1,6 +1,7 @@
 """
 High-Level wrapper to Neuron's cell synapse mechanisms
 """
+
 from ..utils import ConfigT
 from . import Neuron
 
@@ -9,11 +10,12 @@ from . import Neuron
 # Synapse (receptor) config
 # -------------------------
 
+
 class _SynapseReceptor(ConfigT):
-    """A synapse configuration. Can then be instantiated among several pre-post pairs
-    """
-    e = None    # mV
-    i = None    # nA
+    """A synapse configuration. Can then be instantiated among several pre-post pairs"""
+
+    e = None  # mV
+    i = None  # nA
 
     def __new__(cls, segment=None, **properties):
         if cls is _SynapseReceptor:
@@ -32,10 +34,11 @@ class _SynapseReceptor(ConfigT):
 # Specific Synapse Types
 # NOTE: The name of the specific Synapse Makers must match that of the Hoc class
 
+
 class AlphaSynapse(_SynapseReceptor):
-    onset = None    # ms
-    tau  = None     # ms
-    gmax = None     # umho
+    onset = None  # ms
+    tau = None  # ms
+    gmax = None  # umho
 
 
 class ExpSyn(_SynapseReceptor):
@@ -50,6 +53,7 @@ class Exp2Syn(_SynapseReceptor):
 # ----------------------------------
 # Synapse sources (Spike generators)
 # ----------------------------------
+
 
 class _SpikeSource(object):
     def connect_to(self, synapse_receptor, weights=None, threshold=None, delay=None):
@@ -73,20 +77,22 @@ class VirtualSpikeSource(ConfigT, _SpikeSource):
     """
     Uses Neuron NetStim to create an artificial spike source
     """
-    interval = None     # ms (mean) time between spikes
-    number = None       # number of spikes
-    start = None        # ms (most likely) start time of first spike
-    noise = None        # range 0 to 1. Fractional randomness. (negexp distribution)
+
+    interval = None  # ms (mean) time between spikes
+    number = None  # number of spikes
+    start = None  # ms (most likely) start time of first spike
+    noise = None  # range 0 to 1. Fractional randomness. (negexp distribution)
 
     def __init__(self, interval=None, number=None, start=None, noise=None, manage_objs=True):
-        """ Creates an artificial spike generator
+        """Creates an artificial spike generator
         Args:
             manage_objs: NetCon and Synapse receptors are stored internally to avoid
                 garbage-collection at the expense of some extra memory [default: True]
         """
         self._netstim = Neuron.h.NetStim()
-        ConfigT.__init__(self, **{"interval": interval, "number": number,
-                                  "start": start, "noise": noise})
+        ConfigT.__init__(
+            self, **{"interval": interval, "number": number, "start": start, "noise": noise}
+        )
         self.apply(self._netstim)
         self._managed_objs = manage_objs
         self._objs = []

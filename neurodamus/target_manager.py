@@ -85,7 +85,6 @@ class TargetSpec:
 
 
 class TargetManager:
-
     def __init__(self, run_conf):
         """
         Initializes a new TargetManager
@@ -106,8 +105,9 @@ class TargetManager:
             target_file = run_conf["TargetFile"]
             if target_file.endswith(".json"):
                 simulation_nodesets_file = target_file
-        return (config_nodeset_file or simulation_nodesets_file) and \
-               NodeSetReader(config_nodeset_file, simulation_nodesets_file)
+        return (config_nodeset_file or simulation_nodesets_file) and NodeSetReader(
+            config_nodeset_file, simulation_nodesets_file
+        )
 
     def load_targets(self, circuit):
         """Provided that the circuit location is known and whether a nodes file has been
@@ -115,6 +115,7 @@ class TargetManager:
         Note that these will be moved into a TargetManager after the cells have been distributed,
         instantiated, and potentially split.
         """
+
         def _is_sonata_file(file_name):
             if file_name.endswith(".h5"):
                 return True
@@ -279,8 +280,10 @@ class TargetManager:
             raise Exception("Getting locations for non-bg sims is not implemented yet...")
 
         if isec >= cell_sections.num_sections:
-            raise Exception(f"Error: section {isec} out of bounds ({cell_sections.num_sections} "
-                            "total). Morphology section count is low, is this a good morphology?")
+            raise Exception(
+                f"Error: section {isec} out of bounds ({cell_sections.num_sections} "
+                "total). Morphology section count is low, is this a good morphology?"
+            )
 
         distance = 0.5
         tmp_section = cell_sections.isec2sec[int(isec)]
@@ -320,6 +323,7 @@ class NodeSetReader:
             if not nodeset_file:
                 return libsonata.NodeSets("{}")
             return libsonata.NodeSets.from_file(nodeset_file)
+
         self._population_stores = {}
         self.nodesets = _load_nodesets_from_file(config_nodeset_file)
         simulation_nodesets = _load_nodesets_from_file(simulation_nodesets_file)
@@ -354,8 +358,10 @@ class NodeSetReader:
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
-                logging.warning("SonataError for nodeset %s from population \"%s\" : %s, skip"
-                                % (nodeset_name, pop_name, str(e)))
+                logging.warning(
+                    'SonataError for nodeset %s from population "%s" : %s, skip'
+                    % (nodeset_name, pop_name, str(e))
+                )
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gis from %s", nodeset_name, pop_name)
@@ -412,8 +418,7 @@ class _TargetInterface(metaclass=ABCMeta):
         return NotImplemented
 
     def contains(self, items, raw_gids=False):
-        """Return a bool or an array of bool's whether the elements are contained
-        """
+        """Return a bool or an array of bool's whether the elements are contained"""
         # Shortcut for empty target. Algorithm below would fail
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
@@ -423,8 +428,7 @@ class _TargetInterface(metaclass=ABCMeta):
         return bool(contained) if contained.ndim == 0 else contained
 
     def intersects(self, other):
-        """ Check if two targets intersect. At least one common population has to intersect
-        """
+        """Check if two targets intersect. At least one common population has to intersect"""
         if self.population_names.isdisjoint(other.population_names):
             return False
 
@@ -456,7 +460,7 @@ class NodesetTarget(_TargetInterface):
         return sum(len(ns) for ns in self.nodesets)
 
     def get_gids(self):
-        """ Retrieve the final gids of the nodeset target """
+        """Retrieve the final gids of the nodeset target"""
         if not self.nodesets:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return numpy.array([])
@@ -467,7 +471,7 @@ class NodesetTarget(_TargetInterface):
         return gids
 
     def get_raw_gids(self):
-        """ Retrieve the raw gids of the nodeset target """
+        """Retrieve the raw gids of the nodeset target"""
         if not self.nodesets:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return []
@@ -476,7 +480,7 @@ class NodesetTarget(_TargetInterface):
         return numpy.array(self.nodesets[0].raw_gids())
 
     def __contains__(self, gid):
-        """ Determine if a given gid is included in the gid list for this target
+        """Determine if a given gid is included in the gid list for this target
         regardless of which cpu. Offsetting is taken into account
         """
         return self.contains(gid)
@@ -493,8 +497,7 @@ class NodesetTarget(_TargetInterface):
         return {ns.population_name: ns for ns in self.nodesets}
 
     def make_subtarget(self, pop_name):
-        """A nodeset subtarget contains only one given population
-        """
+        """A nodeset subtarget contains only one given population"""
         nodesets = [ns for ns in self.nodesets if ns.population_name == pop_name]
         local_nodes = [n for n in self.local_nodes if n.population_name == pop_name]
         return NodesetTarget(f"{self.name}#{pop_name}", nodesets, local_nodes)
@@ -509,8 +512,7 @@ class NodesetTarget(_TargetInterface):
         self.local_nodes = local_nodes
 
     def get_local_gids(self, raw_gids=False):
-        """Return the list of target gids in this rank (with offset)
-        """
+        """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
         def pop_gid_intersect(nodeset: _NodeSetBase, raw_gids=False):
@@ -532,7 +534,7 @@ class NodesetTarget(_TargetInterface):
         return numpy.concatenate(gids_groups) if gids_groups else numpy.empty(0)
 
     def getPointList(self, cell_manager, **kw):
-        """ Retrieve a TPointList containing compartments (based on section type and
+        """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
         Args:
             cell_manager: a cell manager or global cell manager
@@ -569,6 +571,7 @@ class NodesetTarget(_TargetInterface):
 
         all_raw_gids = {ns.population_name: ns.final_gids() - ns.offset for ns in self.nodesets}
         from collections import defaultdict
+
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
 
@@ -586,15 +589,17 @@ class NodesetTarget(_TargetInterface):
                 target.nodesets[0].add_gids([gid])
 
         # return list of subtargets lists of all pops per cycle
-        return [[targets[cycle_i] for targets in new_targets.values()]
-                    for cycle_i in range(n_parts)]
+        return [
+            [targets[cycle_i] for targets in new_targets.values()] for cycle_i in range(n_parts)
+        ]
 
 
 class SerializedSections:
-    """ Serializes the sections of a cell for easier random access.
+    """Serializes the sections of a cell for easier random access.
     Note that this is possible because the v field in the section has been assigned
     an integer corresponding to the target index as read from the morphology file.
     """
+
     def __init__(self, cell):
         self.num_sections = int(cell.nSecAll)
         # Initialize list to store SectionRef objects
@@ -611,8 +616,9 @@ class SerializedSections:
                 raise Exception("Error: failure in mk2_isec2sec()")
             if v_value < 0:
                 if not self._serialized_sections_warned:
-                    logging.warning("SerializedSections: v(0.0001) < 0. index={%d} v()={%f}",
-                                    index, v_value)
+                    logging.warning(
+                        "SerializedSections: v(0.0001) < 0. index={%d} v()={%f}", index, v_value
+                    )
                     self._serialized_sections_warned = True
             else:
                 # Store a SectionRef to the section at the index specified by v_value

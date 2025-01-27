@@ -19,13 +19,13 @@ class _NeurodamusCore(_Neuron):
     A wrapper class representing an instance of Neuron with the required
     neurodamus hoc and mod modules loaded
     """
+
     __slots__ = ()
     _pc = None
 
     @classproperty
     def h(cls):
-        """The neuron hoc interpreter, initializing if needed
-        """
+        """The neuron hoc interpreter, initializing if needed"""
         cls._pc or cls._init()
         return cls._h
 
@@ -52,7 +52,7 @@ class _NeurodamusCore(_Neuron):
         cls.load_hoc(HOCLIB)
 
         # Additional libraries introduced in saveUpdate
-        sys.path.append(os.environ['HOC_LIBRARY_PATH'])
+        sys.path.append(os.environ["HOC_LIBRARY_PATH"])
 
         # Attempt to instantiate BBSaveState to early detect errors
         cls._h.BBSaveState()

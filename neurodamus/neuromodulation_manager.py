@@ -11,37 +11,56 @@ from .utils.logging import log_all
 class NeuroModulationConnection(Connection):
     __slots__ = ("_neuromod_strength", "_neuromod_dtc")
 
-    def __init__(self,
-                 sgid, tgid, src_pop_id=0, dst_pop_id=0,
-                 weight_factor=1.0,
-                 minis_spont_rate=None,
-                 configuration=None,
-                 mod_override=None,
-                 **kwargs):
+    def __init__(
+        self,
+        sgid,
+        tgid,
+        src_pop_id=0,
+        dst_pop_id=0,
+        weight_factor=1.0,
+        minis_spont_rate=None,
+        configuration=None,
+        mod_override=None,
+        **kwargs,
+    ):
         self._neuromod_strength = None
         self._neuromod_dtc = None
-        super().__init__(sgid, tgid, src_pop_id, dst_pop_id,
-                         weight_factor, minis_spont_rate, configuration, mod_override, **kwargs)
+        super().__init__(
+            sgid,
+            tgid,
+            src_pop_id,
+            dst_pop_id,
+            weight_factor,
+            minis_spont_rate,
+            configuration,
+            mod_override,
+            **kwargs,
+        )
 
     neuromod_strength = property(
         lambda self: self._neuromod_strength,
-        lambda self, val: setattr(self, '_neuromod_strength', val)
+        lambda self, val: setattr(self, "_neuromod_strength", val),
     )
     neuromod_dtc = property(
-        lambda self: self._neuromod_dtc,
-        lambda self, val: setattr(self, '_neuromod_dtc', val)
+        lambda self: self._neuromod_dtc, lambda self, val: setattr(self, "_neuromod_dtc", val)
     )
 
-    def finalize(self, cell, base_seed=0, *,
-                 skip_disabled=False,
-                 replay_mode=ReplayMode.AS_REQUIRED,
-                 base_manager=None, **_kwargs):
-        """ Override the finalize process from the base class.
-            NeuroModulatory events do not create synapses but link to existing cell synapses.
-            A neuromodulatory connection from projections with match to the closest cell synapse.
-            A spike coming from the neuromodulatory event (SynapseReplay) will trigger the
-            NET_RECEIVE of the existing synapse, with the weight (binary 1/0), neuromod_strength,
-            neuromod_dtc, and nc_type NC_MODULATOR
+    def finalize(
+        self,
+        cell,
+        base_seed=0,
+        *,
+        skip_disabled=False,
+        replay_mode=ReplayMode.AS_REQUIRED,
+        base_manager=None,
+        **_kwargs,
+    ):
+        """Override the finalize process from the base class.
+        NeuroModulatory events do not create synapses but link to existing cell synapses.
+        A neuromodulatory connection from projections with match to the closest cell synapse.
+        A spike coming from the neuromodulatory event (SynapseReplay) will trigger the
+        NET_RECEIVE of the existing synapse, with the weight (binary 1/0), neuromod_strength,
+        neuromod_dtc, and nc_type NC_MODULATOR
         """
         logging.debug("Finalize neuromodulation connection")
         if skip_disabled and self._disabled:
@@ -67,15 +86,21 @@ class NeuroModulationConnection(Connection):
                 nc.weight[2] = self.neuromod_dtc or syn_params.neuromod_dtc
                 self.netcon_set_type(nc, syn_obj, NetConType.NC_NEUROMODULATOR)
                 if GlobalConfig.debug_conn == [self.tgid]:
-                    log_all(logging.DEBUG, "Neuromodulatory event on tgid: %d, " +
-                            "weights: [%f, %f, %f], nc_type: %d", self.tgid,
-                            nc.weight[0], nc.weight[1], nc.weight[2], NetConType.NC_NEUROMODULATOR)
+                    log_all(
+                        logging.DEBUG,
+                        "Neuromodulatory event on tgid: %d, "
+                        + "weights: [%f, %f, %f], nc_type: %d",
+                        self.tgid,
+                        nc.weight[0],
+                        nc.weight[1],
+                        nc.weight[2],
+                        NetConType.NC_NEUROMODULATOR,
+                    )
 
         return 1
 
     def _find_closest_cell_synapse(self, syn_params, base_conns):
-        """ Find the closest cell synapse by the location parameter
-        """
+        """Find the closest cell synapse by the location parameter"""
         if not base_conns:
             return None
         section_i = syn_params.isec
@@ -100,8 +125,17 @@ class ModulationConnParameters(SynapseParameters):
     # TargetManager.locationToPoint using isec, offset, ipt
     # ipt is not read from data but -1, so that locationToPoint will set location = offset .
     # weight is a placeholder for replaystim, default to 1. and overwritten by connection weight.
-    _synapse_fields = ("sgid", "delay", "isec", "offset", "neuromod_strength", "neuromod_dtc",
-                       "ipt", "location", "weight")
+    _synapse_fields = (
+        "sgid",
+        "delay",
+        "isec",
+        "offset",
+        "neuromod_strength",
+        "neuromod_dtc",
+        "ipt",
+        "location",
+        "weight",
+    )
 
 
 class NeuroModulationSynapseReader(SonataReader):
@@ -119,12 +153,12 @@ class NeuroModulationManager(SynapseRuleManager):
     SynapseReader = NeuroModulationSynapseReader
 
     def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kwargs):
-        """ Override the function from the base class.
-            Retrieve the base synapse connections with the same tgid.
-            Pass the base connections to the finalize process of superclass,
-            to be processed by NeuroModulationConnection.
+        """Override the function from the base class.
+        Retrieve the base synapse connections with the same tgid.
+        Pass the base connections to the finalize process of superclass,
+        to be processed by NeuroModulationConnection.
         """
         base_manager = next(self.cell_manager.connection_managers.values())
-        return super()._finalize_conns(tgid, conns, base_seed, sim_corenrn,
-                                       base_manager=base_manager,
-                                       **kwargs)
+        return super()._finalize_conns(
+            tgid, conns, base_seed, sim_corenrn, base_manager=base_manager, **kwargs
+        )
