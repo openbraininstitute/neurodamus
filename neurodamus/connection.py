@@ -527,7 +527,7 @@ class Connection(ConnectionBase):
         """
         is_inh = params_obj["synType"] < 100
         if self._mod_override is not None:
-            mod_override = self._mod_override.get("ModOverride").s
+            mod_override = self._mod_override.get("ModOverride")
             self._mod_overrides.add(mod_override)
             override_helper = mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)

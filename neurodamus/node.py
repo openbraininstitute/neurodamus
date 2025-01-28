@@ -30,7 +30,6 @@ from .stimulus_manager import StimulusManager
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .target_manager import TargetSpec, TargetManager
-from .utils import compat
 from .utils.logging import log_stage, log_verbose, log_all
 from .utils.memory import DryRunStats, trim_memory, pool_shrink, free_event_queues, print_mem_usage
 from .utils.timeit import TimerManager, timeit
@@ -619,7 +618,6 @@ class Node:
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
         target_manager = self._target_manager
-        projection = compat.Map(projection).as_dict(True)
         ptype = projection.get("Type")  # None, GapJunctions, NeuroGlial, NeuroModulation...
         ptype_cls = EngineBase.connection_types.get(ptype)
         source_t = TargetSpec(projection.get("Source"))
@@ -707,7 +705,6 @@ class Node:
         has_extra_cellular = False
         stim_dict = {}
         for stim_name, stim in SimConfig.stimuli.items():
-            stim = compat.Map(stim)
             if stim_name in stim_dict:
                 raise ConfigurationError("Stimulus declared more than once: %s", stim_name)
             stim_dict[stim_name] = stim
@@ -766,10 +763,9 @@ class Node:
                 else stim.get("Pattern").s
             )
             if pattern == "SynapseReplay":
-                replay_dict[stim_name] = compat.Map(stim).as_dict(parse_strings=True)
+                replay_dict[stim_name] = stim
 
         for name, inject in SimConfig.injects.items():
-            inject = compat.Map(inject).as_dict(parse_strings=True)
             target = inject["Target"]
             source = inject.get("Source")
             stim_name = inject["Stimulus"]
@@ -850,8 +846,7 @@ class Node:
         log_stage("Enabling modifications...")
 
         mod_manager = ModificationManager(self._target_manager)
-        for name, mod in SimConfig.modifications.items():
-            mod_info = compat.Map(mod)
+        for name, mod_info in SimConfig.modifications.items():
             target_spec = TargetSpec(mod_info["Target"])
             logging.info(" * [MOD] %s: %s -> %s", name, mod_info["Type"], target_spec)
             mod_manager.interpret(target_spec, mod_info)
