@@ -125,16 +125,8 @@ Here's a quick list of them which can be used as inspiration:
      - `node_sets.json <https://github.com/BlueBrain/blueconfigs/blob/main/sonataconf-quick-hip-multipopulation/node_sets.json>`__
    * - SSCX
      - `simulation_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/simulation_config.json>`__
-..  TODO: circuit_config.json link does not exist for now. Fix it
-
-     - `circuit_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/circuit_config.json>`__
+     - `circuit_sonata.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/circuit_sonata.json>`__
      - `node_sets.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-scx-multi-circuit/node_sets.json>`__
-   * - Thalamus
-     - `simulation_config.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-thalamus/simulation_config.json>`__
-.. TODO fix next link
-
-     - `circuit_sonata.json <file:///gpfs/bbp.cscs.ch/project/proj12/SIT/thalamus_sonata/circuit_sonata.json>`__
-     - `node_sets.json <https://github.com/BlueBrain/blueconfigs/tree/main/sonataconf-quick-thalamus/node_sets.json>`__
 
 
 Supported features

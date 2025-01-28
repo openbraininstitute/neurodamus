@@ -195,9 +195,7 @@ You can clone ``neurodamus-py`` and use ``spack develop`` as follows::
 
 .. note::
 
-    It is not possible to use spack develop  for neurodamus-model  or neurodamus-neocortex (and others). 
-    .. TODO: fix this
-    .. Instead it's important to always install them by downloading the sources from Gitlab. If one must edit those sources, the recommended workflow is to create a feature branch in the respective repository and convince Spack to use that branch.
+    It may be possible to use sapck develop with: `spack install neurodamus-model model=neocortex`. To be tested.
 
 .. note::
 
