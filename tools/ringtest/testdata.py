@@ -47,6 +47,8 @@ ring_B.nclist.append(nc)
 
 for nc in ring_B.nclist:
     print(f"{nc} {nc.precell()} -> {nc.postcell()}")
+
+# dump cell states
 h.load_file('stdgui.hoc')
 h.stdinit()
 pc.prcellstate(1000, "t0")
