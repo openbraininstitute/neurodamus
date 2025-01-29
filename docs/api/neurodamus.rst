@@ -31,7 +31,7 @@ Additional Package-Level, not Exposed, Helper Classes
 =====================================================
 
 .. autosummary::
-   neurodamus.node.CircuitManager
+   node.CircuitManager
 
 Module API
 ==========
