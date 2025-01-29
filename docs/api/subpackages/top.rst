@@ -83,3 +83,13 @@ neurodamus.replay
 
    .. autosummary::
       SpikeManager
+
+neurodamus.gap\_junction
+============================
+
+.. automodule:: neurodamus.gap_junction
+   :members:
+   :undoc-members:
+
+   .. rubric:: Classes
+

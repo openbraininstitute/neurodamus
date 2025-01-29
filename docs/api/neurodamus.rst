@@ -12,7 +12,6 @@ Package-Level Classes
    Neurodamus
    Node
 
-
 Sub-Modules
 ===========
 
@@ -28,6 +27,11 @@ Sub-Modules
    stimulus_manager
    target_manager
 
+Additional Package-Level, not Exposed, Helper Classes
+=====================================================
+
+.. autosummary::
+   neurodamus.node.CircuitManager
 
 Module API
 ==========
@@ -43,5 +47,10 @@ neurodamus
 
 
 .. autoclass:: neurodamus.Node
+   :members:
+   :undoc-members:
+
+
+.. autoclass:: neurodamus.node.CircuitManager
    :members:
    :undoc-members:

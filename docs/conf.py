@@ -5,6 +5,7 @@ import os
 import time
 from fileinput import FileInput
 from importlib.metadata import version as get_version
+import neurodamus.node
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
