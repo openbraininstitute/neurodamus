@@ -253,32 +253,52 @@ class Node:
     """
 The Node class is the main entity for a distributed Neurodamus execution.
 
-It serves as the orchestrator for the entire simulation, managing the parallel execution of the model and distributing the cells across different computational ranks. As the primary control structure, Node is responsible for coordinating various components involved in the simulation.
+It serves as the orchestrator for the entire simulation, managing the parallel
+execution of the model and distributing the cells across different computational
+ranks. As the primary control structure, Node is responsible for coordinating
+various components involved in the simulation.
 
-Internally, the Node class instantiates and manages parallel structures, dividing the simulation workload among multiple ranks. With the introduction of the concept of multiple populations (also known as multi-circuit), the Node class takes partial responsibility for handling this logic, aided by the :class:`neurodamus.node.CircuitManager` class (accessible via the `circuits` property), which manages the different node and edge managers.
+Internally, the Node class instantiates and manages parallel structures,
+dividing the simulation workload among multiple ranks. With the introduction of
+the concept of multiple populations (also known as multi-circuit), the Node
+class takes partial responsibility for handling this logic, aided by the
+:class:`neurodamus.node.CircuitManager` class (accessible via the `circuits`
+property), which manages the different node and edge managers.
 
-While many lower-level details of the Node's functionality are encapsulated within dedicated helper classes, the Node class still exposes an API that allows advanced users to control and inspect almost every major step of the simulation. For a standard run, users are encouraged to use the higher-level `Neurodamus` class instead, which simplifies some of the complexities handled by Node.
+While many lower-level details of the Node's functionality are encapsulated
+within dedicated helper classes, the Node class still exposes an API that allows
+advanced users to control and inspect almost every major step of the simulation.
+For a standard run, users are encouraged to use the higher-level `Neurodamus`
+class instead, which simplifies some of the complexities handled by Node.
 
 The Node class exposes the following public properties:
 
-- `circuits`: A :class:`neurodamus.node.CircuitManager` object, responsible for managing multiple node and edge managers within the simulation.
-- `target_manager`: A `TargetManager` object, responsible for managing the targets in the simulation.
-- `stim_manager`: The manager of stimuli, responsible for interpreting and instantiating stimulus events.
-- `elec_manager`: The electrode manager, which controls the interaction with simulation electrodes.
-- `reports`: A list of Neurodamus Report `hoc` objects, used to generate simulation reports.
+- `circuits`: A :class:`neurodamus.node.CircuitManager` object, responsible for
+  managing multiple node and edge managers within the simulation.
+- `target_manager`: A `TargetManager` object, responsible for managing the
+  targets in the simulation.
+- `stim_manager`: The manager of stimuli, responsible for interpreting and
+  instantiating stimulus events.
+- `elec_manager`: The electrode manager, which controls the interaction with
+  simulation electrodes.
+- `reports`: A list of Neurodamus Report `hoc` objects, used to generate
+  simulation reports.
 
-Note that, while the Node object owns and manages most of the top-level objects in the simulation, the management of cell and synapse objects has been delegated to the `Circuits` class, as these are now handled at a lower level.
+Note that, while the Node object owns and manages most of the top-level objects
+in the simulation, the management of cell and synapse objects has been delegated
+to the `Circuits` class, as these are now handled at a lower level.
 
 Technical note:
 
-- The properties exposed by Node are read-only, with most internal attributes being prefixed with an underscore (`_`). Notable internal attributes include:
+- The properties exposed by Node are read-only, with most internal attributes
+  being prefixed with an underscore (`_`). Notable internal attributes include:
 
   - `self._base_circuit`: The main circuit object used by the Node.
   - `self._extra_circuits`: Additional circuits managed by the Node.
 
-These details make the Node class versatile and powerful for advanced users who need more granular control over the simulation process.
+These details make the Node class versatile and powerful for advanced users who
+need more granular control over the simulation process.
     """
-
 
     _default_population = "All"
     """The default population name for e.g. Reports."""
