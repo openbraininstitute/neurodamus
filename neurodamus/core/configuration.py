@@ -295,7 +295,7 @@ class _SimConfig(object):
         if cls.cli_options.simulator:
             cls._parsed_run["Simulator"] = cls.cli_options.simulator
 
-        cls.run_conf = run_conf = cls._parsed_run.as_dict(parse_strings=True)
+        cls.run_conf = run_conf = cls._parsed_run
         for validator in cls._validators:
             validator(cls, run_conf)
 
@@ -323,12 +323,10 @@ class _SimConfig(object):
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
 
-        parsed_run = cls._parsed_run.hoc_map
-
         cls.rng_info = h.RNGSettings()
-        cls.rng_info.interpret(parsed_run, cls.use_coreneuron)
-        if parsed_run.exists("BaseSeed"):
-            logging.info("User-defined RNG base seed %s", parsed_run.valueOf("BaseSeed"))
+        cls.rng_info.interpret(cls._parsed_run, cls.use_coreneuron)
+        if cls._parsed_run.exists("BaseSeed"):
+            logging.info("User-defined RNG base seed %s", cls._parsed_run["BaseSeed"])
 
     @classmethod
     def validator(cls, f):
