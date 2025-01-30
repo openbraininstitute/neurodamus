@@ -1,5 +1,5 @@
 ==================
-neurodamus package
+neurodamus Package
 ==================
 
 .. automodule:: neurodamus
@@ -9,8 +9,8 @@ Package-Level Classes
 =====================
 
 .. autosummary::
-   Neurodamus
-   Node
+   node.Neurodamus
+   node.Node
 
 Sub-Modules
 ===========
@@ -27,30 +27,19 @@ Sub-Modules
    stimulus_manager
    target_manager
 
-Additional Package-Level, not Exposed, Helper Classes
-=====================================================
-
-.. autosummary::
-   node.CircuitManager
-
 Module API
 ==========
 
 neurodamus
 ----------
 
-.. autoclass:: neurodamus.Neurodamus
+.. autoclass:: neurodamus.node.Neurodamus
    :members:
    :undoc-members:
 
    .. automethod:: __init__
 
 
-.. autoclass:: neurodamus.Node
-   :members:
-   :undoc-members:
-
-
-.. autoclass:: neurodamus.node.CircuitManager
+.. autoclass:: neurodamus.node.Node
    :members:
    :undoc-members:

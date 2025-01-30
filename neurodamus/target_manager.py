@@ -536,12 +536,14 @@ class NodesetTarget(_TargetInterface):
     def getPointList(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
+
         Args:
             cell_manager: a cell manager or global cell manager
             sections: section type, such as "soma", "axon", "dend", "apic" and "all",
                       default = "soma"
             compartments: compartment type, such as "center" and "all",
                           default = "center" for "soma", default = "all" for others
+
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
@@ -617,7 +619,9 @@ class SerializedSections:
             if v_value < 0:
                 if not self._serialized_sections_warned:
                     logging.warning(
-                        "SerializedSections: v(0.0001) < 0. index={%d} v()={%f}", index, v_value
+                        "SerializedSections: v(0.0001) < 0. index={%d} v()={%f}",
+                        index,
+                        v_value,
                     )
                     self._serialized_sections_warned = True
             else:

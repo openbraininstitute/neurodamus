@@ -2,6 +2,62 @@
 Neurodamus Sub-Modules
 ======================
 
+neurodamus.node
+============================
+
+.. automodule:: neurodamus.node
+   :members:
+   :undoc-members:
+   :exclude-members: Neurodamus, Node
+
+   .. rubric:: Classes
+
+   .. autosummary::
+      CircuitManager
+      METypeEngine
+
+neurodamus.target\_manager
+==========================
+
+.. automodule:: neurodamus.target_manager
+   :members:
+   :undoc-members:
+
+   .. rubric:: Classes
+
+   .. autosummary::
+      TargetManager
+      NodeSetReader
+      NodesetTarget
+      SerializedSections
+      TPointList
+
+neurodamus.stimulus\_manager
+============================
+
+.. automodule:: neurodamus.stimulus_manager
+   :members:
+   :undoc-members:
+
+   .. rubric:: Classes
+
+   .. autosummary::
+      StimulusManager
+      BaseStim
+      OrnsteinUhlenbeck
+      RelativeOrnsteinUhlenbeck
+      ShotNoise
+      RelativeShotNoise
+      AbsoluteShotNoise
+      Linear
+      Hyperpolarizing
+      RelativeLinear
+      SubThreshold
+      Noise
+      Pulse
+      Sinusoidal
+      SEClamp
+
 neurodamus.cell\_distributor
 ============================
 
@@ -13,8 +69,8 @@ neurodamus.cell\_distributor
 
    .. autosummary::
       CellDistributor
+      CellManagerBase
       LoadBalance
-      LoadBalanceMode
 
 
 neurodamus.connection

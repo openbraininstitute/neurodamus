@@ -1,5 +1,5 @@
 =======================
-neurodamus.core package
+neurodamus.core Package
 =======================
 
 
