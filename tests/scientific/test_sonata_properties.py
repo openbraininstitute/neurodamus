@@ -5,6 +5,7 @@ from pathlib import Path
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
 CONFIG_FILE = SIM_DIR / "simulation_config_base.json"
 
+
 def test_input_resistance():
     """
     A test of getting input resistance values from SONATA nodes file. BBPBGLIB-806
