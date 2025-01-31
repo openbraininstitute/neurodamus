@@ -25,6 +25,7 @@ RUN apt-get --yes -qq update \
                       git \
                       cmake \
                       wget \
+                      vim \
                       mpich libmpich-dev libhdf5-mpich-dev hdf5-tools \
                       flex libfl-dev bison ninja-build libreadline-dev \
  && apt-get --yes -qq clean \
@@ -85,12 +86,10 @@ ENV PATH="$INSTALL_DIR/bin:$USR_VENV/bin:$PATH"
 ENV PYTHONPATH="$INSTALL_DIR/lib/python:$PYTHONPATH"
 
 # Copy common bluebrain hoc and mod files from neurodamus-models, required for instantiating neurodamus
-RUN git clone https://github.com/openbraininstitute/neurodamus-models.git --recursive --depth 1 \
- && cp -rL neurodamus-models/common/mod/ProbAMPANMDA_EMS.mod $NEURODAMUS_MODS_DIR/ \
- && cp -rL neurodamus-models/common/mod/ProbGABAAB_EMS.mod $NEURODAMUS_MODS_DIR/ \
- && cp -rL neurodamus-models/common/hoc/AMPANMDAHelper.hoc $HOC_LIBRARY_PATH/ \
- && cp -rL neurodamus-models/common/hoc/GABAABHelper.hoc $HOC_LIBRARY_PATH/ \
- && rm -rf neurodamus-models
+RUN wget -q https://raw.githubusercontent.com/openbraininstitute/neurodamus-models/refs/heads/main/common/hoc/AMPANMDAHelper.hoc -O $HOC_LIBRARY_PATH/AMPANMDAHelper.hoc \
+ && wget -q https://raw.githubusercontent.com/openbraininstitute/neurodamus-models/refs/heads/main/common/hoc/GABAABHelper.hoc -O $HOC_LIBRARY_PATH/GABAABHelper.hoc \
+ && wget -q https://raw.githubusercontent.com/openbraininstitute/neurodamus-models/refs/heads/main/common/mod/ProbAMPANMDA_EMS.mod -O $NEURODAMUS_MODS_DIR/ProbAMPANMDA_EMS.mod \
+ && wget -q https://raw.githubusercontent.com/openbraininstitute/neurodamus-models/refs/heads/main/common/mod/ProbGABAAB_EMS.mod -O $NEURODAMUS_MODS_DIR/ProbGABAAB_EMS.mod
 
 # Edit module building script and test build
 ADD build_neurodamus.sh $INSTALL_DIR/bin
