@@ -1,7 +1,7 @@
 Simulation Inputs  
 =================  
 
-This page provides an overview of the nomenclature used for inputs in a Neurodamus circuit simulation. It assumes the reader is already familiar with the NEURON software and its terminology.  
+This page provides an overview of the nomenclature used for inputs in a Neurodamus circuit simulation. It assumes the reader is already familiar with the NEURON software and its terminology. Otherwise, here are the `NEURON docs <https://nrn.readthedocs.io/en/latest/>`_. For much more detailed information about the input files and the SONATA format, the reader can refer to the `SONATA docs <https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html>`_.
 
 ``simulation_config.json``  
 --------------------------  
