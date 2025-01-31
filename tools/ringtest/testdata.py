@@ -1,55 +1,52 @@
+import json
+import settings
+
 from neuron import h
 from ring import Ring
-import settings
+from dump_cellstate import dump_cellstate
 
 # initialize global variables
 settings.init(gap_=False, nring_=1)
-
-
-# population A , gidstart=0
-
-h.load_file("cell.hoc")
-ncell_A = 3
-
-nbranch = [2, 2]
-ncompart = [2, 2]
-
-ring_A = Ring(ncell_A, nbranch, ncompart, gidstart=0, types=range(ncell_A))
-
 pc = settings.pc
 
-for gid in range(ncell_A):
-    cell = pc.gid2cell(gid)
-    for sec in cell.all:
-        for seg in sec:
-            print(f"gid={gid} {seg}")
+h.load_file("cell.hoc")
 
-for nc in ring_A.nclist:
-    print(f"{nc} {nc.precell()} -> {nc.postcell()}")
+ncell_A = 3
+nbranch = [2, 2]
+ncompart = [2, 2]
+ncell_B = 2
+popB_offset = 1000
+
+# population A , gidstart=0
+ring_A = Ring(ncell_A, nbranch, ncompart, gidstart=0, types=range(ncell_A))
 
 # population B, gidstart=1000
-pop_offset = 1000
-ncell_B = 2
-ring_B = Ring(ncell_B, nbranch, ncompart, gidstart=pop_offset,
+ring_B = Ring(ncell_B, nbranch, ncompart, gidstart=popB_offset,
               types=list(range(ncell_B)))
-for gid in range(pop_offset, pop_offset+ncell_B):
-    cell = pc.gid2cell(gid)
-    for sec in cell.all:
-        for seg in sec:
-            print(f"gid={gid} {seg}")
 
 # connect A gid 0 -> B gid 0
 precell = pc.gid2cell(0)
-postcell = pc.gid2cell(0+pop_offset)
+postcell = pc.gid2cell(0+popB_offset)
 synobj = postcell.synlist[1]
 nc = pc.gid_connect(0, synobj)
 ring_B.nclist.append(nc)
 
-for nc in ring_B.nclist:
-    print(f"{nc} {nc.precell()} -> {nc.postcell()}")
-
 # dump cell states
+# a) with nrn prcellstate C++
 h.load_file('stdgui.hoc')
 h.stdinit()
 pc.prcellstate(1000, "t0")
 pc.prcellstate(0, "t0")
+
+# b) with previous prcellstate HOC
+h.load_file('prcellstate.hoc')
+h.prcellgid(0)
+h.prcellgid(1000)
+
+# c) with user python function
+for gid in [0, 1000]:
+    cell = pc.gid2cell(gid)
+    res = dump_cellstate(cell)
+    outputfile = "cellstate_" + str(gid) + ".json"
+    with open(outputfile, "w") as f:
+        json.dump(res, f, indent=2)
