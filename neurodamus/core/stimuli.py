@@ -9,7 +9,6 @@ import logging
 
 
 class SignalSource:
-
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
         """
         Creates a new signal source, which can create composed signals
@@ -26,7 +25,7 @@ class SignalSource:
         self._base_amp = base_amp
         self._rng = rng
         self._represents_physical_electrode = represents_physical_electrode
-        if delay > .0:
+        if delay > 0.0:
             self._add_point(base_amp)
             self._cur_t = delay
 
@@ -42,8 +41,7 @@ class SignalSource:
         self.stim_vec.append(amp)
 
     def delay(self, duration):
-        """Increments the ref time so that the next created signal is delayed
-        """
+        """Increments the ref time so that the next created signal is delayed"""
         # NOTE: We rely on the fact that Neuron allows "instantaneous" changes
         # and made all signal shapes return to base_amp. Therefore delay() doesn't
         # need to introduce any point to avoid interpolation.
@@ -113,7 +111,7 @@ class SignalSource:
         return self
 
     def add_sin(self, amp, total_duration, freq, step=0.025, **kw):
-        """ Builds a sinusoidal signal.
+        """Builds a sinusoidal signal.
         Args:
             amp: The max amplitude of the wave
             total_duration: Total duration, in ms
@@ -128,7 +126,7 @@ class SignalSource:
         self.delay(total_duration)
 
         stim = Neuron.h.Vector(len(tvec))
-        stim.sin(freq, .0, step)
+        stim.sin(freq, 0.0, step)
         stim.mul(amp)
         self.stim_vec.append(stim)
         self._add_point(base_amp)  # Last point
@@ -158,8 +156,7 @@ class SignalSource:
         return self
 
     def add_noise(self, mean, variance, duration, dt=0.5):
-        """Adds a noise component to the signal.
-        """
+        """Adds a noise component to the signal."""
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for noise generation")
@@ -202,7 +199,7 @@ class SignalSource:
         ntstep = len(tvec)  # total number of timesteps
 
         rate_ms = rate / 1000  # rate in 1 / ms [mHz]
-        napprox = 1 + int(duration * rate_ms)       # approximate number of events, at least one
+        napprox = 1 + int(duration * rate_ms)  # approximate number of events, at least one
         napprox = int(napprox + 3 * sqrt(napprox))  # better bound, as in elephant
 
         exp_scale = 1 / rate  # scale parameter of exponential distribution of time intervals
@@ -215,7 +212,7 @@ class SignalSource:
         # add events if last event falls short of duration
         while ev[-1] < duration:
             iei_new = Neuron.h.Vector(100)  # generate 100 new inter-event intervals
-            iei_new.setrand(rng)            # here rng is still negexp
+            iei_new.setrand(rng)  # here rng is still negexp
             ev_new = Neuron.h.Vector()
             ev_new.integral(iei_new, 1).mul(1000).add(ev[-1])  # generate new shifted events in ms
             ev.append(ev_new)  # append new events
@@ -231,7 +228,7 @@ class SignalSource:
             amp_mean = -amp_mean
             sign = -1
 
-        gamma_scale = amp_var / amp_mean      # scale parameter of gamma distribution
+        gamma_scale = amp_var / amp_mean  # scale parameter of gamma distribution
         gamma_shape = amp_mean / gamma_scale  # shape parameter of gamma distribution
         # sample gamma-distributed amplitudes
         amp = gamma(rng, gamma_shape, gamma_scale, len(nev))
@@ -249,7 +246,7 @@ class SignalSource:
         D = -log(a)
         R = -log(b)
         t_peak = log(R / D) / (R - D)
-        A = (a / b - 1) / (a ** t_peak - b ** t_peak)
+        A = (a / b - 1) / (a**t_peak - b**t_peak)
 
         P = Neuron.h.Vector(ntstep, 0)
         B = Neuron.h.Vector(ntstep, 0)
@@ -322,6 +319,7 @@ class SignalSource:
     # PLOTTING
     def plot(self, ylims=None):
         from matplotlib import pyplot
+
         fig = pyplot.figure()
         ax = fig.add_subplot(1, 1, 1)  # (nrows, ncols, axnum)
         ax.plot(self.time_vec, self.stim_vec, label="Signal amplitude")
@@ -334,31 +332,31 @@ class SignalSource:
     # Helper methods forward generic kwargs to base class, like rng and delay
 
     @classmethod
-    def pulse(cls, max_amp, duration, base_amp=.0, **kw):
+    def pulse(cls, max_amp, duration, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_pulse(max_amp, duration)
 
     @classmethod
-    def ramp(cls, amp1, amp2, duration, base_amp=.0, **kw):
+    def ramp(cls, amp1, amp2, duration, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_ramp(amp1, amp2, duration)
 
     @classmethod
-    def train(cls, amp, frequency, pulse_duration, total_duration, base_amp=.0, **kw):
+    def train(cls, amp, frequency, pulse_duration, total_duration, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_train(amp, frequency, pulse_duration, total_duration)
 
     @classmethod
-    def sin(cls, amp, total_duration, freq, step=0.025, base_amp=.0, **kw):
+    def sin(cls, amp, total_duration, freq, step=0.025, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_sin(amp, total_duration, freq, step)
 
     @classmethod
-    def noise(cls, mean, variance, duration, dt=0.5, base_amp=.0, **kw):
+    def noise(cls, mean, variance, duration, dt=0.5, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
 
     @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=.0, **kw):
+    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
 
     @classmethod
-    def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=.0, **kw):
+    def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
 
     # Operations
@@ -374,16 +372,24 @@ class CurrentSource(SignalSource):
         """
         Creates a new current source that injects a signal under IClamp
         """
-        super().__init__(base_amp, delay=delay, rng=rng,
-                         represents_physical_electrode=physical_electrode)
+        super().__init__(
+            base_amp, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+        )
         self._clamps = set()
         self._all_sources.append(self)
 
     class _Clamp:
-        def __init__(self, cell_section, position=0.5, clamp_container=None,
-                     stim_vec_mode=True, time_vec=None, stim_vec=None,
-                     **clamp_params):
-            represents_physical_electrode = clamp_params.get('represents_physical_electrode', False)
+        def __init__(
+            self,
+            cell_section,
+            position=0.5,
+            clamp_container=None,
+            stim_vec_mode=True,
+            time_vec=None,
+            stim_vec=None,
+            **clamp_params,
+        ):
+            represents_physical_electrode = clamp_params.get("represents_physical_electrode", False)
             # Checks if new MembraneCurrentSource mechanism is available and if source does not
             # represent physical electrode, otherwise fall back to IClamp.
             if not represents_physical_electrode and hasattr(Neuron.h, "MembraneCurrentSource"):
@@ -409,12 +415,19 @@ class CurrentSource(SignalSource):
 
     def attach_to(self, section, position=0.5):
         return CurrentSource._Clamp(
-            section, position, self._clamps, True, self.time_vec, self.stim_vec,
-            represents_physical_electrode=self._represents_physical_electrode)
+            section,
+            position,
+            self._clamps,
+            True,
+            self.time_vec,
+            self.stim_vec,
+            represents_physical_electrode=self._represents_physical_electrode,
+        )
 
     # Constant has a special attach_to and doesnt share any composing method
     class Constant:
         """Class implementing a minimal IClamp for a Constant current."""
+
         _clamps = set()
 
         def __init__(self, amp, duration, delay=0):
@@ -423,14 +436,21 @@ class CurrentSource(SignalSource):
             self._delay = delay
 
         def attach_to(self, section, position=0.5):
-            return CurrentSource._Clamp(section, position, self._clamps, False,
-                                        amp=self._amp, delay=self._delay, dur=self._dur)
+            return CurrentSource._Clamp(
+                section,
+                position,
+                self._clamps,
+                False,
+                amp=self._amp,
+                delay=self._delay,
+                dur=self._dur,
+            )
 
 
 class ConductanceSource(SignalSource):
     _all_sources = []
 
-    def __init__(self, reversal=0.0, *, delay=.0, rng=None, physical_electrode=False):
+    def __init__(self, reversal=0.0, *, delay=0.0, rng=None, physical_electrode=False):
         """
         Creates a new conductance source that injects a conductance by driving
         the rs of an SEClamp at a given reversal potential.
@@ -438,17 +458,26 @@ class ConductanceSource(SignalSource):
         reversal: reversal potential of conductance (mV)
         """
         # set SignalSource's base_amp to zero
-        super().__init__(reversal, delay=delay, rng=rng,
-                         represents_physical_electrode=physical_electrode)
-        self._reversal = reversal   # set reversal from base_amp parameter in classmethods
+        super().__init__(
+            reversal, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+        )
+        self._reversal = reversal  # set reversal from base_amp parameter in classmethods
         self._clamps = set()
         self._all_sources.append(self)
 
     class _DynamicClamp:
-        def __init__(self, cell_section, position=0.5, clamp_container=None,
-                     stim_vec_mode=True, time_vec=None, stim_vec=None,
-                     reversal=0.0, **clamp_params):
-            represents_physical_electrode = clamp_params.get('represents_physical_electrode', False)
+        def __init__(
+            self,
+            cell_section,
+            position=0.5,
+            clamp_container=None,
+            stim_vec_mode=True,
+            time_vec=None,
+            stim_vec=None,
+            reversal=0.0,
+            **clamp_params,
+        ):
+            represents_physical_electrode = clamp_params.get("represents_physical_electrode", False)
             # Checks if new conductanceSource mechanism is available and if source does not
             # represent physical electrode, otherwise fall back to SEClamp.
             if not represents_physical_electrode and hasattr(Neuron.h, "ConductanceSource"):
@@ -466,7 +495,8 @@ class ConductanceSource(SignalSource):
                 # replace self.stim_vec with inverted and clamped signal
                 # rs is in MOhm, so conductance is in uS (micro Siemens)
                 self.stim_vec = Neuron.h.Vector(
-                    [1 / x if x > 1E-9 and x < 1E9 else 1E9 for x in self.stim_vec])
+                    [1 / x if x > 1e-9 and x < 1e9 else 1e9 for x in self.stim_vec]
+                )
                 self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
             else:
                 for param, val in clamp_params.items():
@@ -482,8 +512,15 @@ class ConductanceSource(SignalSource):
 
     def attach_to(self, section, position=0.5):
         return ConductanceSource._DynamicClamp(
-            section, position, self._clamps, True, self.time_vec, self.stim_vec,
-            self._reversal, represents_physical_electrode=self._represents_physical_electrode)
+            section,
+            position,
+            self._clamps,
+            True,
+            self.time_vec,
+            self.stim_vec,
+            self._reversal,
+            represents_physical_electrode=self._represents_physical_electrode,
+        )
 
 
 # EStim class is a derivative of TStim for stimuli with an extracelular electrode. The main

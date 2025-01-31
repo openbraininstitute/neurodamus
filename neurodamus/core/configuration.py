@@ -1,6 +1,7 @@
 """
 Runtime configuration
 """
+
 from __future__ import absolute_import
 import logging
 import os
@@ -35,14 +36,15 @@ class ConfigurationError(Exception):
     should be used.
     This is due to the way Exceptions are caught from commands.py.
     """
+
     pass
 
 
 class GlobalConfig:
     verbosity = LogLevel.DEFAULT
-    debug_conn = os.getenv('ND_DEBUG_CONN', [])
+    debug_conn = os.getenv("ND_DEBUG_CONN", [])
     if debug_conn:
-        debug_conn = [int(gid) for gid in os.getenv('ND_DEBUG_CONN', '').split(',')]
+        debug_conn = [int(gid) for gid in os.getenv("ND_DEBUG_CONN", "").split(",")]
         verbosity = 3
 
     @classmethod
@@ -84,6 +86,7 @@ class CliOptions(ConfigT):
 
     class NoRestriction:
         """Provide container API, where `in` checks are always True"""
+
         def __contains__(self, _) -> bool:
             return True
 
@@ -91,7 +94,7 @@ class CliOptions(ConfigT):
 
     restrict_features = NoRestriction  # can also be a list
     restrict_node_populations = NoRestriction
-    restrict_connectivity = 0          # no restriction, 1 to disable projections, 2 to disable all
+    restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
     restrict_stimulus = NoRestriction  # possible list of Stim names
 
 
@@ -120,20 +123,21 @@ class RNGConfig(ConfigT):
 
 class NeuronStdrunDefaults:
     """Neuron stdrun default (src: share/lib/hoc/stdrun.hoc"""
+
     using_cvode_ = 0
     stdrun_quiet = 0
     realtime = 0
     tstop = 5
     stoprun = 0
-    steps_per_ms = 1 / .025
+    steps_per_ms = 1 / 0.025
     nstep_steprun = 1
     global_ra = 35.4
     v_init = -65
 
 
 class LoadBalanceMode(Enum):
-    """An enumeration, inc parser, of the load balance modes.
-    """
+    """An enumeration, inc parser, of the load balance modes."""
+
     RoundRobin = 0
     WholeCell = 1
     MultiSplit = 2
@@ -152,7 +156,7 @@ class LoadBalanceMode(Enum):
             "wholecell": cls.WholeCell,
             "loadbalance": cls.MultiSplit,
             "multisplit": cls.MultiSplit,
-            "memory": cls.Memory
+            "memory": cls.Memory,
         }
         lb_mode_enum = _modes.get(lb_mode.lower())
         if lb_mode_enum is None:
@@ -161,6 +165,7 @@ class LoadBalanceMode(Enum):
 
     class AutoBalanceModeParams:
         """Parameters for auto-selecting a load-balance mode"""
+
         multisplit_cpu_cell_ratio = 4  # For warning
         cell_count = 1000
         duration = 1000
@@ -170,19 +175,24 @@ class LoadBalanceMode(Enum):
     def auto_select(cls, use_neuron, cell_count, duration, auto_params=AutoBalanceModeParams):
         """Simple heuristics for auto selecting load balance"""
         from ._neurodamus import MPI
+
         lb_mode = LoadBalanceMode.RoundRobin
         reason = ""
         if MPI.size == 1:
             lb_mode = LoadBalanceMode.RoundRobin
             reason = "Single rank - not worth using Load Balance"
         elif use_neuron and MPI.size >= auto_params.multisplit_cpu_cell_ratio * cell_count:
-            logging.warn("There's potentially a high number of empty ranks. "
-                         "To activate multi-split set --lb-mode=MultiSplit")
-        elif (cell_count > auto_params.cell_count
-              and duration > auto_params.duration
-              and MPI.size > auto_params.mpi_ranks):
+            logging.warn(
+                "There's potentially a high number of empty ranks. "
+                "To activate multi-split set --lb-mode=MultiSplit"
+            )
+        elif (
+            cell_count > auto_params.cell_count
+            and duration > auto_params.duration
+            and MPI.size > auto_params.mpi_ranks
+        ):
             lb_mode = LoadBalanceMode.WholeCell
-            reason = 'Simulation size'
+            reason = "Simulation size"
         return lb_mode, reason
 
 
@@ -190,6 +200,7 @@ class _SimConfig(object):
     """
     A class initializing several HOC config objects and proxying to simConfig
     """
+
     __slots__ = ()
     config_file = None
     cli_options = None
@@ -253,6 +264,7 @@ class _SimConfig(object):
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
         from . import NeurodamusCore as Nd
+
         Nd.init()
         if not os.path.isfile(config_file):
             raise ConfigurationError("Config file not found: " + config_file)
@@ -263,7 +275,7 @@ class _SimConfig(object):
         cls.config_file = config_file
         cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = compat.Map(cls._config_parser.parsedRun)  # easy access to hoc Map
-        cls._simulation_config = cls._config_parser   # Please refactor me
+        cls._simulation_config = cls._config_parser  # Please refactor me
         cls.sonata_circuits = cls._config_parser.circuits
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
 
@@ -297,8 +309,9 @@ class _SimConfig(object):
     @classmethod
     def _init_config_parser(cls, config_file):
         if not config_file.endswith(".json"):
-            raise ConfigurationError("Invalid configuration file format. "
-                                     "The configuration file must be a .json file.")
+            raise ConfigurationError(
+                "Invalid configuration file format. The configuration file must be a .json file."
+            )
         try:
             config_parser = SonataConfig(config_file)
         except Exception as e:
@@ -309,6 +322,7 @@ class _SimConfig(object):
     def _init_hoc_config_objs(cls):
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
+
         parsed_run = cls._parsed_run.hoc_map
 
         cls.rng_info = h.RNGSettings()
@@ -427,39 +441,51 @@ def find_input_file(filepath, search_paths=(), alt_filename=None):
     return file_found
 
 
-def _check_params(section_name, data, required_fields,
-                  numeric_fields=(), non_negatives=(),
-                  valid_values=None, deprecated_values=None):
-    """Generic function to check a dict-like data set conforms to the field prescription
-    """
+def _check_params(
+    section_name,
+    data,
+    required_fields,
+    numeric_fields=(),
+    non_negatives=(),
+    valid_values=None,
+    deprecated_values=None,
+):
+    """Generic function to check a dict-like data set conforms to the field prescription"""
     for param in required_fields:
         if param not in data:
-            raise ConfigurationError("simulation config mandatory param not present: [%s] %s"
-                                     % (section_name, param))
+            raise ConfigurationError(
+                "simulation config mandatory param not present: [%s] %s" % (section_name, param)
+            )
     for param in set(numeric_fields + non_negatives):
         val = data.get(param)
         try:
             val and float(val)
         except ValueError:
-            raise ConfigurationError("simulation config param must be numeric: [%s] %s"
-                                     % (section_name, param))
+            raise ConfigurationError(
+                "simulation config param must be numeric: [%s] %s" % (section_name, param)
+            )
     for param in non_negatives:
         val = data.get(param)
         if val and float(val) < 0:
-            raise ConfigurationError("simulation config param must be positive: [%s] %s"
-                                     % (section_name, param))
+            raise ConfigurationError(
+                "simulation config param must be positive: [%s] %s" % (section_name, param)
+            )
 
     for param, valid in (valid_values or {}).items():
         val = data.get(param)
         if val and val not in valid:
-            raise ConfigurationError("simulation config param value is invalid: [%s] %s = %s"
-                                     % (section_name, param, val))
+            raise ConfigurationError(
+                "simulation config param value is invalid: [%s] %s = %s"
+                % (section_name, param, val)
+            )
 
     for param, deprecated in (deprecated_values or {}).items():
         val = data.get(param)
         if val and val in deprecated:
-            logging.warning("simulation config param value is deprecated: [%s] %s = %s"
-                            % (section_name, param, val))
+            logging.warning(
+                "simulation config param value is deprecated: [%s] %s = %s"
+                % (section_name, param, val)
+            )
 
 
 @SimConfig.validator
@@ -492,33 +518,83 @@ def _projection_params(config: _SimConfig, run_conf):
 
 @SimConfig.validator
 def _stimulus_params(config: _SimConfig, run_conf):
-    required_fields = ("Mode", "Pattern", "Duration", "Delay",)
-    numeric_fields = ("Dt", "RiseTime", "DecayTime", "AmpMean", "AmpVar", "MeanPercent",
-                      "SDPercent", "RelativeSkew", "AmpStart", "AmpEnd", "PercentStart",
-                      "PercentEnd", "PercentLess", "Mean", "Variance", "Voltage", "RS",)
-    non_negatives = ("Duration", "Delay", "Rate", "Frequency", "Width", "Lambda", "Weight",
-                     "NumOfSynapses", "Seed",)
+    required_fields = (
+        "Mode",
+        "Pattern",
+        "Duration",
+        "Delay",
+    )
+    numeric_fields = (
+        "Dt",
+        "RiseTime",
+        "DecayTime",
+        "AmpMean",
+        "AmpVar",
+        "MeanPercent",
+        "SDPercent",
+        "RelativeSkew",
+        "AmpStart",
+        "AmpEnd",
+        "PercentStart",
+        "PercentEnd",
+        "PercentLess",
+        "Mean",
+        "Variance",
+        "Voltage",
+        "RS",
+    )
+    non_negatives = (
+        "Duration",
+        "Delay",
+        "Rate",
+        "Frequency",
+        "Width",
+        "Lambda",
+        "Weight",
+        "NumOfSynapses",
+        "Seed",
+    )
     valid_values = {
         "Mode": ("Current", "Voltage", "Conductance", "spikes"),
         "Pattern": {
-            "Hyperpolarizing", "Linear", "Noise", "Pulse", "RelativeLinear",
-            "RelativeShotNoise", "SEClamp", "ShotNoise", "Sinusoidal",
-            "SubThreshold", "SynapseReplay", "OrnsteinUhlenbeck",
-            "NPoisson", "NPoissonInhomogeneous", "ReplayVoltageTrace",
-            "AbsoluteShotNoise", "RelativeOrnsteinUhlenbeck"
-        }
+            "Hyperpolarizing",
+            "Linear",
+            "Noise",
+            "Pulse",
+            "RelativeLinear",
+            "RelativeShotNoise",
+            "SEClamp",
+            "ShotNoise",
+            "Sinusoidal",
+            "SubThreshold",
+            "SynapseReplay",
+            "OrnsteinUhlenbeck",
+            "NPoisson",
+            "NPoissonInhomogeneous",
+            "ReplayVoltageTrace",
+            "AbsoluteShotNoise",
+            "RelativeOrnsteinUhlenbeck",
+        },
     }
-    deprecated_values = {
-        "Pattern": ("NPoisson", "NPoissonInhomogeneous", "ReplayVoltageTrace")
-    }
+    deprecated_values = {"Pattern": ("NPoisson", "NPoissonInhomogeneous", "ReplayVoltageTrace")}
     for name, stim in config.stimuli.items():
-        _check_params("Stimulus " + name, compat.Map(stim), required_fields, numeric_fields,
-                      non_negatives, valid_values, deprecated_values)
+        _check_params(
+            "Stimulus " + name,
+            compat.Map(stim),
+            required_fields,
+            numeric_fields,
+            non_negatives,
+            valid_values,
+            deprecated_values,
+        )
 
 
 @SimConfig.validator
 def _modification_params(config: _SimConfig, run_conf):
-    required_fields = ("Target", "Type",)
+    required_fields = (
+        "Target",
+        "Type",
+    )
     for name, mod_block in config.modifications.items():
         _check_params("Modification " + name, compat.Map(mod_block), required_fields, ())
 
@@ -560,8 +636,9 @@ def _validate_file_extension(path):
         return
     filepath = path.split(":")[0]  # for sonata, remove the edge_pop name appended to the file path
     if filepath.endswith(".sonata"):
-        raise ConfigurationError("*.sonata files are no longer supported, "
-                                 "please rename them to *.h5")
+        raise ConfigurationError(
+            "*.sonata files are no longer supported, please rename them to *.h5"
+        )
 
 
 @SimConfig.validator
@@ -573,6 +650,7 @@ def _base_circuit(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _extra_circuits(config: _SimConfig, run_conf):
     from . import EngineBase
+
     extra_circuits = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
@@ -582,8 +660,13 @@ def _extra_circuits(config: _SimConfig, run_conf):
             circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
         else:
             # Without custom engine, inherit base circuit infos
-            for field in ("CircuitPath", "MorphologyPath", "MorphologyType",
-                          "METypePath", "CellLibraryFile"):
+            for field in (
+                "CircuitPath",
+                "MorphologyPath",
+                "MorphologyType",
+                "METypePath",
+                "CellLibraryFile",
+            ):
                 if field in config.base_circuit and field not in circuit_info:
                     log_verbose(" > Inheriting '%s' from base circuit", field)
                     circuit_info[field] = config.base_circuit[field]
@@ -597,15 +680,18 @@ def _extra_circuits(config: _SimConfig, run_conf):
         extra_circuits[name]._name = name
 
     # Sort so that iteration is deterministic
-    config.extra_circuits = dict(sorted(
-        extra_circuits.items(),
-        key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0])
-    ))
+    config.extra_circuits = dict(
+        sorted(
+            extra_circuits.items(),
+            key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0]),
+        )
+    )
 
 
 @SimConfig.validator
 def _global_parameters(config: _SimConfig, run_conf):
     from neuron import h
+
     config.celsius = run_conf.get("Celsius", 34)
     config.v_init = run_conf.get("V_Init", -65)
     config.extracellular_calcium = run_conf.get("ExtracellularCalcium")
@@ -618,11 +704,12 @@ def _global_parameters(config: _SimConfig, run_conf):
     h.dt = run_conf.get("Dt", h.dt)
     h.steps_per_ms = 1.0 / h.dt
     props = ("celsius", "v_init", "extracellular_calcium", "tstop", "buffer_time")
-    log_verbose("Global params: %s",
-                " | ".join(p + ": %s" % getattr(config, p) for p in props))
+    log_verbose("Global params: %s", " | ".join(p + ": %s" % getattr(config, p) for p in props))
     if "CompartmentsPerSection" in run_conf:
-        logging.warning("CompartmentsPerSection is currently not supported. "
-                        "If needed, please request with a detailed usecase.")
+        logging.warning(
+            "CompartmentsPerSection is currently not supported. "
+            "If needed, please request with a detailed usecase."
+        )
 
 
 @SimConfig.validator
@@ -634,14 +721,16 @@ def _set_simulator(config: _SimConfig, run_conf):
         run_conf["Simulator"] = simulator = "NEURON"
     if simulator not in ("NEURON", "CORENEURON"):
         raise ConfigurationError("'Simulator' value must be either NEURON or CORENEURON")
-    if simulator == "NEURON" and (user_config.build_model is False
-                                  or user_config.simulate_model is False):
-        raise ConfigurationError("Disabling model building or simulation is only"
-                                 " compatible with CoreNEURON")
+    if simulator == "NEURON" and (
+        user_config.build_model is False or user_config.simulate_model is False
+    ):
+        raise ConfigurationError(
+            "Disabling model building or simulation is only compatible with CoreNEURON"
+        )
 
     log_verbose("Simulator = %s", simulator)
-    config.use_neuron = (simulator == "NEURON")
-    config.use_coreneuron = (simulator == "CORENEURON")
+    config.use_neuron = simulator == "NEURON"
+    config.use_coreneuron = simulator == "CORENEURON"
 
 
 @SimConfig.validator
@@ -663,11 +752,12 @@ _condition_checks = {
             "Time integration method (SecondOrder value) {} is invalid. Valid options are:"
             " '0' (implicitly backward euler),"
             " '1' (Crank-Nicolson) and"
-            " '2' (Crank-Nicolson with fixed ion currents)")
+            " '2' (Crank-Nicolson with fixed ion currents)"
+        ),
     ),
     "randomize_Gaba_risetime": (
         ("True", "False", "0", "false"),
-        ConfigurationError("randomize_Gaba_risetime must be True or False")
+        ConfigurationError("randomize_Gaba_risetime must be True or False"),
     ),
     "SYNAPSES__minis_single_vesicle": ((0, 1), None),
     "synapses__minis_single_vesicle": ((0, 1), None),
@@ -681,6 +771,7 @@ def _simulator_globals(config: _SimConfig, run_conf):
     if not hasattr(config._simulation_config, "Conditions"):
         return None
     from neuron import h
+
     # Hackish but some constants only live in the helper
     h.load_file("GABAABHelper.hoc")
 
@@ -695,7 +786,7 @@ def _simulator_globals(config: _SimConfig, run_conf):
                     raise config_exception
             synvar_prefix = "SYNAPSES__"
             if key.startswith(synvar_prefix) or key.startswith(synvar_prefix.lower()):
-                key = key[len(synvar_prefix):]
+                key = key[len(synvar_prefix) :]
                 config.synapse_options[key] = value
                 log_verbose("SYNAPSES %s = %s", key, value)
                 for synapse_name in ("ProbAMPANMDA_EMS", "ProbGABAAB_EMS", "GluSynapse"):
@@ -704,8 +795,10 @@ def _simulator_globals(config: _SimConfig, run_conf):
                 log_verbose("GLOBAL %s = %s", key, value)
                 setattr(h, key, value)
             if "cao_CR" in key and value != config.extracellular_calcium:
-                logging.warning("Value of %s (%s) is not the same as extracellular_calcium (%s)"
-                                % (key, value, config.extracellular_calcium))
+                logging.warning(
+                    "Value of %s (%s) is not the same as extracellular_calcium (%s)"
+                    % (key, value, config.extracellular_calcium)
+                )
 
 
 @SimConfig.validator
@@ -716,6 +809,7 @@ def _second_order(config: _SimConfig, run_conf):
     second_order = int(second_order)
     if second_order in (0, 1, 2):
         from neuron import h
+
         log_verbose("SecondOrder = %g", second_order)
         config.second_order = second_order
         h.secondorder = second_order
@@ -728,9 +822,11 @@ def _single_vesicle(config: _SimConfig, run_conf):
     if "MinisSingleVesicle" not in run_conf:
         return
     from neuron import h
+
     if not hasattr(h, "minis_single_vesicle_ProbAMPANMDA_EMS"):
-        raise NotImplementedError("Synapses don't implement minis_single_vesicle. "
-                                  "More recent neurodamus model required.")
+        raise NotImplementedError(
+            "Synapses don't implement minis_single_vesicle. More recent neurodamus model required."
+        )
     minis_single_vesicle = int(run_conf["MinisSingleVesicle"])
     log_verbose("minis_single_vesicle = %d", minis_single_vesicle)
     h.minis_single_vesicle_ProbAMPANMDA_EMS = minis_single_vesicle
@@ -744,10 +840,13 @@ def _randomize_gaba_risetime(config: _SimConfig, run_conf):
     if randomize_risetime is None:
         return
     from neuron import h
+
     h.load_file("GABAABHelper.hoc")
     if not hasattr(h, "randomize_Gaba_risetime"):
-        raise NotImplementedError("Models don't support setting RandomizeGabaRiseTime. "
-                                  "Please load a more recent model or drop the option.")
+        raise NotImplementedError(
+            "Models don't support setting RandomizeGabaRiseTime. "
+            "Please load a more recent model or drop the option."
+        )
     assert randomize_risetime in ("True", "False", "0", "false")  # any non-"True" value is negative
     log_verbose("randomize_Gaba_risetime = %s", randomize_risetime)
     h.randomize_Gaba_risetime = randomize_risetime
@@ -763,8 +862,10 @@ def _current_dir(config: _SimConfig, run_conf):
     else:
         if not os.path.isabs(curdir):
             if curdir == ".":
-                logging.warning("Setting CurrentDir to '.' is discouraged and "
-                                "shall never be used in production jobs.")
+                logging.warning(
+                    "Setting CurrentDir to '.' is discouraged and "
+                    "shall never be used in production jobs."
+                )
             else:
                 raise ConfigurationError("CurrentDir: Relative paths not allowed")
             curdir = os.path.abspath(curdir)
@@ -805,6 +906,7 @@ def _output_root(config: _SimConfig, run_conf):
         output_path = os.path.join(config.current_dir, output_path)
 
     from ._neurodamus import MPI
+
     if MPI.rank == 0:
         check_oputput_directory(output_path)
         # Delete coreneuron_input link since it may conflict with restore
@@ -839,8 +941,10 @@ def _check_save(config: _SimConfig, run_conf):
     if save_time:
         save_time = float(save_time)
         if save_time > config.tstop:
-            logging.warning("SaveTime specified beyond Simulation Duration. "
-                            "Setting SaveTime to simulation end time.")
+            logging.warning(
+                "SaveTime specified beyond Simulation Duration. "
+                "Setting SaveTime to simulation end time."
+            )
             save_time = None
 
     config.save = os.path.join(config.current_dir, save_path)
@@ -880,8 +984,9 @@ def _coreneuron_params(config: _SimConfig, run_conf):
         # Most likely we will need to reuse coreneuron_input from the save part
         # A symlink is created for the scenario of multiple save/restore processes in one simulation
         if not os.path.isdir(coreneuron_datadir):
-            logging.info("RESTORE: Create a symlink for coreneuron_input pointing to "
-                         + config.restore)
+            logging.info(
+                "RESTORE: Create a symlink for coreneuron_input pointing to " + config.restore
+            )
             os.symlink(os.path.join(config.restore, "..", "coreneuron_input"), coreneuron_datadir)
         assert os.path.isdir(coreneuron_datadir), "coreneuron_input dir not found"
 
@@ -913,10 +1018,9 @@ def _check_model_build_mode(config: _SimConfig, run_conf):
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        with open(os.path.join(config.output_root, "sim.conf"), 'r') as f:
-            core_data_exists = (
-                "datpath='/dev/shm/" not in f.read()
-                and os.path.isfile(os.path.join(core_data_location, "files.dat"))
+        with open(os.path.join(config.output_root, "sim.conf"), "r") as f:
+            core_data_exists = "datpath='/dev/shm/" not in f.read() and os.path.isfile(
+                os.path.join(core_data_location, "files.dat")
             )
     except FileNotFoundError:
         core_data_exists = False
@@ -930,18 +1034,19 @@ def _check_model_build_mode(config: _SimConfig, run_conf):
             core_data_location_shm = SHMUtil.get_datadir_shm(core_data_location)
             data_location = (
                 core_data_location_shm
-                if (
-                    user_config.enable_shm and core_data_location_shm is not None
-                )
+                if (user_config.enable_shm and core_data_location_shm is not None)
                 else core_data_location
             )
-            logging.info("Valid CoreNeuron input data not found in '%s'. "
-                         "Neurodamus will proceed to model building.",
-                         data_location)
+            logging.info(
+                "Valid CoreNeuron input data not found in '%s'. "
+                "Neurodamus will proceed to model building.",
+                data_location,
+            )
             config.build_model = True
         else:
-            logging.info("CoreNeuron input data found in %s. Skipping model build",
-                         core_data_location)
+            logging.info(
+                "CoreNeuron input data found in %s. Skipping model build", core_data_location
+            )
             config.build_model = False
 
     if not config.build_model and not core_data_exists:
@@ -977,7 +1082,8 @@ def _model_building_steps(config: _SimConfig, run_conf):
 
     if "CircuitTarget" not in run_conf:
         raise ConfigurationError(
-            "Multi-iteration coreneuron data generation requires CircuitTarget")
+            "Multi-iteration coreneuron data generation requires CircuitTarget"
+        )
 
     logging.info("Splitting Target for multi-iteration CoreNeuron data generation")
     logging.info(" -> Cycles: %d. [src: %s]", ncycles, "CLI")
@@ -996,18 +1102,25 @@ def _report_vars(config: _SimConfig, run_conf):
         rep_config = compat.Map(rep_config).as_dict(parse_strings=True)
         report_configs_dict[rep_name] = rep_config
 
-        _check_params("Report " + rep_name, rep_config, mandatory_fields,
-                      non_negatives=non_negatives,
-                      valid_values={'Type': report_types})
+        _check_params(
+            "Report " + rep_name,
+            rep_config,
+            mandatory_fields,
+            non_negatives=non_negatives,
+            valid_values={"Type": report_types},
+        )
 
         if rep_config["Format"] != "SONATA":
             raise ConfigurationError(
-                f"Unsupported report format: '{rep_config['Format']}'. Use 'SONATA' instead.")
+                f"Unsupported report format: '{rep_config['Format']}'. Use 'SONATA' instead."
+            )
 
         if config.use_coreneuron and rep_config["Type"] == "compartment":
             if rep_config["ReportOn"] not in ("v", "i_membrane"):
-                logging.warning("Compartment reports on vars other than v and i_membrane "
-                                " are still not fully supported (CoreNeuron)")
+                logging.warning(
+                    "Compartment reports on vars other than v and i_membrane "
+                    " are still not fully supported (CoreNeuron)"
+                )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
 
@@ -1016,8 +1129,9 @@ def _report_vars(config: _SimConfig, run_conf):
 def _spikes_sort_order(config: _SimConfig, run_conf):
     order = run_conf.get("SpikesSortOrder", "by_time")
     if order not in ["none", "by_time"]:
-        raise ConfigurationError("Unsupported spikes sort order %s, " % order +
-                                 "BBP supports 'none' and 'by_time'")
+        raise ConfigurationError(
+            "Unsupported spikes sort order %s, " % order + "BBP supports 'none' and 'by_time'"
+        )
 
 
 @SimConfig.validator
@@ -1028,12 +1142,15 @@ def _coreneuron_direct_mode(config: _SimConfig, run_conf):
         if config.use_neuron:
             raise ConfigurationError("--coreneuron-direct-mode is not valid for NEURON")
         if config.modelbuilding_steps > 1:
-            logging.warning("--coreneuron-direct-mode not valid for multi-cyle model building, "
-                            "continue with file mode")
+            logging.warning(
+                "--coreneuron-direct-mode not valid for multi-cyle model building, "
+                "continue with file mode"
+            )
             direct_mode = False
         if config.save or config.restore:
-            logging.warning("--coreneuron-direct-mode not valid for save/restore, "
-                            "continue with file mode")
+            logging.warning(
+                "--coreneuron-direct-mode not valid for save/restore, continue with file mode"
+            )
             direct_mode = False
 
     if direct_mode:
@@ -1088,8 +1205,9 @@ def check_connections_configure(SimConfig, target_manager):
             if not conn2.get("_full_overridden"):
                 conn2["_full_overridden"] = target_manager.pathways_overlap(conn, conn2, True)
         if not is_overriding:
-            logging.warning("Delayed connection %s is not overriding any weight=0 Connection",
-                            conn["_name"])
+            logging.warning(
+                "Delayed connection %s is not overriding any weight=0 Connection", conn["_name"]
+            )
 
     def get_syn_config_vars(conn):
         return [var for var, _ in config_assignment.findall(conn.get("SynapseConfigure", ""))]
@@ -1103,7 +1221,7 @@ def check_connections_configure(SimConfig, target_manager):
                 "{0[_name]}  {0[Source]} -> {0[Destination]}".format(conn),
                 conn.get("Weight", "-"),
                 conn.get("SpontMinis", "-"),
-                ", ".join(get_syn_config_vars(conn))
+                ", ".join(get_syn_config_vars(conn)),
             )
             if conn.get("_visited"):
                 break
@@ -1111,13 +1229,14 @@ def check_connections_configure(SimConfig, target_manager):
             conn = conn.get("_overrides")
 
     logging.info("Checking Connection Configurations")
-    all_conn_blocks = [compat.Map(conn).as_dict(parse_strings=True)
-                       for conn in SimConfig.connections.values()]
+    all_conn_blocks = [
+        compat.Map(conn).as_dict(parse_strings=True) for conn in SimConfig.connections.values()
+    ]
 
     # On a first phase process only for t=0
     for name, conn_conf in zip(SimConfig.connections, all_conn_blocks):
         conn_conf["_name"] = name
-        if float(conn_conf.get("Delay", 0)) > .0:
+        if float(conn_conf.get("Delay", 0)) > 0.0:
             continue
         for var in get_syn_config_vars(conn_conf):
             if not var.startswith("%s"):
@@ -1132,17 +1251,21 @@ def check_connections_configure(SimConfig, target_manager):
 
     # CHECK 1: Global vars
     if conn_configure_global_vars:
-        logging.warning("Global variables in SynapseConfigure. Review the following "
-                        "connections and move the global vars to Conditions block")
+        logging.warning(
+            "Global variables in SynapseConfigure. Review the following "
+            "connections and move the global vars to Conditions block"
+        )
         for name, vars in conn_configure_global_vars.items():
             logging.warning(" -> %s: %s", name, vars)
     else:
         logging.info(" => CHECK No Global vars!")
 
     # CHECK 2: Block override chains
-    if not [display_overriding_chain(conn_conf)
-            for conn_conf in reversed(processed_conn_blocks)
-            if conn_conf.get("_overrides") and not conn_conf.get("_visited")]:
+    if not [
+        display_overriding_chain(conn_conf)
+        for conn_conf in reversed(processed_conn_blocks)
+        if conn_conf.get("_overrides") and not conn_conf.get("_visited")
+    ]:
         logging.info(" => CHECK No Block Overrides!")
 
     # CHECK 3: Weight 0 not/badly overridden
@@ -1153,10 +1276,13 @@ def check_connections_configure(SimConfig, target_manager):
             not_overridden_weight_0.append(conn)
         elif full_overriden is False:  # incomplete override
             raise ConfigurationError(
-                "Partial Weight=0 override is not supported: Conn %s" % conn["_name"])
+                "Partial Weight=0 override is not supported: Conn %s" % conn["_name"]
+            )
     if not_overridden_weight_0:
-        logging.warning("The following connections with Weight=0 are not overridden, "
-                        "thus won't be instantiated:")
+        logging.warning(
+            "The following connections with Weight=0 are not overridden, "
+            "thus won't be instantiated:"
+        )
         for conn in not_overridden_weight_0:
             logging.warning(" -> %s", conn["_name"])
     else:
@@ -1171,10 +1297,12 @@ def _input_resistance(config: _SimConfig, target_manager):
         if stim_inject is None:
             continue  # not injected, do not care
         target_name = stim_inject["Target"]
-        if stim["Mode"] == "Conductance" and \
-           stim["Pattern"] in ["RelativeShotNoise", "RelativeOrnsteinUhlenbeck"]:
+        if stim["Mode"] == "Conductance" and stim["Pattern"] in [
+            "RelativeShotNoise",
+            "RelativeOrnsteinUhlenbeck",
+        ]:
             # NOTE: use target_manager to read the population names of hoc or NodeSet targets
             target = target_manager.get_target(target_name)
             for population in target.population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
-                log_verbose('[cell] %s (%s:%s)' % (prop, population, target.name))
+                log_verbose("[cell] %s (%s:%s)" % (prop, population, target.name))

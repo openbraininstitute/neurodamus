@@ -1,6 +1,7 @@
 """
 Main module for handling and instantiating synaptical connections
 """
+
 from __future__ import absolute_import
 import numpy as np
 import logging
@@ -62,13 +63,15 @@ class GapJunctionManager(ConnectionManagerBase):
         """
         if cell_manager.circuit_target is None:
             raise ConfigurationError(
-                "No circuit target. Required when initializing GapJunctionManager")
+                "No circuit target. Required when initializing GapJunctionManager"
+            )
         if "Path" not in gj_conf:
             raise ConfigurationError("Missing GapJunction 'Path' configuration")
 
         super().__init__(gj_conf, target_manager, cell_manager, src_cell_manager, **kw)
-        self._src_target_filter = target_manager.get_target(cell_manager.circuit_target,
-                                                            src_cell_manager.population_name)
+        self._src_target_filter = target_manager.get_target(
+            cell_manager.circuit_target, src_cell_manager.population_name
+        )
         self.holding_ic_per_gid = None
         self.seclamp_current_per_gid = None
 
@@ -103,8 +106,9 @@ class GapJunctionManager(ConnectionManagerBase):
 
     def finalize(self, *_, **_kw):
         super().finalize(conn_type="Gap-Junctions")
-        if (gj_target_pop := SimConfig.beta_features.get("gapjunction_target_population")) \
-              and self.cell_manager.population_name == gj_target_pop:
+        if (
+            gj_target_pop := SimConfig.beta_features.get("gapjunction_target_population")
+        ) and self.cell_manager.population_name == gj_target_pop:
             logging.info("Load user modification on %s", self)
             self.holding_ic_per_gid, self.seclamp_current_per_gid = load_user_modifications(self)
 
@@ -117,7 +121,7 @@ class GapJunctionManager(ConnectionManagerBase):
         else:
             raw_tgid_0base = final_tgid - self.target_pop_offset - 1
             src_pop_offset = self.src_pop_offset
-            t_gj_offset = self._gj_offsets[raw_tgid_0base]   # Old nrn_gj uses offsets
+            t_gj_offset = self._gj_offsets[raw_tgid_0base]  # Old nrn_gj uses offsets
             for conn in reversed(conns):
                 raw_sgid_0base = conn.sgid - src_pop_offset - 1
                 conn.finalize_gap_junctions(metype, t_gj_offset, self._gj_offsets[raw_sgid_0base])

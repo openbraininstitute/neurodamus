@@ -1,6 +1,7 @@
 """
 Collection of Cell Readers from different sources (Pure HDF5, SynTool...)
 """
+
 from __future__ import absolute_import
 import logging
 import numpy as np
@@ -22,7 +23,7 @@ class CellReaderError(Exception):
 
 
 def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
-    """ Splits a numpy ndarray[uint32] round-robin.
+    """Splits a numpy ndarray[uint32] round-robin.
     If the array is None generates new arrays based on the nr of total cells
     """
     if all_gids is not None:
@@ -36,7 +37,7 @@ def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
 
 
 def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cells=None):
-    """ Distribute gid in metype bundles for dry run.
+    """Distribute gid in metype bundles for dry run.
 
     The principle is the following: all gids with the same metype
     have to be assigned to the same rank. This function receives
@@ -78,13 +79,23 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cel
         return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
 
-def load_sonata(circuit_conf, all_gids, stride=1, stride_offset=0, *,
-                node_population, load_dynamic_props=(), has_extra_data=False, dry_run_stats=None,
-                load_mode=None):
+def load_sonata(
+    circuit_conf,
+    all_gids,
+    stride=1,
+    stride_offset=0,
+    *,
+    node_population,
+    load_dynamic_props=(),
+    has_extra_data=False,
+    dry_run_stats=None,
+    load_mode=None,
+):
     """
     A reader supporting additional dynamic properties from Sonata files.
     """
     import libsonata
+
     node_file = circuit_conf.CellLibraryFile
     node_store = libsonata.NodeStorage(node_file)
     node_pop = node_store.open_population(node_population)
@@ -152,20 +163,39 @@ def load_sonata(circuit_conf, all_gids, stride=1, stride_offset=0, *,
         else:
             threshold_currents = None
             holding_currents = None
-        positions = np.array([node_pop.get_attribute("x", node_sel),
-                              node_pop.get_attribute("y", node_sel),
-                              node_pop.get_attribute("z", node_sel)]).T
+        positions = np.array(
+            [
+                node_pop.get_attribute("x", node_sel),
+                node_pop.get_attribute("y", node_sel),
+                node_pop.get_attribute("z", node_sel),
+            ]
+        ).T
         rotations = _get_rotations(node_pop, node_sel)
 
         # For Sonata and new emodel hoc template, we need additional attributes for building metype
         # TODO: validate it's really the emodel_templates var we should pass here, or etype
-        add_params_list = None if not has_extra_data \
-            else _getNeededAttributes(node_pop, circuit_conf.METypePath, emodel_templates, gidvec-1)
+        add_params_list = (
+            None
+            if not has_extra_data
+            else _getNeededAttributes(
+                node_pop, circuit_conf.METypePath, emodel_templates, gidvec - 1
+            )
+        )
 
-        meinfos.load_infoNP(gidvec, morpho_names, emodel_templates, mtypes, etypes,
-                            threshold_currents, holding_currents,
-                            exc_mini_freqs, inh_mini_freqs, positions, rotations,
-                            add_params_list)
+        meinfos.load_infoNP(
+            gidvec,
+            morpho_names,
+            emodel_templates,
+            mtypes,
+            etypes,
+            threshold_currents,
+            holding_currents,
+            exc_mini_freqs,
+            inh_mini_freqs,
+            positions,
+            rotations,
+            add_params_list,
+        )
         return gidvec, meinfos, total_cells
 
     # If dynamic properties are not specified simply return early
@@ -175,11 +205,11 @@ def load_sonata(circuit_conf, all_gids, stride=1, stride_offset=0, *,
     # Check properties exist, eventually removing prefix
     def validate_property(prop_name):
         if prop_name.startswith("@dynamics:"):
-            actual_prop_name = prop_name[len("@dynamics:"):]  # remove prefix
+            actual_prop_name = prop_name[len("@dynamics:") :]  # remove prefix
             if actual_prop_name not in dynamics_attr_names:
-                raise Exception('Required Dynamics property %s not present' % prop_name)
+                raise Exception("Required Dynamics property %s not present" % prop_name)
         elif prop_name not in attr_names:
-            raise Exception('Required extra property %s not present' % prop_name)
+            raise Exception("Required extra property %s not present" % prop_name)
 
     [validate_property(p) for p in load_dynamic_props]
 
@@ -195,7 +225,7 @@ def load_sonata(circuit_conf, all_gids, stride=1, stride_offset=0, *,
     for prop_name in load_dynamic_props:
         log_verbose("Loading extra property: %s ", prop_name)
         if prop_name.startswith("@dynamics:"):
-            prop_name = prop_name[len("@dynamics:"):]
+            prop_name = prop_name[len("@dynamics:") :]
             prop_data = node_pop.get_dynamics_attribute(prop_name, node_sel)
         else:
             prop_data = node_pop.get_attribute(prop_name, node_sel)
@@ -234,24 +264,39 @@ def _get_rotations(node_reader, selection):
         selection: libsonata selection
     """
     attr_names = node_reader.attribute_names
-    if set(["orientation_x", "orientation_y",
-            "orientation_z", "orientation_w"]).issubset(attr_names):
+    if set(["orientation_x", "orientation_y", "orientation_z", "orientation_w"]).issubset(
+        attr_names
+    ):
         # Preferred way to present the rotation as quaternions
-        return np.array([node_reader.get_attribute("orientation_x", selection),
-                         node_reader.get_attribute("orientation_y", selection),
-                         node_reader.get_attribute("orientation_z", selection),
-                         node_reader.get_attribute("orientation_w", selection)]).T
-    elif set(["rotation_angle_xaxis",
-              "rotation_angle_yaxis",
-              "rotation_angle_zaxis"]).intersection(attr_names):
+        return np.array(
+            [
+                node_reader.get_attribute("orientation_x", selection),
+                node_reader.get_attribute("orientation_y", selection),
+                node_reader.get_attribute("orientation_z", selection),
+                node_reader.get_attribute("orientation_w", selection),
+            ]
+        ).T
+    elif set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
+        attr_names
+    ):
         # Some sonata nodes files use the Euler angle rotations, convert them to quaternions
         from scipy.spatial.transform import Rotation
-        angle_x = node_reader.get_attribute("rotation_angle_xaxis", selection) \
-            if "rotation_angle_xaxis" in attr_names else 0
-        angle_y = node_reader.get_attribute("rotation_angle_yaxis", selection) \
-            if "rotation_angle_yaxis" in attr_names else 0
-        angle_z = node_reader.get_attribute("rotation_angle_zaxis", selection) \
-            if "rotation_angle_yaxis" in attr_names else 0
+
+        angle_x = (
+            node_reader.get_attribute("rotation_angle_xaxis", selection)
+            if "rotation_angle_xaxis" in attr_names
+            else 0
+        )
+        angle_y = (
+            node_reader.get_attribute("rotation_angle_yaxis", selection)
+            if "rotation_angle_yaxis" in attr_names
+            else 0
+        )
+        angle_z = (
+            node_reader.get_attribute("rotation_angle_zaxis", selection)
+            if "rotation_angle_yaxis" in attr_names
+            else 0
+        )
         euler_rots = np.array([angle_x, angle_y, angle_z]).T
         return Rotation.from_euler("xyz", euler_rots).as_quat()
     else:
@@ -289,11 +334,15 @@ def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
         gids_per_metype[metype].append(gid)
         count_per_metype[metype] += 1
 
-    logging.info("Out of %d cells, found %d unique mtype+emodel combination",
-                 len(gidvec), len(gids_per_metype))
+    logging.info(
+        "Out of %d cells, found %d unique mtype+emodel combination",
+        len(gidvec),
+        len(gids_per_metype),
+    )
     for metype, gid_list in gids_per_metype.items():
-        logging.debug("METype: %-20s instances: %-8d gids: %s",
-                      metype, len(gid_list), gid_list[:10])
+        logging.debug(
+            "METype: %-20s instances: %-8d gids: %s", metype, len(gid_list), gid_list[:10]
+        )
 
     # If the list is longer than 50, truncate it to 50 elements.
     # If the metype is already computed, skip it

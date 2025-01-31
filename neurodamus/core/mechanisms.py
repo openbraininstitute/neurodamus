@@ -1,6 +1,7 @@
 """
 Module defining cell mechanisms
 """
+
 from __future__ import absolute_import
 from ._neuron import Neuron
 from ..utils import ConfigT
@@ -10,7 +11,7 @@ class Mechanism(ConfigT):
     _mec_name = None
 
     # Declare the subtypes
-    HH = None   # type: HH
+    HH = None  # type: HH
     PAS = None  # type: PAS
 
     def __new__(cls, **opts):
@@ -35,14 +36,14 @@ class Mechanism(ConfigT):
 class HH(Mechanism):
     _mec_name = "hh"
     gnabar = None  # 0.120 mho/cm2   Maximum specific sodium channel conductance
-    gkbar  = None  # 0.036 mho/cm2   Maximum potassium channel conductance
-    gl     = None  # 0.0003 mho/cm2  Leakage conductance
-    el     = None  # -54.3 mV        Leakage reversal potential
-    m      = None  # ?               sodium activation state variable
-    h      = None  # ?               sodium inactivation state variable
-    n      = None  # ?               potassium activation state variable
-    ina    = None  # mA/cm2          sodium current through the hh channels
-    ik     = None  # mA/cm2          potassium current through the hh channels
+    gkbar = None  # 0.036 mho/cm2   Maximum potassium channel conductance
+    gl = None  # 0.0003 mho/cm2  Leakage conductance
+    el = None  # -54.3 mV        Leakage reversal potential
+    m = None  # ?               sodium activation state variable
+    h = None  # ?               sodium inactivation state variable
+    n = None  # ?               potassium activation state variable
+    ina = None  # mA/cm2          sodium current through the hh channels
+    ik = None  # mA/cm2          potassium current through the hh channels
 
 
 class PAS(Mechanism):
