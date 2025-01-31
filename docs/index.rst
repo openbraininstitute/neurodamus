@@ -12,6 +12,7 @@ Contents
    :maxdepth: 2
 
    Overview <overview>
+   Inputs <inputs>
    Run a Sonata Simulation <sonata-simulation>
    Examples <examples>
    Developer Documentation <architecture>
