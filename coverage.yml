@@ -7,7 +7,7 @@ on:
         - master
 
 jobs:
-  baseline-coverage:
+  coverage:
     runs-on: ubuntu-latest
     steps:
 
