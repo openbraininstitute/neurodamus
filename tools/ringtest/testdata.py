@@ -3,7 +3,7 @@ import settings
 
 from neuron import h
 from ring import Ring
-from dump_cellstate import dump_cellstate
+from dump_cellstate import dump_cellstate, dump_nclist
 
 # initialize global variables
 settings.init(gap_=False, nring_=1)
@@ -47,6 +47,13 @@ h.prcellgid(1000)
 for gid in [0, 1000]:
     cell = pc.gid2cell(gid)
     res = dump_cellstate(cell)
+
+    res["netcons"] = {}
+    nclist = h.CVode().netconlist("", cell, "")
+    res["netcons"]["n_netcons"] = nclist.count()
+    res_netcons = dump_nclist(nclist)
+    res["netcons"].update(res_netcons)
+
     outputfile = "cellstate_" + str(gid) + ".json"
     with open(outputfile, "w") as f:
         json.dump(res, f, indent=2)
