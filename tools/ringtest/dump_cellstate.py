@@ -27,6 +27,21 @@ def dump_cellstate(cell):
     return res
 
 
+def dump_nclist(nclist):
+    res = {}
+    for nc in nclist:
+        res[nc.hname()] = {}
+        if nc.precell():
+            res[nc.hname()]["precell"] = nc.precell().hname()
+        elif nc.pre():
+            res[nc.hname()]["pre"] = nc.pre().hname()
+        res[nc.hname()]["srcgid"] = nc.srcgid()
+        res[nc.hname()]["active"] = nc.active()
+        res[nc.hname()]["weight"] = nc.weight[0]
+        res[nc.hname()].update(_read_object_attrs(nc))
+    return res
+
+
 def _read_object_attrs(obj):
     return {x: getattr(obj, x) for x in dir(obj)
             if not x.startswith("__") and not callable(getattr(obj, x))}
