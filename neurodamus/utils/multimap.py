@@ -5,7 +5,11 @@ A collection of Pure-Python MultiMaps
 import numpy as np
 from functools import reduce
 from operator import add
-from .compat import collections_abc
+
+try:
+    import collections.abc as collections_abc  # Py >= 3.3
+except ImportError:
+    import collections as collections_abc
 
 
 class MultiMap(collections_abc.Mapping):
