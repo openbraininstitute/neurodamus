@@ -5,11 +5,6 @@ Compatibility Classes to work similar to HOC types, recreating or wrapping them
 from __future__ import absolute_import
 from array import array
 
-try:
-    import collections.abc as collections_abc  # Py >= 3.3
-except ImportError:
-    import collections as collections_abc
-
 
 class Vector(array):
     """Behavior similar to Hoc Vector"""
