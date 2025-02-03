@@ -25,11 +25,9 @@ class SynParams:
 n_inst = 1000000
 
 h.load_file("RNGSettings.hoc")
-h.load_file("Map.hoc")
 
-map_hoc = h.Map()
 RNGset = h.RNGSettings()
-RNGset.interpret(map_hoc)
+RNGset.interpret({})
 
 pc = h.ParallelContext()
 
@@ -53,7 +51,7 @@ print('Memory usage per object ProbGABAAB: %f KB' % ((mem2 - mem) / n_inst))
 
 h.load_file("GluSynapseHelper.hoc")
 mem = get_mem_usage()
-GluSynapse_helper = [h.GluSynapseHelper(1, params_obj, 0.5, i, 0, map_hoc) for i in range(n_inst)]
+GluSynapse_helper = [h.GluSynapseHelper(1, params_obj, 0.5, i, 0, {}) for i in range(n_inst)]
 netcon_glu = [pc.gid_connect(1000, helper.synapse) for helper in GluSynapse_helper]
 mem2 = get_mem_usage()
 print('Memory usage per object GluSynapse: %f KB' % ((mem2 - mem) / n_inst))
