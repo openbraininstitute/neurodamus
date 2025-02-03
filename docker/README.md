@@ -59,3 +59,5 @@ To run with multiple processes in parallel, e.g. 4 processes
 ```
 mpirun -np 4 ./x86_64/special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=<your_folder>/simulation_config.json
 ```
+**NOTE**
+The name of the built folder depends on the architecture of your machine, could be `x86_64` for amd64 or `aarch64` for arm64. The command `uname -m` can tell.
