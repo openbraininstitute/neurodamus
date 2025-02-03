@@ -30,7 +30,6 @@ from .stimulus_manager import StimulusManager
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .target_manager import TargetSpec, TargetManager
-from .utils import compat
 from .utils.logging import log_stage, log_verbose, log_all
 from .utils.memory import DryRunStats, trim_memory, pool_shrink, free_event_queues, print_mem_usage
 from .utils.timeit import TimerManager, timeit
@@ -706,7 +705,6 @@ class Node:
         has_extra_cellular = False
         stim_dict = {}
         for stim_name, stim in SimConfig.stimuli.items():
-
             if stim_name in stim_dict:
                 raise ConfigurationError("Stimulus declared more than once: %s", stim_name)
             stim_dict[stim_name] = stim
