@@ -265,10 +265,6 @@ class Connection(ConnectionBase):
         if configuration is not None:
             self._configurations.append(configuration)
 
-    def override_mod(self, mod_override):
-        assert "ModOverride" in mod_override, "ModOverride requires hoc config obj"
-        self._mod_override = mod_override
-
     @property
     def sections_with_synapses(self):
         """Generator over all sections containing synapses, yielding pairs
@@ -527,7 +523,7 @@ class Connection(ConnectionBase):
         """
         is_inh = params_obj["synType"] < 100
         if self._mod_override is not None:
-            mod_override = self._mod_override.get("ModOverride").s
+            mod_override = self._mod_override
             self._mod_overrides.add(mod_override)
             override_helper = mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)
