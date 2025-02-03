@@ -9,7 +9,8 @@ This page provides an overview of the nomenclature used for inputs in a Neurodam
 This is the main SONATA file that controls the simulation settings. Key fields include:  
 
 - What **reports** the simulator should generate.  
-- The duration of the simulation.  
+- The duration of the simulation.
+- The Neuron stimuli.
 
 A **report** is one of the possible outputs of the simulation. It typically consists of a time trace of a specific value (e.g., voltage) recorded per neuron. Reports can also be generated per neuronal section.  
 
