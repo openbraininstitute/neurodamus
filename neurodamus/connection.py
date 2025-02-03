@@ -266,7 +266,7 @@ class Connection(ConnectionBase):
             self._configurations.append(configuration)
 
     def override_mod(self, mod_override):
-        assert mod_override.exists("ModOverride"), "ModOverride requires hoc config obj"
+        assert "ModOverride" in mod_override, "ModOverride requires hoc config obj"
         self._mod_override = mod_override
 
     @property
