@@ -43,7 +43,7 @@ As with any python package, for development, we recommend installing in dev-mode
     # module load unstable git py-h5py py-libsonata # will also bring Python and mpi
 
     # Get your copy of neurodamus:
-    git clone git@bbpgitlab.epfl.ch:hpc/sim/neurodamus-py.git
+    git clone git@github.com:openbraininstitute/neurodamus.git
 
     # Create a virtualenv and install in dev-mode (no copies):
     python -m venv venv
@@ -79,7 +79,7 @@ Let's now try to run some tests.
     # ...
 
     # In order to run on 4 MPI ranks:
-    srun -n4 [--account=proj16] neurodamus simulation_sonata.json
+    srun -n4 neurodamus simulation_sonata.json
 
 That looks good. Notice a couple of things:
 
@@ -125,7 +125,7 @@ Prepared Config Files
 
 The following repository contains the required input files for a number of simulations::
 
-    git clone git@bbpgitlab.epfl.ch:hpc/sim/blueconfigs.git
+    git clone git@github.com:BlueBrain/blueconfigs.git
 
 The quick path way
 ------------------
@@ -167,7 +167,7 @@ Next, create a Spack environment and add the desired packages::
 
 You can clone ``neurodamus-py`` and use ``spack develop`` as follows::
 
-    git clone git@bbpgitlab.epfl.ch:hpc/sim/neurodamus-py.git
+    git clone git@github.com:openbraininstitute/neurodamus.git
     spack develop -p ${PWD}/neurodamus-py --no-clone py-neurodamus@develop
     spack add py-neurodamus@develop
 
@@ -195,7 +195,7 @@ You can clone ``neurodamus-py`` and use ``spack develop`` as follows::
 
 .. note::
 
-    It is not possible to use spack develop  for neurodamus-model  or neurodamus-neocortex (and others). Instead it's important to always install them by downloading the sources from Gitlab. If one must edit those sources, the recommended workflow is to create a feature branch in the respective repository and convince Spack to use that branch.
+    It may be possible to use sapck develop with: `spack install neurodamus-model model=neocortex`. To be tested.
 
 .. note::
 
