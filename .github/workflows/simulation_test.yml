@@ -23,7 +23,6 @@ on:
       NEURODAMUS_MODELS_BRANCH:
         description: 'neurodamus-models branch to use'
         required: false
-        default: 'katta/conn_conf_remove'
 
 env:
   NEURON_COMMIT_ID: 'c48d7d5'
@@ -181,7 +180,9 @@ jobs:
         export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
         export PATH=$(pwd)/nrn/build/install/bin:$PATH
         # Clone neurodamus-models repository
-        git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/BlueBrain/neurodamus-models.git
+        # remove once katta/conn_conf_remove has been merged
+        # git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/BlueBrain/neurodamus-models.git
+        git clone --branch=katta/conn_conf_remove https://github.com/BlueBrain/neurodamus-models.git
         # Build neocortex model
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B neurodamus-models/build -S neurodamus-models/ \
