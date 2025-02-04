@@ -943,7 +943,8 @@ class ConnectionManagerBase(object):
         for conn in self.get_target_connections(src_target, dst_target, gidvec):
             for key, val in syn_params.items():
                 setattr(conn, key, val)
-            conn.set_mod_override_and_conn_conf(conn_config)
+            if "ModOverride" in conn_config:
+                conn.set_mod_override(conn_config["ModOverride"])
             if "SynapseConfigure" in conn_config:
                 conn.add_synapse_configuration(conn_config["SynapseConfigure"])
             configured_conns += 1

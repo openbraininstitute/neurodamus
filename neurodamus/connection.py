@@ -249,7 +249,6 @@ class Connection(ConnectionBase):
         super().__init__(sgid, tgid, src_pop_id, dst_pop_id, weight_factor, **kwargs)
         self.minis_spont_rate = minis_spont_rate
         self._mod_override = mod_override
-        self._conn_conf = None  # it is used only when set with override_mod
         self._synapse_sections = []
         self._synapse_points_x = compat.array("d")
         self._synapse_ids = compat.array("i")  # replaced by np.array for bulk add syn
@@ -267,12 +266,10 @@ class Connection(ConnectionBase):
         if configuration is not None:
             self._configurations.append(configuration)
 
-    def set_mod_override_and_conn_conf(self, conn_conf):
-        """Set mod override and pass the rest of the connection configuration to be
-        used later if mod override is present"""
-        if conn_conf and "ModOverride" in conn_conf:
-            self._mod_override = conn_conf["ModOverride"]
-            self._conn_conf = conn_conf
+    def set_mod_override(self, mod_override):
+        """Set a valid mod override"""
+        assert mod_override is not None, "ModOverride cannot be None"
+        self._mod_override = mod_override
 
     @property
     def sections_with_synapses(self):
@@ -536,7 +533,7 @@ class Connection(ConnectionBase):
             self._mod_overrides.add(mod_override)
             override_helper = mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)
-            add_params = (self._src_pop_id, self._dst_pop_id, self._conn_conf)
+            add_params = (self._src_pop_id, self._dst_pop_id)
         else:
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
