@@ -23,6 +23,7 @@ on:
       NEURODAMUS_MODELS_BRANCH:
         description: 'neurodamus-models branch to use'
         required: false
+        default: 'katta/conn_conf_remove'
 
 env:
   NEURON_COMMIT_ID: 'c48d7d5'
