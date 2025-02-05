@@ -110,7 +110,7 @@ def contour2centroid(mean, points):
     # find the major axis of the ellipsoid that best fits the shape
     # assuming (falsely in general) that the center is the mean
 
-    points = points - mean
+    points -= mean
     eigen_values, eigen_vectors = eig(np.dot(points.T, points))
 
     # To be consistent with NEURON eigen vector directions
