@@ -87,7 +87,7 @@ class GapJunctionManager(ConnectionManagerBase):
 
         for line in open(gjfname):
             gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
-            gid, offset = map(int, line.strip().split())
+            _, offset = map(int, line.strip().split())
             gj_sum += 2 * offset
 
         return gj_offsets
