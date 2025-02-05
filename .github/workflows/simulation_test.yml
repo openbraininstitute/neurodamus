@@ -59,11 +59,11 @@ jobs:
     - name: Get latest tags
       run: |
         echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
-        LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonata/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonata/tags | jq -r '.[0].name')
         echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
-        LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonatareport/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonatareport/tags | jq -r '.[0].name')
         echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/tags | jq -r '.[0].name')
         echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
     - name: Get HEAD commit message and look for branches
