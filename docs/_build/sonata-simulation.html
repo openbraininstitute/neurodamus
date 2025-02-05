@@ -1,0 +1,1120 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>Setting up a Sonata simulation - Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+    
+      <script src="_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#the-sonata-simulation-input-files" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="index.html"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="Setting up a Sonata simulation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            Setting up a Sonata simulation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="inputs.html" title="Inputs" class="md-nav__link">
+      Inputs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Run a Sonata Simulation
+      </label>
+    
+    <a href="#" title="Run a Sonata Simulation" class="md-nav__link md-nav__link--active">
+      Run a Sonata Simulation
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-sonata-simulation-input-files" class="md-nav__link">
+    The Sonata simulation input files
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fundamental-simulation-parameters" class="md-nav__link">
+    Fundamental simulation parameters
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-sonata-nodeset-file" class="md-nav__link">
+    The Sonata Nodeset file
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-examples" class="md-nav__link">
+    Additional Examples
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-features" class="md-nav__link">
+    Supported features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sonata-faq" class="md-nav__link">
+    SONATA FAQ
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-convert-my-old-blueconfig-to-sonata-configuration" class="md-nav__link">
+    How do I convert my old BlueConfig to SONATA configuration?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-know-if-my-new-sonata-configuration-is-valid" class="md-nav__link">
+    How do I know if my new SONATA configuration is valid?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#and-how-do-i-convert-my-spikes-out-dat-and-binary-reports-bbp-to-sonata-format" class="md-nav__link">
+    And how do I convert my spikes (out.dat) and binary reports (.bbp) to SONATA format?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-run-a-sonata-simulation" class="md-nav__link">
+    How do I run a SONATA simulation?
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="examples.html" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="architecture.html" title="Developer Documentation" class="md-nav__link">
+      Developer Documentation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="api/packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10">
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.html" title="neurodamus Package" class="md-nav__link">
+      neurodamus Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-sonata-simulation-input-files" class="md-nav__link">
+    The Sonata simulation input files
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fundamental-simulation-parameters" class="md-nav__link">
+    Fundamental simulation parameters
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-sonata-nodeset-file" class="md-nav__link">
+    The Sonata Nodeset file
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-examples" class="md-nav__link">
+    Additional Examples
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-features" class="md-nav__link">
+    Supported features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sonata-faq" class="md-nav__link">
+    SONATA FAQ
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-convert-my-old-blueconfig-to-sonata-configuration" class="md-nav__link">
+    How do I convert my old BlueConfig to SONATA configuration?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-know-if-my-new-sonata-configuration-is-valid" class="md-nav__link">
+    How do I know if my new SONATA configuration is valid?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#and-how-do-i-convert-my-spikes-out-dat-and-binary-reports-bbp-to-sonata-format" class="md-nav__link">
+    And how do I convert my spikes (out.dat) and binary reports (.bbp) to SONATA format?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-run-a-sonata-simulation" class="md-nav__link">
+    How do I run a SONATA simulation?
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="setting-up-a-sonata-simulation">
+<h1>Setting up a Sonata simulation<a class="headerlink" href="#setting-up-a-sonata-simulation" title="Permalink to this heading">¶</a></h1>
+<p>Neurodamus now supports the SONATA open-source format for its input and output files.</p>
+<p>The full specification, including BBP extensions, is available at the BBP Circuit Documentation
+pages
+<a class="reference external" href="https://sonata-extension.readthedocs.io/en/latest/sonata_overview.html">https://sonata-extension.readthedocs.io/en/latest/sonata_overview.html</a>.</p>
+<p>The Sonata specification prescribes the file format for all Simulation inputs and outputs, as
+depicted in the following image:</p>
+<img alt="_images/neurodamus.svg" src="_images/neurodamus.svg" /><section id="the-sonata-simulation-input-files">
+<h2>The Sonata simulation input files<a class="headerlink" href="#the-sonata-simulation-input-files" title="Permalink to this heading">¶</a></h2>
+<p>Neurodamus CLI expects a simulation configuration file which can provide all the settings, namely
+the definition of the circuit and the parameters of the simulation.</p>
+<p>This file is the successor of the BlueConfig, but with some important changes.</p>
+<p>Contrary to BlueConfig the Sonata simulation config only deals with the simulation parameters,
+leaving out the details of the circuit, in particular the location of the composing files.</p>
+<p>For the complete reference please refer to <a class="reference external" href="https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html">sonata_simulation documentation</a></p>
+<p>As an example let’s consider an Hippocampus sample simulation (
+<a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json">Hippocampus-mini-simultion-config</a>)</p>
+<section id="fundamental-simulation-parameters">
+<h3>Fundamental simulation parameters<a class="headerlink" href="#fundamental-simulation-parameters" title="Permalink to this heading">¶</a></h3>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Sonata Config</p></td>
+<td><p>BlueConfig</p></td>
+</tr>
+<tr class="row-even"><td><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;run&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="nt">&quot;tstop&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;dt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.025</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;random_seed&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">264118</span><span class="p">,</span>
+<span class="p">},</span>
+
+<span class="nt">&quot;target_simulator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NEURON&quot;</span><span class="p">,</span>
+<span class="nt">&quot;network&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circuit_config.json&quot;</span><span class="p">,</span>
+<span class="nt">&quot;node_sets_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;node_sets.json&quot;</span><span class="p">,</span>
+<span class="nt">&quot;node_set&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;most_central_100_SP_PC&quot;</span><span class="p">,</span>
+
+<span class="nt">&quot;output&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;output_dir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;output_sonata&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;spikes_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;out.h5&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;spikes_sort_order&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;by_time&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Run Default</span>
+<span class="go">{</span>
+<span class="go">  Duration 100</span>
+<span class="go">  Dt 0.025</span>
+<span class="go">  BaseSeed 264118</span>
+
+<span class="go">  Simulator NEURON</span>
+<span class="gp">  # </span>BlueConfig<span class="w"> </span>had<span class="w"> </span>circuit<span class="w"> </span>defs<span class="w"> </span>inline
+<span class="go">  TargetFile mooc-circuit/user.target</span>
+<span class="go">  CircuitTarget hippocampus_neurons:central</span>
+
+<span class="go">  OutputRoot output</span>
+
+<span class="go">  RNGMode Random123  # deprecated</span>
+<span class="go">  RunMode RR         # deprecated. use CLI</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p>The top of the file specifies the fundamental simulation parameters. In particular the <cite>run</cite> block
+must exist and set tstop and dt. Moreover, the <cite>target_simulator</cite> block is a top-level entity now,
+which defaults to NEURON.</p>
+<p>The second block selects which circuit is to be simulated. This is the main difference wrt BlueConfig.
+<cite>network</cite> should point to the circuit config file which, as showing in the diagram, contains
+information about the location of the files building it up. Therefore this entry replaces all
+entries specifying circuit files, namely <cite>CircuitPath</cite>, <cite>MorphologyPath</cite>, <cite>MorphologyType</cite>,
+<cite>METypePath</cite>, <cite>MEComboInfoFile</cite>, <cite>CellLibraryFile</cite>, <cite>nrnPath</cite>.</p>
+<p>There will likely be such files available per circuit, but the user may define himself a custom one.
+Please refer to the <a class="reference internal" href="#additional-examples">Additional Examples</a> section.</p>
+<p><cite>node_sets_file</cite> should point to a file defining Sonata nodesets. More on ths in the next section.</p>
+<p>The <cite>nodeset</cite> is basically the selection of nodes (defined in the node_sets_file) which will be
+simulated. If not set Neurodamus will choose all non-virtual nodes of all populations.</p>
+</section>
+<section id="the-sonata-nodeset-file">
+<h3>The Sonata Nodeset file<a class="headerlink" href="#the-sonata-nodeset-file" title="Permalink to this heading">¶</a></h3>
+<p>Nodesets are selectors, in the form of filter expressions or cell IDs, that can be referenced in
+several points of the configuration, namely to select the simulation or reporting targets.</p>
+<p>Please find the full documentation at
+<a class="reference external" href="https://sonata-extension.readthedocs.io/en/latest/sonata_nodeset.html">https://sonata-extension.readthedocs.io/en/latest/sonata_nodeset.html</a></p>
+<p>In the current example <cite>most_central_100_SP_PC</cite> must be defined in <cite>node_sets.json</cite>, in this case:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;most_central_100_SP_PC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;population&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hippocampus_neurons&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;node_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="mi">11616</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">6392</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">6788</span><span class="p">,</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Notice that, by default the filtering rules or node IDs try to match against all available
+populations, and therefore specifying which population the rules should apply is generally required.</p>
+</section>
+</section>
+<section id="additional-examples">
+<h2>Additional Examples<a class="headerlink" href="#additional-examples" title="Permalink to this heading">¶</a></h2>
+<p>You can find a number of examples of curated Sonata simulations in the
+<a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs">blueconfigs repository</a></p>
+<p>Here’s a quick list of them which can be used as inspiration:</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Example Sonata</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 26%" />
+<col style="width: 26%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Circuit kind</p></th>
+<th class="head"><p>Simulation Config</p></th>
+<th class="head"><p>Circuit config</p></th>
+<th class="head"><p>Node Sets</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Hippocampus</p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/simulation_config.json">simulation_config.json</a></p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/circuit_config.json">circuit_config.json</a></p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-hip-multipopulation/node_sets.json">node_sets.json</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>SSCX</p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/simulation_config.json">simulation_config.json</a></p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/circuit_config.json">circuit_config.json</a></p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/tree/main/sonataconf-quick-scx-multi-circuit/node_sets.json">node_sets.json</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Thalamus</p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-thalamus/simulation_config.json">simulation_config.json</a></p></td>
+<td><p><a class="reference external" href="file:///gpfs/bbp.cscs.ch/project/proj12/SIT/thalamus_sonata/circuit_sonata.json">circuit_sonata.json</a></p></td>
+<td><p><a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/blueconfigs/-/blob/main/sonataconf-quick-thalamus/node_sets.json">node_sets.json</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="supported-features">
+<h2>Supported features<a class="headerlink" href="#supported-features" title="Permalink to this heading">¶</a></h2>
+<p>Here is a summary of main features supported by the Sonata simulation config file. Details on the parameters can be found in <a class="reference external" href="https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html">sonata_simulation documentation</a>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Support</p></th>
+<th class="head"><p>Comments</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Nodes and Edges</p></td>
+<td><p>Full</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>NodeSets (multiple populations)</p></td>
+<td><p>Full</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Multi-population reports</p></td>
+<td><p>Full</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Simulation configuration</p></td>
+<td><p>Full</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Sonata specific stimuli</p></td>
+<td><p>Partial</p></td>
+<td><p>Pending features: PulseTI stimuli, Extracellular stimuli.</p></td>
+</tr>
+<tr class="row-odd"><td><p>NGV support</p></td>
+<td><p>Partial</p></td>
+<td><p>Results being validated.</p></td>
+</tr>
+<tr class="row-even"><td><p>Point Neuron simulation</p></td>
+<td><p>Partial</p></td>
+<td><p>No report. No replay.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Neuromodulation</p></td>
+<td><p>Partial</p></td>
+<td><p>No replay.</p></td>
+</tr>
+<tr class="row-even"><td><p>Deprecation of BlueConfig sections</p></td>
+<td><p>Partial</p></td>
+<td><p>Modifications, Electrode, Projection <a class="footnote-reference brackets" href="#f1" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Non-Sonata Configuration as CLI</p></td>
+<td><p>Full</p></td>
+<td><p>New args: –save=&lt;PATH&gt;, –save-time=&lt;TIME&gt;, –restore=&lt;PATH&gt;, –lb-mode=[RoundRobin, WholeCell, MultiSplit], –dump-cell-state=&lt;GID&gt;.</p></td>
+</tr>
+</tbody>
+</table>
+<aside class="footnote brackets" id="f1" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">1</a><span class="fn-bracket">]</span></span>
+<p>The Projection section is merged into the circuit config file.</p>
+</aside>
+</section>
+<section id="sonata-faq">
+<h2>SONATA FAQ<a class="headerlink" href="#sonata-faq" title="Permalink to this heading">¶</a></h2>
+<p>This is a list of Frequently Asked Questions about the NEURODAMUS support of SONATA format.</p>
+<section id="how-do-i-convert-my-old-blueconfig-to-sonata-configuration">
+<h3>How do I convert my old BlueConfig to SONATA configuration?<a class="headerlink" href="#how-do-i-convert-my-old-blueconfig-to-sonata-configuration" title="Permalink to this heading">¶</a></h3>
+<p>Right now it is a manual process, however we are studying the viability of
+an automatic converter in this <a class="reference external" href="https://bbpteam.epfl.ch/project/issues/browse/BBPBGLIB-891">ticket</a></p>
+<p>For more info regarding the corresponding keys between BlueConfig and SONATA
+you could check this spreadsheet.</p>
+<p>There are also some examples where given a BlueConfig, we show the corresponding
+SONATA config file. The examples can be found <a class="reference external" href="https://bbpgitlab.epfl.ch/hpc/sim/neurodamus-py/-/blob/doc/sonata/docs/sonata-simulation.rst">here</a></p>
+</section>
+<section id="how-do-i-know-if-my-new-sonata-configuration-is-valid">
+<h3>How do I know if my new SONATA configuration is valid?<a class="headerlink" href="#how-do-i-know-if-my-new-sonata-configuration-is-valid" title="Permalink to this heading">¶</a></h3>
+<p>You can load your simulation_config.json file with libsonata and it will tell
+you if there are any issues with the file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w">  </span>module<span class="w"> </span>load<span class="w"> </span>unstable<span class="w"> </span>py-libsonata/0.1.14
+$<span class="w">  </span>python
+$<span class="w">  </span>&gt;&gt;&gt;<span class="w"> </span>import<span class="w"> </span>libsonata
+$<span class="w">  </span>&gt;&gt;&gt;<span class="w"> </span>libsonata.SimulationConfig.from_file<span class="o">(</span><span class="s1">&#39;simulation_config.json&#39;</span><span class="o">)</span>
+File<span class="w"> </span><span class="s2">&quot;read_simconfig.py&quot;</span>,<span class="w"> </span>line<span class="w"> </span><span class="m">3</span>,<span class="w"> </span><span class="k">in</span><span class="w"> </span>&lt;module&gt;
+libsonata.SimulationConfig.from_file<span class="o">(</span><span class="s1">&#39;simulation_config.json&#39;</span><span class="o">)</span>
+libsonata._libsonata.SonataError:<span class="w"> </span>Invalid<span class="w"> </span>value:<span class="w"> </span><span class="s1">&#39;&quot;compartment&quot;&#39;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>key<span class="w"> </span><span class="s1">&#39;type&#39;</span>
+</pre></div>
+</div>
+<p>More info about the sections and valid values in the simulation config can be found <a class="reference external" href="https://github.com/BlueBrain/sonata-extension/blob/master/source/sonata_simulation.rst">here</a></p>
+</section>
+<section id="and-how-do-i-convert-my-spikes-out-dat-and-binary-reports-bbp-to-sonata-format">
+<h3>And how do I convert my spikes (out.dat) and binary reports (.bbp) to SONATA format?<a class="headerlink" href="#and-how-do-i-convert-my-spikes-out-dat-and-binary-reports-bbp-to-sonata-format" title="Permalink to this heading">¶</a></h3>
+<p>There are 2 options:</p>
+<ul class="simple">
+<li><p>If you want to convert also the BlueConfig to SONATA, then rerun the simulation with the new simulation config file that you converted.</p></li>
+<li><p>If you only need the reports, then we have a proof of concept converter.
+More info can be found in this <a class="reference external" href="https://bbpteam.epfl.ch/project/issues/browse/REP-77">ticket</a></p></li>
+</ul>
+</section>
+<section id="how-do-i-run-a-sonata-simulation">
+<h3>How do I run a SONATA simulation?<a class="headerlink" href="#how-do-i-run-a-sonata-simulation" title="Permalink to this heading">¶</a></h3>
+<p>Basically the same way than before.</p>
+<p>First, neurodamus modules need to be loaded</p>
+<ul class="simple">
+<li><p>py-neurodamus: should be at least 2.12.0 for base SONATA support</p></li>
+<li><p>neurodamus-xxx: load the neurodamus model needed for your simulation</p></li>
+</ul>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>module<span class="w"> </span>load<span class="w"> </span>unstable<span class="w"> </span>py-neurodamus/2.12.0<span class="w"> </span>neurodamus-neocortex
+</pre></div>
+</div>
+<p>Finally <cite>special</cite> is called with the –configFile CLI option pointing to the sonata configuration file</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$  </span>srun<span class="w"> </span>special<span class="w"> </span>-mpi<span class="w"> </span>-python<span class="w"> </span><span class="nv">$NEURODAMUS_PYTHON</span>/init.py<span class="w"> </span>--configFile<span class="o">=</span>simulation_config.json
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="_sources/sonata-simulation.rst.txt" title="sonata-simulation.rst" class="md-source-file">
+      sonata-simulation.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+          <a href="inputs.html"
+              title="Simulation Inputs"
+              class="md-flex md-footer-nav__link md-footer-nav__link--prev"
+              rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back
+                    md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Simulation Inputs
+              </span>
+            </div>
+          </a>
+        
+
+        <!-- Link to next page -->
+        
+          <a href="examples.html"
+              title="Examples"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Examples
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="_static/javascripts/theme.js"></script>
+<script src="_static/javascripts/utils.js"></script>
+
+      <script src="_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"./_static"}})</script>
+      
+    
+
+  </body>
+</html>

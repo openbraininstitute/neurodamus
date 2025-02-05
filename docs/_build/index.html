@@ -1,0 +1,848 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+    
+      <script src="_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#contents" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="#"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="Neurodamus">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            Neurodamus<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="inputs.html" title="Inputs" class="md-nav__link">
+      Inputs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="sonata-simulation.html" title="Run a Sonata Simulation" class="md-nav__link">
+      Run a Sonata Simulation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="examples.html" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="architecture.html" title="Developer Documentation" class="md-nav__link">
+      Developer Documentation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="api/packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10">
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.html" title="neurodamus Package" class="md-nav__link">
+      neurodamus Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#contents" class="md-nav__link">
+    Contents
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#indices-and-tables" class="md-nav__link">
+    Indices and tables
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="neurodamus">
+<h1>Neurodamus<a class="headerlink" href="#neurodamus" title="Permalink to this heading">¶</a></h1>
+<p>This is the documentation of <strong>Neurodamus</strong>.</p>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#docker-container">Docker container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#acknowledgment">Acknowledgment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#license">License</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inputs.html">Inputs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inputs.html#simulation-config-json"><code class="docutils literal notranslate"><span class="pre">simulation_config.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inputs.html#circuit-config-json"><code class="docutils literal notranslate"><span class="pre">circuit_config.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="inputs.html#node-sets-json"><code class="docutils literal notranslate"><span class="pre">node_sets.json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sonata-simulation.html">Run a Sonata Simulation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sonata-simulation.html#the-sonata-simulation-input-files">The Sonata simulation input files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sonata-simulation.html#additional-examples">Additional Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sonata-simulation.html#supported-features">Supported features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sonata-simulation.html#sonata-faq">SONATA FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#resource-estimation">Resource estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#neurodamus-for-developers">Neurodamus for Developers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#neurodamus-as-a-high-level-api-for-neuron">Neurodamus as a High-Level API for neuron</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#neurodamus-advanced-simulation-example">Neurodamus advanced simulation example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Developer Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#historical-note">Historical Note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#neurodamus-core-concepts">Neurodamus Core Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#node">Node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#cells">Cells</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#cell-managers">Cell Managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#connection-manager">Connection Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#load-balance">Load Balance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#dry-run">Dry Run</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developing a Custom Neurodamus</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="development.html#neurodamus-py-package">Neurodamus-py package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#install-neurodamus-for-development">Install Neurodamus for development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#editing-hoc-files">Editing HOC Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#prepared-config-files">Prepared Config Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#the-quick-path-way">The quick path way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#installing-with-spack">Installing With Spack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="memory_load_balance.html">Memory Load Balance Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="memory_load_balance.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory_load_balance.html#dry-run">Dry Run</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory_load_balance.html#model-instantiation">Model Instantiation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory_load_balance.html#rebalance">Rebalance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory_load_balance.html#simulation">Simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/BlueBrain/neurodamus/wiki">More on Neurodamus Wiki</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/packages.html">Neurodamus Core Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/packages.html#packages"><strong>Packages</strong></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/neurodamus.html">neurodamus Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/neurodamus.core.html">neurodamus.core Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/neurodamus.io.html">neurodamus.io Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/neurodamus.utils.html">neurodamus.utils Package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/packages.html#sub-modules"><strong>Sub-Modules</strong></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/submodules/top.html">Neurodamus Sub-Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/submodules/core.html">Neurodamus.core Sub-Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/submodules/io.html">Neurodamus.io Sub-Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/submodules/utils.html">Neurodamus.utils Sub-Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="changes.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-7-2">Version 3.7.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-7-1">Version 3.7.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-7-0">Version 3.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-6-0">Version 3.6.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-5-0">Version 3.5.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-4-0">Version 3.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-3-0">Version 3.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-2-1">Version 3.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-2-0">Version 3.2.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-1-1">Version 3.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-1-0">Version 3.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-3-0-0">Version 3.0.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-17-0">Version 2.17.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-6">Version 2.16.6</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-5">Version 2.16.5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-4">Version 2.16.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-3">Version 2.16.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-2">Version 2.16.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-1">Version 2.16.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-16-0">Version 2.16.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-15-3">Version 2.15.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-15-2">Version 2.15.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-15-1">Version 2.15.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-15-0">Version 2.15.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-14-0">Version 2.14.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-13-2">Version 2.13.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-13-1">Version 2.13.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-13-0">Version 2.13.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-11">Version 2.12.11</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-10">Version 2.12.10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-9">Version 2.12.9</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-8">Version 2.12.8</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-7">Version 2.12.7</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-6">Version 2.12.6</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-5">Version 2.12.5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-4">Version 2.12.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-3">Version 2.12.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-2">Version 2.12.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-1">Version 2.12.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-12-0">Version 2.12.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-11-3">Version 2.11.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-11-2">Version 2.11.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-11-1">Version 2.11.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-11-0">Version 2.11.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-10-3">Version 2.10.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-10-2">Version 2.10.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-8-0">Version 2.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-7-0">Version 2.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-6-0">Version 2.6.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-5-3">Version 2.5.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-5-2">Version 2.5.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-5-1">Version 2.5.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-5-0">Version 2.5.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-4-0">Version 2.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-3-1">Version 2.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-3-0">Version 2.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-2-1">Version 2.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-1-2">Version 2.1.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-2-0-2">Version 2.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#vesion-2-0-0">Vesion 2.0.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-1-3-1">Version 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-1-2-1">Version 1.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-1-1-0">Version 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-1-0-0">Version 1.0.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-9-0">Version 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-8-1">Version 0.8.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-8-0">Version 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-7-2">Version 0.7.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-7-1">Version 0.7.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-7-0">Version 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-6-0">Version 0.6.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-5-0">Version 0.5.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-4-0">Version 0.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-3-0">Version 0.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-2-2">Version 0.2.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-2-1">Version 0.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changes.html#version-0-1-0">Version 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="_sources/index.rst.txt" title="index.rst" class="md-source-file">
+      index.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+
+        <!-- Link to next page -->
+        
+          <a href="overview.html"
+              title="Neurodamus"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Neurodamus
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="_static/javascripts/theme.js"></script>
+<script src="_static/javascripts/utils.js"></script>
+
+      <script src="_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"./_static"}})</script>
+      
+    
+
+  </body>
+</html>

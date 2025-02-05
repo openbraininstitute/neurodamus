@@ -1,0 +1,1286 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>Neurodamus Developer Documentation - Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+    
+      <script src="_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#historical-note" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="index.html"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="Neurodamus Developer Documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            Neurodamus Developer Documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="inputs.html" title="Inputs" class="md-nav__link">
+      Inputs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="sonata-simulation.html" title="Run a Sonata Simulation" class="md-nav__link">
+      Run a Sonata Simulation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="examples.html" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Developer Documentation
+      </label>
+    
+    <a href="#" title="Developer Documentation" class="md-nav__link md-nav__link--active">
+      Developer Documentation
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#historical-note" class="md-nav__link">
+    Historical Note
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-core-concepts" class="md-nav__link">
+    Neurodamus Core Concepts
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node" class="md-nav__link">
+    Node
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cells" class="md-nav__link">
+    Cells
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cell-managers" class="md-nav__link">
+    Cell Managers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection-manager" class="md-nav__link">
+    Connection Manager
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load-balance" class="md-nav__link">
+    Load Balance
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal-api" class="md-nav__link">
+    Internal API
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dry-run" class="md-nav__link">
+    Dry Run
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-memory-load-balancing" class="md-nav__link">
+    Dry Run Memory Load Balancing
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-and-multicycle-simulations" class="md-nav__link">
+    Dry run and multicycle simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    Development
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="api/packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10">
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.html" title="neurodamus Package" class="md-nav__link">
+      neurodamus Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#historical-note" class="md-nav__link">
+    Historical Note
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-core-concepts" class="md-nav__link">
+    Neurodamus Core Concepts
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node" class="md-nav__link">
+    Node
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cells" class="md-nav__link">
+    Cells
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cell-managers" class="md-nav__link">
+    Cell Managers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection-manager" class="md-nav__link">
+    Connection Manager
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load-balance" class="md-nav__link">
+    Load Balance
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal-api" class="md-nav__link">
+    Internal API
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dry-run" class="md-nav__link">
+    Dry Run
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-memory-load-balancing" class="md-nav__link">
+    Dry Run Memory Load Balancing
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-and-multicycle-simulations" class="md-nav__link">
+    Dry run and multicycle simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    Development
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="neurodamus-developer-documentation">
+<h1>Neurodamus Developer Documentation<a class="headerlink" href="#neurodamus-developer-documentation" title="Permalink to this heading">¶</a></h1>
+<section id="historical-note">
+<h2>Historical Note<a class="headerlink" href="#historical-note" title="Permalink to this heading">¶</a></h2>
+<p>Neurodamus has evolved from a series of hoc scripts, the specific Neuron scripting language,
+used to setup simulations for the BBP specific use cases.
+These simulations, whose settings came from a BlueConfig file, typically featured a set of detailed
+neurons and connectivity among them.</p>
+<p>The original Hoc version handled what we nowadays call a “single population”. The nodes (neurons)
+and associated edges (connectivity) came from BBP proprietary formats (.ncs and .nrn respectively)
+which didn’t feature any identification of the region. Neuron IDs were considered absolute
+and therefore, for the purpose of injecting stimulus from a simulated nearby region special
+connectivity had to be produced - the projections - which had their source ids artificially offset.</p>
+<img alt="_images/neurodamus-prev-concept.png" src="_images/neurodamus-prev-concept.png" />
+<p>Consequently the software architecture was relatively simple. The top-level objects and their
+association is shown in the following diagram:</p>
+<img alt="_images/neurodamus-prev-arch.png" src="_images/neurodamus-prev-arch.png" />
+<p>Notoriously, neurodamus has originally supported a single set of cells, handled by a single cell
+distributor. Similarly, it handled all connectivity in single Synapse and Gap-Junction managers.
+While several sets of connectivity could be loaded into SynapseRuleManager, they would always be
+considered as targeting local cells.</p>
+<p><strong>Need for Redesign</strong></p>
+<p>While the sight for multi-populations could hardly be seen in the horizon, the maintainability
+of these hoc scripts, with ever-more features, was getting to its limits. HOC is still a domain
+specific language and using it to implement a whole simulation software, although possible, had
+severe limitations, namely the lack a standard library so common language features have to be
+implemented from scratch or worked-around. Furthermore it was not possible to pass CLI arguments.</p>
+<p>In 2018 Neurodamus-py started as a pilot project to evaluate the feasibility of progressively
+reimplementing higher-level parts of Neurodamus in Python, with the long-term objective of replacing
+it. One of the main reasons why it was done progressively, keeping hoc in the core, was to ensure
+absolutely the same results (the the bit!) than those previously created and eventually published.</p>
+</section>
+<section id="neurodamus-core-concepts">
+<h2>Neurodamus Core Concepts<a class="headerlink" href="#neurodamus-core-concepts" title="Permalink to this heading">¶</a></h2>
+<p>A lot has evolved since the original Neurodamus design, but for most part the core concepts
+still hold. We will initially go through the base entities:</p>
+<ul class="simple">
+<li><p>Node</p></li>
+<li><p>Cells</p></li>
+<li><p>Cell Manager</p></li>
+<li><p>Connections</p></li>
+<li><p>Stimulus/Stimulus Manager</p></li>
+<li><p>Targets</p></li>
+<li><p>Replay</p></li>
+<li><p>Reports</p></li>
+</ul>
+<p>At a high-level design, Node is still the top-level manager of the circuits. Each circuit is
+typically set by two cell managers (for source and destination cell populations) and the
+connectivity among them.</p>
+<p>This architecture can be better expressed by the following diagram:</p>
+<img alt="_images/neurodamus-arch.png" src="_images/neurodamus-arch.png" />
+</section>
+<section id="node">
+<h2>Node<a class="headerlink" href="#node" title="Permalink to this heading">¶</a></h2>
+<p>The <cite>Node</cite> class sits in the node.py file and contains all logic to run the simulation, gluing all
+major components together. With the concept of multiple populations (aka multi-circuit), Node took
+partially charge of this logic, aided by a new class in the same file <cite>CircuitManager</cite>, available
+via the <cite>circuits</cite> property.</p>
+<p>While lower details of <cite>Node</cite> functions are mostly encapsulated to dedicated classes, it still
+provides API to control basically all major steps of the simulation. With this design advanced users
+can build a Node object (providing a config file), control all the steps and inspect the inner
+state by digging the hierarchy.</p>
+<p><cite>Node</cite> exposes the following public properties:</p>
+<ul class="simple">
+<li><p>circuits - A <cite>CircuitManager</cite> object, which handles the several node and edge managers.</p></li>
+<li><p>target_manager = The <cite>TargetManager</cite> object,  and handling all targets</p></li>
+<li><p>stim_manager = The manager of stimulus, interpreting and instantiating them</p></li>
+<li><p>elec_manager = The electrode manager</p></li>
+<li><p>reports = A list of Neurodamus Report hoc objects</p></li>
+</ul>
+<p><em>Notice that the Node object still owns most the top-level objects, except the cell and synapse
+managers since they are now handled by the Circuits class.</em></p>
+<p><em>Technical note:</em> These properties are read-only objects for internal attributes <cite>_`prefixed.
+Besides them, many other internal attributes exist, but at least two are worth being mentioned:
+`self._base_circuit</cite> and <cite>self._extra_circuits</cite>. The first</p>
+</section>
+<section id="cells">
+<h2>Cells<a class="headerlink" href="#cells" title="Permalink to this heading">¶</a></h2>
+<p>A Cell is one of the central entities in Neurodamus. As referred initially, Neurodamus was born for
+BBP’s detailed cells use case, and that has always been internally supported.
+Until BBP v5 circuits, the cell class was defined in Cell.hoc (from neurodamus-core) while
+BBP v6 circuits would define its own cell hoc templates (/classes, one for each ME-type), largely
+based on Cell.hoc.</p>
+<p>Morphologically detailed neurons are the heart of a Neuron simulation. Neurodamus will read the
+cells metadata from a node file in SONATA format and instantiate each
+individual cell by:</p>
+<ul class="simple">
+<li><p>loading the morphology and instantiate the respective sections</p></li>
+<li><p>instantiating all the due mechanisms per section, according to the cell’s morphological and
+electro-physiological type.</p></li>
+</ul>
+<p>With some cells counting over 1000 sections, instantiating them on the simulator can be a relatively
+CPU-intensive step, easily taking over 1 second per cell.</p>
+<p>With the requirement to handle new cell types, namely astrocytes and point-neurons, Neurodamus-py
+significantly redesigned the previous API so that cells follow a well-established hierarchy.</p>
+<img alt="_images/cell-hierarchy.png" src="_images/cell-hierarchy.png" />
+<p>As one can see, there is a root cell type (<cite>BaseCell</cite>) every cell should inherit from, as it brings
+the bare common properties neurodamus requires when instantiating them. These properties come
+from the old interface, being: <cite>CellRef</cite>, <cite>CCell</cite> and the methods: <cite>connect2target()</cite> and
+<cite>re_init_rng()</cite>.</p>
+<p><em>Note: The intermediate cell classes are abstract. So even though they implement common
+functionality they are not supposed to be instantiated directly.</em></p>
+<p>Two other things are worth mentioning. First, the original V5 and V6 cells, while they shared a
+great deal of logic, had their different handling in higher level routines. One encapsulated these
+differences in specific classes, while maintaining the shared functionality in a common base
+class for the morphologically detailed neurons - <cite>METype</cite>. Several cells can be instantiated from
+generic me-type data (METypeItem instances).</p>
+<p>Secondly, we see some additional cell types as being part of modules. Indeed, to make neurodamus
+flexible, it supports modules/plugins, which can inclusively be dynamically loaded.
+Due to extensively different logic, both these cell types inherit directly from BaseCell and they
+must be handled by their own cell manager classes. To these modules implementing a new <cite>Cell</cite>,
+<cite>CellManagers</cite> and eventually <cite>ConnectionManager</cite> types we call <strong>Engine</strong> - more on this later.</p>
+<p>For the record, <cite>Cell_V6</cite> and the corresponding <cite>CellDistributor</cite> and <cite>SynapseRuleManager</cite>
+were also made components of a special engine: the <cite>METypeEngine</cite>, obviously built-in (find it
+in node.py).</p>
+</section>
+<section id="cell-managers">
+<h2>Cell Managers<a class="headerlink" href="#cell-managers" title="Permalink to this heading">¶</a></h2>
+<p>Cell managers is the resulting concept from the generalization of Neurodamus’ original
+CellDistributor. While CellDistributor.hoc used to handle all the loading and distribution of MeType
+cells, with the refactoring into Python and the design for multiple populations and different cell
+types, it became apparent that neurodamus needed a generic cell manager class which could
+be requested to instantiate cells and later query them (e.g. for creating connections).
+Please consider the following image.</p>
+<img alt="_images/multi-population-concept.png" src="_images/multi-population-concept.png" />
+<p>Each instance of a cell manager will handle groups of cells (populations) which are potentially very
+different among them.
+Moreover notice the presence of GLIA cells, whose instantiation requires very different steps, and
+even a virtual population - a hollow population which nevertheless will require its individual cell
+ids (a.k.a gids).</p>
+<p>As done for cells, cell managers follow an hierarchy as well, where the root is a generic
+<cite>CellManagerBase</cite> class:</p>
+<img alt="_images/cell-managers.png" src="_images/cell-managers.png" />
+<p>Any cell specific cell manager should therefore inherit from CellManagerBase.</p>
+<p>Please notice that CellManagerBase does actually implement pretty much all the logic around managing
+cells. However, a specific instance must exist for each cell type. Also, this abstract base class
+doesn’t contain LoadBalancing logic anymore. That whole processing has been extracted into a
+<cite>LoadBalance</cite> class, whose objects can be used to steer cell instantiation.
+Notice also a <cite>VirtualCellPopulation</cite> class. It basically offers the bare minimum API to be
+considered a cell manager, but by far lighter than a full cell manager.</p>
+<p><cite>CellManagerBase</cite> specifies the following properties:</p>
+<ul class="simple">
+<li><p>Class properties,  which should be overridden in the subclasses:</p>
+<ul>
+<li><p><cite>CellType</cite>: The default cell class this manager handles.</p></li>
+<li><p><cite>_node_loader</cite>: The default loader function for nodes (cell metadata)</p></li>
+</ul>
+</li>
+<li><p>Instance properties:</p>
+<ul>
+<li><p>target_manager: The target manager</p></li>
+<li><p>local_nodes: The metadata for the local cells, instance of <cite>NodeSet</cite></p></li>
+<li><p>total_cells: Total number of cells of this population (across all ranks)</p></li>
+<li><p>cells: The local cell objects (instances of <cite>cls.CellType</cite>)</p></li>
+<li><p>gid2cell: A dictionary mapping gids to the cell object</p></li>
+<li><p>pc: The underlying Hoc ParallelContext object</p></li>
+<li><p>population_name: The name of the Node population. Older formats (like mvd3) which don’t
+provide a population name, have this property as an empty string.</p></li>
+<li><p>circuit_target: The name of the original target/sonata nodeset selecting the cells.</p></li>
+<li><p>circuit_name: The unique name of the circuit (set in BlueConfigs or automatic (Sonata))</p></li>
+<li><p>is_default: Whether this manager handles the main/base node population (not offset)</p></li>
+<li><p>is_virtual: Whether the population is virtual, i.e. cells are not instantiated, typically for
+the source of projections.</p></li>
+<li><p>connection_managers: A dict of connection managers whose source population is us.</p></li>
+</ul>
+</li>
+<li><p>Methods:</p>
+<ul>
+<li><p><cite>load_nodes()</cite>: loads the nodes (cell metadata), deferring to one of the two internal
+routines, either <cite>_load_nodes</cite> or <cite>_load_nodes_balance</cite> (the latter is used if there is load
+balance).</p></li>
+<li><p><cite>finalize()</cite>: instantiates the cells local to this rank. This process is composed of four
+phases, most in its own method: <cite>_instantiate_cells</cite>, <cite>_update_targets_local_gids</cite>,
+<cite>_init_cell_network</cite> and clear cell info.</p></li>
+<li><p><cite>record_spikes()</cite>: will basically do <cite>spike_record</cite> on each cell and return the spikevec/idvec
+<cite>Vector</cite> to the caller.</p></li>
+<li><p><cite>register_connection_manager()</cite>: Associates a given connection manager with this node manager,
+the association field being the connectivity source population.</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>NOTE:</strong> <em>If you are familiar with the original hoc implementation, you may notice that cell manager
+`finalize` now does cell instantiation, whereas originally it happened right after loading the cell
+metadata (from .mvd).
+This change in design was required due to multiple-populations. One must know all cell
+gids from all circuits at once so we can compute final simulation gids (with offsets) and then
+proceed to cell instantiation and networking with the right ids.</em></p>
+</section>
+<section id="connection-manager">
+<h2>Connection Manager<a class="headerlink" href="#connection-manager" title="Permalink to this heading">¶</a></h2>
+<p>Connection managers handle connectivity (aka synapses/edges) in a circuit. As mentioned earlier, it
+evolved from <cite>SynapseRuleManager</cite> interpreting connectivity rules in a single circuit to a
+generalized manager of connectivity either within a single cell population (internal connectivity),
+or between two populations (src-&gt;dst).</p>
+<p>Similar to the previous classes, significant refactoring occurred to extract common functional
+blocks to an abstract base class, in this case <cite>ConnectionManagerBase</cite>. Such change allowed, e.g. to
+get completely rid of the code redundancy between <cite>SynapseRuleManager</cite> and <cite>GapJunctionManager</cite>, to
+the point the latter’s initial implementation was basically a wrapper.</p>
+<img alt="_images/conn-managers.png" src="_images/conn-managers.png" />
+<p><strong>ConnectionSet</strong></p>
+<p>From the diagram we see the several implementations of connection managers, namely several as part
+of new engines. At the very least the subclassing needs to be done to override class properties
+identifying the connection type they handle, akin to cells to the cell manager.
+However, in this case, a connection manager will hold not connections directly, but groups of
+connections - <cite>ConnectionSet</cite>. This class is basically a container which a few extra functions to
+add or find connections, and multiple can exist for the same Manager in case connections come from
+different sources with eventually different random seeds. However, in practice, only on exceptional
+cases (like support for old projections files) we will have more than one ConnectionSet.</p>
+</section>
+<section id="load-balance">
+<h2>Load Balance<a class="headerlink" href="#load-balance" title="Permalink to this heading">¶</a></h2>
+<p>Due to the differences in cells and the number of connections among them, cells may incur very
+different CPU loads. For that reason Round Robin cell distribution is hardly optimal and Neurodamus
+provides load balancing facilities.</p>
+<p>The way this functionality is plugged in Neurodamus is conceptually simple: one can provide a
+<cite>LoadBalance</cite> object to the cell creation top-level routine: <cite>node.create_cells</cite>. This object can
+be built by another top-level method: <cite>node.compute_load_balance</cite>. Here one basically takes into
+account the load balance mode requested by the user and do a dummy circuit instantiation so that
+cells’ complexities can be evaluated and, with the help of Neuron, derive an optimized cell
+distribution arrangement.</p>
+<p>LoadBalance class instances (in <cite>cell_distributor.py</cite>) are created for the current system (CPUs) and
+circuit (node files). From this point one can load or generate load balance information by targets.</p>
+<p>Given the heavy costs of computing load balance, some state files are created
+which allow the balance info to be reused.</p>
+<ul>
+<li><p><cite>cxinfo.txt</cite>: This file tracks the “circuit” and target being simulated for which
+there is load balance done. If the user changes the circuit (node file) then
+all load balancing is invalidated and a new full loadbalance is required.
+If the simulated target changes (but not the circuit) then</p>
+<ul class="simple">
+<li><p>In case the target is in the file then load balancing info is reused</p></li>
+<li><p>Otherwise we check if the target is a subtarget of any other load balanced target
+-&gt; if yes then the load balance is derived, otherwise full instantiation is required</p></li>
+</ul>
+<p>NOTE: For the support of multi-population load-balance, this file is being dropped, as in the
+new scheme many load-balances (one per circuit) can coexist, created in different directories.</p>
+</li>
+<li><p><cite>cx_{TARGET}#.dat</cite>: File with complexity information for the cells of a given target
+This file is reused in case the simulation is launched on a different CPU count,
+and it can be used to derive cx files for sub targets.</p></li>
+<li><p><cite>cx_{TARGET}#.{CPU_COUNT}.dat</cite>: The actual load-balance file assigning cells/pieces
+to individual CPUs. It can only be reused for the same target and CPU count.</p></li>
+</ul>
+<p><em>NOTE</em>: Even though the <cite>cx_{TARGET}#.{CPU_COUNT}.dat</cite> has the cpu assignment, it goes hand-in-hand
+with <cite>cx_{TARGET}#.dat</cite> which contains information about the cells constitution and eventual split.
+Neuron actually enforces this duality and we cannot change suffixes, so bear that in mind.</p>
+<section id="internal-api">
+<h3>Internal API<a class="headerlink" href="#internal-api" title="Permalink to this heading">¶</a></h3>
+<p>The <cite>LoadBalance</cite> class provides API to verify, load and (re)generate load balances for a target.
+Indeed public API represents exactly these 3 cases:</p>
+<ul>
+<li><p><cite>valid_load_distribution(self, target_spec)</cite>: Verifies if load balance for the given target
+exists according to this instance nodes file and CPUs. It may generate the CPU assignment file
+automatically and it will also try to derive the cx files from other load-balanced targets.
+In all these happy paths it will return True, whereas a False informs the user he must take the
+long route of generating load balance data from scratch.</p></li>
+<li><p><cite>load_balance_info(self, target_spec)</cite>: Reads the load balance information for a target from
+disk (it must exist), returning a BalanceInfo hoc object.</p></li>
+<li><p><cite>generate_load_balance(self, target_spec, cell_distributor)</cite>: This heavy-duty context manager
+helps the user creating a new load balance. In the body of the context he should instantiate
+the nodes and synapses having an impact in the load. Is it engineered as such so that both
+preparatory actions (like creating mcomplex) and post-actions (like evaluating and saving cell
+complexity) are executed in order in a single call:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">lbal</span><span class="o">.</span><span class="n">generate_load_balance</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">cell_manager</span><span class="p">):</span>
+  <span class="n">cell_manager</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+  <span class="n">conn_manager</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+</section>
+<section id="dry-run">
+<h2>Dry Run<a class="headerlink" href="#dry-run" title="Permalink to this heading">¶</a></h2>
+<p>A dry run mode was introduced to help users in understanding how many nodes and tasks are
+necessary to run a specific circuit. This mode can also be used to improve load balancing,
+as it generates an <cite>allocation_r#_c#.pkl.gz</cite> (where r and c are the ranks and cycles respectively)
+file which can be used to load balance the simulation.</p>
+<p>By running a dry run, using the <cite>–dry-run</cite> flag, the user will NOT run an actual simulation but
+will get a summary of the estimated memory used for cells and synapses, including also the overhead
+memory necessary to load libraries and neurodamus data structures.
+A grand total is provided to the user as well as a per-cell type and per-synapse type breakdown.</p>
+<p>At the end of the execution the user will also be provided with a suggestion on how many nodes
+to use in order to run the simulation with the given circuit on the given machine.
+Keep in mind that this is just a suggestion and the user is free to use a different number of nodes
+if he/she wishes to do so. The suggestion is based on the assumption that the user wants to run
+the simulation on the same kind of machine used to run the dry run. The suggestion is also based
+on the assumption that the user wants to use all the available memory on each node for the simulation.
+The node estimate takes into account the memory usage of the cells and synapses as well as the
+variable usage of memory “overhead” that is fixed for each rank but varies depending on the number
+of ranks used.</p>
+<p>In this paragraph we will go a bit more into details on how the estimation is done.</p>
+<p>Below you can see the workflow of the dry run mode:</p>
+<img alt="_images/neurodamus_dry_run.png" src="_images/neurodamus_dry_run.png" />
+<p>First of all, since memory usage of cells is strongly connected to their metypes, we create a dictionary
+of all the gids corresponding to a certain metype combination. This dictionary is then crosschecked
+with the one imported from the external <cite>cell_memory_usage.json</cite> file, which contains the memory usage
+of metype combinations coming from a previous execution of dry run on this or any other circuits.
+As long as the <cite>cell_memory_usage.json</cite> file is present in the working directory, it will be loaded.</p>
+<p>If the metype combination is not present in the external file, we compute the memory usage of the
+metype combination by instantiating a group of (maximum) 50 cells per metype combination and then
+measuring memory usage before and after the instantiation. The memory usage is then averaged over
+the number of cells instantiated and the result are saved internally and added to the external
+<cite>cell_memory_usage.json</cite> file. Any combination already present in the external file is simply imported
+and is not instantiated again in order to speed up the execution. One can simply delete the <cite>cell_memory_usage.json</cite>
+file (or any relevant lines) in order to force the re-evaluation of all (or some) metype
+combinations.</p>
+<p>The memory usage of synapses is instead estimated using a pre-computed look up table, which is
+hardcoded in the <cite>SynapseMemoryUsage</cite> class. The values used for this look up table were computed by using an external script
+to instantiate 1M synapses of each type, each with 1K connections, and then measuring the memory
+usage before and after the instantiation. The memory usage is then averaged over the number of
+synapses instantiated. The script used to perform this operation <cite>synstat.py</cite> is available for the user
+and is archived in this repo in the <cite>_benchmarks</cite> folder.</p>
+<p>Having these pre-computed values, we just need to estimate the amount of synapses of each type
+and multiply it by the corresponding memory usage value. Even in this case we have adopted a
+sample-based approach. First of all, we filter out any gids that have already been
+counted (which can happen when the same gid is part of the target in several <cite>synapse_override</cite> blocks).
+Then we sample synapse counts of the circuit in progressively bigger blocks. This technique avoids
+exhausting memory and scales well, enabling sampling over very large circuits in a short time,
+typically a few minutes for millions of cells.</p>
+<p>The parameters of the sampling are as follows:</p>
+<ul class="simple">
+<li><p>Block start length: 5000, increasing at a rate of 10% at each iteration</p></li>
+<li><p>Count synapses for each block: 100 cells of the block (taking advantage of data locality)</p></li>
+<li><p>Finally, extrapolate for the whole block and add to global metype estimate.</p></li>
+</ul>
+<p>Having estimated the number of synapses for each metype, we can finally compute the memory usage
+of synapses by multiplying the number of synapses by the corresponding memory usage value.</p>
+<p>Apart from both cells and synapses, we also need to take into account the memory usage of neurodamus
+itself, e.g. data structures, loaded libraries and so on. This is done by measuring the RSS of the neurodamus
+process before any of the actual instantiation is done. This value, since it’s averaged over all ranks that take
+part in the execution, is then multiplied by the number of ranks used in the execution.</p>
+<p>The final estimated memory usage for each METype is also saved as a file in the working directory
+called <cite>memory_per_metype.json</cite>. This file is currently not used in the dry run mode but it’s
+saved for future reference and to speed up the distribution of cells in future versions of Neurodamus.</p>
+<p>On top of this we also need to consider the memory usage of the simulation itself. Unfortunately
+at the moment there are no easy ways to estimate this value, so we have opted for a simple heuristic
+approach. We assume that the memory usage of the simulation is proportional to the memory usage of
+the cells and synapses. From tests on a wide variety of circuits we’ve seen that the simulation memory
+usage is typically between 1.5 and 2.5 times the memory usage of the cells and synapses. We’ve opted for
+the more conservative value of 2.5 times the memory usage of the cells and synapses.
+The simulation estimate is not considered for the load balancing part of the dry run since we assume that
+it’s proportional to the memory usage of the cells and synapses and it’s just used for the suggestions
+of nodes to use in the simulation and the relative target ranks (more on this later).</p>
+<p>The final result is then printed to the user in a human readable format together with an estimate
+of the number of nodes needed to run the simulation on the same machine used to run the dry run.</p>
+<section id="dry-run-memory-load-balancing">
+<h3>Dry Run Memory Load Balancing<a class="headerlink" href="#dry-run-memory-load-balancing" title="Permalink to this heading">¶</a></h3>
+<p>The dry run mode also provides a memory load balancing feature. It helps balance the memory usage
+of the ranks of the simulation, so that the user does not incur easily in out-of-memory errors.</p>
+<p>The workflow of the memory load balancing is as follows: for each cell in the circuit we have an
+estimate of both the memory load of the cell itself based on their METype and the amount of synapses
+that each METype has on average. With this information we can have a good estimate of the memory
+load of each gid in the circuit.</p>
+<p>We’ve opted for a greedy approach to distribute the gids in order to keep the implementation simple
+and fast. The algorithm is as follows:</p>
+<ul class="simple">
+<li><p>Sort our ranks in a heap so that the emptiest rank is always at the top</p></li>
+<li><p>Assign gids in batches of 10 to the emptiest rank</p></li>
+<li><p>Rince and repeat until all gids are assigned</p></li>
+</ul>
+<p>The user can specify the number of ranks to target using the <cite>–num-target-ranks</cite> flag in the CLI of neurodamus.
+The default value is 40. The allocation dictionary, containing the assignment of gids to ranks per each population,
+is then saved to the <cite>allocation_r#_c#.pkl.gz</cite> file in a pickled gzipped format.</p>
+<p>Now that the <cite>allocation_r#_c#.pkl.gz</cite> has been generated, the user can load it in the main simulation and use it to load balance the
+simulation. The user can do this by using the <cite>–lb-mode=Memory</cite> flag in the CLI of neurodamus. During the execution
+Neurodamus will check if the amount of ranks used in the simulation is the same as the amount of ranks used in the
+dry run. If the amount of ranks is the same, the allocation dictionary will be loaded and used to load balance the
+simulation. If the amount of ranks is different, neurodamus will redistribute the gids on-the-fly using the same greedy
+algorithm used in the dry run.</p>
+<p>This way the exact gids that were assigned to each rank in the dry run will be assigned to the actual simulation,
+possibly avoiding out-of-memory errors.</p>
+</section>
+<section id="dry-run-and-multicycle-simulations">
+<h3>Dry run and multicycle simulations<a class="headerlink" href="#dry-run-and-multicycle-simulations" title="Permalink to this heading">¶</a></h3>
+<p>The dry run mode can also be used in conjunction with multicycle simulations. In this case the user can
+specify the number of cycles to run in the dry run using the <cite>–modelbuilding-steps</cite> flag in the CLI of Neurodamus
+along the <cite>–dry-run</cite> flag.</p>
+<p>In this case the distribution of cells happens not only along the ranks but also along the cycles. Cycles and ranks
+are treated as equally important “buckets” and the greedy algorithm is the same as before.</p>
+<p>Similarly to the ranks-only distribution, the allocation dictionary is saved to the <cite>allocation_r#_c#.pkl.gz</cite> file and can be
+used in the main simulation to load balance the simulation using both the <cite>–lb-mode=Memory</cite> and <cite>–modelbuilding-steps</cite>
+flags in the CLI of Neurodamus.</p>
+</section>
+</section>
+<section id="development">
+<h2>Development<a class="headerlink" href="#development" title="Permalink to this heading">¶</a></h2>
+<p>You can find more information on the page <a class="reference internal" href="development.html#development-rst"><span class="std std-ref">How to develop / use a custom Neurodamus-py</span></a>.</p>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="_sources/architecture.rst.txt" title="architecture.rst" class="md-source-file">
+      architecture.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+          <a href="examples.html"
+              title="Examples"
+              class="md-flex md-footer-nav__link md-footer-nav__link--prev"
+              rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back
+                    md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Examples
+              </span>
+            </div>
+          </a>
+        
+
+        <!-- Link to next page -->
+        
+          <a href="development.html"
+              title="How to develop / use a custom Neurodamus-py"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                How to develop / use a custom Neurodamus-py
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="_static/javascripts/theme.js"></script>
+<script src="_static/javascripts/utils.js"></script>
+
+      <script src="_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"./_static"}})</script>
+      
+    
+
+  </body>
+</html>

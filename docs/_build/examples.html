@@ -1,0 +1,1286 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>Examples - Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+    
+      <script src="_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#basic-usage" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="index.html"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="Examples">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            Examples<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="inputs.html" title="Inputs" class="md-nav__link">
+      Inputs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="sonata-simulation.html" title="Run a Sonata Simulation" class="md-nav__link">
+      Run a Sonata Simulation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Examples
+      </label>
+    
+    <a href="#" title="Examples" class="md-nav__link md-nav__link--active">
+      Examples
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    Basic Usage
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#launching" class="md-nav__link">
+    Launching
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#only-build-model-run-later" class="md-nav__link">
+    Only build model, run later
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-estimation" class="md-nav__link">
+    Resource estimation
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calculations" class="md-nav__link">
+    Calculations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode" class="md-nav__link">
+    Dry run mode
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode-and-multi-cycle-simulations" class="md-nav__link">
+    Dry run mode and multi-cycle simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-for-developers" class="md-nav__link">
+    Neurodamus for Developers
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#disable-enable-connections-during-simulation" class="md-nav__link">
+    Disable / Enable connections during simulation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drop-connections-to-not-be-simulated" class="md-nav__link">
+    Drop connections to not be simulated
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-as-a-high-level-api-for-neuron" class="md-nav__link">
+    Neurodamus as a High-Level API for neuron
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-neuron-tutorial-basic" class="md-nav__link">
+    Example 1 - Neuron Tutorial Basic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-neuron-tutorial-synapses" class="md-nav__link">
+    Example 2 - Neuron Tutorial synapses
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-advanced-simulation-example" class="md-nav__link">
+    Neurodamus advanced simulation example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="architecture.html" title="Developer Documentation" class="md-nav__link">
+      Developer Documentation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="api/packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10">
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.html" title="neurodamus Package" class="md-nav__link">
+      neurodamus Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    Basic Usage
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#launching" class="md-nav__link">
+    Launching
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#only-build-model-run-later" class="md-nav__link">
+    Only build model, run later
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-estimation" class="md-nav__link">
+    Resource estimation
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calculations" class="md-nav__link">
+    Calculations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode" class="md-nav__link">
+    Dry run mode
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-mode-and-multi-cycle-simulations" class="md-nav__link">
+    Dry run mode and multi-cycle simulations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-for-developers" class="md-nav__link">
+    Neurodamus for Developers
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#disable-enable-connections-during-simulation" class="md-nav__link">
+    Disable / Enable connections during simulation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drop-connections-to-not-be-simulated" class="md-nav__link">
+    Drop connections to not be simulated
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-as-a-high-level-api-for-neuron" class="md-nav__link">
+    Neurodamus as a High-Level API for neuron
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-neuron-tutorial-basic" class="md-nav__link">
+    Example 1 - Neuron Tutorial Basic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-neuron-tutorial-synapses" class="md-nav__link">
+    Example 2 - Neuron Tutorial synapses
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neurodamus-advanced-simulation-example" class="md-nav__link">
+    Neurodamus advanced simulation example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">¶</a></h1>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this heading">¶</a></h2>
+<p>Neurodamus-py, as an application, is very similar to the HOC version, both
+run a simulaton fully unmanned guided by the BlueConfig. However, neurodamus-py does
+accept CLI options to define some parameters of the simulations.</p>
+<p>Once installed, you should be able to find <cite>neurodamus</cite> in your path:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ neurodamus
+  Usage:
+      neurodamus &lt;simulation_config.json&gt; [options]
+      neurodamus --help
+</pre></div>
+</div>
+<p>Among the options you will find flags to tune run behavior, which was not possible in HOC.</p>
+<section id="launching">
+<h3>Launching<a class="headerlink" href="#launching" title="Permalink to this heading">¶</a></h3>
+<p>Neurodamus-py explicitly depends on MPI libraries for parallel execution.
+Therefore please use “srun” or “mpiexec” to launch it, according to your platform. If you
+don’t, complicated error messages may show up. Please remember it.</p>
+<p>Even though a <cite>neurodamus</cite> launcher is provided, for production runs we suggest using
+<cite>special</cite> instead. This way has proven to take advantage of optimized math libraries.
+We hope to bring the same advantages to the launcher script soon.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>srun<span class="w"> </span>&lt;srun<span class="w"> </span>params&gt;<span class="w"> </span>special<span class="w"> </span>-mpi<span class="w"> </span>-python<span class="w"> </span><span class="nv">$NEURODAMUS_PYTHON</span>/init.py<span class="w"> </span>&lt;neurodamus<span class="w"> </span>params&gt;
+</pre></div>
+</div>
+<p>For detailed launching instructions on BB5, please visit the confluence page “Neurodamus”
+section “Neurodamus-py”.</p>
+</section>
+<section id="only-build-model-run-later">
+<h3>Only build model, run later<a class="headerlink" href="#only-build-model-run-later" title="Permalink to this heading">¶</a></h3>
+<p>The user has the possibility of creating the model to CoreNeuron independently
+of the run phase. Consider the case of a heavy simulation. It might be desirable
+to create the model and later attempt to run it with different parameters in a
+dedicated allocation.</p>
+<dl class="simple">
+<dt>Two options exist to control this behavior:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--build-model=[AUTO,</span> <span class="pre">ON,</span> <span class="pre">OFF]</span></code> Defines whether the build phase should run. Default: AUTO</p>
+<ul>
+<li><p>AUTO: build model if doesn’t exist and simulator is CoreNeuron</p></li>
+<li><p>ON: always build and eventually overwrite the model</p></li>
+<li><p>OFF: Don’t build the model. Simulation may fail to start</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--simulate-model=[ON,</span> <span class="pre">OFF]</span></code> Controls whether neurodamus will launch the
+simulation automatically. Default: ON</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</section>
+<section id="resource-estimation">
+<h2>Resource estimation<a class="headerlink" href="#resource-estimation" title="Permalink to this heading">¶</a></h2>
+<section id="calculations">
+<h3>Calculations<a class="headerlink" href="#calculations" title="Permalink to this heading">¶</a></h3>
+<p>When running a simulation on bb5, the number of computing nodes needed depends on the number of
+cells being simulated. A rough(1) estimation is:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Each neuron can take ~ 20 - 25 MB memory for simulation.</p></li>
+<li><p>Each node has ~ 360 GB x 1024 MB/GB = 368640 MB of memory</p></li>
+</ul>
+</div></blockquote>
+<p>Hence each node can accommodate ~ 368640 / 25 = 14745 neurons.</p>
+<p>In order to simulate faster, users can increase the number of nodes provided. HPC recommends
+~ 15 neurons/core x 40 cores/node = 600 neurons/node.
+For example, for a circuit of 6000 cells, users can simulate it on a single node or 10 nodes.</p>
+<p>The choice depends on the availability of nodes and how fast the results are expected,
+taking into consideration that the maximum number of nodes to request for each job is 720.</p>
+<p>[1] Basic connectivity being considered. Depending on the connectivity and cells
+configurations (e.g. featuring heavier mechanisms) these figures can change significantly.
+This issue is being followed in <a class="reference external" href="https://bbpteam.epfl.ch/project/issues/browse/BBPBGLIB-556">https://bbpteam.epfl.ch/project/issues/browse/BBPBGLIB-556</a>
+For now we advise users to test jobs on a small scale before submitting a full-scale one.</p>
+</section>
+<section id="dry-run-mode">
+<h3>Dry run mode<a class="headerlink" href="#dry-run-mode" title="Permalink to this heading">¶</a></h3>
+<p>In order to obtain a more accurate estimation of the resources needed for a simulation,
+users can also run Neurodamus in dry run mode. This functionality is only available
+for SONATA circuits.</p>
+<p>This mode will partially instantiate cells and synapses to get a statistical overview
+of the memory used but won’t run the actual simulation.
+The user can then check the estimated memory usage of the simulation as it’s printed on
+the terminal at the end of the execution. The dry run mode also provides
+indications and suggestions on the number of ranks and nodes to use for that circuit
+based on the amount of memory used during the dry run.</p>
+<p>The mode also provides detailed information on the memory usage of each cell metype,
+synapse type and the total estimated memory usage of the simulation, including the
+memory overhead dictated by loading of libraries and data structures.</p>
+<p>The information on the cell memory usage is automatically saved in a file called
+<code class="docutils literal notranslate"><span class="pre">cell_memory_usage.json</span></code> in the working directory. This json file contains a
+dictionary with the memory usage of each cell metype in the circuit and is automatically
+loaded in any further execution of Neurodamus in dry run mode, in order to speed up the execution.
+Also the dry run mode generates two other files, one called <code class="docutils literal notranslate"><span class="pre">memory_per_metype.json</span></code> that
+contains the memory usage of each metype in the circuit and another called <code class="docutils literal notranslate"><span class="pre">allocation_r#_c#.pkl.gz</span></code>.
+The allocation file, which is a compressed pickle file, contains the information on the memory
+load balancing of the last dry run execution. This file in particular is used to distribute
+the cells in nodes and ranks when used with the <code class="docutils literal notranslate"><span class="pre">--lb-mode=Memory</span></code> flag.</p>
+<p>Now let’s see how a typical dry run based workflow works.</p>
+<p>To run Neurodamus in dry run mode, the user can use the <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> flag when launching
+Neurodamus. For example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">neurodamus</span> <span class="pre">--configFile=simulation_config.json</span> <span class="pre">--dry-run</span></code></p>
+<p>This will run Neurodamus in dry run mode, print the memory usage of the simulation and generate
+the aforementioned files in the working directory. By the default neurodamus will distribute
+the cells on the amount of ranks suggested by the workflow but the user can also use
+the <code class="docutils literal notranslate"><span class="pre">--num-target-ranks=XX</span></code> to specify the amount of ranks it wants to target for the memory
+balance distribution.</p>
+<p>After the <code class="docutils literal notranslate"><span class="pre">allocation.pkl.gz</span></code> file is generated, the user can run Neurodamus with the
+<code class="docutils literal notranslate"><span class="pre">--lb-mode=Memory</span></code> flag to use the memory load balancing distribution generated in the dry run:</p>
+<p><code class="docutils literal notranslate"><span class="pre">neurodamus</span> <span class="pre">--configFile=simulation_config.json</span> <span class="pre">--lb-mode=Memory</span></code></p>
+<p>This will distribute the cells in the ranks and nodes according to the memory load balancing
+in order to optimize the memory usage of the simulation and avoid OOM errors.</p>
+<p>By default when running in <code class="docutils literal notranslate"><span class="pre">--lb-mode=Memory</span></code> neurodamus will try to load a file whose name corresponds
+to the amount of ranks and cycle requested by the user e.g. <code class="docutils literal notranslate"><span class="pre">allocation_r36_c1.pkl.gz</span></code> if the
+simulation is running on 36 ranks and 1 cycle. If the file is not found, neurodamus will run the
+distribution again on-the-fly before the simulation to distribute the cells correctly in the ranks,
+nodes and cycles.</p>
+</section>
+<section id="dry-run-mode-and-multi-cycle-simulations">
+<h3>Dry run mode and multi-cycle simulations<a class="headerlink" href="#dry-run-mode-and-multi-cycle-simulations" title="Permalink to this heading">¶</a></h3>
+<p>Dry run mode can also be used in conjunction with multi-cycle simulations. In this case, the user
+should specify the amount of steps (or cycles) of the simulation using the <code class="docutils literal notranslate"><span class="pre">--modelbuilding-steps=XX</span></code>
+flag. This will allow Neurodamus to distribute the cells not only in different ranks but also on different
+cycles. For example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">neurodamus</span> <span class="pre">--configFile=simulation_config.json</span> <span class="pre">--dry-run</span> <span class="pre">--modelbuilding-steps=10</span></code></p>
+<p>This will generate the same files as the previous example, just distributed along ranks and cycles.
+These files can then be used by running the simulation with the following flags:</p>
+<p><code class="docutils literal notranslate"><span class="pre">neurodamus</span> <span class="pre">--configFile=simulation_config.json</span> <span class="pre">--lb-mode=Memory</span> <span class="pre">--modelbuilding-steps=10</span></code></p>
+<p>This can further improve optimize the memory usage of the simulation and avoid OOM errors.</p>
+</section>
+</section>
+<section id="neurodamus-for-developers">
+<h2>Neurodamus for Developers<a class="headerlink" href="#neurodamus-for-developers" title="Permalink to this heading">¶</a></h2>
+<p>Neurodamus was designed to provide an easy Pythonic API while keeping the same concepts.
+Please see <cite>Module Reference</cite></p>
+<section id="disable-enable-connections-during-simulation">
+<h3>Disable / Enable connections during simulation<a class="headerlink" href="#disable-enable-connections-during-simulation" title="Permalink to this heading">¶</a></h3>
+<p>As an example, the user may want to enable and disable connections at different simulation
+times. (NOTE: this is only possible using the NEURON simulator. CoreNeuron simulations
+cannot be changed interactively).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neurodamus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.utils.logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_stage</span><span class="p">,</span> <span class="n">log_verbose</span>
+
+<span class="n">nd</span> <span class="o">=</span> <span class="n">Neurodamus</span><span class="p">(</span><span class="s1">&#39;simulation_config.json&#39;</span><span class="p">)</span>
+
+<span class="n">log_stage</span><span class="p">(</span><span class="s1">&#39;Run simulation!&#39;</span><span class="p">)</span>
+<span class="n">nd</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>  <span class="c1"># Until 50ms</span>
+<span class="n">nd</span><span class="o">.</span><span class="n">synapse_manager</span><span class="o">.</span><span class="n">disable_group</span><span class="p">(</span><span class="mi">62977</span><span class="p">,</span> <span class="mi">62698</span><span class="p">)</span>
+<span class="n">nd</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>  <span class="c1"># until end</span>
+</pre></div>
+</div>
+</section>
+<section id="drop-connections-to-not-be-simulated">
+<h3>Drop connections to not be simulated<a class="headerlink" href="#drop-connections-to-not-be-simulated" title="Permalink to this heading">¶</a></h3>
+<p>Sometimes we may want to drop connections altogether. The user may completely
+avoid them from being instantiated in the simulator (compatible with CoreNeuron)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neurodamus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.utils.logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_stage</span><span class="p">,</span> <span class="n">log_verbose</span>
+
+<span class="n">nd</span> <span class="o">=</span> <span class="n">Neurodamus</span><span class="p">(</span><span class="s1">&#39;simulation_config_for_remove&#39;</span><span class="p">,</span> <span class="n">auto_init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">log_stage</span><span class="p">(</span><span class="s1">&#39;Starting edge removal&#39;</span><span class="p">)</span>
+<span class="n">nd</span><span class="o">.</span><span class="n">synapse_manager</span><span class="o">.</span><span class="n">delete_group</span><span class="p">(</span><span class="mi">62977</span><span class="p">,</span> <span class="mi">62698</span><span class="p">)</span>
+
+<span class="n">nd</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>   <span class="c1"># Initialize the simulator (needed because we set auto_init=False)</span>
+<span class="n">nd</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>    <span class="c1"># Run all</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="neurodamus-as-a-high-level-api-for-neuron">
+<h2>Neurodamus as a High-Level API for neuron<a class="headerlink" href="#neurodamus-as-a-high-level-api-for-neuron" title="Permalink to this heading">¶</a></h2>
+<p>A slightly different set of use cases is to provide users a powerful High-Level API for Neuron,
+to ease the life of manually setting up neuron networks.
+With this API, you can reduce the amount of code to setup models by as far as 5-fold
+(based on the next tutorials translation)</p>
+<section id="example-1-neuron-tutorial-basic">
+<h3>Example 1 - Neuron Tutorial Basic<a class="headerlink" href="#example-1-neuron-tutorial-basic" title="Permalink to this heading">¶</a></h3>
+<p>Basic neuron usage on how to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Build a single compartment neuron model</p></li>
+<li><p>Add membrane mechanisms (such as ion currents)</p></li>
+<li><p>Create stimuli and run simulations</p></li>
+<li><p>Extend a single compartment model with dendrites</p></li>
+</ul>
+</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Neuron tutorial I using the new HighLevel API. Original tutorial at</span>
+<span class="sd">https://github.com/BlueBrain/SimulationTutorials/blob/master/CNS2017/NEURON/NEURON_intro.ipynb</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Cell</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">CurrentSource</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neuron</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurodamus.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">mechanisms</span>
+
+
+<span class="c1"># Change v_init globally</span>
+<span class="c1"># Alternatively v_init can be configured per simulation in run_sim(**kw)</span>
+<span class="n">Neuron</span><span class="o">.</span><span class="n">Simulation</span><span class="o">.</span><span class="n">v_init</span> <span class="o">=</span> <span class="o">-</span><span class="mi">70</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_tut1</span><span class="p">(</span><span class="n">quick</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Cell</span><span class="o">.</span><span class="n">Builder</span><span class="o">.</span><span class="n">add_soma</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+    <span class="n">hh</span> <span class="o">=</span> <span class="n">Cell</span><span class="o">.</span><span class="n">Mechanisms</span><span class="o">.</span><span class="n">HH</span><span class="p">(</span><span class="n">gkbar</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">gnabar</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">el</span><span class="o">=-</span><span class="mi">70</span><span class="p">)</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+
+    <span class="c1"># clamp = StimuliSource.pulse(0.1, 50, delay=10).attach_to(c.soma)  # eqv. to Constant()</span>
+    <span class="n">CurrentSource</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">attach_to</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+    <span class="n">Neuron</span><span class="o">.</span><span class="n">run_sim</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">quick</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Execution with Active channels</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">gkbar</span> <span class="o">=</span> <span class="mf">0.01</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">gnabar</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+    <span class="n">sim</span> <span class="o">=</span> <span class="n">Neuron</span><span class="o">.</span><span class="n">run_sim</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+    <span class="c1"># sim.run_continue(100)</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="c1"># Extending the model with dendrites</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">builder</span>
+         <span class="o">.</span><span class="n">add_dendrite</span><span class="p">(</span><span class="s2">&quot;dend&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">Ra</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+         <span class="o">.</span><span class="n">add_dendrite</span><span class="p">(</span><span class="s2">&quot;dend2&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">Ra</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+         <span class="o">.</span><span class="n">create</span><span class="p">())</span>
+
+    <span class="n">mechanisms</span><span class="o">.</span><span class="n">HH</span><span class="p">(</span><span class="n">el</span><span class="o">=-</span><span class="mi">70</span><span class="p">,</span> <span class="n">gl</span><span class="o">=</span><span class="mf">5e-4</span><span class="p">,</span> <span class="n">gkbar</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">gnabar</span><span class="o">=</span><span class="mf">.0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">dendrites</span><span class="p">)</span>
+    <span class="n">Neuron</span><span class="o">.</span><span class="n">run_sim</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">dendrites</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="n">Cell</span><span class="o">.</span><span class="n">show_topology</span><span class="p">()</span>
+    <span class="n">Neuron</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">psection</span><span class="p">(</span><span class="n">sec</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">dendrites</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">test_tut1</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">six.moves</span><span class="w"> </span><span class="kn">import</span> <span class="nb">input</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Press enter to quit&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="example-2-neuron-tutorial-synapses">
+<h3>Example 2 - Neuron Tutorial synapses<a class="headerlink" href="#example-2-neuron-tutorial-synapses" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">test_tut2</span><span class="p">():</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Cell</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">MORPHO</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The morphology </span><span class="si">{}</span><span class="s2"> basal, </span><span class="si">{}</span><span class="s2"> apical, </span><span class="si">{}</span><span class="s2"> axonal sections.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">dendrites</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">apical_dendrites</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">axons</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">sec</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">all</span><span class="p">:</span>
+        <span class="n">sec</span><span class="o">.</span><span class="n">nseg</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">sec</span><span class="o">.</span><span class="n">L</span> <span class="o">/</span> <span class="mi">40</span><span class="p">)</span>
+        <span class="n">sec</span><span class="o">.</span><span class="n">cm</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">sec</span><span class="o">.</span><span class="n">Ra</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="n">hh</span> <span class="o">=</span> <span class="n">mechanisms</span><span class="o">.</span><span class="n">HH</span><span class="p">(</span><span class="n">gkbar</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">gnabar</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">el</span><span class="o">=-</span><span class="mi">70</span><span class="p">)</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">all</span><span class="p">)</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">gkbar</span> <span class="o">=</span> <span class="mf">0.01</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">gnabar</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">gnabar</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="n">hh</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">axons</span><span class="p">)</span>
+
+    <span class="n">clamp</span> <span class="o">=</span> <span class="n">CurrentSource</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">attach_to</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">)</span>
+    <span class="n">Neuron</span><span class="o">.</span><span class="n">run_sim</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">,</span> <span class="n">v_init</span><span class="o">=-</span><span class="mi">70</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="c1"># Part 2</span>
+    <span class="n">clamp</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="n">stim</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">NetStim</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">sect</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">dendrites</span><span class="p">:</span>
+        <span class="n">sr</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">ExpSyn</span><span class="p">(</span><span class="n">sect</span><span class="p">(</span><span class="mf">0.5</span><span class="p">))</span>
+        <span class="n">stim</span><span class="o">.</span><span class="n">connect_to</span><span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+
+    <span class="n">Neuron</span><span class="o">.</span><span class="n">run_sim</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">soma</span><span class="p">,</span> <span class="n">v_init</span><span class="o">=-</span><span class="mi">70</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="neurodamus-advanced-simulation-example">
+<h2>Neurodamus advanced simulation example<a class="headerlink" href="#neurodamus-advanced-simulation-example" title="Permalink to this heading">¶</a></h2>
+<p>This is a more advanced example that instantiates a Neurodamus simulation step by step for a simple
+circuit.
+It creates a Node object and it takes care of doing the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Loads targets</p></li>
+<li><p>Computes Load Balancing</p></li>
+<li><p>Instantiates cells</p></li>
+<li><p>Instantiates synapses and gap junctions</p></li>
+<li><p>Enables stimulus</p></li>
+<li><p>Enables modifications</p></li>
+<li><p>Enables reports</p></li>
+<li><p>Runs simulation</p></li>
+<li><p>Dumps spikes to files</p></li>
+<li><p>Cleans up the simulated model</p></li>
+</ul>
+</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">test_node_run</span><span class="p">(</span><span class="n">trace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Node is more of a low-level class, where all initialization steps are manual</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">setup_logging</span><span class="p">(</span><span class="n">DEFAULT_LOG_LEVEL</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">trace</span><span class="p">:</span>
+        <span class="c1"># Some additional logging is available at special level 5</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TRACE mode is ON&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">TRACE_LOG_LEVEL</span><span class="p">)</span>
+
+    <span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">RECIPE_FILE</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">load_targets</span><span class="p">()</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">compute_load_balance</span><span class="p">()</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">create_cells</span><span class="p">()</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">execute_neuron_configures</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Create connections&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">create_synapses</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Enable Stimulus&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">enable_stimulus</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Enable Modifications&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">enable_modifications</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">trace</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Dumping config&quot;</span><span class="p">)</span>
+        <span class="n">Nd</span><span class="o">.</span><span class="n">stdinit</span><span class="p">()</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">dump_circuit_config</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Enable Reports&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">enable_reports</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Run&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">run_all</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Simulation finished.&quot;</span><span class="p">)</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="_sources/examples.rst.txt" title="examples.rst" class="md-source-file">
+      examples.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+          <a href="sonata-simulation.html"
+              title="Setting up a Sonata simulation"
+              class="md-flex md-footer-nav__link md-footer-nav__link--prev"
+              rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back
+                    md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Setting up a Sonata simulation
+              </span>
+            </div>
+          </a>
+        
+
+        <!-- Link to next page -->
+        
+          <a href="architecture.html"
+              title="Neurodamus Developer Documentation"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Neurodamus Developer Documentation
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="_static/javascripts/theme.js"></script>
+<script src="_static/javascripts/utils.js"></script>
+
+      <script src="_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"./_static"}})</script>
+      
+    
+
+  </body>
+</html>

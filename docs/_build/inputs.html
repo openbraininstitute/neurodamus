@@ -1,0 +1,778 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>Simulation Inputs - Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+    
+      <script src="_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#simulation-config-json" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="index.html"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="Simulation Inputs">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            Simulation Inputs<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Inputs
+      </label>
+    
+    <a href="#" title="Inputs" class="md-nav__link md-nav__link--active">
+      Inputs
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#simulation-config-json" class="md-nav__link">
+    simulation_config.json
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#circuit-config-json" class="md-nav__link">
+    circuit_config.json
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-sets-json" class="md-nav__link">
+    node_sets.json
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="sonata-simulation.html" title="Run a Sonata Simulation" class="md-nav__link">
+      Run a Sonata Simulation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="examples.html" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="architecture.html" title="Developer Documentation" class="md-nav__link">
+      Developer Documentation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="api/packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10">
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.html" title="neurodamus Package" class="md-nav__link">
+      neurodamus Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="api/submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#simulation-config-json" class="md-nav__link">
+    simulation_config.json
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#circuit-config-json" class="md-nav__link">
+    circuit_config.json
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-sets-json" class="md-nav__link">
+    node_sets.json
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="simulation-inputs">
+<h1>Simulation Inputs<a class="headerlink" href="#simulation-inputs" title="Permalink to this heading">¶</a></h1>
+<p>This page provides an overview of the nomenclature used for inputs in a Neurodamus circuit simulation. It assumes the reader is already familiar with the NEURON software and its terminology. Otherwise, here are the <a class="reference external" href="https://nrn.readthedocs.io/en/latest/">docs</a>. For much more detailed information about the input files and the SONATA format, the reader can refer to the <a class="reference external" href="https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html">SONATA Docs</a>.</p>
+<section id="simulation-config-json">
+<h2><code class="docutils literal notranslate"><span class="pre">simulation_config.json</span></code><a class="headerlink" href="#simulation-config-json" title="Permalink to this heading">¶</a></h2>
+<p>This is the main SONATA file that controls the simulation settings. Key fields include:</p>
+<ul class="simple">
+<li><p>What <strong>reports</strong> the simulator should generate.</p></li>
+<li><p>The duration of the simulation.</p></li>
+</ul>
+<p>A <strong>report</strong> is one of the possible outputs of the simulation. It typically consists of a time trace of a specific value (e.g., voltage) recorded per neuron. Reports can also be generated per neuronal section.</p>
+</section>
+<section id="circuit-config-json">
+<h2><code class="docutils literal notranslate"><span class="pre">circuit_config.json</span></code><a class="headerlink" href="#circuit-config-json" title="Permalink to this heading">¶</a></h2>
+<p>Defines how neurons are structured and connected. It can be seen as a graph of graphs, representing interactions between different neuron populations. This file references:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">nodes.h5</span></code>: Contains neuron properties. Note that these <em>nodes</em> are unrelated to <a class="reference internal" href="api/neurodamus.html#neurodamus.node.Node" title="neurodamus.node.Node"><code class="xref py py-class docutils literal notranslate"><span class="pre">neurodamus.node.Node</span></code></a>, which is a low-level simulation orchestrator.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">edges.h5</span></code>: Defines connections between neurons.</p></li>
+</ul>
+<p>A <strong>population</strong> is a group of neurons that interact within themselves and with other populations. NEURON does not have a concept of populations—this is specific to Neurodamus.</p>
+<p>Neurons in <code class="docutils literal notranslate"><span class="pre">nodes.h5</span></code> are primarily defined by their <strong>Electrical Type (EType)</strong> and <strong>Morphology Type (MType)</strong>.</p>
+<ul class="simple">
+<li><p><strong>ETypes</strong>: Ion channel distributions that have been reverse-engineered from specific firing patterns. Assigning an ion channel distribution (distributed mechanisms) to a population often involves genetic algorithms and trial-and-error. They are provided as hoc files, and the path to the folder containing all EType hoc files for a circuit is specified in <code class="docutils literal notranslate"><span class="pre">circuit_config.json</span></code>. Individual neurons reference their assigned EType in <code class="docutils literal notranslate"><span class="pre">nodes.h5</span></code>.</p></li>
+<li><p><strong>MTypes</strong>: Categories of neuron morphologies (graph structures). Some neurons have extensive branching, while others feature a single prominent axon. NEURON itself does not recognize MTypes, as it requires instantiated neurons in memory rather than generic morphology categories. However, Neurodamus uses MTypes to facilitate circuit development.</p></li>
+<li><p><strong>Morphologies</strong>: Specific instances of MTypes. During circuit building, multiple neuron structures (graphs of sections) are generated from MTypes and stored in <cite>.asc</cite> (NeuronLucida) or <cite>.swc</cite> files. These morphology files are referenced in <code class="docutils literal notranslate"><span class="pre">nodes.h5</span></code>. <code class="docutils literal notranslate"><span class="pre">circuit_config.json</span></code> also specifies the directory containing these morphology files. Due to the complexity of generating many neurons, some morphologies may be reused.</p></li>
+</ul>
+</section>
+<section id="node-sets-json">
+<h2><code class="docutils literal notranslate"><span class="pre">node_sets.json</span></code><a class="headerlink" href="#node-sets-json" title="Permalink to this heading">¶</a></h2>
+<p>This file specifies which neurons (by GID) are included in a particular simulation. It overrides the default selection provided in <code class="docutils literal notranslate"><span class="pre">circuit_config.json</span></code>, which typically includes all neurons unless <code class="docutils literal notranslate"><span class="pre">node_sets.json</span></code> is supplied.</p>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="_sources/inputs.rst.txt" title="inputs.rst" class="md-source-file">
+      inputs.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+          <a href="overview.html"
+              title="Neurodamus"
+              class="md-flex md-footer-nav__link md-footer-nav__link--prev"
+              rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back
+                    md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Neurodamus
+              </span>
+            </div>
+          </a>
+        
+
+        <!-- Link to next page -->
+        
+          <a href="sonata-simulation.html"
+              title="Setting up a Sonata simulation"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Setting up a Sonata simulation
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="_static/javascripts/theme.js"></script>
+<script src="_static/javascripts/utils.js"></script>
+
+      <script src="_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"./_static"}})</script>
+      
+    
+
+  </body>
+</html>

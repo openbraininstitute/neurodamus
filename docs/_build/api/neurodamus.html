@@ -1,0 +1,1179 @@
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s]+">
+      
+      <link rel="shortcut icon" href="">
+      <meta name="generator" content="mkdocs-5.0.2, mkdocs-material-4.4.2">
+    
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+<!-- Generator banner -->
+<meta name="generator" content="sphinx-5.0.2" />
+
+    
+      
+        <title>neurodamus Package - Neurodamus  3.7.3.dev13 documentation</title>
+      
+    
+    
+
+      <link rel="stylesheet" href="../_static/stylesheets/application.4031d38b.css">
+      
+        <link rel="stylesheet" href="../_static/stylesheets/application-palette.3e3d1dff.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#2196f3">
+      
+    
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/stylesheets/theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+
+    
+      <script src="../_static/javascripts/modernizr.74668098.js"></script>
+    
+    
+
+    <link rel="stylesheet" href="../_static/fonts/material-icons.css">
+    
+    
+    
+
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#package-level-classes" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      
+
+<!-- Application header -->
+<header class="md-header" data-md-component="header">
+
+  <!-- Top-level navigation -->
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+
+      <!-- Link to home -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://www.epfl.ch/"
+            title="Neurodamus  3.7.3.dev13 documentation"
+            class="md-header-nav__button md-logo">
+          
+            <img src="../_static/images/epfl-logo-new.svg" width="24" height="24" />
+          
+        </a>
+      </div>
+
+      <!-- Button to toggle drawer -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button"
+            for="__drawer"></label>
+      </div>
+
+      
+      <!-- Home button to ecosystem -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div id="homeBtnContainer" class="documentation-homepage-icon">
+          <!-- this href will be overwritten by utils.js -->
+          <a href="#" id="homepageLink">
+            <i class="fa fa-home"></i>
+          </a>
+        </div>
+      </div>
+      
+
+      <!-- Header title -->
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title"
+            data-md-component="title">
+          
+          
+          <span class="md-header-nav__topic">
+            <a href="../index.html"
+                title="Neurodamus  3.7.3.dev13 documentation">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+          <span class="md-header-nav__topic">
+            <a href="" title="neurodamus Package">
+            <span class="md-header-nav__prefix">
+            Blue Brain</span> &ndash;
+            Neurodamus  3.7.3.dev13 documentation &ndash;
+            neurodamus Package<span class="md-header-nav__version">
+            3.7.3.dev13</span></a>
+          </span>
+        
+        
+        </div>
+      </div>
+
+      <!-- Button to open search dialogue -->
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button"
+              for="__search"></label>
+
+          <!-- Search interface -->
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+
+      <!-- Repository containing source -->
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="https://www.epfl.ch/" title="Neurodamus  3.7.3.dev13 documentation" class="md-nav__button md-logo">
+      
+        <img src="../_static/images/epfl-logo-new.svg" width="48" height="48">
+      
+    </a>
+    Neurodamus  3.7.3.dev13 documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../overview.html" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../inputs.html" title="Inputs" class="md-nav__link">
+      Inputs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../sonata-simulation.html" title="Run a Sonata Simulation" class="md-nav__link">
+      Run a Sonata Simulation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../examples.html" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../architecture.html" title="Developer Documentation" class="md-nav__link">
+      Developer Documentation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../development.html" title="Developing a Custom Neurodamus" class="md-nav__link">
+      Developing a Custom Neurodamus
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../memory_load_balance.html" title="Memory Load Balance Tutorial" class="md-nav__link">
+      Memory Load Balance Tutorial
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="https://github.com/BlueBrain/neurodamus/wiki" title="More on Neurodamus Wiki" class="md-nav__link">
+      More on Neurodamus Wiki
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="packages.html" title="Neurodamus Core Reference" class="md-nav__link">
+      Neurodamus Core Reference
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-10" type="checkbox" id="nav-10" checked>
+    
+    <label class="md-nav__link" for="nav-10">
+      Packages
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-10">
+        Packages
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        neurodamus Package
+      </label>
+    
+    <a href="#" title="neurodamus Package" class="md-nav__link md-nav__link--active">
+      neurodamus Package
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#package-level-classes" class="md-nav__link">
+    Package-Level Classes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sub-modules" class="md-nav__link">
+    Sub-Modules
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-api" class="md-nav__link">
+    Module API
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#id1" class="md-nav__link">
+    neurodamus
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="neurodamus.core.html" title="neurodamus.core Package" class="md-nav__link">
+      neurodamus.core Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="neurodamus.io.html" title="neurodamus.io Package" class="md-nav__link">
+      neurodamus.io Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="neurodamus.utils.html" title="neurodamus.utils Package" class="md-nav__link">
+      neurodamus.utils Package
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-11" type="checkbox" id="nav-11">
+    
+    <label class="md-nav__link" for="nav-11">
+      Sub-Modules
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-11">
+        Sub-Modules
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="submodules/top.html" title="Neurodamus Sub-Modules" class="md-nav__link">
+      Neurodamus Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="submodules/core.html" title="Neurodamus.core Sub-Modules" class="md-nav__link">
+      Neurodamus.core Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="submodules/io.html" title="Neurodamus.io Sub-Modules" class="md-nav__link">
+      Neurodamus.io Sub-Modules
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="submodules/utils.html" title="Neurodamus.utils Sub-Modules" class="md-nav__link">
+      Neurodamus.utils Sub-Modules
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../changes.html" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#package-level-classes" class="md-nav__link">
+    Package-Level Classes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sub-modules" class="md-nav__link">
+    Sub-Modules
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-api" class="md-nav__link">
+    Module API
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#id1" class="md-nav__link">
+    neurodamus
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <section id="neurodamus-package">
+<h1>neurodamus Package<a class="headerlink" href="#neurodamus-package" title="Permalink to this heading">¶</a></h1>
+<div class="autodoc-output docutils container">
+<span class="target" id="module-neurodamus"></span><section id="neurodamus">
+<h2>neurodamus<a class="headerlink" href="#neurodamus" title="Permalink to this heading">¶</a></h2>
+<p>The neurodamus package implements the instantiation of simulations in Neuron
+based on a configuration file, a.k.a. simulation_config.json
+It is deeply based on the HOC implementation, therefore providing python modules like
+<cite>node</cite>, <cite>cell_distributor</cite>, etc; and still depends on several low-level HOC files at runtime.</p>
+</section>
+</div>
+<section id="package-level-classes">
+<h2>Package-Level Classes<a class="headerlink" href="#package-level-classes" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#neurodamus.node.Neurodamus" title="neurodamus.node.Neurodamus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node.Neurodamus</span></code></a>(config_file[, auto_init, ...])</p></td>
+<td><p>A high level interface to Neurodamus</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#neurodamus.node.Node" title="neurodamus.node.Node"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node.Node</span></code></a>(config_file[, options])</p></td>
+<td><p>The Node class is the main entity for a distributed Neurodamus execution.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sub-modules">
+<h2>Sub-Modules<a class="headerlink" href="#sub-modules" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.cell_distributor" title="neurodamus.cell_distributor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_distributor</span></code></a></p></td>
+<td><p>Mechanisms to load and balance cells across the computing resources.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.connection_manager" title="neurodamus.connection_manager"><code class="xref py py-obj docutils literal notranslate"><span class="pre">connection_manager</span></code></a></p></td>
+<td><p>Main module for handling and instantiating synaptical connections and gap-junctions</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.connection" title="neurodamus.connection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">connection</span></code></a></p></td>
+<td><p>Implementation of the core Connection classes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.gap_junction" title="neurodamus.gap_junction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gap_junction</span></code></a></p></td>
+<td><p>Main module for handling and instantiating synaptical connections</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.metype" title="neurodamus.metype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metype</span></code></a></p></td>
+<td><p>Module which defines and handles METypes config (v5/v6 cells)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">modification_manager</span></code></p></td>
+<td><p>Implements applying modifications that mimic experimental manipulations</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ngv</span></code></p></td>
+<td><p>Module which defines and handles Glia Cells and connectivity</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.replay" title="neurodamus.replay"><code class="xref py py-obj docutils literal notranslate"><span class="pre">replay</span></code></a></p></td>
+<td><p>Stimulus implementation where incoming synaptic events are replayed for a single gid</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.stimulus_manager" title="neurodamus.stimulus_manager"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stimulus_manager</span></code></a></p></td>
+<td><p>Implements coupling artificial stimulus into simulation</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="submodules/top.html#module-neurodamus.target_manager" title="neurodamus.target_manager"><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_manager</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-api">
+<h2>Module API<a class="headerlink" href="#module-api" title="Permalink to this heading">¶</a></h2>
+<section id="id1">
+<h3>neurodamus<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<div class="autodoc-output docutils container">
+<dl class="py class">
+<dt class="sig sig-object py" id="neurodamus.node.Neurodamus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">neurodamus.node.</span></span><span class="sig-name descname"><span class="pre">Neurodamus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logging_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">user_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Neurodamus" title="Permalink to this definition">¶</a></dt>
+<dd><p>A high level interface to Neurodamus</p>
+<div class="autodoc-output docutils container">
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Neurodamus.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logging_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">user_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Neurodamus.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates and initializes a neurodamus run node</p>
+<dl class="simple">
+<dt>As part of Initiazation it calls:</dt><dd><ul class="simple">
+<li><p>load_targets</p></li>
+<li><p>compute_load_balance</p></li>
+<li><p>Build the circuit (cells, synapses, GJs)</p></li>
+<li><p>Add stimulus &amp; replays</p></li>
+<li><p>Activate reports if requested</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_file</strong> – The simulation config recipe file</p></li>
+<li><p><strong>logging_level</strong> – (int) Redefine the global logging level.
+0 - Only warnings / errors
+1 - Info messages (default)
+2 - Verbose
+3 - Debug messages</p></li>
+<li><p><strong>user_opts</strong> – Options to Neurodamus overriding the simulation config file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Neurodamus.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Neurodamus.init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Explicitly initialize, allowing users to make last changes before simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Neurodamus.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cleanup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Neurodamus.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepares and launches the simulation according to the loaded config.
+If ‘–only-build-model’ option is set, simulation is skipped.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cleanup</strong> (<em>bool</em>) – Free up the model and intermediate files [default: true]
+Rationale is: the high-level run() method it’s typically for a
+one shot simulation so we should cleanup. If not it can be set to False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="autodoc-output docutils container">
+<dl class="py class">
+<dt class="sig sig-object py" id="neurodamus.node.Node">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">neurodamus.node.</span></span><span class="sig-name descname"><span class="pre">Node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Node class is the main entity for a distributed Neurodamus execution.</p>
+<p>Note that this concept of a “Node” differs from both an MPI node, which
+refers to a process in a parallel computing environment, and a node in the
+circuit graph, which represents an individual element or component within
+the simulation’s neural network.</p>
+<p>It serves as the orchestrator for the entire simulation, managing the
+parallel execution of the model and distributing the cells across different
+computational ranks. As the primary control structure, Node is responsible
+for coordinating various components involved in the simulation.</p>
+<p>Internally, the Node class instantiates and manages parallel structures,
+dividing the simulation workload among multiple ranks. With the introduction
+of the concept of multiple populations (also known as multi-circuit), the
+Node class takes partial responsibility for handling this logic, aided by
+the <a class="reference internal" href="submodules/top.html#neurodamus.node.CircuitManager" title="neurodamus.node.CircuitManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">neurodamus.node.CircuitManager</span></code></a> class (accessible via the
+<cite>circuits</cite> property), which manages the different node and edge managers.</p>
+<p>While many lower-level details of the Node’s functionality are encapsulated
+within dedicated helper classes, the Node class still exposes an API that
+allows advanced users to control and inspect almost every major step of the
+simulation. For a standard run, users are encouraged to use the higher-level
+<cite>Neurodamus</cite> class instead, which simplifies some of the complexities
+handled by Node.</p>
+<p>The Node class exposes the following public properties:</p>
+<ul class="simple">
+<li><p><cite>circuits</cite>: is a <a class="reference internal" href="submodules/top.html#neurodamus.node.CircuitManager" title="neurodamus.node.CircuitManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">neurodamus.node.CircuitManager</span></code></a> object,
+responsible for managing multiple node and edge managers within the
+simulation.</p></li>
+<li><p><cite>target_manager</cite>: is a <a class="reference internal" href="submodules/top.html#neurodamus.target_manager.TargetManager" title="neurodamus.target_manager.TargetManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">neurodamus.target_manager.TargetManager</span></code></a>
+object, responsible for managing the targets in the simulation.</p></li>
+<li><p><cite>stimulus_manager</cite>: is a
+<a class="reference internal" href="submodules/top.html#neurodamus.stimulus_manager.StimulusManager" title="neurodamus.stimulus_manager.StimulusManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">neurodamus.stimulus_manager.StimulusManager</span></code></a> object, responsible
+for interpreting and instantiating stimulus events.</p></li>
+<li><p><cite>elec_manager</cite>: The electrode manager, which controls the interaction with
+simulation electrodes.</p></li>
+<li><p><cite>reports</cite>: A list of Neurodamus Report <cite>hoc</cite> objects, used to generate
+simulation reports.</p></li>
+</ul>
+<p>Note that, while the Node object owns and manages most of the top-level
+objects in the simulation, the management of cell and synapse objects has
+been delegated to the <cite>Circuits</cite> class, as these are now handled at a lower
+level.</p>
+<p>Technical note:</p>
+<ul class="simple">
+<li><p>The properties exposed by Node are read-only, with most internal
+attributes being prefixed with an underscore (<cite>_</cite>). Notable internal
+attributes include:</p>
+<ul>
+<li><p><cite>self._base_circuit</cite>: The main circuit object used by the Node.</p></li>
+<li><p><cite>self._extra_circuits</cite>: Additional circuits managed by the Node.</p></li>
+</ul>
+</li>
+</ul>
+<p>These details make the Node class versatile and powerful for advanced users
+who need more granular control over the simulation process.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ReportParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.ReportParams" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.dt">
+<span class="sig-name descname"><span class="pre">dt</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.end">
+<span class="sig-name descname"><span class="pre">end</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.end" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 7</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.format">
+<span class="sig-name descname"><span class="pre">format</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.output_dir">
+<span class="sig-name descname"><span class="pre">output_dir</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.output_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 8</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.rep_type">
+<span class="sig-name descname"><span class="pre">rep_type</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.rep_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.report_on">
+<span class="sig-name descname"><span class="pre">report_on</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.report_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.scaling">
+<span class="sig-name descname"><span class="pre">scaling</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.scaling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 9</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.start">
+<span class="sig-name descname"><span class="pre">start</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="neurodamus.node.Node.ReportParams.unit">
+<span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#neurodamus.node.Node.ReportParams.unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.all_circuits">
+<span class="sig-name descname"><span class="pre">all_circuits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exclude_disabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.all_circuits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neurodamus.node.Node.circuits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">circuits</span></span><a class="headerlink" href="#neurodamus.node.Node.circuits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.cleanup">
+<span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Have the compute nodes wrap up tasks before exiting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.clear_model">
+<span class="sig-name descname"><span class="pre">clear_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">avoid_creating_objs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avoid_clearing_queues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.clear_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears appropriate lists and other stored references.
+For use with intrinsic load balancing. After creating and evaluating the network using
+round robin distribution, we want to clear the cells and synapses in order to have a
+clean slate on which to instantiate the balanced cells.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.compute_load_balance">
+<span class="sig-name descname"><span class="pre">compute_load_balance</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.compute_load_balance" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case the user requested load-balance this function instantiates a
+CellDistributor to split cells and balance those pieces across the available CPUs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.create_cells">
+<span class="sig-name descname"><span class="pre">create_cells</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_balance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.create_cells" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate and distributes the cells of the network.
+Any targets will be updated to know which cells are local to the cpu.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.create_synapses">
+<span class="sig-name descname"><span class="pre">create_synapses</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.create_synapses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create synapses among the cells, handling connections that appear in the config file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.dump_cell_config">
+<span class="sig-name descname"><span class="pre">dump_cell_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.dump_cell_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.dump_circuit_config">
+<span class="sig-name descname"><span class="pre">dump_circuit_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nrn_python'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.dump_circuit_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.enable_modifications">
+<span class="sig-name descname"><span class="pre">enable_modifications</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.enable_modifications" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over any Modification blocks read from the config file and apply them to the
+network. The steps needed are more complex than NeuronConfigures, so the user should not be
+expected to write the hoc directly, but rather access a library of already available mods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.enable_replay">
+<span class="sig-name descname"><span class="pre">enable_replay</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.enable_replay" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate replay according to config file. Call before connManager.finalize</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.enable_reports">
+<span class="sig-name descname"><span class="pre">enable_reports</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.enable_reports" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over reports defined in the config file and instantiate them.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.enable_stimulus">
+<span class="sig-name descname"><span class="pre">enable_stimulus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.enable_stimulus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over any stimuli/stim injects defined in the config file given to the simulation
+and instantiate them.
+This iterates over the injects, getting the stim/target combinations
+and passes the raw text in field/value pairs to a StimulusManager object to interpret the
+text and instantiate an actual stimulus object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.execute_neuron_configures">
+<span class="sig-name descname"><span class="pre">execute_neuron_configures</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.execute_neuron_configures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over any NeuronConfigure blocks from the config file.
+These are simple hoc statements that can be executed with minimal substitutions</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.load_targets">
+<span class="sig-name descname"><span class="pre">load_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.load_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize targets. Nodesets are loaded on demand.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neurodamus.node.Node.reports">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reports</span></span><a class="headerlink" href="#neurodamus.node.Node.reports" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.run_all">
+<span class="sig-name descname"><span class="pre">run_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.run_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the whole simulation according to the simulation config file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.sim_init">
+<span class="sig-name descname"><span class="pre">sim_init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corenrn_gen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">sim_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.sim_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the model and prepare to run simulation.</p>
+<p>After finalizing the model, will eventually write coreneuron config
+and initialize the neuron simulation if applicable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>corenrn_gen</strong> – Whether to generate coreneuron config. Default: None (if required)</p></li>
+<li><p><strong>spike_compress</strong> (<em>sim_opts - override _finalize_model options. E.g.</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tstop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call solver with a given stop time (default: whole interval).
+Be sure to have sim_init()’d the simulation beforehand</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurodamus.node.Node.sonata_spikes">
+<span class="sig-name descname"><span class="pre">sonata_spikes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neurodamus.node.Node.sonata_spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the spike events that occured on each node into a single output SONATA file.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neurodamus.node.Node.stim_manager">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stim_manager</span></span><a class="headerlink" href="#neurodamus.node.Node.stim_manager" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neurodamus.node.Node.stims">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stims</span></span><a class="headerlink" href="#neurodamus.node.Node.stims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neurodamus.node.Node.target_manager">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">target_manager</span></span><a class="headerlink" href="#neurodamus.node.Node.target_manager" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</section>
+</section>
+</section>
+
+                
+  
+    <h2 id="__source">Source</h2>
+    <a href="../_sources/api/neurodamus.rst.txt" title="api/neurodamus.rst" class="md-source-file">
+      api/neurodamus.rst
+    </a>
+  
+
+              
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+
+
+
+<!-- Application footer -->
+<footer class="md-footer">
+
+  <!-- Link to previous and/or next page -->
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+
+        <!-- Link to previous page -->
+        
+          <a href="packages.html"
+              title="Neurodamus Core Reference"
+              class="md-flex md-footer-nav__link md-footer-nav__link--prev"
+              rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back
+                    md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Neurodamus Core Reference
+              </span>
+            </div>
+          </a>
+        
+
+        <!-- Link to next page -->
+        
+          <a href="neurodamus.core.html"
+              title="neurodamus.core Package"
+              class="md-flex md-footer-nav__link md-footer-nav__link--next"
+              rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch
+                  md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                neurodamus.core Package
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward
+                    md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+
+  <!-- Further information -->
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+
+      <!-- Copyright and theme information -->
+      <div class="md-footer-copyright">
+      
+        
+          
+          <div class="md-footer-copyright__company">
+            Blue Brain Project
+          </div>
+          
+          
+          <div class="md-footer-copyright__address__title">
+            Address
+          </div>
+          <div class="md-footer-copyright__address">
+            EPFL/Campus Biotech<br>Chemin des Mines 9,<br>CH-1202 Geneva<br>Switzerland
+          </div>
+          
+        
+        
+          <div class="md-footer-copyright__highlight">
+            &copy; Blue Brain Project/EPFL 2005-2025. All rights reserved.
+          </div>
+        
+        
+      </div>
+      
+
+      <!-- Social links -->
+      
+
+<!-- Social links in footer -->
+
+  <div class="md-footer-social">
+    <link rel="stylesheet" type="text/css"
+        href="../_static/fonts/font-awesome.css" />
+    
+    
+    <div class="md-footer-social__title">Follow the Blue Brain</div>
+    
+    
+    
+      <a href="https://www.linkedin.com/showcase/blue-brain-project/" class="md-footer-social__link
+            fa fa-linkedin-square"></a>
+    
+      <a href="https://twitter.com/bluebrainpjt?lang=en" class="md-footer-social__link
+            fa fa-twitter-square"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+<script src="../_static/javascripts/theme.js"></script>
+<script src="../_static/javascripts/utils.js"></script>
+
+      <script src="../_static/javascripts/application.718059d6.js"></script>
+      
+      <script>app.initialize({version:"5.0.2",url:{base:"../_static"}})</script>
+      
+    
+
+  </body>
+</html>
