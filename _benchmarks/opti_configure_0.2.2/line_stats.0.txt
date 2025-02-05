@@ -205,7 +205,7 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    196     76506    1851327.0     24.2      1.2          rate_vec = ND.Vector(1)
    197                                           
    198                                                   # Initialize member lists
-   199     76506     142527.0      1.9      0.1          self._synapses = []
+   199     76506     142527.0      1.9      0.1          self._synapses = compat.list()
    200     76506     137662.0      1.8      0.1          self._netcons = []
    201     76506     126729.0      1.7      0.1          self._minis_netcons = []
    202     76506     125739.0      1.6      0.1          self._minis_RNGs = []

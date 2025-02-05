@@ -10,6 +10,7 @@ import numpy
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, find_input_file
 from .core.nodeset import _NodeSetBase, NodeSet, SelectionNodeSet
+from .utils import compat
 from .utils.logging import log_verbose
 
 
@@ -228,7 +229,7 @@ class TargetManager:
         :param target_name: Target Name to get the GIDs and collect references to cell MEtypes
         :return: List containing MEtypes for each cell object associated with the target
         """
-        result_list = []
+        result_list = compat.list()
         target = self.get_target(target_name)
         gids = target.get_local_gids()
 
@@ -546,7 +547,7 @@ class NodesetTarget(_TargetInterface):
         """
         section_type = kw.get("sections") or "soma"
         compartment_type = kw.get("compartments") or ("center" if section_type == "soma" else "all")
-        pointList = []
+        pointList = compat.list()
         for gid in self.get_local_gids():
             point = TPointList(gid)
             cellObj = cell_manager.get_cellref(gid)
