@@ -415,7 +415,7 @@ class Connection(ConnectionBase):
             return 0
 
         # Initialize member lists
-        self._synapses = compat.List()  # Used by ConnUtils
+        self._synapses = []
         self._netcons = []
         self._init_artificial_stims(cell, replay_mode)
         n_syns = 0
@@ -564,7 +564,7 @@ class Connection(ConnectionBase):
             end_offset: offset for the other cell's gap junctions
 
         """
-        self._synapses = compat.List()
+        self._synapses = []
         self._netcons = []
 
         for syn_i, sec in self.sections_with_synapses:
