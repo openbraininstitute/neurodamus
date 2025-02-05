@@ -125,7 +125,7 @@ def human_readable(num):
         num: The number
     """
     units = ["", "K", "M", "B", "T", "P"]
-    power = int(floor(log(num, 1000.0)))
+    power = floor(log(num, 1000.0))
     return f"{num / 1000.0**power:.2f}{units[power]:s}" if power >= 1 else str(int(num))
 
 
