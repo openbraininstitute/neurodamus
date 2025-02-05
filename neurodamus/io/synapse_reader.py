@@ -1,4 +1,5 @@
 """Module implementing interfaces to the several synapse readers (eg.: synapsetool, Hdf5Reader)"""
+from __future__ import annotations
 
 import logging
 from abc import abstractmethod
@@ -38,7 +39,7 @@ class _SynParametersMeta(type):
     def all_fields(cls):
         return set(cls._synapse_fields)
 
-    def fields(cls, exclude: set = (), with_translation: dict = None):
+    def fields(cls, exclude: set = (), with_translation: dict | None = None):
         fields = cls.load_fields - exclude if exclude else cls.load_fields
         if with_translation:
             return [(f, with_translation.get(f, f), f in cls._optional) for f in fields]
