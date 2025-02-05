@@ -10,7 +10,6 @@ import numpy
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, find_input_file
 from .core.nodeset import _NodeSetBase, NodeSet, SelectionNodeSet
-from .utils import compat
 from .utils.logging import log_verbose
 
 
