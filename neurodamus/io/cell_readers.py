@@ -320,7 +320,8 @@ def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
         etypes = node_reader.get_attribute("etype", libsonata.Selection(indexes))
         mtypes = node_reader.get_attribute("mtype", libsonata.Selection(indexes))
     else:
-        raise Exception(f"Reader type {type(node_reader)} incompatible with dry run.")
+        msg = f"Reader type {type(node_reader)} incompatible with dry run."
+        raise TypeError(msg)
 
     gids_per_metype = defaultdict(list)
     count_per_metype = defaultdict(int)
