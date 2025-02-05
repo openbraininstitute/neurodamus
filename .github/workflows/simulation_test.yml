@@ -59,11 +59,11 @@ jobs:
     - name: Get latest tags
       run: |
         echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
-        LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/BlueBrain/libsonata/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonata/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
-        LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/BlueBrain/libsonatareport/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonatareport/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/BlueBrain/neurodamus-models/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
     - name: Get HEAD commit message and look for branches
@@ -105,7 +105,7 @@ jobs:
     - name: Install libsonata
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-        CC=mpicc CXX=mpic++ pip install git+https://github.com/BlueBrain/libsonata@${{ env.LIBSONATA_BRANCH }}
+        CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
     - name: Cache libsonatareport
       id: cache-libsonatareport
@@ -119,7 +119,7 @@ jobs:
     - name: Install libsonatareport
       if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
       run: |
-        git clone --branch="${{ env.LIBSONATA_REPORT_BRANCH}}" https://github.com/BlueBrain/libsonatareport.git --recursive --depth=1
+        git clone --branch="${{ env.LIBSONATA_REPORT_BRANCH}}" https://github.com/openbraininstitute/libsonatareport.git --recursive --depth=1
         cd libsonatareport
         mkdir build && cd build
         cmake -DCMAKE_INSTALL_PREFIX=$(pwd)/install -DCMAKE_BUILD_TYPE=Release -DSONATA_REPORT_ENABLE_SUBMODULES=ON -DSONATA_REPORT_ENABLE_MPI=ON ..
@@ -180,7 +180,7 @@ jobs:
         export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
         export PATH=$(pwd)/nrn/build/install/bin:$PATH
         # Clone neurodamus-models repository
-        git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/BlueBrain/neurodamus-models.git
+        git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/openbraininstitute/neurodamus-models.git
         # Build neocortex model
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B neurodamus-models/build -S neurodamus-models/ \
