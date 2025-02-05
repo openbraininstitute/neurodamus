@@ -148,8 +148,8 @@ class SignalSource:
         base_amp = kw.get("base_amp", self._base_amp)
         self._add_point(base_amp)
         self.add_segment(amp, pulse_duration)
-        for amp in more_amps:
-            self.add_segment(amp, pulse_duration)
+        for more_amp in more_amps:
+            self.add_segment(more_amp, pulse_duration)
         self._add_point(base_amp)
         return self
 
