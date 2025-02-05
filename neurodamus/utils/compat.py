@@ -30,18 +30,6 @@ class Vector(array):
         return hoc_vector(self)
 
 
-class List(list):
-    """Behavior similar to Hoc List"""
-
-    __slots__ = ()
-
-    def count(self, obj=None):
-        return super().count(obj) if obj else len(self)
-
-    def o(self, idx):
-        return self[int(idx)]
-
-
 def hoc_vector(np_array):
     from neuron import h
 
