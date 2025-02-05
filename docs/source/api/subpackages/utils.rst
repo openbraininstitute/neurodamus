@@ -14,7 +14,6 @@ neurodamus.utils.compat
    .. rubric:: Classes
 
    .. autosummary::
-      List
       Vector
 
 
