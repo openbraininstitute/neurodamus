@@ -175,7 +175,7 @@ class ProgressBar(Progress):
         self._clear = self._tty_mode if clear is None else clear
         self._prev_bar_len = None
         self._name = name
-        super(ProgressBar, self).__init__(end, start)
+        super().__init__(end, start)
 
     def _bar_len_progress(self):
         if self._end is not False:
