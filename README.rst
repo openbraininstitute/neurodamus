@@ -99,10 +99,11 @@ See instructions in `docker/README.md <https://github.com/BlueBrain/neurodamus/b
 
 Building the docker container
 -----------------------------
-The docker container image is built automatically when a new tag is created in the repository, if a container with the specified version doesn't already exist.
-On manual pipeline runs, the container image is also built but not automatically pushed to docker-hub; you'll have to manually start the job in the pipeline you created if you want this to happen. Keep in mind that this is *optional*, the container image is *always* pushed to the gitlab registry!
+.. TODO: decide what to do without pipelines
+.. The docker container image is built automatically when a new tag is created in the repository, if a container with the specified version doesn't already exist.
+.. On manual pipeline runs, the container image is also built but not automatically pushed to docker-hub; you'll have to manually start the job in the pipeline you created if you want this to happen. Keep in mind that this is *optional*, the container image is *always* pushed to the gitlab registry!
 
-The docker images will be built in the `regular gitlab pipeline <https://bbpgitlab.epfl.ch/hpc/sim/neurodamus/-/pipelines>`_ - if triggered under the right conditions (either manually or through git tag creation) the container jobs will be added to this pipeline.
+The docker images will be built in the `regular github action <https://github.com/openbraininstitute/neurodamus/actions>`_ - if triggered under the right conditions (either manually or through git tag creation) the container jobs will be added to this pipeline.
 
 If you run the pipeline manually, you can also set versions for the dependencies:
   * `LIBSONATAREPORT_TAG`: git tag for libsonata-report
@@ -118,6 +119,7 @@ a research center of the École polytechnique fédérale de Lausanne (EPFL),
 from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
 
 Copyright (c) 2005-2023 Blue Brain Project/EPFL
+Copyright (c) 2025 Open Brain Institute
 
 .. substitutions
 .. |banner| image:: docs/img/neurodamus_banner_230701.png

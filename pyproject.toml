@@ -25,7 +25,8 @@ requires-python=">=3.9"
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API
 full=['scipy', 'morphio', 'NEURON']
-
+docs=['sphinx', 'sphinx-bluebrain-theme']
+ 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
 hocify = "neurodamus.commands:hocify"

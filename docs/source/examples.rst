@@ -215,12 +215,12 @@ Basic neuron usage on how to:
  - Create stimuli and run simulations
  - Extend a single compartment model with dendrites
 
-.. literalinclude:: ../examples/neuron_tut1.py
+.. literalinclude:: ../../examples/neuron_tut1.py
 
 Example 2 - Neuron Tutorial synapses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: ../examples/neuron_tut2.py
+.. literalinclude:: ../../examples/neuron_tut2.py
    :pyobject: test_tut2
 
 
@@ -242,5 +242,5 @@ It creates a Node object and it takes care of doing the following:
  - Dumps spikes to files
  - Cleans up the simulated model
 
-.. literalinclude:: ../examples/test_neurodamus.py
+.. literalinclude:: ../../examples/test_neurodamus.py
    :pyobject: test_node_run
