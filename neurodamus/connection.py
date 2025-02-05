@@ -415,7 +415,7 @@ class Connection(ConnectionBase):
             return 0
 
         # Initialize member lists
-        self._synapses = compat.list()  # Used by ConnUtils
+        self._synapses = compat.List()  # Used by ConnUtils
         self._netcons = []
         self._init_artificial_stims(cell, replay_mode)
         n_syns = 0
