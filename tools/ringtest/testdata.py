@@ -46,13 +46,12 @@ h.prcellgid(1000)
 # c) with user python function
 for gid in [0, 1000]:
     cell = pc.gid2cell(gid)
-    res = dump_cellstate(cell)
-
-    res["netcons"] = {}
+    cell_name = cell.hname()
+    res = {cell_name: {"gid": gid}}
+    res[cell_name].update(dump_cellstate(cell))
     nclist = h.CVode().netconlist("", cell, "")
-    res["netcons"]["n_netcons"] = nclist.count()
-    res_netcons = dump_nclist(nclist)
-    res["netcons"].update(res_netcons)
+    res[cell_name]["n_netcons"] = nclist.count()
+    res[cell_name]["netcons"] = dump_nclist(nclist)
 
     outputfile = "cellstate_" + str(gid) + ".json"
     with open(outputfile, "w") as f:

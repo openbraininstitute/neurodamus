@@ -1,44 +1,57 @@
-def dump_cellstate(cell):
-    res = {}
-    res[cell.hname()] = _read_object_attrs(cell)
+def dump_cellstate(cell) -> dict:
+    res = _read_object_attrs(cell)
+    res["n_sections"] = -1
+    res["sections"] = []
+    cell_name = cell.hname()
     nsec = 0
     for sec in cell.all:
         nsec += 1
-        res[sec.hname()] = _read_object_attrs(sec)
-        res[sec.hname()]["segments"] = {}
+        res_sec = {}
+        sec_name = sec.hname()
+        sec_name = sec_name.replace(cell_name + ".", "")
+        res_sec["name"] = sec_name
+        res_sec.update(_read_object_attrs(sec))
+        res_sec["segments"] = []
+        # res_sec[sec.hname()]["segments"] = []
         for seg in sec:
-            attrs = _read_object_attrs(seg)
+            attrs = {"x": seg.x, 
+                     "node_index": seg.node_index()
+                     }
+            # attrs['name'] = str(seg)
+            attrs.update(_read_object_attrs(seg))
             for key, item in attrs.items():
                 # item is likely an nrn.Mechanism object
                 if not isinstance(item, (int, float, str, list, dict, set)):
                     vals = _read_object_attrs(item)
                     attrs[key] = vals
-            attrs["node_index"] = seg.node_index()
-            res[sec.hname()]["segments"][str(seg)] = attrs
-    res[cell.hname()]["nsec"] = nsec
-    res_syns = {}
-    res_syns["count"] = cell.synlist.count()
-    for syn in cell.synlist:
-        res_syns[syn.hname()] = _read_object_attrs(syn)
-        res_syns[syn.hname()]["location"] = syn.get_loc()
-        res_syns[syn.hname()]["segment"] = str(syn.get_segment())
-    res["synapses"] = res_syns
+            res_sec["segments"].append(attrs)
+        res["n_sections"] = nsec
+        res["sections"].append(res_sec)
 
+    res["n_synapses"] = cell.synlist.count()
+    res["synapses"] = []
+    for syn in cell.synlist:
+        attrs = {"name": syn.hname()}
+        attrs.update(_read_object_attrs(syn))
+        attrs["location"] = syn.get_loc()
+        attrs["segment"] = str(syn.get_segment())
+        res["synapses"].append(attrs)
     return res
 
 
-def dump_nclist(nclist):
-    res = {}
+def dump_nclist(nclist) -> list:
+    res = []
     for nc in nclist:
-        res[nc.hname()] = {}
+        attrs = {"name": nc.hname()}
         if nc.precell():
-            res[nc.hname()]["precell"] = nc.precell().hname()
+            attrs["precell"] = nc.precell().hname()
         elif nc.pre():
-            res[nc.hname()]["pre"] = nc.pre().hname()
-        res[nc.hname()]["srcgid"] = nc.srcgid()
-        res[nc.hname()]["active"] = nc.active()
-        res[nc.hname()]["weight"] = nc.weight[0]
-        res[nc.hname()].update(_read_object_attrs(nc))
+            attrs["pre"] = nc.pre().hname()
+        attrs["srcgid"] = nc.srcgid()
+        attrs["active"] = nc.active()
+        attrs["weight"] = nc.weight[0]
+        attrs.update(_read_object_attrs(nc))
+        res.append(attrs)
     return res
 
 
