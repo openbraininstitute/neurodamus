@@ -63,7 +63,7 @@ jobs:
         echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
         LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/BlueBrain/libsonatareport/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/BlueBrain/neurodamus-models/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
     - name: Get HEAD commit message and look for branches
@@ -180,9 +180,7 @@ jobs:
         export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
         export PATH=$(pwd)/nrn/build/install/bin:$PATH
         # Clone neurodamus-models repository
-        # remove once katta/conn_conf_remove has been merged
-        # git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/openbraininstitute/neurodamus-models.git
-        git clone --branch=katta/conn_conf_remove https://github.com/openbraininstitute/neurodamus-models.git
+        git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/openbraininstitute/neurodamus-models.git
         # Build neocortex model
         DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
         cmake -B neurodamus-models/build -S neurodamus-models/ \
