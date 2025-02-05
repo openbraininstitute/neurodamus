@@ -451,8 +451,7 @@ class ConnectionManagerBase:
 
         """
         for pop in self.find_populations(population_ids):
-            for conn in pop.get_connections(post_gids, pre_gids):
-                yield conn
+            yield from pop.get_connections(post_gids, pre_gids)
 
     # -
     def create_connections(self, src_target=None, dst_target=None):
