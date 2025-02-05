@@ -32,30 +32,28 @@ class Hocify:
 
     def __init__(self, morpho_path, neuron_nframe, log_level, output_dir, **_user_opts):
         Hocify.fasthocdir = output_dir or os.path.join(morpho_path, FASTHOC_DIRNAME)
-        try:
-            os.mkdir(Hocify.fasthocdir)
-        except Exception as e:
-            raise e
+        os.mkdir(Hocify.fasthocdir)
+
         Hocify.fasthoclogfile = os.path.join(Hocify.fasthocdir, Hocify.fasthoclogfile)
         setup_logging(loglevel=log_level, logfile=Hocify.fasthoclogfile, rank=0)
 
         log_stage("Initializing.  Logfile: " + Hocify.fasthoclogfile)
         self._morpho_path = morpho_path
-        logging.info("Morphology path set to: " + str(self._morpho_path))
+        logging.info("Morphology path set to: %s", self._morpho_path)
 
         Hocify.nframe = neuron_nframe
         os.environ["NEURON_NFRAME"] = str(Hocify.nframe)
-        logging.info("NEURON_NFRAME set to: " + str(Hocify.nframe))
+        logging.info("NEURON_NFRAME set to: %s", Hocify.nframe)
 
     def convert(self, morpho_folder="ascii"):
         log_stage("Starting conversion")
         self._morphdir = os.path.join(self._morpho_path, morpho_folder)
         if not os.path.isdir(self._morphdir):
-            logging.critical("Morphology directory does not exist:" + self._morphdir)
+            logging.critical("Morphology directory does not exist: %s", self._morphdir)
             return 1
 
-        logging.info("Target fast hoc folder is: " + Hocify.fasthocdir)
-        logging.info("Hoc-ifying morphology folder: " + self._morphdir + " ...")
+        logging.info("Target fast hoc folder is: %s", Hocify.fasthocdir)
+        logging.info("Hoc-ifying morphology folder: %s ...", self._morphdir)
 
         self._target_morph_files = (
             (
