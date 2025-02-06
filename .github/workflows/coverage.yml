@@ -1,10 +1,11 @@
 name: Build coverage reports
 
 on:
-    pull_request:
-    push:
-      branches:
-        - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - master
 
 jobs:
   coverage:
