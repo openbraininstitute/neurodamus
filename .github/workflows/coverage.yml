@@ -1,12 +1,10 @@
 name: Build coverage reports
 
 on:
-  pull_request:
-    branches:
-  push:
-    branches:
-      - master
-      - '**' 
+    pull_request:
+    push:
+      branches:
+        - main
 
 jobs:
   coverage:
