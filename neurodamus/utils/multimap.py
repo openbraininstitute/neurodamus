@@ -5,10 +5,10 @@ from operator import add
 
 import numpy as np
 
-from .compat import collections_abc
+import collections.abc
 
 
-class MultiMap(collections_abc.Mapping):
+class MultiMap(collections.abc.Mapping):
     """A memory-efficient map, which accepts duplicates"""
 
     __slots__ = ("_keys", "_values")
