@@ -4,11 +4,9 @@ on:
     # every evening at 20:00 UTC
     - cron: '0 20 * * *'
   pull_request:
-    branches:
-      - main
+    branches: ["**"]
   push:
-    branches:
-      - main
+    branches: ["**"]
   workflow_dispatch:
     inputs:
       NEURON_BRANCH:
