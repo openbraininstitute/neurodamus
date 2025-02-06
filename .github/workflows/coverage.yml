@@ -1,11 +1,10 @@
 name: Build coverage reports
 
 on:
-    pull_request:
     push:
-      branches:
-        - master
-
+      branches: ["main"]
+    pull_request:
+      branches: ["main"]
 jobs:
   coverage:
     runs-on: ubuntu-latest
