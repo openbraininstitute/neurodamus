@@ -26,7 +26,7 @@ requires-python=">=3.9"
 plotting=['matplotlib'] # only for Neurodamus HL API
 full=['scipy', 'morphio', 'NEURON']
 docs=['sphinx', 'sphinx-bluebrain-theme']
- 
+
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
 hocify = "neurodamus.commands:hocify"
@@ -120,6 +120,67 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
+]
+exclude = [
+    "_benchmarks/init.py",
+    "_benchmarks/synstats.py",
+    "_benchmarks/timeit.py",
+    "docs/source/conf.py",
+    "examples/composed_signal.py",
+    "examples/create_cell.py",
+    "examples/neuron_first_steps.py",
+    "examples/neuron_tut1.py",
+    "examples/neuron_tut2.py",
+    "examples/test_neurodamus.py",
+    "foo/source/conf.py",
+    "neurodamus/cell_distributor.py",
+    "neurodamus/commands.py",
+    "neurodamus/connection_manager.py",
+    "neurodamus/connection.py",
+    "neurodamus/core/cell.py",
+    "neurodamus/core/configuration.py",
+    "neurodamus/core/coreneuron_configuration.py",
+    "neurodamus/core/_engine.py",
+    "neurodamus/core/__init__.py",
+    "neurodamus/core/mechanisms.py",
+    "neurodamus/core/_mpi.py",
+    "neurodamus/core/_neurodamus.py",
+    "neurodamus/core/_neuron.py",
+    "neurodamus/core/nodeset.py",
+    "neurodamus/core/random.py",
+    "neurodamus/core/_shmutils.py",
+    "neurodamus/core/stimuli.py",
+    "neurodamus/core/synapses.py",
+    "neurodamus/core/_utils.py",
+    "neurodamus/data/init.py",
+    "neurodamus/gap_junction.py",
+    "neurodamus/gj_user_corrections.py",
+    "neurodamus/hocify.py",
+    "neurodamus/__init__.py",
+    "neurodamus/io/cell_readers.py",
+    "neurodamus/io/__init__.py",
+    "neurodamus/io/sonata_config.py",
+    "neurodamus/io/synapse_reader.py",
+    "neurodamus/lfp_manager.py",
+    "neurodamus/metype.py",
+    "neurodamus/modification_manager.py",
+    "neurodamus/morphio_wrapper.py",
+    "neurodamus/neuromodulation_manager.py",
+    "neurodamus/ngv.py",
+    "neurodamus/node.py",
+    "neurodamus/replay.py",
+    "neurodamus/report.py",
+    "neurodamus/stimulus_manager.py",
+    "neurodamus/target_manager.py",
+    "neurodamus/utils/cli.py",
+    "neurodamus/utils/compat.py",
+    "neurodamus/utils/__init__.py",
+    "neurodamus/utils/logging.py",
+    "neurodamus/utils/memory.py",
+    "neurodamus/utils/multimap.py",
+    "neurodamus/utils/progressbar.py",
+    "neurodamus/utils/pyutils.py",
+    "neurodamus/utils/timeit.py",
 ]
 
 [tool.ruff.lint.isort]
