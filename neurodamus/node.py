@@ -1252,6 +1252,7 @@ class Node:
             self.dump_circuit_config()
         if self._pr_cell_gid:
             self.dump_cell_config()
+            dump_cellstate(self._pc, Nd.CVode(), self._pr_cell_gid)
 
         self._sim_ready = True
         return self._pc

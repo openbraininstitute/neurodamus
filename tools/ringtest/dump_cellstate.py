@@ -11,7 +11,7 @@ def dump_cellstate(pc, cvode, gid):
     print(f"dump cell state for id {gid}")
     cell = pc.gid2cell(gid)
     name = cell.hname()
-    # remove the cell index
+    # remove the cell index from names
     cell_name = name[:name.find("[")]
     cell_prefix = name + "."
     res = {cell_name: {"gid": gid}}
