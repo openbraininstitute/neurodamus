@@ -1,4 +1,5 @@
 """Module implementing interfaces to the several synapse readers (eg.: synapsetool, Hdf5Reader)"""
+
 from __future__ import annotations
 
 import logging

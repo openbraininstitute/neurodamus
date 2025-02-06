@@ -251,10 +251,12 @@ class Report:
         :param mechanism: The mechanism requested
         :return: A list of synapse objects attached to the section.
         """
-        synapses = [syn
-                    for seg in section
-                    for syn in seg.point_processes()
-                    if syn.hname().startswith(mechanism)]
+        synapses = [
+            syn
+            for seg in section
+            for syn in seg.point_processes()
+            if syn.hname().startswith(mechanism)
+        ]
         return synapses
 
     def parse_variable_names(self):
