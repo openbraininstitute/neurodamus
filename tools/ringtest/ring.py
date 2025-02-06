@@ -18,7 +18,7 @@ class Ring(object):
         self.gidstart = gidstart
 
         self.mkring(self.ncell, nbranch, ncompart, types)
-        self.mkstim()
+        # self.mkstim()
 
         Ring.counter += 1
 

@@ -1,4 +1,28 @@
-def dump_cellstate(cell) -> dict:
+import json
+
+
+def dump_cellstate(pc, cvode, gid):
+    """ Dump cell, synapse, netcon states from NEURON
+    Args:
+        pc: NEURON parallel contect
+        cvode: NEURON CVode context, to get netcons list
+        gid: cell gid in NEURON context
+    """
+    print(f"dump cell state for id {gid}")
+    cell = pc.gid2cell(gid)
+    cell_name = cell.hname()
+    res = {cell_name: {"gid": gid}}
+    res[cell_name].update(dump_cells(cell))
+    nclist = cvode.netconlist("", cell, "")
+    res[cell_name]["n_netcons"] = nclist.count()
+    res[cell_name]["netcons"] = dump_netcons(nclist)
+
+    outputfile = "cellstate_" + str(gid) + ".json"
+    with open(outputfile, "w") as f:
+        json.dump(res, f, indent=2)
+
+
+def dump_cells(cell) -> dict:
     res = _read_object_attrs(cell)
     res["n_sections"] = -1
     res["sections"] = []
@@ -12,12 +36,10 @@ def dump_cellstate(cell) -> dict:
         res_sec["name"] = sec_name
         res_sec.update(_read_object_attrs(sec))
         res_sec["segments"] = []
-        # res_sec[sec.hname()]["segments"] = []
         for seg in sec:
-            attrs = {"x": seg.x, 
+            attrs = {"x": seg.x,
                      "node_index": seg.node_index()
                      }
-            # attrs['name'] = str(seg)
             attrs.update(_read_object_attrs(seg))
             for key, item in attrs.items():
                 # item is likely an nrn.Mechanism object
@@ -39,7 +61,7 @@ def dump_cellstate(cell) -> dict:
     return res
 
 
-def dump_nclist(nclist) -> list:
+def dump_netcons(nclist) -> list:
     res = []
     for nc in nclist:
         attrs = {"name": nc.hname()}
@@ -47,6 +69,10 @@ def dump_nclist(nclist) -> list:
             attrs["precell"] = nc.precell().hname()
         elif nc.pre():
             attrs["pre"] = nc.pre().hname()
+        tsyn = nc.syn()
+        attrs["target_syn"] = str(tsyn)
+        attrs["target_syn_segment"] = str(tsyn.get_segment())
+        attrs["afferent_section_position"] = tsyn.get_segment().x
         attrs["srcgid"] = nc.srcgid()
         attrs["active"] = nc.active()
         attrs["weight"] = nc.weight[0]
