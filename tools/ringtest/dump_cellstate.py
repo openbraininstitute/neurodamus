@@ -10,19 +10,22 @@ def dump_cellstate(pc, cvode, gid):
     """
     print(f"dump cell state for id {gid}")
     cell = pc.gid2cell(gid)
-    cell_name = cell.hname()
+    name = cell.hname()
+    # remove the cell index
+    cell_name = name[:name.find("[")]
+    cell_prefix = name + "."
     res = {cell_name: {"gid": gid}}
-    res[cell_name].update(dump_cells(cell))
+    res[cell_name].update(dump_cells(cell, filter_prefix=cell_prefix))
     nclist = cvode.netconlist("", cell, "")
     res[cell_name]["n_netcons"] = nclist.count()
-    res[cell_name]["netcons"] = dump_netcons(nclist)
+    res[cell_name]["netcons"] = dump_netcons(nclist, filter_prefix=cell_prefix)
 
     outputfile = "cellstate_" + str(gid) + ".json"
     with open(outputfile, "w") as f:
         json.dump(res, f, indent=2)
 
 
-def dump_cells(cell) -> dict:
+def dump_cells(cell, filter_prefix) -> dict:
     res = _read_object_attrs(cell)
     res["n_sections"] = -1
     res["sections"] = []
@@ -56,22 +59,18 @@ def dump_cells(cell) -> dict:
         attrs = {"name": syn.hname()}
         attrs.update(_read_object_attrs(syn))
         attrs["location"] = syn.get_loc()
-        attrs["segment"] = str(syn.get_segment())
+        attrs["segment"] = str(syn.get_segment()).removeprefix(filter_prefix)
         res["synapses"].append(attrs)
     return res
 
 
-def dump_netcons(nclist) -> list:
+def dump_netcons(nclist, filter_prefix) -> list:
     res = []
     for nc in nclist:
         attrs = {"name": nc.hname()}
-        if nc.precell():
-            attrs["precell"] = nc.precell().hname()
-        elif nc.pre():
-            attrs["pre"] = nc.pre().hname()
         tsyn = nc.syn()
-        attrs["target_syn"] = str(tsyn)
-        attrs["target_syn_segment"] = str(tsyn.get_segment())
+        attrs["target_syn"] = str(tsyn).removeprefix(filter_prefix)
+        attrs["target_syn_segment"] = str(tsyn.get_segment()).removeprefix(filter_prefix)
         attrs["afferent_section_position"] = tsyn.get_segment().x
         attrs["srcgid"] = nc.srcgid()
         attrs["active"] = nc.active()
