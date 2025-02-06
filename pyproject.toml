@@ -122,17 +122,6 @@ ignore = [
     "LOG015",  # `info()` call on root logger
 ]
 exclude = [
-    "_benchmarks/init.py",
-    "_benchmarks/synstats.py",
-    "_benchmarks/timeit.py",
-    "docs/source/conf.py",
-    "examples/composed_signal.py",
-    "examples/create_cell.py",
-    "examples/neuron_first_steps.py",
-    "examples/neuron_tut1.py",
-    "examples/neuron_tut2.py",
-    "examples/test_neurodamus.py",
-    "foo/source/conf.py",
     "neurodamus/cell_distributor.py",
     "neurodamus/commands.py",
     "neurodamus/connection_manager.py",
