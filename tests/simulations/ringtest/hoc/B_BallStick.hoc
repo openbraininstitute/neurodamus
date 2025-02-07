@@ -6,21 +6,34 @@ public synlist, x, y, z, position, connect2target
 public soma, dend
 public all, den
 
-create soma, dend[1]
+create soma[1], dend[1]
 
-objref synlist
+public gid, nSecAll, CellRef, synHelperList
+
+objref synlist, secpar, segvec, synHelperList
 
 proc init() {local i
-  nden = $o1.size()
-  topol($o1)
-  for i=0, nden-1 {dend[i].nseg = $o2.x[i] }
+  secpar = new Vector(2)
+  segvec = new Vector(2)
+  secpar.x[0] = secpar.x[1] = 0
+  segvec.x[0] = segvec.x[1] = 2
+  nden = secpar.size()
+  topol(secpar)
+  for i=0, nden-1 {dend[i].nseg = segvec.x[i] }
     
   subsets()
   geom()
+  indexSections()
   biophys()
   synlist = new List()
-  synapses()
+  // synapses()
   x = y = z = 0 // only change via position
+	
+  // require to run neurodamus
+  gid = -1
+  nSecAll = 3
+  synHelperList = new List()                                                     
+  
 }
 
 
@@ -94,5 +107,25 @@ proc synapses() {
     syn_.e = -80
 }
 func is_art() { return 0 }
+
+proc re_init_rng() {
+}
+
+proc clear() {
+}
+
+/*!
+ * Assign section indices to the section voltage value.  This will be useful later for serializing
+ * the sections into an array.  Note, that once the simulation begins, the voltage values will revert to actual data again.
+ *
+ * @param $o1 Import3d_GUI object
+ */
+proc indexSections() { local index
+    index = 0
+    forsec all {
+        v(0.0001) = index
+        index = index +1
+    }
+}
 
 endtemplate B_BallStick

@@ -2,7 +2,7 @@ import json
 
 
 def dump_cellstate(pc, cvode, gid):
-    """ Dump cell, synapse, netcon states from NEURON
+    """ Dump cell, synapse, netcon states from NEURON context
     Args:
         pc: NEURON parallel contect
         cvode: NEURON CVode context, to get netcons list
@@ -27,7 +27,7 @@ def dump_cellstate(pc, cvode, gid):
 
 def dump_cells(cell, filter_prefix) -> dict:
     res = _read_object_attrs(cell)
-    if not "nSecAll" in res:
+    if "nSecAll" not in res:
         res["nSecAll"] = -1
     res["sections"] = []
     cell_name = cell.hname()
@@ -85,6 +85,6 @@ def _read_object_attrs(obj):
         try:
             if not x.startswith("__") and not callable(getattr(obj, x)):
                 res[x] = getattr(obj, x)
-        except:
-            print(f"Cannot get the value for {x}")
+        except Exception:
+            pass
     return res
