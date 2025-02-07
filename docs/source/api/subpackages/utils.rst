@@ -1,5 +1,5 @@
 =============================
-Neurodamus .utils Sub-Modules
+Neurodamus.utils Sub-Modules
 =============================
 
 

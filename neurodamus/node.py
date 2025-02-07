@@ -79,7 +79,8 @@ class CircuitManager:
     def __init__(self):
         self.node_managers = {}  # dict {pop_name -> cell_manager}  # nrn pop is None
         self.virtual_node_managers = {}  # same, but for virtual ones (no cells)
-        self.edge_managers = defaultdict(list)  # dict {(src_pop, dst_pop) -> list[synapse_manager]}
+        # dict {(src_pop, dst_pop) -> list[synapse_manager]}
+        self.edge_managers = defaultdict(list)
         self.alias = {}  # dict {name -> pop_name}
         self.global_manager = GlobalCellManager()
         self.global_target = TargetManager.create_global_target()
@@ -238,7 +239,8 @@ class CircuitManager:
             if MPI.rank == 0 and not os.path.exists(pop_offset_file):
                 # RESTORE: link to populations_offset.dat besides save directory
                 os.symlink(
-                    os.path.join(SimConfig.restore, "../populations_offset.dat"), pop_offset_file
+                    os.path.join(SimConfig.restore, "../populations_offset.dat"),
+                    pop_offset_file,
                 )
             MPI.barrier()
         with open(pop_offset_file) as f:
@@ -264,10 +266,64 @@ class CircuitManager:
 
 
 class Node:
-    """The Node class is the main entity for a distributed neurodamus execution.
+    """
+    The Node class is the main entity for a distributed Neurodamus execution.
 
-    It internally instantiates parallel structures and distributes the cells among all the nodes.
-    It is relatively low-level, for a standard run consider using the Neurodamus class instead.
+    Note that this concept of a "Node" differs from both an MPI node, which
+    refers to a process in a parallel computing environment, and a node in the
+    circuit graph, which represents an individual element or component within
+    the simulation's neural network.
+
+    It serves as the orchestrator for the entire simulation, managing the
+    parallel execution of the model and distributing the cells across different
+    computational ranks. As the primary control structure, Node is responsible
+    for coordinating various components involved in the simulation.
+
+    Internally, the Node class instantiates and manages parallel structures,
+    dividing the simulation workload among multiple ranks. With the introduction
+    of the concept of multiple populations (also known as multi-circuit), the
+    Node class takes partial responsibility for handling this logic, aided by
+    the :class:`neurodamus.node.CircuitManager` class (accessible via the
+    `circuits` property), which manages the different node and edge managers.
+
+    While many lower-level details of the Node's functionality are encapsulated
+    within dedicated helper classes, the Node class still exposes an API that
+    allows advanced users to control and inspect almost every major step of the
+    simulation. For a standard run, users are encouraged to use the higher-level
+    `Neurodamus` class instead, which simplifies some of the complexities
+    handled by Node.
+
+    The Node class exposes the following public properties:
+
+    - `circuits`: is a :class:`neurodamus.node.CircuitManager` object,
+      responsible for managing multiple node and edge managers within the
+      simulation.
+    - `target_manager`: is a :class:`neurodamus.target_manager.TargetManager`
+      object, responsible for managing the targets in the simulation.
+    - `stimulus_manager`: is a
+      :class:`neurodamus.stimulus_manager.StimulusManager` object, responsible
+      for interpreting and instantiating stimulus events.
+    - `elec_manager`: The electrode manager, which controls the interaction with
+      simulation electrodes.
+    - `reports`: A list of Neurodamus Report `hoc` objects, used to generate
+      simulation reports.
+
+    Note that, while the Node object owns and manages most of the top-level
+    objects in the simulation, the management of cell and synapse objects has
+    been delegated to the `Circuits` class, as these are now handled at a lower
+    level.
+
+    Technical note:
+
+    - The properties exposed by Node are read-only, with most internal
+      attributes being prefixed with an underscore (`_`). Notable internal
+      attributes include:
+
+      - `self._base_circuit`: The main circuit object used by the Node.
+      - `self._extra_circuits`: Additional circuits managed by the Node.
+
+    These details make the Node class versatile and powerful for advanced users
+    who need more granular control over the simulation process.
     """
 
     _default_population = "All"
@@ -295,7 +351,8 @@ class Node:
         # The Recipe being None is allowed internally for e.g. setting up multi-cycle runs
         # It shall not be used as Public API
         if config_file is not None:
-            # This is global initialization, happening once, regardless of number of cycles
+            # This is global initialization, happening once, regardless of number of
+            # cycles
             log_stage("Setting up Neurodamus configuration")
             self._pc = Nd.pc
             self._spike_vecs = []
@@ -306,7 +363,8 @@ class Node:
                 CoreConfig.output_root = SimConfig.output_root
                 CoreConfig.datadir = SimConfig.coreneuron_datadir
                 # Instantiate the CoreNEURON artificial cell object which is used to fill up
-                # the empty ranks. This need to be done before the circuit is finitialized
+                # the empty ranks. This need to be done before the circuit is
+                # finitialized
                 CoreConfig.instantiate_artificial_cell()
                 if SimConfig.restore_coreneuron:
                     CoreConfig.restore_path = SimConfig.restore
@@ -328,7 +386,8 @@ class Node:
             self._shm_enabled = False
             self._dry_run_stats = None
         else:
-            self._run_conf  # Assert this is defined (if not multicyle runs are not properly set)
+            # Assert this is defined (if not multicyle runs are not properly set)
+            self._run_conf
 
         # Init unconditionally
         self._circuits = CircuitManager()
@@ -360,7 +419,8 @@ class Node:
     # -
     def load_targets(self):
         """Initialize targets. Nodesets are loaded on demand."""
-        # If a base population is specified register it before targets to create on demand
+        # If a base population is specified register it before targets to create
+        # on demand
         base_population = self._run_conf.get("BasePopulation")
         if base_population:
             logging.info("Default population selected: %s", base_population)
@@ -546,7 +606,10 @@ class Node:
         """Create synapses among the cells, handling connections that appear in the config file"""
         log_stage("LOADING CIRCUIT CONNECTIVITY")
         target_manager = self._target_manager
-        manager_kwa = {"load_offsets": self._is_ngv_run, "dry_run_stats": self._dry_run_stats}
+        manager_kwa = {
+            "load_offsets": self._is_ngv_run,
+            "dry_run_stats": self._dry_run_stats,
+        }
 
         if circuit := self._base_circuit:
             self._create_synapse_manager(SynapseRuleManager, circuit, target_manager, **manager_kwa)
@@ -633,7 +696,8 @@ class Node:
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
         target_manager = self._target_manager
-        ptype = projection.get("Type")  # None, GapJunctions, NeuroGlial, NeuroModulation...
+        # None, GapJunctions, NeuroGlial, NeuroModulation...
+        ptype = projection.get("Type")  
         ptype_cls = EngineBase.connection_types.get(ptype)
         source_t = TargetSpec(projection.get("Source"))
         dest_t = TargetSpec(projection.get("Destination"))
@@ -712,7 +776,8 @@ class Node:
 
         log_stage("Stimulus Apply.")
 
-        # for each stimulus defined in the config file, request the stimmanager to instantiate
+        # for each stimulus defined in the config file, request the stimmanager to
+        # instantiate
         self._stim_manager = StimulusManager(self._target_manager)
 
         # build a dictionary of stims for faster lookup : useful when applying 10k+ stims
@@ -753,7 +818,13 @@ class Node:
             if stim_pattern == "SynapseReplay":
                 continue  # Handled by enable_replay
 
-            logging.info(" * [STIM] %s: %s (%s) -> %s", name, stim_name, stim_pattern, target_spec)
+            logging.info(
+                " * [STIM] %s: %s (%s) -> %s",
+                name,
+                stim_name,
+                stim_pattern,
+                target_spec,
+            )
             self._stim_manager.interpret(target_spec, stim)
 
     # -
@@ -912,7 +983,8 @@ class Node:
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
             report = Report(*rep_params, SimConfig.use_coreneuron) if has_gids else None
 
-            # With coreneuron direct mode, enable fast membrane current calculation for i_membrane
+            # With coreneuron direct mode, enable fast membrane current calculation
+            # for i_membrane
             if (
                 SimConfig.coreneuron_direct_mode and "i_membrane" in rep_params.report_on
             ) or rep_params.rep_type == "lfp":
@@ -956,7 +1028,11 @@ class Node:
             )
             return None
         logging.info(
-            " * %s (Type: %s, Target: %s, Dt: %f)", rep_name, rep_type, rep_conf["Target"], rep_dt
+            " * %s (Type: %s, Target: %s, Dt: %f)",
+            rep_name,
+            rep_type,
+            rep_conf["Target"],
+            rep_dt,
         )
 
         if rep_format != "SONATA":
@@ -1002,7 +1078,8 @@ class Node:
         target_spec = TargetSpec(rep_conf["Target"])
 
         # For restore case with no change in reporting, we can directly update the end time.
-        # Note: If different reports are needed during restore, this workflow needs to be adapted.
+        # Note: If different reports are needed during restore, this workflow
+        # needs to be adapted.
         if SimConfig.restore_coreneuron:
             CoreConfig.update_tstop(rep_params.name, target_spec.name, rep_params.end)
             return True
@@ -1019,7 +1096,8 @@ class Node:
                     raise ConfigurationError(f"Report: invalid compartment type {compartment_type}")
                 if section_type == "all":  # for "all sections", support only target_type=0
                     return 0
-                # 0=Compartment, Section { 2=Soma, 3=Axon, 4=Dendrite, 5=Apical, 6=SomaAll ... }
+                # 0=Compartment, Section { 2=Soma, 3=Axon, 4=Dendrite, 5=Apical,
+                # 6=SomaAll ... }
                 return sections.index(section_type) + 1 + 4 * compartments.index(compartment_type)
 
             section_type = rep_conf.get("Sections")
@@ -1028,7 +1106,12 @@ class Node:
 
         reporton_comma_separated = ",".join(rep_params.report_on.split())
         core_report_params = (
-            (rep_params.name, target_spec.name, rep_params.rep_type, reporton_comma_separated)
+            (
+                rep_params.name,
+                target_spec.name,
+                rep_params.rep_type,
+                reporton_comma_separated,
+            )
             + rep_params[3:5]
             + (target_type,)
             + rep_params[5:8]
@@ -1121,7 +1204,9 @@ class Node:
             target_name = config.get("Target").s
             configure_str = config.get("Configure").s
             log_verbose(
-                'Apply configuration "%s" on target %s', config.get("Configure").s, target_name
+                'Apply configuration "%s" on target %s',
+                config.get("Configure").s,
+                target_name,
             )
 
             points = self._target_manager.getPointList(target_name)
@@ -1199,7 +1284,8 @@ class Node:
             self._pc.spike_compress(*spike_compress)
 
         # LFP calculation requires WholeCell balancing and extracellular mechanism.
-        # This is incompatible with efficient caching atm AND Incompatible with mcd & Glut
+        # This is incompatible with efficient caching atm AND Incompatible with
+        # mcd & Glut
         if not self._is_ngv_run:
             Nd.cvode.cache_efficient("ElectrodesPath" not in self._run_conf)
         self._pc.set_maxstep(4)
@@ -1310,16 +1396,19 @@ class Node:
             and (SimConfig.cli_options.enable_shm and SimConfig.delete_corenrn_data)
         ):
             # Check for the available memory in /dev/shm and estimate the RSS by multiplying
-            # the number of cycles in the multi-step model build with an approximate factor
+            # the number of cycles in the multi-step model build with an approximate
+            # factor
             mem_avail = SHMUtil.get_mem_avail()
             shm_avail = SHMUtil.get_shm_avail()
             initial_rss = self._initial_rss
             current_rss = SHMUtil.get_node_rss()
             factor = SHMUtil.get_shm_factor()
             rss_diff = (current_rss - initial_rss) if initial_rss < current_rss else current_rss
-            rss_req = int(rss_diff * self._n_cycles * factor)  # 'rss_diff' prevents <0 estimates
+            # 'rss_diff' prevents <0 estimates
+            rss_req = int(rss_diff * self._n_cycles * factor)
 
-            # Sync condition value with all ranks to ensure that all of them can use /dev/shm
+            # Sync condition value with all ranks to ensure that all of them can use
+            # /dev/shm
             shm_possible = (rss_req < shm_avail) and (rss_req < mem_avail)
             if MPI.allreduce(int(shm_possible), MPI.SUM) == MPI.size:
                 logging.info("SHM file transfer mode for CoreNEURON enabled")
@@ -1447,13 +1536,15 @@ class Node:
             self._stim_manager.saveStatePreparation(self._bbss)
             log_verbose("SaveState Initialization Done")
 
-            # If event at the end of the sim we can actually clearModel() before savestate()
+            # If event at the end of the sim we can actually clearModel() before
+            # savestate()
             if SimConfig.save_time is None:
                 log_verbose("Clearing model prior to final save")
                 self._sonatareport_helper.flush()
 
             self.dump_cell_config()
-            # Clear the model after saving state as the pointers are being recorded in reportinglib
+            # Clear the model after saving state as the pointers are being recorded in
+            # reportinglib
             if SimConfig.save_time is None:
                 self.clear_model()
             logging.info(" => Save done successfully")
@@ -1789,7 +1880,8 @@ class Neurodamus(Node):
 
         self.load_targets()
 
-        # Check connection block configuration and raise warnings for overriding parameters
+        # Check connection block configuration and raise warnings for overriding
+        # parameters
         SimConfig.check_connections_configure(self._target_manager)
 
         # Check if user wants to build the model in several steps (only for CoreNeuron)

@@ -9,9 +9,8 @@ Package-Level Classes
 =====================
 
 .. autosummary::
-   Neurodamus
-   Node
-
+   node.Neurodamus
+   node.Node
 
 Sub-Modules
 ===========
@@ -28,20 +27,19 @@ Sub-Modules
    stimulus_manager
    target_manager
 
-
 Module API
 ==========
 
 neurodamus
 ----------
 
-.. autoclass:: neurodamus.Neurodamus
+.. autoclass:: neurodamus.node.Neurodamus
    :members:
    :undoc-members:
 
    .. automethod:: __init__
 
 
-.. autoclass:: neurodamus.Node
+.. autoclass:: neurodamus.node.Node
    :members:
    :undoc-members:
