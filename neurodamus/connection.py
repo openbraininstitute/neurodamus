@@ -1,13 +1,13 @@
-"""
-Implementation of the core Connection classes
-"""
+"""Implementation of the core Connection classes"""
 
 import logging
-import numpy
 import re
 from enum import Enum
+
+import numpy as np
+
 from .core import NeurodamusCore as Nd
-from .core.configuration import GlobalConfig, SimConfig, ConfigurationError
+from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .utils import compat
 from .utils.logging import log_all
 from .utils.pyutils import append_recarray
@@ -41,25 +41,23 @@ class NetConType(Enum):
 
 
 class ConnectionBase:
-    """
-    The Base implementation for cell connections identified by src-dst gids
-    """
+    """The Base implementation for cell connections identified by src-dst gids"""
 
     __slots__ = (
-        "sgid",
-        "tgid",
-        "locked",
-        "_disabled",
-        "_synapse_params",
-        "_netcons",
-        "_synapses",
         "_delay_vec",
         "_delayweight_vec",
-        "weight_factor",
-        "syndelay_override",
-        "_syn_offset",
-        "_src_pop_id",
+        "_disabled",
         "_dst_pop_id",
+        "_netcons",
+        "_src_pop_id",
+        "_syn_offset",
+        "_synapse_params",
+        "_synapses",
+        "locked",
+        "sgid",
+        "syndelay_override",
+        "tgid",
+        "weight_factor",
     )
 
     def __init__(
@@ -167,7 +165,7 @@ class ConnectionBase:
     @classmethod
     def netcon_set_type(cls, netcon, syn_obj, nc_type):
         """Find nc_type_param from the synapse global variable and set via the netcon weight"""
-        nc_param_name = cls._match_index.sub("", "nc_type_param_%s" % syn_obj)
+        nc_param_name = cls._match_index.sub("", f"nc_type_param_{syn_obj}")
         nc_param_index = cls._netcon_signal_type_index_cache.get(nc_param_name)
         if nc_param_index is None:  # False -> not supported by this model
             nc_param_index = getattr(Nd, nc_param_name, False)
@@ -187,22 +185,21 @@ class ConnectionBase:
 # Connection class
 # ----------------------------------------------------------------------
 class Connection(ConnectionBase):
-    """
-    A Connection object serves as a container for synapses formed from
+    """A Connection object serves as a container for synapses formed from
     a presynaptic and a postsynaptic gid, including Points where those
     synapses are placed (stored in TPointList)
     """
 
     __slots__ = (
-        "minis_spont_rate",
-        "_spont_minis",
-        "_replay",
-        "_mod_override",
-        "_synapse_ids",
-        "_configurations",
         "_conductances_bk",
-        "_synapse_sections",
+        "_configurations",
+        "_mod_override",
+        "_replay",
+        "_spont_minis",
+        "_synapse_ids",
         "_synapse_points_x",
+        "_synapse_sections",
+        "minis_spont_rate",
     )
 
     _AMPANMDA_Helper = None
@@ -290,10 +287,9 @@ class Connection(ConnectionBase):
          - base_id: The synapse base id, usually absolute offset
 
         """
-
         n_synapses = len(synapses_params)
-        synapse_ids = numpy.arange(base_id, base_id + n_synapses, dtype="uint64")
-        mask = numpy.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
+        synapse_ids = np.arange(base_id, base_id + n_synapses, dtype="uint64")
+        mask = np.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
         for i, syn_params in enumerate(synapses_params):
             syn_point = target_manager.location_to_point(
                 self.tgid, syn_params["isec"], syn_params["ipt"], syn_params["offset"]
@@ -302,7 +298,9 @@ class Connection(ConnectionBase):
             section = syn_point.sclst[0]
 
             if section is None or not section.exists():
-                target_point_str = "({0.isec:.0f} {0.ipt:.0f} {0.offset:.4f})".format(syn_params)
+                target_point_str = (
+                    f"({syn_params.isec:.0f} {syn_params.ipt:.0f} {syn_params.offset:.4f})"
+                )
                 logging.warning(
                     "SKIPPED Synapse %s on gid %d. Src gid: %d. Deleted TPoint %s",
                     base_id + i,
@@ -325,10 +323,10 @@ class Connection(ConnectionBase):
             self._synapse_params = synapses_params
             self._synapse_ids = synapse_ids
         else:
-            self._synapse_params = numpy.concatenate(
+            self._synapse_params = np.concatenate(
                 (self._synapse_params, synapses_params), dtype=self._synapse_params.dtype
             )
-            self._synapse_ids = numpy.concatenate((self._synapse_ids, synapse_ids))
+            self._synapse_ids = np.concatenate((self._synapse_ids, synapse_ids))
 
     # -
     def add_synapse(self, syn_tpoints, params_obj, syn_id=None):
@@ -448,7 +446,7 @@ class Connection(ConnectionBase):
                         "Please consider updating your models with the lastest synapse"
                         "implementation (from models/common) or use py-neurodamus <= 1.3.1"
                     )
-                    raise ValueError("%s does not support delayed connections" % syn_obj)
+                    raise ValueError(f"{syn_obj} does not support delayed connections")
 
                 syn_obj.setup_delay_vecs(self._delay_vec, self._delayweight_vec)
 
@@ -456,7 +454,7 @@ class Connection(ConnectionBase):
         # Set global options in mod overrides
         for mod_override in self._mod_overrides:
             for syn_option, value in SimConfig.synapse_options.items():
-                syn_opt_name = "{}_{}".format(syn_option, mod_override)
+                syn_opt_name = f"{syn_option}_{mod_override}"
                 if hasattr(Nd.h, syn_opt_name):
                     setattr(Nd.h, syn_opt_name, value)
 
@@ -464,11 +462,8 @@ class Connection(ConnectionBase):
         return n_syns
 
     def _init_artificial_stims(self, cell, replay_mode=ReplayMode.AS_REQUIRED):
-        shall_create_replay = (
-            replay_mode == ReplayMode.COMPLETE
-            or replay_mode == ReplayMode.AS_REQUIRED
-            and self._replay
-            and self._replay.has_data()
+        shall_create_replay = replay_mode == ReplayMode.COMPLETE or (
+            replay_mode == ReplayMode.AS_REQUIRED and self._replay and self._replay.has_data()
         )
 
         # Release objects if not needed
@@ -700,7 +695,7 @@ class Connection(ConnectionBase):
 class ArtificialStim:
     """Base class for artificial Stims, namely Replay and Minis"""
 
-    __slots__ = ("netstims", "netcons")
+    __slots__ = ("netcons", "netstims")
 
     _bbss = None
     """SaveState object. Initialized on first use"""
@@ -725,7 +720,7 @@ class ArtificialStim:
 class SpontMinis(ArtificialStim):
     """A class creating/holding spont minis of a connection"""
 
-    __slots__ = ("_rng_info", "_keep_alive", "rate_vec")
+    __slots__ = ("_keep_alive", "_rng_info", "rate_vec")
 
     tbins_vec = None
     """Neurodamus uses a constant rate, so tbin is always containing only 0
@@ -751,7 +746,7 @@ class SpontMinis(ArtificialStim):
 
     def set_rate(self, rate):
         if rate < 0:
-            raise ValueError("Spont minis rate cannot be negative %g" % rate)
+            raise ValueError(f"Spont minis rate cannot be negative {rate:g}")
 
         # Check if initialized. Dont recreate in order to enable in-simulation udates
         if self.rate_vec is None:
@@ -805,7 +800,7 @@ class SpontMinis(ArtificialStim):
         )
 
     def __bool__(self):
-        """object is considered False in case rate is not positive"""
+        """Object is considered False in case rate is not positive"""
         return bool(self.get_rate())
 
     def __del__(self):
@@ -839,7 +834,7 @@ class InhExcSpontMinis(SpontMinis):
         return (super().get_rate(), self.rate_vec_exc[0] if self.rate_vec_exc is not None else None)
 
     def __bool__(self):
-        """object is considered False in case no rate is positive"""
+        """Object is considered False in case no rate is positive"""
         return any(self.get_rate())
 
 

@@ -1,19 +1,16 @@
-"""
-Collection of Cell Readers from different sources (Pure HDF5, SynTool...)
-"""
+"""Collection of Cell Readers from different sources (Pure HDF5, SynTool...)"""
 
-from __future__ import absolute_import
 import logging
-import numpy as np
-import libsonata
 from collections import defaultdict
 from os import path as ospath
 
-from ..core import NeurodamusCore as Nd
-from ..core.configuration import SimConfig
-from ..core import run_only_rank0
-from ..metype import METypeManager
-from ..utils.logging import log_verbose
+import libsonata
+import numpy as np
+
+from neurodamus.core import NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core.configuration import SimConfig
+from neurodamus.metype import METypeManager
+from neurodamus.utils.logging import log_verbose
 
 EMPTY_GIDVEC = np.empty(0, dtype="uint32")
 
@@ -74,9 +71,8 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cel
     # if mpi_size is 1, return all gids flattened
     if stride == 1:
         return np.concatenate(gid_metype_bundle)
-    else:
-        groups = gid_metype_bundle[stride_offset::stride]
-        return np.concatenate(groups) if groups else EMPTY_GIDVEC
+    groups = gid_metype_bundle[stride_offset::stride]
+    return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
 
 def load_sonata(
@@ -91,9 +87,7 @@ def load_sonata(
     dry_run_stats=None,
     load_mode=None,
 ):
-    """
-    A reader supporting additional dynamic properties from Sonata files.
-    """
+    """A reader supporting additional dynamic properties from Sonata files."""
     import libsonata
 
     node_file = circuit_conf.CellLibraryFile
@@ -207,9 +201,9 @@ def load_sonata(
         if prop_name.startswith("@dynamics:"):
             actual_prop_name = prop_name[len("@dynamics:") :]  # remove prefix
             if actual_prop_name not in dynamics_attr_names:
-                raise Exception("Required Dynamics property %s not present" % prop_name)
+                raise Exception(f"Required Dynamics property {prop_name} not present")
         elif prop_name not in attr_names:
-            raise Exception("Required extra property %s not present" % prop_name)
+            raise Exception(f"Required extra property {prop_name} not present")
 
     [validate_property(p) for p in load_dynamic_props]
 
@@ -236,8 +230,7 @@ def load_sonata(
 
 
 def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
-    """
-    Read additional attributes required by emodel templates global var <emodel>__NeededAttributes
+    """Read additional attributes required by emodel templates global var <emodel>__NeededAttributes
     Args:
         node_reader: libsonata node population
         etype_path: Location of emodel hoc templates
@@ -256,12 +249,14 @@ def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
 
 
 def _get_rotations(node_reader, selection):
-    """
-    Read rotations attributes, returns a double vector of size [N][4] with the rotation quaternions
-    in the order (x,y,z,w)
+    """Get quaternions to rotate the cells
+
     Args:
         node_reader: libsonata node population
         selection: libsonata selection
+
+    Returns:
+        double vector of size [N][4] with the rotation quaternions in the order (x,y,z,w)
     """
     attr_names = node_reader.attribute_names
     if set(["orientation_x", "orientation_y", "orientation_z", "orientation_w"]).issubset(
@@ -276,7 +271,8 @@ def _get_rotations(node_reader, selection):
                 node_reader.get_attribute("orientation_w", selection),
             ]
         ).T
-    elif set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
+
+    if set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
         attr_names
     ):
         # Some sonata nodes files use the Euler angle rotations, convert them to quaternions
@@ -299,14 +295,13 @@ def _get_rotations(node_reader, selection):
         )
         euler_rots = np.array([angle_x, angle_y, angle_z]).T
         return Rotation.from_euler("xyz", euler_rots).as_quat()
-    else:
-        return None
+
+    return None
 
 
 @run_only_rank0
 def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
-    """
-    Find unique mtype+emodel combinations in target to estimate resources in dry run.
+    """Find unique mtype+emodel combinations in target to estimate resources in dry run.
     This function returns a list of lists of unique mtype+emodel combinations.
     Each of the inner lists contains gid for the same mtype+emodel combinations.
 
@@ -325,7 +320,8 @@ def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
         etypes = node_reader.get_attribute("etype", libsonata.Selection(indexes))
         mtypes = node_reader.get_attribute("mtype", libsonata.Selection(indexes))
     else:
-        raise Exception(f"Reader type {type(node_reader)} incompatible with dry run.")
+        msg = f"Reader type {type(node_reader)} incompatible with dry run."
+        raise TypeError(msg)
 
     gids_per_metype = defaultdict(list)
     count_per_metype = defaultdict(int)
