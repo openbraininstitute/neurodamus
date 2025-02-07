@@ -1,5 +1,5 @@
 ============================
-Neurodamus .core Sub-Modules
+Neurodamus.core Sub-Modules
 ============================
 
 neurodamus.core.cell
@@ -17,8 +17,7 @@ neurodamus.core.configuration
    :members:
    :undoc-members:
 
-   neurodamus.core.configuration
-   -----------------------------
+   .. rubric:: Classes
 
 
 neurodamus.core.mechanisms
