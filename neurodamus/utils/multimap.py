@@ -3,13 +3,15 @@
 from functools import reduce
 from operator import add
 
+import numpy as np
+
 try:
     import collections.abc as collections_abc  # Py >= 3.3
 except ImportError:
     import collections as collections_abc
 
 
-class MultiMap(collections.abc.Mapping):
+class MultiMap(collections_abc.Mapping):
     """A memory-efficient map, which accepts duplicates"""
 
     __slots__ = ("_keys", "_values")

@@ -1,6 +1,5 @@
 """Compatibility Classes to work similar to HOC types, recreating or wrapping them"""
 
-import collections.abc
 from array import array
 
 

@@ -51,7 +51,6 @@ from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import Report
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
-from .utils import compat
 from .utils.logging import log_all, log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
