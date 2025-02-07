@@ -1,10 +1,12 @@
-import os
 import logging
+import os
 from pathlib import Path
-from ._utils import run_only_rank0
+
+from neurodamus.report import get_section_index
+
 from . import NeurodamusCore as Nd
+from ._utils import run_only_rank0
 from .configuration import ConfigurationError
-from ..report import get_section_index
 
 
 class CompartmentMapping:
@@ -71,9 +73,8 @@ class CompartmentMapping:
                 section_offset += processed_segments
 
 
-class _CoreNEURONConfig(object):
-    """
-    The CoreConfig class is responsible for managing the configuration of the CoreNEURON simulation.
+class _CoreNEURONConfig:
+    """The CoreConfig class is responsible for managing the configuration of the CoreNEURON simulation.
     It writes the simulation / report configurations and calls the CoreNEURON solver.
     """
 
@@ -249,6 +250,7 @@ class _CoreNEURONConfig(object):
 
     def psolve_core(self, save_path=None, restore_path=None, coreneuron_direct_mode=False):
         from neuron import coreneuron
+
         from . import NeurodamusCore as Nd
 
         Nd.cvode.cache_efficient(1)

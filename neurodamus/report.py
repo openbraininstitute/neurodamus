@@ -1,10 +1,10 @@
 import logging
+
 from .core import NeurodamusCore as Nd
 
 
 def get_section_index(cell, section):
-    """
-    Calculate the global index of a given section within its cell.
+    """Calculate the global index of a given section within its cell.
     :param cell: The cell instance containing the section of interest
     :param section: The specific section for which the index is required
     :return: The global index of the section, applicable for neuron mapping
@@ -82,10 +82,9 @@ class Report:
     def determine_scaling_mode(self, scaling_option):
         if scaling_option is None or scaling_option == "Area":
             return 1  # SCALING_AREA
-        elif scaling_option == "None":
+        if scaling_option == "None":
             return 0  # SCALING_NONE
-        else:
-            return 2  # SCALING_ELECTRODE
+        return 2  # SCALING_ELECTRODE
 
     def add_compartment_report(self, cell_obj, point, vgid, pop_name="default", pop_offset=0):
         if self.use_coreneuron:
@@ -156,7 +155,7 @@ class Report:
 
         if not synapse_list:
             raise AttributeError(f"Mechanism '{mechanism}' not found.")
-        elif not self.use_coreneuron:
+        if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
             for synapse in synapse_list:
@@ -217,8 +216,7 @@ class Report:
         return alu_helper
 
     def enable_fast_imem(self, mechanism):
-        """
-        Adjust the mechanism name for fast membrane current calculation if necessary.
+        """Adjust the mechanism name for fast membrane current calculation if necessary.
 
         If the mechanism is 'i_membrane', enables fast membrane current calculation in NEURON
         and changes the mechanism name to 'i_membrane_'.
@@ -232,8 +230,7 @@ class Report:
         return mechanism
 
     def is_point_process_at_location(self, point_process, section, x):
-        """
-        Check if a point process is located at a specific position within a section.
+        """Check if a point process is located at a specific position within a section.
 
         :param point_process: The point process to check.
         :param section: The NEURON section in which the point process is located.
@@ -248,18 +245,18 @@ class Report:
         return compartment_id == int(x * section.nseg)
 
     def get_point_processes(self, section, mechanism):
-        """
-        Retrieve all synapse objects attached to a given section.
+        """Retrieve all synapse objects attached to a given section.
 
         :param section: The NEURON section object to search for synapses.
         :param mechanism: The mechanism requested
         :return: A list of synapse objects attached to the section.
         """
-        synapses = []
-        for seg in section:
-            for syn in seg.point_processes():
-                if syn.hname().startswith(mechanism):
-                    synapses.append(syn)
+        synapses = [
+            syn
+            for seg in section
+            for syn in seg.point_processes()
+            if syn.hname().startswith(mechanism)
+        ]
         return synapses
 
     def parse_variable_names(self):

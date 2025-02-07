@@ -1,10 +1,9 @@
-"""
-Internal module which defines an MPI object based on Neuron's ParallelContext
-"""
+"""Internal module which defines an MPI object based on Neuron's ParallelContext"""
 
 import logging
 import sys
 import time
+
 from ._neuron import Neuron
 
 
@@ -12,7 +11,7 @@ class OtherRankError(RuntimeError):
     pass
 
 
-class _MPI(object):
+class _MPI:
     """A singleton of MPI runtime information"""
 
     _size = 1
@@ -86,8 +85,7 @@ class _MPI(object):
         return getattr(self._pc, name)
 
     def py_sum(self, local_counter, aggregated_object):
-        """
-        An MPI function which gathers all local objects to rank 0 and sums them
+        """An MPI function which gathers all local objects to rank 0 and sums them
         This is best suited for non-pod python objects which support sum, like `Counter`
         """
         all_counters = [local_counter] + [None] * (MPI.size - 1)  # send to rank0
@@ -98,8 +96,7 @@ class _MPI(object):
         return aggregated_object
 
     def py_reduce(self, local_counter, aggregated_object, reduce_f):
-        """
-        An MPI function which gathers all local objects to rank 0 and reduces them according to a
+        """An MPI function which gathers all local objects to rank 0 and reduces them according to a
         reducing function. This is best suited for non-pod Python objects
         """
         all_objects = [local_counter] + [None] * (MPI.size - 1)  # send to rank0

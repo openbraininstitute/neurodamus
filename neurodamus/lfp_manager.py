@@ -1,14 +1,13 @@
 import logging
-import numpy
+
+import numpy as np
 
 from .core import NeurodamusCore as Nd
 from .core.configuration import ConfigurationError
 
 
 class LFPManager:
-    """
-    Class handling the lfp functionality
-    """
+    """Class handling the lfp functionality"""
 
     def __init__(self):
         self._lfp_file = None
@@ -20,7 +19,7 @@ class LFPManager:
 
         try:
             self._lfp_file = h5py.File(lfp_weights_file, "r")
-        except IOError as e:
+        except OSError as e:
             raise ConfigurationError(f"Error opening LFP electrodes file: {e}")
 
         # Check that the file contains the required groups for at least 1 population
@@ -38,7 +37,7 @@ class LFPManager:
             raise ConfigurationError(
                 "The LFP weights file does not contain the necessary datasets "
                 "'scaling_factors', 'node_ids' and 'offsets' "
-                "in any of the populations {}.".format(population_list)
+                f"in any of the populations {population_list}."
             )
 
     def get_sonata_node_id(self, gid, population_info):
@@ -47,7 +46,7 @@ class LFPManager:
     def get_node_id_subsets(self, node_id, population_name):
         node_ids = self._lfp_file[population_name]["node_ids"]
         # Look for the index of the node_id
-        index = numpy.where(numpy.array(node_ids) == node_id)[0][0]
+        index = np.where(np.array(node_ids) == node_id)[0][0]
         offsets_dataset = self._lfp_file[population_name]["offsets"]
         electrodes_dataset = self._lfp_file["electrodes"][population_name]["scaling_factors"]
         index_low = offsets_dataset[index]
@@ -57,8 +56,7 @@ class LFPManager:
         return subset_data
 
     def read_lfp_factors(self, gid, population_info=("default", 0)):
-        """
-        Reads the local field potential (LFP) factors for a specific gid
+        """Reads the local field potential (LFP) factors for a specific gid
         from an HDF5 file and returns the factors as a Nd.Vector.
 
         Args:
@@ -76,11 +74,11 @@ class LFPManager:
                 for electrode_factors in subset_data:
                     scalar_factors.append(Nd.Vector(electrode_factors))
             except (KeyError, IndexError) as e:
-                logging.warning(
-                    "Node id {} not found in the electrodes file for population {}: {}".format(
-                        node_id, population_name, str(e)
-                    )
+                msg = (
+                    f"Node id {node_id} missing in the electrodes file"
+                    f"for population {population_name}: {e!s}"
                 )
+                logging.warning(msg)
         return scalar_factors
 
     def get_number_electrodes(self, gid, population_info=("default", 0)):
@@ -92,9 +90,9 @@ class LFPManager:
                 subset_data = self.get_node_id_subsets(node_id, population_name)
                 num_electrodes = subset_data.shape[1]
             except (KeyError, IndexError) as e:
-                logging.warning(
-                    "Node id {} not found in the electrodes file for population {}: {}".format(
-                        node_id, population_name, str(e)
-                    )
+                msg = (
+                    f"Node id {node_id} missing in the electrodes file"
+                    f"for population {population_name}: {e!s}"
                 )
+                logging.warning(msg)
         return num_electrodes

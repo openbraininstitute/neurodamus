@@ -1,6 +1,6 @@
-"""
-Module implementing interfaces to the several synapse readers (eg.: synapsetool, Hdf5Reader)
-"""
+"""Module implementing interfaces to the several synapse readers (eg.: synapsetool, Hdf5Reader)"""
+
+from __future__ import annotations
 
 import logging
 from abc import abstractmethod
@@ -8,10 +8,9 @@ from abc import abstractmethod
 import libsonata
 import numpy as np
 
-from ..core import NeurodamusCore as Nd, MPI
-from ..core import ProgressBarRank0 as ProgressBar
-from ..utils.logging import log_verbose
-from ..utils.pyutils import gen_ranges
+from neurodamus.core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar
+from neurodamus.utils.logging import log_verbose
+from neurodamus.utils.pyutils import gen_ranges
 
 
 def _constrained_hill(K_half, y):
@@ -41,12 +40,11 @@ class _SynParametersMeta(type):
     def all_fields(cls):
         return set(cls._synapse_fields)
 
-    def fields(cls, exclude: set = (), with_translation: dict = None):
+    def fields(cls, exclude: set = (), with_translation: dict | None = None):
         fields = cls.load_fields - exclude if exclude else cls.load_fields
         if with_translation:
             return [(f, with_translation.get(f, f), f in cls._optional) for f in fields]
-        else:
-            return [(f, f in cls._optional) for f in fields]
+        return [(f, f in cls._optional) for f in fields]
 
     def create_array(cls, length):
         return np.recarray(length, cls.dtype)
@@ -78,7 +76,7 @@ class SynapseParameters(metaclass=_SynParametersMeta):
     _reserved = ("maskValue", "location")
 
     def __new__(cls, *_):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def create_array(cls, length):
@@ -101,7 +99,7 @@ class SynapseReader:
         # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
         # while u_hill_coefficient can always be readif avail, conductance reader may not.
         self._uhill_property_avail = self.has_property("u_hill_coefficient")
-        self._extra_fields = tuple()
+        self._extra_fields = ()
         self._extra_scale_vars = []
 
     def preload_data(self, ids):
@@ -145,7 +143,6 @@ class SynapseReader:
     @abstractmethod
     def _load_synapse_parameters(self, gid):
         """The low level reading of synapses subclasses must override"""
-        pass
 
     @staticmethod
     def _patch_delay_fp_inaccuracies(records):
@@ -199,11 +196,9 @@ class SynapseReader:
         if fn := cls._get_sonata_circuit(syn_src):
             if cls is not SynapseReader:
                 return cls(fn, population, *args, **kw)
-            else:
-                log_verbose("[SynReader] Using SonataReader.")
-                return SonataReader(fn, population, *args, **kw)
-        else:
-            raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
+            log_verbose("[SynReader] Using SonataReader.")
+            return SonataReader(fn, population, *args, **kw)
+        raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
 
 
 class SonataReader(SynapseReader):
@@ -248,7 +243,7 @@ class SonataReader(SynapseReader):
 
         storage = libsonata.EdgeStorage(src, hdf5_reader=hdf5_reader)
         if not population:
-            assert len(storage.population_names) == 1, "Populations: %s" % storage.population_names
+            assert len(storage.population_names) == 1, f"Populations: {storage.population_names}"
             population = next(iter(storage.population_names))
         self._population = storage.open_population(population)
         # A cache which stores all the fields for each gid. E.g. {1: {"sgid": property_numpy}}
@@ -270,8 +265,7 @@ class SonataReader(SynapseReader):
         return self._data[gid][field_name]
 
     def preload_data(self, gids, minimal_mode=False):
-        """
-        Preload SONATA fields for the specified IDs.
+        """Preload SONATA fields for the specified IDs.
         Set minimal_mode to True to read a single synapse per connection
         """
         # TODO: limit the number of cells per chunk in production.
@@ -297,9 +291,8 @@ class SonataReader(SynapseReader):
             if self.LOOKUP_BY_TARGET_IDS:
                 edge_ids = self._population.afferent_edges(node_ids)
                 return edge_ids, self._population.target_nodes(edge_ids) + 1
-            else:
-                edge_ids = self._population.efferent_edges(node_ids)
-                return edge_ids, self._population.source_nodes(edge_ids) + 1
+            edge_ids = self._population.efferent_edges(node_ids)
+            return edge_ids, self._population.source_nodes(edge_ids) + 1
 
         # NOTE: needed_edge_ids, lookup_gids are used in _populate and _read
         needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
@@ -326,11 +319,10 @@ class SonataReader(SynapseReader):
         def _read(attribute, optional=False):
             if attribute in self._population.attribute_names:
                 return self._population.get_attribute(attribute, needed_edge_ids)
-            elif optional:
+            if optional:
                 log_verbose("Defaulting to -1.0 for attribute %s", attribute)
                 return -1
-            else:
-                raise AttributeError(f"Missing attribute {attribute} in the SONATA edge file")
+            raise AttributeError(f"Missing attribute {attribute} in the SONATA edge file")
 
         # Populate the opposite node id
         if self.LOOKUP_BY_TARGET_IDS:
@@ -443,9 +435,7 @@ class SonataReader(SynapseReader):
         return conn_syn_params
 
     def get_counts(self, tgids):
-        """
-        Counts synapses for the given target neuron ids. Returns a dict
-        """
+        """Counts synapses for the given target neuron ids. Returns a dict"""
         node_ids = tgids - 1
         edge_ids = self._population.afferent_edges(node_ids)
         target_nodes = self._population.target_nodes(edge_ids)
@@ -457,8 +447,7 @@ class SonataReader(SynapseReader):
         return counts_dict
 
     def get_conn_counts(self, tgids):
-        """
-        Counts synapses per connetion for all the given target neuron ids.
+        """Counts synapses per connetion for all the given target neuron ids.
         Returns a dict whose value is a numpy stuctured array
         """
         if missing_gids := set(tgids) - set(self._counts):
@@ -486,5 +475,3 @@ class SonataReader(SynapseReader):
 
 class FormatNotSupported(Exception):
     """Exception thrown when the circuit requires SynapseTool and it is NOT built-in."""
-
-    pass

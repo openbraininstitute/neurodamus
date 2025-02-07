@@ -1,34 +1,31 @@
-"""
-Main module for handling and instantiating synaptical connections and gap-junctions
-"""
+"""Main module for handling and instantiating synaptical connections and gap-junctions"""
 
-from __future__ import absolute_import
 import hashlib
 import logging
-import numpy
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
-from typing import List, Optional
+from typing import TYPE_CHECKING, Optional
 
-from .core import NeurodamusCore as Nd
-from .core import ProgressBarRank0 as ProgressBar, MPI
-from .core import run_only_rank0
-from .core.configuration import GlobalConfig, SimConfig, ConfigurationError, find_input_file
+import numpy as np
+
 from .connection import Connection, ReplayMode
+from .core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
+from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SynapseReader
 from .target_manager import TargetManager, TargetSpec
-from .utils import compat, bin_search, dict_filter_map
-from .utils.logging import VERBOSE_LOGLEVEL, log_verbose, log_all
-from .utils.memory import DryRunStats
-from .utils.timeit import timeit
+from .utils import bin_search, compat, dict_filter_map
+from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
 from .utils.pyutils import gen_ranges
+from .utils.timeit import timeit
+
+if TYPE_CHECKING:
+    from .utils.memory import DryRunStats
 
 
-class ConnectionSet(object):
-    """
-    A dataset of connections.
+class ConnectionSet:
+    """A dataset of connections.
     Several populations may exist with different seeds
     """
 
@@ -114,7 +111,7 @@ class ConnectionSet(object):
         if conns:
             # optimize for ordered insertion, and handle when sgid is not used
             last_conn = conns[-1]
-            if last_conn.sgid in (sgid, None):
+            if last_conn.sgid in {sgid, None}:
                 return last_conn
             if last_conn.sgid < sgid:
                 pos = len(conns)
@@ -134,7 +131,7 @@ class ConnectionSet(object):
         if isinstance(post_gids, int):
             if pre_gids is None:
                 return self._connections_map[post_gids]
-            elif isinstance(pre_gids, int):
+            if isinstance(pre_gids, int):
                 elem = self.get_connection(pre_gids, post_gids)
                 return (elem,) if elem is not None else ()
 
@@ -147,7 +144,7 @@ class ConnectionSet(object):
         )
         if pre_gids is None:
             return chain.from_iterable(post_gid_conn_lists)
-        elif isinstance(pre_gids, int):
+        if isinstance(pre_gids, int):
             # Return a generator which is employing bin search
             return (
                 conns[posi]
@@ -155,10 +152,9 @@ class ConnectionSet(object):
                 for posi in (bin_search(conns, pre_gids, lambda x: x.sgid),)
                 if posi < len(conns) and conns[posi].sgid == pre_gids
             )
-        else:
-            # Generic case. Looks through all conns in selected tgids
-            pre_gids = set(pre_gids)
-            return (c for conns in post_gid_conn_lists for c in conns if c.sgid in pre_gids)
+        # Generic case. Looks through all conns in selected tgids
+        pre_gids = set(pre_gids)
+        return (c for conns in post_gid_conn_lists for c in conns if c.sgid in pre_gids)
 
     def get_synapse_params_gid(self, target_gid):
         """Get an iterator over all the synapse parameters of a target
@@ -179,7 +175,7 @@ class ConnectionSet(object):
     def delete_group(self, post_gids, pre_gids=None):
         """Removes a set of connections from the population."""
         for conns, indices in self._find_connections(post_gids, pre_gids):
-            conns[:] = numpy.delete(conns, indices, axis=0).tolist()
+            conns[:] = np.delete(conns, indices, axis=0).tolist()
             self._conn_count -= len(indices)
 
     def count(self):
@@ -203,8 +199,8 @@ class ConnectionSet(object):
         return (
             (
                 conns,
-                numpy.searchsorted(
-                    numpy.fromiter((c.sgid for c in conns), dtype="int64", count=len(conns)),
+                np.searchsorted(
+                    np.fromiter((c.sgid for c in conns), dtype="int64", count=len(conns)),
                     sgids_interest,
                 ),
             )
@@ -238,9 +234,8 @@ class ConnectionSet(object):
         return str(self)
 
 
-class ConnectionManagerBase(object):
-    """
-    An abstract base class common to Synapse and GapJunction connections
+class ConnectionManagerBase:
+    """An abstract base class common to Synapse and GapJunction connections
 
     Connection Managers hold and manage connectivity among cell populations.
     For every src-dst pop pairs a new ConnectionManager is created.
@@ -301,9 +296,8 @@ class ConnectionManagerBase(object):
         self._dry_run_conns = defaultdict(set)
 
     def __str__(self):
-        return "<{:s} | {:s} -> {:s}>".format(
-            self.__class__.__name__, str(self._src_cell_manager), str(self._cell_manager)
-        )
+        name = self.__class__.__name__
+        return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
     def open_edge_location(self, syn_source, circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
@@ -326,7 +320,7 @@ class ConnectionManagerBase(object):
             synapse_file = find_input_file(synapse_file)
             log_verbose("Relative path for edge file resolved to: %s", synapse_file)
         if not ospath.exists(synapse_file):
-            raise ConfigurationError("Connectivity (Edge) file not found: {}".format(synapse_file))
+            raise ConfigurationError(f"Connectivity (Edge) file not found: {synapse_file}")
         if ospath.isdir(synapse_file):
             raise ConfigurationError("Edges source is a directory")
 
@@ -367,8 +361,7 @@ class ConnectionManagerBase(object):
         cur_pop.virtual_source = (
             self._src_cell_manager.is_virtual
             or src_pop_name != self.src_node_population
-            or bool(pop_id_override)
-            and not src_pop_name
+            or (bool(pop_id_override) and not src_pop_name)
         )
         logging.info("Loading connections to population: %s", cur_pop)
 
@@ -402,7 +395,7 @@ class ConnectionManagerBase(object):
         pop = self._populations.get((src_pop_id, dst_pop_id))
         if not pop:
             pop = self.ConnectionSet(src_pop_id, dst_pop_id, conn_factory=self.conn_factory)
-            self._populations[(src_pop_id, dst_pop_id)] = pop
+            self._populations[src_pop_id, dst_pop_id] = pop
         return pop
 
     # NOTE: Several methods use a selector of the connectivity populations
@@ -458,8 +451,7 @@ class ConnectionManagerBase(object):
 
         """
         for pop in self.find_populations(population_ids):
-            for conn in pop.get_connections(post_gids, pre_gids):
-                yield conn
+            yield from pop.get_connections(post_gids, pre_gids)
 
     # -
     def create_connections(self, src_target=None, dst_target=None):
@@ -525,7 +517,7 @@ class ConnectionManagerBase(object):
         log_msg = " * Pathway {:s} -> {:s}".format(conn_conf["Source"], conn_conf["Destination"])
 
         if "Delay" in conn_conf and conn_conf["Delay"] > 0:
-            log_msg += ":\t[DELAYED] t={0[Delay]:g}, weight={0[Weight]:g}".format(conn_conf)
+            log_msg += f":\t[DELAYED] t={conn_conf['Delay']:g}, weight={conn_conf['Weight']:g}"
             configured_conns = self.setup_delayed_connection(conn_conf)
         else:
             if "SynapseConfigure" in conn_conf:
@@ -541,11 +533,11 @@ class ConnectionManagerBase(object):
         all_ranks_total = MPI.allreduce(configured_conns, MPI.SUM)
         if all_ranks_total > 0:
             logging.info(log_msg)
-            logging.info(" => Configured {:g} connections".format(all_ranks_total))
+            logging.info(f" => Configured {all_ranks_total:g} connections")
 
     def setup_delayed_connection(self, conn_config):
         raise NotImplementedError(
-            "Manager %s doesn't implement delayed connections" % self.__class__.__name__
+            f"Manager {self.__class__.__name__} doesn't implement delayed connections"
         )
 
     # -
@@ -597,7 +589,7 @@ class ConnectionManagerBase(object):
         src_target = src_tspec.name and self._target_manager.get_target(src_tspec, src_pop_name)
         dst_target = dst_tspec.name and self._target_manager.get_target(dst_tspec, dst_pop_name)
 
-        if src_target and src_target.is_void() or dst_target and dst_target.is_void():
+        if (src_target and src_target.is_void()) or (dst_target and dst_target.is_void()):
             logging.debug(
                 "Skip void connectivity for current connectivity: %s - %s",
                 conn_source,
@@ -670,16 +662,16 @@ class ConnectionManagerBase(object):
             show_progress: Display a progress bar as tgids are processed
         """
         AUTO_PROGRESS_THRESHOLD = 50
-        if src_target and src_target.is_void() or dst_target and dst_target.is_void():
+        if (src_target and src_target.is_void()) or (dst_target and dst_target.is_void()):
             return
 
         def target_gids(gids):
             if gids is None:
                 gids = self._raw_gids
             else:
-                gids = numpy.intersect1d(gids, self._raw_gids)
+                gids = np.intersect1d(gids, self._raw_gids)
             if dst_target:
-                gids = numpy.intersect1d(gids, dst_target.get_raw_gids())
+                gids = np.intersect1d(gids, dst_target.get_raw_gids())
             return gids
 
         gids = target_gids(gids)
@@ -716,7 +708,7 @@ class ConnectionManagerBase(object):
             # The first row of a range is found by numpy.diff
 
             sgids = syns_params[syns_params.dtype.names[0]].astype("int64")  # src gid in field 0
-            sgids_ranges = numpy.diff(sgids, prepend=numpy.nan, append=numpy.nan).nonzero()[0]
+            sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
             conn_count = len(sgids_ranges) - 1
             conn_debugger = self.ConnDebugger()
 
@@ -761,7 +753,7 @@ class ConnectionManagerBase(object):
         if all_created:
             pathway_repr = "[ALL]"
             if src_target and dst_target:
-                pathway_repr = "Pathway {} -> {}".format(src_target.name, dst_target.name)
+                pathway_repr = f"Pathway {src_target.name} -> {dst_target.name}"
             logging.info(" * %s. Created %d connections", pathway_repr, all_created)
 
     def _get_conn_stats(self, dst_target, src_target=None):
@@ -799,7 +791,7 @@ class ConnectionManagerBase(object):
                 continue
 
             logging.debug("Metype %s", metype)
-            me_gids = numpy.fromiter(me_gids, dtype="uint32")
+            me_gids = np.fromiter(me_gids, dtype="uint32")
 
             # NOTE:
             # Process the first 100 cells from increasingly large blocks
@@ -829,7 +821,7 @@ class ConnectionManagerBase(object):
                 for tgid, tgid_conn_counts in sample_counts.items():
                     total_connections += len(tgid_conn_counts)
                     if src_target:
-                        conn_sgids = numpy.fromiter(tgid_conn_counts.keys(), dtype="uint32")
+                        conn_sgids = np.fromiter(tgid_conn_counts.keys(), dtype="uint32")
                         sgids_in_target = conn_sgids[src_target.contains(conn_sgids, raw_gids=True)]
                     else:
                         sgids_in_target = tgid_conn_counts.keys()
@@ -890,11 +882,11 @@ class ConnectionManagerBase(object):
         )
         assert dst_target_spec.name, "No target specified for `get_target_connections`"
         dst_target = self._target_manager.get_target(dst_target_spec)
-        if src_target and src_target.is_void() or dst_target.is_void():
+        if (src_target and src_target.is_void()) or dst_target.is_void():
             return
 
         tgid_offset = self.target_pop_offset
-        conn_populations: List[ConnectionSet] = (
+        conn_populations: list[ConnectionSet] = (
             (conn_population,) if conn_population is not None else self._populations.values()
         )
 
@@ -903,10 +895,10 @@ class ConnectionManagerBase(object):
 
         for population in conn_populations:
             logging.debug("Connections from population %s", population)
-            tgids = numpy.fromiter(population.target_gids(), "uint32")
-            tgids = numpy.intersect1d(tgids, dst_target.get_gids())
+            tgids = np.fromiter(population.target_gids(), "uint32")
+            tgids = np.intersect1d(tgids, dst_target.get_gids())
             if selected_gids:
-                tgids = numpy.intersect1d(tgids, selected_gids + tgid_offset)
+                tgids = np.intersect1d(tgids, selected_gids + tgid_offset)
             for conn in population.get_connections(tgids):
                 if src_target is None or conn.sgid in src_gids:
                     yield conn
@@ -1048,9 +1040,7 @@ class ConnectionManagerBase(object):
             ):
                 conn.enable()
                 delete_indexes.append(i)
-        self._disabled_conns[tgid] = numpy.delete(
-            self._disabled_conns[tgid], delete_indexes
-        ).tolist()
+        self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], delete_indexes).tolist()
 
     def reenable_all(self, post_gids=None):
         """Re-enables all disabled connections
@@ -1117,9 +1107,7 @@ class ConnectionManagerBase(object):
                     conn.enable()
                     to_delete.append(i)
 
-            self._disabled_conns[tgid] = numpy.delete(
-                self._disabled_conns[tgid], to_delete
-            ).tolist()
+            self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], to_delete).tolist()
 
     def get_disabled(self, post_gid=None):
         """Returns the list of disabled connections, optionally for a
@@ -1207,7 +1195,7 @@ def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_nam
 
     Returns: tuple of the src-dst population names. Any can be None if not available
     """
-    if src_pop_name and dst_pop_name or not edge_file.endswith(".h5"):
+    if (src_pop_name and dst_pop_name) or not edge_file.endswith(".h5"):
         return src_pop_name, dst_pop_name
     # Get src-dst pop names, allowing current ones to override
     src_dst_pop_names = _edge_meta_get_node_populations(
@@ -1276,8 +1264,7 @@ def _get_projection_population_id(projection):
 # SynapseRuleManager
 # ######################################################################
 class SynapseRuleManager(ConnectionManagerBase):
-    """
-    The SynapseRuleManager is designed to encapsulate the creation of
+    """The SynapseRuleManager is designed to encapsulate the creation of
     synapses for BlueBrain simulations, handling the data coming from
     the circuit file. If the config file provides any Connection
     Rules, those override which synapses are created.
