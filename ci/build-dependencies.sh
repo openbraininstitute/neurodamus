@@ -1,13 +1,15 @@
 #!/bin/bash
 #set -euxo pipefail
 
+VENV_PATH=/venv
 VENV=/venv
 
 check_venv() {
-    if [[ -z "$VIRTUAL_ENV" ]]; then
-        echo "Error: No virtual environment activated"
-        exit 1
-    fi
+    #if [[ -z "$VIRTUAL_ENV" ]]; then
+    #    echo "Error: No virtual environment activated"
+    #    exit 1
+    #fi
+    echo "CHECK"
 }
 
 install-apt-dependencies() {
@@ -16,6 +18,8 @@ install-apt-dependencies() {
         --no-install-suggests \
         --no-install-recommends \
         install \
+        curl \
+        jq \
         make \
         g++ \
         gcc \
@@ -38,8 +42,18 @@ install-apt-dependencies() {
         libreadline-dev
 }
 
+install-python-dependencies() {
+    check_venv
+    . $VENV/bin/activate
+
+    python3 -m pip install --upgrade pip setuptools
+    pip install cython numpy wheel pkgconfig mpi4py
+
+}
+
 build-libsonata() {
     check_venv
+    . $VENV/bin/activate
 
     local branch=$1
 
@@ -88,6 +102,7 @@ build-libsonatareport() {
 
 build-neuron() {
     check_venv
+    . $VENV/bin/activate
 
     local branch=$1
     local commit_id=$2
@@ -110,7 +125,7 @@ build-neuron() {
         fi
     fi
 
-    python -m pip install --upgrade pip -r nrn/nrn_requirements.txt
+    python3 -m pip install --upgrade pip -r nrn/nrn_requirements.txt
 
     cmake -B $NRN_BUILD -S $NRN \
       -DPYTHON_EXECUTABLE=$(which python3) \
@@ -126,6 +141,18 @@ build-neuron() {
     cmake --build nrn/build --target install
 }
 
+build-h5py() {
+    check_venv
+    . $VENV/bin/activate
+
+    CC="mpicc" \
+        HDF5_MPI="ON" \
+        HDF5_INCLUDEDIR=/usr/include/hdf5/mpich \
+        HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
+        pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+}
+
+
 build-neocortex-models() {
     local branch=$1
 
@@ -135,11 +162,11 @@ build-neocortex-models() {
 
     export PATH=$(pwd)/nrn/build/install/bin:$PATH
 
-    # Clone neurodamus-models repository
-    git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git
+    if [[ ! -e neurodamus-models ]]; then
+        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git
+    fi
 
-    # Build neocortex model
-    DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
+    DATADIR=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
 
     cmake -B neurodamus-models/build -S neurodamus-models/ \
       -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install \
@@ -154,11 +181,40 @@ build-neocortex-models() {
     echo "NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install" #>> $GITHUB_ENV;
 }
 
-build-h5py() {
-    check_venv
+build-neocortex-multiscale-models() {
+    local branch=$1
 
-CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich   pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+    echo "build neurodamus-neocortex-multiscale model"
+
+    if [[ ! -e "neurodamus-models" ]]; then
+        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git
+    fi
+
+    DATADIR=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
+
+    #XXX
+    export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
+
+    cmake -B neurodamus-models/build_multiscale -S neurodamus-models/ \
+      -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install_multiscale \
+      -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+      -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR \
+      -DNEURODAMUS_CORE_DIR=${DATADIR} \
+      -DNEURODAMUS_MECHANISMS=neocortex \
+      -DNEURODAMUS_NCX_METABOLISM=ON \
+      -DNEURODAMUS_NCX_NGV=ON \
+      -DNEURODAMUS_ENABLE_CORENEURON=OFF
+    cmake --build neurodamus-models/build_multiscale
+    cmake --install neurodamus-models/build_multiscale
+
+    echo "NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT=$(pwd)/neurodamus-models/install_multiscale" #>> $GITHUB_ENV;
 }
+
+github-tag() {
+    local repo=$1
+    echo $(curl -s https://api.github.com/repos/$repo/tags | jq -r '.[0].name')
+}
+
 
 run-usecase() {
 
@@ -214,4 +270,33 @@ run-pytest-sci() {
     export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 
     pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+}
+
+install() {
+    apt-get update
+    install-apt-dependencies
+
+    NEURON_BRANCH=master
+    NEURON_COMMIT_ID='c48d7d5'
+
+    LIBSONATA_LATEST=`github-tag openbraininstitute/libsonata`
+    LIBSONATA_REPORT_LATEST=`github-tag openbraininstitute/libsonatareport`
+    NEURODAMUS_MODELS_LATEST=`github-tag openbraininstitute/neurodamus-models`
+
+    python3 -m venv $VENV_PATH
+    . $VENV_PATH/bin/activate
+    export PATH    
+
+    install-python-dependencies
+    build-h5py
+    build-libsonata $LIBSONATA_LATEST
+    build-libsonatareport $LIBSONATA_REPORT_LATEST
+    build-neuron $NEURON_BRANCH $NEURON_COMMIT_ID
+
+    pip install neurodamus
+    build-neocortex-models $NEURODAMUS_MODELS_LATEST
+
+    pip install -r tests/requirements.txt
+
+    run-usecase
 }

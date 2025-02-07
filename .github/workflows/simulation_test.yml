@@ -27,6 +27,7 @@ on:
 env:
   NEURON_COMMIT_ID: 'c48d7d5'
   RDMAV_FORK_SAFE: '1'
+  VENV_PATH: /venv/
 
 jobs:
   simulation:
@@ -59,21 +60,28 @@ jobs:
     - name: Get latest tags
       run: |
         echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
+
         LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonata/tags | jq -r '.[0].name')
         echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
+
         LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonatareport/tags | jq -r '.[0].name')
         echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
+
         NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/tags | jq -r '.[0].name')
         echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
     - name: Get HEAD commit message and look for branches
       run: |
         COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+
         echo $COMMIT_MESSAGE
+
         NEURON_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'NEURON_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
         if [[ ! -z $NEURON_BRANCH ]]; then echo "NEURON_BRANCH=$NEURON_BRANCH" >> $GITHUB_ENV; fi
+
         LIBSONATA_REPORT_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_REPORT_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
         if [[ ! -z $LIBSONATA_REPORT_BRANCH ]]; then echo "LIBSONATA_REPORT_BRANCH=$LIBSONATA_REPORT_BRANCH" >> $GITHUB_ENV; fi
+
         LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
         if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
@@ -89,19 +97,25 @@ jobs:
       env:
         cache-name: cache-venv
       with:
-        path: venv
+        path: /venv/
         key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
 
     - name: Upgrade pip and install base Python packages
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-        python -m venv venv
-        . ./venv/bin/activate
-        python -m pip install --upgrade pip setuptools
-        pip install cython numpy wheel pkgconfig mpi4py
+
+        python -m venv $VENV_PATH
+        . $VENV_PATH/bin/activate
+        source ./ci/build-dependencies.sh
+        install-python-dependencies
 
     - name: Add virtual environment to PATH
-      run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
+      run: echo "$VENV_PATH/bin/" >> $GITHUB_PATH
+
+    - name: Build h5py with the local hdf5
+      run: |
+        source ./ci/build-dependencies.sh
+        build-h5py
 
     - name: Install libsonata
       if: steps.cache-venv.outputs.cache-hit != 'true'
@@ -139,11 +153,6 @@ jobs:
         source ./ci/build-dependencies.sh
         build-neuron ${{ env.NEURON_BRANCH }} ${{ env.NEURON_COMMIT_ID }}
 
-    - name: Build h5py with the local hdf5
-      run: |
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
-          pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
-
     - name: Install neurodamus
       run: |
         pip install .[full]
@@ -154,19 +163,7 @@ jobs:
         build-neocortex-models ${{ env.NEURODAMUS_MODELS_BRANCH }} 
 
         # Build neocortex-multiscale model
-        echo "build neurodamus-neocortex-multiscale model"
-        cmake -B neurodamus-models/build_multiscale -S neurodamus-models/ \
-          -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install_multiscale \
-          -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
-          -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR \
-          -DNEURODAMUS_CORE_DIR=${DATADIR} \
-          -DNEURODAMUS_MECHANISMS=neocortex \
-          -DNEURODAMUS_NCX_METABOLISM=ON \
-          -DNEURODAMUS_NCX_NGV=ON \
-          -DNEURODAMUS_ENABLE_CORENEURON=OFF
-        cmake --build neurodamus-models/build_multiscale
-        cmake --install neurodamus-models/build_multiscale
-        echo "NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT=$(pwd)/neurodamus-models/install_multiscale" >> $GITHUB_ENV;
+        build-neocortex-multiscale-models ${{ env.NEURODAMUS_MODELS_BRANCH }} 
 
     - name: load neocortex model
       run: |
