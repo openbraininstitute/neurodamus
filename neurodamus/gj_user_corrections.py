@@ -5,10 +5,11 @@
 
 
 import logging
-import numpy as np
 import pickle
-from .core import MPI
-from .core import NeurodamusCore as Nd
+
+import numpy as np
+
+from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
 non_stochastic_mechs = (
@@ -64,7 +65,7 @@ def load_user_modifications(gj_manager):
         _deterministic_stoch(node_manager)
 
     # update gap conductance
-    if settings.get("procedure_type") in ["validation_sim", "find_holding_current"]:
+    if settings.get("procedure_type") in {"validation_sim", "find_holding_current"}:
         process_gap_conns = _update_conductance(gjc, gj_manager)
         all_ranks_total = MPI.allreduce(process_gap_conns, MPI.SUM)
         logging.info(f"Set GJc = {gjc} for {int(all_ranks_total)} gap synapses")
@@ -157,7 +158,7 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
     processed_cells = 0
     try:
         g_pas_file = h5py.File(filename, "r")
-    except IOError:
+    except OSError:
         raise ConfigurationError(f"Error opening g_pas file {filename}")
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
@@ -170,7 +171,7 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
                 for seg in sec:
                     seg.g_pas = g_pas_file[f"g_pas/{gjc}/{agid}"][
                         str(seg)[str(seg).index(".") + 1 :]
-                    ][correction_iteration_load]  # noqa
+                    ][correction_iteration_load]
     g_pas_file.close()
     return processed_cells
 
@@ -181,7 +182,7 @@ def _load_holding_ic(node_manager, filename, gjc):
     holding_ic_per_gid = {}
     try:
         holding_per_gid = h5py.File(filename, "r")
-    except IOError:
+    except OSError:
         raise ConfigurationError(f"Error opening MEComboInfo file {filename}")
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
@@ -201,7 +202,7 @@ def _find_holding_current(node_manager, filename):
 
     try:
         v_per_gid = h5py.File(filename, "r")
-    except IOError:
+    except OSError:
         raise ConfigurationError(f"Error opening voltage file {filename}")
     seclamp_per_gid = {}
     seclamp_current_per_gid = {}

@@ -1,7 +1,7 @@
 import os
-import psutil
 import subprocess
-import numpy as np
+
+import psutil
 
 
 class SHMUtil:
@@ -63,7 +63,6 @@ class SHMUtil:
 
         If MPI ranks can't be associated with a node, return `None`.
         """
-
         from . import MPI, Neuron
 
         # If we do not have the SHM environment, we can't even know

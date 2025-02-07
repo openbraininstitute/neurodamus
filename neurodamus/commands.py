@@ -1,28 +1,25 @@
-"""
-Module implementing entry functions
-"""
-
-from __future__ import absolute_import
+"""Module implementing entry functions"""
 
 import logging
 import os
 import sys
 import time
-from docopt import docopt
 from os.path import abspath
 from pathlib import Path
+
+from docopt import docopt
 
 from neurodamus.utils.timeit import TimerManager
 
 from . import Neurodamus
 from .core import MPI, OtherRankError
-from .core.configuration import ConfigurationError, LogLevel, EXCEPTION_NODE_FILENAME
+from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
 from .hocify import Hocify, process_file as hocify_process_file
 from .utils.pyutils import docopt_sanitize
 
 
 def neurodamus(args=None):
-    """neurodamus
+    """Neurodamus
 
     Usage:
         neurodamus <ConfigFile> [options]
@@ -94,7 +91,7 @@ def neurodamus(args=None):
         TimerManager.timeit_show_stats()
     except ConfigurationError as e:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init
-            logging.error(str(e))
+            logging.exception(str(e))
         return 1
     except OtherRankError:
         return 1  # no need for _mpi_abort, error is being handled by all ranks
@@ -105,7 +102,7 @@ def neurodamus(args=None):
 
 
 def hocify(args=None):
-    """hocify
+    """Hocify
 
     Usage:
         hocify <MorphologyPath> [options]
@@ -128,7 +125,7 @@ def hocify(args=None):
         # the dest file is the same as the morph file but with .hoc extension
         dest_file = Path(morph_path).with_suffix(".hoc")
 
-        print("Hocifying {} -> {}".format(morph_path, dest_file))
+        print(f"Hocifying {morph_path} -> {dest_file}")
         result = hocify_process_file((morph_path, str(dest_file)))
         if isinstance(result, Exception):
             logging.critical(str(result), exc_info=True)
@@ -177,7 +174,7 @@ def show_exception_abort(err_msg, exc_info):
     with open(err_file, "a") as f:
         f.write(str(MPI.rank) + "\n")
 
-    with open(err_file, "r") as f:
+    with open(err_file) as f:
         line0 = open(err_file).readline().strip()
     if str(MPI.rank) == line0:
         logging.critical(err_msg, exc_info=exc_info)

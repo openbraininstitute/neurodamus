@@ -1,15 +1,15 @@
 import logging
 
-from .connection_manager import SynapseRuleManager
 from .connection import Connection, NetConType, ReplayMode
+from .connection_manager import SynapseRuleManager
 from .core.configuration import GlobalConfig
 from .io.sonata_config import ConnectionTypes
-from .io.synapse_reader import SynapseParameters, SonataReader
+from .io.synapse_reader import SonataReader, SynapseParameters
 from .utils.logging import log_all
 
 
 class NeuroModulationConnection(Connection):
-    __slots__ = ("_neuromod_strength", "_neuromod_dtc")
+    __slots__ = ("_neuromod_dtc", "_neuromod_strength")
 
     def __init__(
         self,

@@ -1,12 +1,11 @@
-"""
-Module to load configuration from a libsonata config
-"""
+"""Module to load configuration from a libsonata config"""
 
 import json
-import libsonata
 import logging
 import os.path
 from enum import Enum
+
+import libsonata
 
 
 class ConnectionTypes(str, Enum):
@@ -19,15 +18,15 @@ class ConnectionTypes(str, Enum):
 
 class SonataConfig:
     __slots__ = (
-        "_entries",
-        "_sections",
+        "_bc_circuits",
+        "_circuit_networks",
         "_config_dir",
         "_config_json",
+        "_entries",
         "_resolved_manifest",
-        "circuits",
-        "_circuit_networks",
+        "_sections",
         "_sim_conf",
-        "_bc_circuits",
+        "circuits",
     )
 
     _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
@@ -84,7 +83,7 @@ class SonataConfig:
             var_name = entry  # just alias
             remaining = ""
         if var_name not in manifest:
-            raise Exception("Cant decode path entry {}. Unknown var {}".format(entry, var_name))
+            raise Exception(f"Cant decode path entry {entry}. Unknown var {var_name}")
         return os.path.normpath(manifest[var_name] + remaining)
 
     @classmethod
@@ -205,7 +204,7 @@ class SonataConfig:
         return {"Conditions": conditions}
 
     def _blueconfig_circuits(self):
-        """yield blue-config-style circuits"""
+        """Yield blue-config-style circuits"""
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
         if "node_set" not in self._entries:
@@ -251,10 +250,10 @@ class SonataConfig:
                 if "nrnPath" in circuit_conf:
                     break  # Already found
 
-                for edge_pop_name in edge_config["populations"].keys():
+                for edge_pop_name in edge_config["populations"]:
                     edge_storage = self.circuits.edge_population(edge_pop_name)
                     edge_type = self.circuits.edge_population_properties(edge_pop_name).type
-                    inner_pop_name = "{0}__{0}__chemical".format(node_pop_name)
+                    inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
                     if edge_pop_name == inner_pop_name or (
                         edge_storage.source == edge_storage.target == node_pop_name
                         and edge_type == "chemical"
@@ -283,13 +282,13 @@ class SonataConfig:
 
     @property
     def parsedProjections(self):
-        projection_type_convert = dict(
-            chemical=ConnectionTypes.Synaptic,
-            electrical=ConnectionTypes.GapJunction,
-            synapse_astrocyte=ConnectionTypes.NeuroGlial,
-            endfoot=ConnectionTypes.GlioVascular,
-            neuromodulatory=ConnectionTypes.NeuroModulation,
-        )
+        projection_type_convert = {
+            "chemical": ConnectionTypes.Synaptic,
+            "electrical": ConnectionTypes.GapJunction,
+            "synapse_astrocyte": ConnectionTypes.NeuroGlial,
+            "endfoot": ConnectionTypes.GlioVascular,
+            "neuromodulatory": ConnectionTypes.NeuroModulation,
+        }
         internal_edge_pops = set(c_conf["nrnPath"] for c_conf in self._bc_circuits.values())
         projections = {}
 
@@ -311,12 +310,12 @@ class SonataConfig:
                 if edge_pop_path in internal_edge_pops:
                     continue
 
-                projection = dict(
-                    Path=edge_pop_path,
-                    Source=edge_pop.source + ":",
-                    Destination=edge_pop.target + ":",
-                    Type=projection_type_convert.get(pop_type),
-                )
+                projection = {
+                    "Path": edge_pop_path,
+                    "Source": edge_pop.source + ":",
+                    "Destination": edge_pop.target + ":",
+                    "Type": projection_type_convert.get(pop_type),
+                }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
                 if projection.get("Type") == ConnectionTypes.NeuroGlial:
                     projection["Source"], projection["Destination"] = (
@@ -331,7 +330,7 @@ class SonataConfig:
                                     self.circuits.node_population_properties(pop_name).elements_path
                                 )
 
-                proj_name = "{0}__{1.source}-{1.target}".format(edge_pop_name, edge_pop)
+                proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
         return projections
@@ -374,7 +373,7 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sections["inputs"].keys():
+        for name in self._sections["inputs"]:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
@@ -410,7 +409,7 @@ class SonataConfig:
     def _adapt_libsonata_fields(self, rep):
         for key in rep:
             # Convert enums to its string representation
-            if key in (
+            if key in {
                 "Type",
                 "Sections",
                 "Scaling",
@@ -418,7 +417,7 @@ class SonataConfig:
                 "Mode",
                 "Pattern",
                 "SpikeLocation",
-            ):
+            }:
                 if not isinstance(rep[key], str):
                     rep[key] = rep[key].name
             # Convert comma separated variable names to space separated

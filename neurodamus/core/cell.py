@@ -1,21 +1,18 @@
-"""
-A module implementing a high-level interface to Neuron cells.
-"""
+"""A module implementing a high-level interface to Neuron cells."""
 
-from __future__ import absolute_import
 import logging
 from collections import defaultdict
+
+from . import Neuron
 from .configuration import GlobalConfig
 from .mechanisms import Mechanism
 from .synapses import _SpikeSource
-from . import Neuron
 
 __all__ = ["Cell"]
 
 
 class Cell(Neuron.HocEntity, _SpikeSource):
-    """
-    A Cell abstraction. It allows users to instantiate Cells from morphologies or
+    """A Cell abstraction. It allows users to instantiate Cells from morphologies or
     create them from scratch using the Cell.Builder
     """
 
@@ -85,7 +82,7 @@ endtemplate {cls_name}"""
                 imp = h.Import3d_MorphML()
             else:
                 raise ValueError(
-                    "{} is not a recognised morphology file format".format(morpho_path)
+                    f"{morpho_path} is not a recognised morphology file format"
                     + "Should be either .hoc, .asc, .swc, .xml!"
                 )
             try:
@@ -136,10 +133,10 @@ endtemplate {cls_name}"""
     def section_info(self, section):
         c = self.all[section] if isinstance(section, int) else section
         return (
-            "|lenght: {} um\n".format(c.L)
-            + "|diameter: {} um\n".format(c.diam)
-            + "|N_segments: {}\n".format(c.nseg)
-            + "|axial resistance: {} ohm.cm\n".format(c.Ra)
+            f"|lenght: {c.L} um\n"
+            + f"|diameter: {c.diam} um\n"
+            + f"|N_segments: {c.nseg}\n"
+            + f"|axial resistance: {c.Ra} ohm.cm\n"
         )
 
     # ---
@@ -343,12 +340,12 @@ endtemplate {cls_name}"""
     Mechanisms = Mechanism
 
 
-class SectionList(object):
+class SectionList:
     """A SectionList wrapper providing convenience methods, inc len(),
     and consolidating SectionList and hoc section arrays
     """
 
-    __slots__ = ("_hlist", "_harray")
+    __slots__ = ("_harray", "_hlist")
 
     def __init__(self, hoc_section_list, hoc_section_array=None):
         self._hlist = hoc_section_list
@@ -363,12 +360,11 @@ class SectionList(object):
     def __getitem__(self, item):
         if self._harray is not None:
             return self._harray[item]
-        else:
-            logging.info("Indexing list without array. This might be inneficient")
-            for i, elem in enumerate(self._hlist):
-                if i == item:
-                    return elem
-            return None
+        logging.info("Indexing list without array. This might be inneficient")
+        for i, elem in enumerate(self._hlist):
+            if i == item:
+                return elem
+        return None
 
     def __iter__(self):
         return iter(self._hlist)

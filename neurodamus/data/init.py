@@ -1,15 +1,16 @@
-"""
-Neurodamus is a software for handling neuronal simulation using neuron.
+"""Neurodamus is a software for handling neuronal simulation using neuron.
 
 Copyright (c) 2018 Blue Brain Project, EPFL.
 All rights reserved
 """
 
+import logging
 import sys
+
+from neuron import h
+
 from neurodamus import commands
 from neurodamus.utils.cli import extract_arguments
-from neuron import h
-import logging
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
     try:
         args = extract_arguments(sys.argv)
     except ValueError as err:
-        logging.error(err)
+        logging.exception(err)
         return 1
 
     return commands.neurodamus(args)

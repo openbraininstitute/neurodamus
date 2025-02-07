@@ -1,7 +1,6 @@
 # Neurodamus
 # Copyright 2018 - Blue Brain Project, EPFL
 
-from __future__ import absolute_import
 import gc
 import glob
 import itertools
@@ -9,36 +8,53 @@ import logging
 import math
 import os
 import subprocess
-from os import path as ospath
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from contextlib import contextmanager
+from os import path as ospath
 
-from .core import MPI, mpi_no_errors, return_neuron_timings, run_only_rank0, SimulationProgress
-from .core import NeurodamusCore as Nd
-from .core.configuration import CircuitConfig, Feature, GlobalConfig, SimConfig
+# Internal Plugins
+from . import ngv as _ngv
+from .cell_distributor import (
+    CellDistributor,
+    GlobalCellManager,
+    LoadBalance,
+    LoadBalanceMode,
+    VirtualCellPopulation,
+)
+from .connection_manager import SynapseRuleManager, edge_node_pop_names
+from .core import (
+    MPI,
+    NeurodamusCore as Nd,
+    SimulationProgress,
+    mpi_no_errors,
+    return_neuron_timings,
+    run_only_rank0,
+)
 from .core._engine import EngineBase
 from .core._shmutils import SHMUtil
-from .core.configuration import ConfigurationError, find_input_file, get_debug_cell_gid
+from .core.configuration import (
+    CircuitConfig,
+    ConfigurationError,
+    Feature,
+    GlobalConfig,
+    SimConfig,
+    find_input_file,
+    get_debug_cell_gid,
+)
+from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
 from .core.nodeset import PopulationNodes
-from .cell_distributor import CellDistributor, VirtualCellPopulation, GlobalCellManager
-from .cell_distributor import LoadBalance, LoadBalanceMode
-from .connection_manager import SynapseRuleManager, edge_node_pop_names
 from .gap_junction import GapJunctionManager
+from .io.sonata_config import ConnectionTypes
+from .modification_manager import ModificationManager
+from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import Report
 from .stimulus_manager import StimulusManager
-from .modification_manager import ModificationManager
-from .neuromodulation_manager import NeuroModulationManager
-from .target_manager import TargetSpec, TargetManager
+from .target_manager import TargetManager, TargetSpec
 from .utils import compat
-from .utils.logging import log_stage, log_verbose, log_all
-from .utils.memory import DryRunStats, trim_memory, pool_shrink, free_event_queues, print_mem_usage
+from .utils.logging import log_all, log_stage, log_verbose
+from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
-from .core.coreneuron_configuration import CoreConfig, CompartmentMapping
-from .io.sonata_config import ConnectionTypes
-
-# Internal Plugins
-from . import ngv as _ngv  # NOQA
 
 
 class METypeEngine(EngineBase):
@@ -54,8 +70,7 @@ class METypeEngine(EngineBase):
 
 
 class CircuitManager:
-    """
-    Holds and manages populations and associated nodes and edges
+    """Holds and manages populations and associated nodes and edges
 
     For backward compat, base population doesnt have a population name (it is '')
     All other nodes must have a name or read from sonata pop name
@@ -76,7 +91,7 @@ class CircuitManager:
     def register_node_manager(self, cell_manager):
         pop = cell_manager.population_name
         if pop in self.node_managers:
-            raise ConfigurationError("Already existing node manager for population %s" % pop)
+            raise ConfigurationError(f"Already existing node manager for population {pop}")
         self.node_managers[pop] = cell_manager
         self.alias[cell_manager.circuit_name] = pop
         self.global_manager.register_manager(cell_manager)
@@ -161,14 +176,14 @@ class CircuitManager:
         src_manager = self.node_managers.get(source) or self.virtual_node_managers.get(source)
         if src_manager is None:  # src manager may not exist -> virtual
             log_verbose("No known population %s. Creating Virtual src for projection", source)
-            if conn_type not in (SynapseRuleManager, _ngv.GlioVascularManager):
+            if conn_type not in {SynapseRuleManager, _ngv.GlioVascularManager}:
                 raise ConfigurationError("Custom connections require instantiated source nodes")
             src_manager = VirtualCellPopulation(source, None, src_target.name)
 
         target_cell_manager = kw["cell_manager"] = self.node_managers[destination]
         kw["src_cell_manager"] = src_manager
         manager = conn_type(*manager_args, **kw)
-        self.edge_managers[(source, destination)].append(manager)
+        self.edge_managers[source, destination].append(manager)
         target_cell_manager.register_connection_manager(manager)
         return manager
 
@@ -227,7 +242,7 @@ class CircuitManager:
                     os.path.join(SimConfig.restore, "../populations_offset.dat"), pop_offset_file
                 )
             MPI.barrier()
-        with open(pop_offset_file, "r") as f:
+        with open(pop_offset_file) as f:
             offsets = [line.strip().split("::") for line in f]
             for entry in offsets:
                 if not read_virtual_pop and entry[2] == "virtual":
@@ -389,7 +404,7 @@ class Node:
         lb_mode = LoadBalance.select_lb_mode(SimConfig, self._run_conf, target)
         if lb_mode == LoadBalanceMode.RoundRobin:
             return None
-        elif lb_mode == LoadBalanceMode.Memory:
+        if lb_mode == LoadBalanceMode.Memory:
             logging.info("Load Balancing ENABLED. Mode: Memory")
             filename = f"allocation_r{MPI.size}_c{SimConfig.modelbuilding_steps}.pkl.gz"
 
@@ -630,7 +645,7 @@ class Node:
             return
 
         if not ptype_cls:
-            raise RuntimeError("No Engine to handle connectivity of type '%s'" % ptype)
+            raise RuntimeError(f"No Engine to handle connectivity of type '{ptype}'")
 
         ppath, *pop_name = projection["Path"].split(":")
         edge_pop_name = pop_name[0] if pop_name else None
@@ -904,17 +919,15 @@ class Node:
 
             # With coreneuron direct mode, enable fast membrane current calculation for i_membrane
             if (
-                SimConfig.coreneuron_direct_mode
-                and "i_membrane" in rep_params.report_on
-                or rep_params.rep_type == "lfp"
-            ):
+                SimConfig.coreneuron_direct_mode and "i_membrane" in rep_params.report_on
+            ) or rep_params.rep_type == "lfp":
                 Nd.cvode.use_fast_imem(1)
 
             if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
                 try:
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
                 except Exception as e:
-                    logging.error("Error setting up report '%s': %s", rep_name, e)
+                    logging.exception("Error setting up report '%s': %s", rep_name, e)
                     n_errors += 1
                     continue
 
@@ -932,7 +945,6 @@ class Node:
 
         self._reports_init(pop_offsets_alias)
 
-    #
     def _report_build_params(self, rep_name, rep_conf, target, pop_offsets_alias_pop):
         sim_end = self._run_conf["Duration"]
         rep_type = rep_conf["Type"]
@@ -960,8 +972,7 @@ class Node:
         if Nd.t > 0:
             start_time += Nd.t
             end_time += Nd.t
-        if end_time > sim_end:
-            end_time = sim_end
+        end_time = min(end_time, sim_end)
         if start_time > end_time:
             if MPI.rank == 0:
                 logging.error("Report/Sim End-time (%s) before Start (%g).", end_time, start_time)
@@ -992,7 +1003,6 @@ class Node:
             rep_conf.get("Scaling"),
         )
 
-    #
     def _report_write_coreneuron_config(self, rep_conf, target, rep_params):
         target_spec = TargetSpec(rep_conf["Target"])
 
@@ -1036,7 +1046,7 @@ class Node:
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
-        if rep_type not in ("compartment", "Summation", "Synapse", "lfp"):
+        if rep_type not in {"compartment", "Summation", "Synapse", "lfp"}:
             raise ConfigurationError(f"Unsupported report type: {rep_type}")
 
         # Go through the target members, one cell at a time. We give a cell reference
@@ -1127,7 +1137,7 @@ class Node:
                         continue
                     x = tpoint_list.x[sec_i]
                     tstr = configure_str.replace("%s", Nd.secname(sec=sc.sec))
-                    tstr = tstr.replace("%g", "%g" % x)
+                    tstr = tstr.replace("%g", f"{x:g}")
                     Nd.execute1(tstr, sec=sc.sec)
 
     # -
@@ -1273,7 +1283,7 @@ class Node:
 
         # register_mapping() doesn't work for this artificial cell as somatic attr is
         # missing, so create a dummy mapping file manually, required for reporting
-        cur_files = glob.glob("%s/*_3.dat" % corenrn_data)
+        cur_files = glob.glob(f"{corenrn_data}/*_3.dat")
         example_mapfile = cur_files[0]
         with open(example_mapfile, "rb") as f_mapfile:
             # read the version from the existing mapping file generated by coreneuron
@@ -1281,7 +1291,7 @@ class Node:
         mapping_file = ospath.join(corenrn_data, "%d_3.dat" % fake_gid)
         if not ospath.isfile(mapping_file):
             with open(mapping_file, "w") as dummyfile:
-                dummyfile.write("%s\n0\n" % coredata_version)
+                dummyfile.write(f"{coredata_version}\n0\n")
 
     # -
     def _sim_corenrn_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
@@ -1327,7 +1337,7 @@ class Node:
                 #            thinking that the files are written in /dev/shm, but they are actually
                 #            written on GPFS. The workflow is identical, meaning that rank 0 writes
                 #            the content and every other rank reads it afterwards in CoreNEURON.
-                for filename in {"bbcore_mech.dat", "files.dat", "globals.dat"}:
+                for filename in ("bbcore_mech.dat", "files.dat", "globals.dat"):
                     path = os.path.join(corenrn_datadir, filename)
                     path_shm = os.path.join(corenrn_datadir_shm, filename)
 
@@ -1381,7 +1391,7 @@ class Node:
         # Wait for rank0 to write the sim config file
         MPI.barrier()
 
-        logging.info(" => Dataset written to '{}'".format(CoreConfig.datadir))
+        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
 
     # -
     def run_all(self):
@@ -1419,7 +1429,6 @@ class Node:
             SimConfig.coreneuron_direct_mode,
         )
 
-    #
     def _sim_event_handlers(self, tstart, tstop):
         """Create handlers for "in-simulation" events, like activating delayed
         connections, execute Save-State, etc
@@ -1586,7 +1595,7 @@ class Node:
             return
         log_verbose("Dumping info about cell %d", self._pr_cell_gid)
         simulator = "CoreNeuron" if SimConfig.use_coreneuron else "Neuron"
-        self._pc.prcellstate(self._pr_cell_gid, "py_{}_t{}".format(simulator, Nd.t))
+        self._pc.prcellstate(self._pr_cell_gid, f"py_{simulator}_t{Nd.t}")
         self._cell_state_dump_t = Nd.t
 
     # -
@@ -1750,8 +1759,8 @@ class Neurodamus(Node):
         coreneuron_datadir = SimConfig.coreneuron_datadir
         cn_entries = []
         for i in range(ncycles):
-            log_verbose("files_{}.dat".format(i))
-            filename = ospath.join(coreneuron_datadir, "files_{}.dat".format(i))
+            log_verbose(f"files_{i}.dat")
+            filename = ospath.join(coreneuron_datadir, f"files_{i}.dat")
             with open(filename) as fd:
                 first_line = fd.readline()
                 nlines = int(fd.readline())
@@ -1765,7 +1774,7 @@ class Neurodamus(Node):
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
 
-        logging.info(" => {} files merged successfully".format(ncycles))
+        logging.info(f" => {ncycles} files merged successfully")
 
     # -
     def _coreneuron_restore(self):
@@ -1819,7 +1828,7 @@ class Neurodamus(Node):
             self._build_model()
             return
 
-        logging.info("MULTI-CYCLE RUN: {} Cycles".format(n_cycles))
+        logging.info(f"MULTI-CYCLE RUN: {n_cycles} Cycles")
         TimerManager.archive(archive_name="Before Cycle Loop")
 
         PopulationNodes.freeze_offsets()
@@ -1830,7 +1839,7 @@ class Neurodamus(Node):
         for cycle_i in range(n_cycles):
             logging.info("")
             logging.info("-" * 60)
-            log_stage("==> CYCLE {} (OUT OF {})".format(cycle_i + 1, n_cycles))
+            log_stage(f"==> CYCLE {cycle_i + 1} (OUT OF {n_cycles})")
             logging.info("-" * 60)
 
             self.clear_model()
@@ -1853,9 +1862,9 @@ class Neurodamus(Node):
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
                 base_filesdat = ospath.join(SimConfig.coreneuron_datadir, "files")
-                os.rename(base_filesdat + ".dat", base_filesdat + "_{}.dat".format(cycle_i))
+                os.rename(base_filesdat + ".dat", base_filesdat + f"_{cycle_i}.dat")
             # Archive timers for this cycle
-            TimerManager.archive(archive_name="Cycle Run {:d}".format(cycle_i + 1))
+            TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
 
         if MPI.rank == 0:
             self._merge_filesdat(n_cycles)
@@ -1882,7 +1891,7 @@ class Neurodamus(Node):
                     ranks, SimConfig.modelbuilding_steps
                 )
             except RuntimeError as e:
-                logging.error("Dry run failed: %s", e)
+                logging.exception("Dry run failed: %s", e)
             return
         if not SimConfig.simulate_model:
             self.sim_init()

@@ -1,14 +1,13 @@
-"""
-Collection of generic Python utilities.
-"""
+"""Collection of generic Python utilities."""
 
-import numpy as np
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta
 
+import numpy as np
 
-class classproperty(object):
+
+class classproperty:
     def __init__(self, getter):
         self.getter = getter
 
@@ -35,9 +34,9 @@ def docopt_sanitize(docopt_opts):
     for key, val in docopt_opts.items():
         key = key.strip("<>-").replace("-", "_")
         if isinstance(val, str):
-            if val.lower() in ("off", "false"):
+            if val.lower() in {"off", "false"}:
                 val = False
-            elif val.lower() in ("on", "true"):
+            elif val.lower() in {"on", "true"}:
                 val = True
         opts[key] = val
     return opts
@@ -48,7 +47,7 @@ class WeakList(list):
         list.append(self, weakref.ref(item, self.remove))
 
 
-class ConfigT(object):
+class ConfigT:
     """Base class for configurations.
 
     This class serves as a base for set of configurations.
@@ -91,9 +90,9 @@ class ConfigT(object):
 
         for name, value in cls.__dict__.items():
             if name not in obj.__dict__ and (value is cls.REQUIRED or type(value) is EnumMeta):
-                raise ValueError("Config field {} is mandatory".format(name))
+                raise ValueError(f"Config field {name} is mandatory")
 
-        setattr(obj, "_all", opts)
+        obj._all = opts
 
     # dict interface for compat
     def __setitem__(self, name, value):
