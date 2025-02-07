@@ -606,6 +606,13 @@ class LoadBalance:
      - cx_{TARGET}.{CPU_COUNT}.dat: The file assigning cells/pieces to individual CPUs ranks.
 
     For more information refer to the developer documentation.
+
+    :param balance_mode: Mode of balancing the load, as defined by
+        :class:`neurodamus.core.configuration.LoadBalanceMode`.
+    :param nodes_path: Path to the nodes file.
+    :param pop: Population identifier for the circuit.
+    :param target_manager: Manages target information for load balancing.
+    :param target_cpu_count: Optional number of CPUs for the target.
     """
 
     _base_output_dir = "sim_conf"
