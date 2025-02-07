@@ -19,7 +19,7 @@ Contents
    Developing a Custom Neurodamus <development>
    Memory Load Balance Tutorial <memory_load_balance>
    More on Neurodamus Wiki <https://github.com/BlueBrain/neurodamus/wiki>
-   Code Reference <api/packages>
+   Module Reference <api/modules>
    Changelog <changes>
 
 

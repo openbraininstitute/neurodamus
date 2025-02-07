@@ -1,5 +1,5 @@
 =====================
-neurodamus.io Package
+neurodamus.io package
 =====================
 
 .. automodule:: neurodamus.io

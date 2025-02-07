@@ -1,5 +1,5 @@
 ==================
-neurodamus Package
+neurodamus package
 ==================
 
 .. automodule:: neurodamus
