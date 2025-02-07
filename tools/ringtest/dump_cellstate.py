@@ -27,7 +27,8 @@ def dump_cellstate(pc, cvode, gid):
 
 def dump_cells(cell, filter_prefix) -> dict:
     res = _read_object_attrs(cell)
-    res["n_sections"] = -1
+    if not "nSecAll" in res:
+        res["nSecAll"] = -1
     res["sections"] = []
     cell_name = cell.hname()
     nsec = 0
@@ -40,9 +41,7 @@ def dump_cells(cell, filter_prefix) -> dict:
         res_sec.update(_read_object_attrs(sec))
         res_sec["segments"] = []
         for seg in sec:
-            attrs = {"x": seg.x,
-                     "node_index": seg.node_index()
-                     }
+            attrs = {"x": seg.x}
             attrs.update(_read_object_attrs(seg))
             for key, item in attrs.items():
                 # item is likely an nrn.Mechanism object
@@ -50,7 +49,7 @@ def dump_cells(cell, filter_prefix) -> dict:
                     vals = _read_object_attrs(item)
                     attrs[key] = vals
             res_sec["segments"].append(attrs)
-        res["n_sections"] = nsec
+        res["nSecAll"] = nsec
         res["sections"].append(res_sec)
 
     res["n_synapses"] = cell.synlist.count()
@@ -81,5 +80,11 @@ def dump_netcons(nclist, filter_prefix) -> list:
 
 
 def _read_object_attrs(obj):
-    return {x: getattr(obj, x) for x in dir(obj)
-            if not x.startswith("__") and not callable(getattr(obj, x))}
+    res = {}
+    for x in dir(obj):
+        try:
+            if not x.startswith("__") and not callable(getattr(obj, x)):
+                res[x] = getattr(obj, x)
+        except:
+            print(f"Cannot get the value for {x}")
+    return res
