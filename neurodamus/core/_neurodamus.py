@@ -1,22 +1,22 @@
-from __future__ import absolute_import
+import logging
 import os
 import sys
-import logging
 from time import strftime
+
+from neurodamus.utils import classproperty
+from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
+
 from ._engine import EngineBase
-from ..utils import classproperty
-from ..utils.logging import setup_logging, log_stage, log_verbose
-from .configuration import GlobalConfig, EXCEPTION_NODE_FILENAME
-from ._neuron import _Neuron
 from ._mpi import MPI
+from ._neuron import _Neuron
+from .configuration import GlobalConfig
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
 
 
 class _NeurodamusCore(_Neuron):
-    """
-    A wrapper class representing an instance of Neuron with the required
+    """A wrapper class representing an instance of Neuron with the required
     neurodamus hoc and mod modules loaded
     """
 

@@ -1,14 +1,7 @@
-"""
-Compatibility Classes to work similar to HOC types, recreating or wrapping them
-"""
+"""Compatibility Classes to work similar to HOC types, recreating or wrapping them"""
 
-from __future__ import absolute_import
+import collections.abc
 from array import array
-
-try:
-    import collections.abc as collections_abc  # Py >= 3.3
-except ImportError:
-    import collections as collections_abc
 
 
 class Vector(array):
@@ -47,10 +40,10 @@ class List(list):
         return self[int(idx)]
 
 
-class Map(collections_abc.Mapping):
+class Map(collections.abc.Mapping):
     """Class which bring Python map API to hoc Maps"""
 
-    __slots__ = ("_hoc_map", "_size", "String")
+    __slots__ = ("String", "_hoc_map", "_size")
 
     def __new__(cls, wrapped_obj, *args, **kwargs):
         """If the wrapped entity is not an hoc map, but a Python dict
@@ -132,8 +125,7 @@ class Map(collections_abc.Mapping):
 
 
 class PyMap(dict):
-    """
-    PyMap does basically the reverse of compat.Map: it's a true dict but capable of
+    """PyMap does basically the reverse of compat.Map: it's a true dict but capable of
     getting a hoc map, built on the fly
     """
 

@@ -25,6 +25,7 @@ requires-python=">=3.9"
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API
 full=['scipy', 'morphio', 'NEURON']
+docs=['sphinx', 'sphinx-bluebrain-theme']
 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
@@ -92,8 +93,116 @@ precision = 0
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "COM812",  # Trailing comma (to have similar behavior to black)
+    "CPY001",  # Missing copyright notice at top of file
+    "D105",    # Missing docstring in magic method
+    "ISC001",  # single line implicit string concatenation (disabling suggested by ruff formatter)
+    "N802",    # function name should be lowercase
+    "PLE1205", # Too many arguments for `logging` format string
+    "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
+    "S104",    # Possible binding to all interfaces
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "TD",      # TODOs
+    "D415",    # First line should end with a period, question mark, or exclamation point
+    ### TODO: these are low priority to fix, but perhaps should be considered in the future
+    "ANN",     # Missing type annotation
+    "FBT002",  # Boolean default positional argument in function definition
+    "PTH",     # use of os.path, will move to pathlib at some point
+    "S101",    # Use of `assert` detected
+    ### TODO: remove rules temporarily ignored
+    "D205",    # missing-blank-line-after-summary
+    "D301",    # Use `r"""` if any backslashes in a docstring
+    "DOC201",  # `return` is not documented in docstring
+    "DOC402",  # `yield` is not documented in docstring
+    "DOC501",  # Raised exception missing from docstring
+    "LOG015",  # `info()` call on root logger
+]
+exclude = [
+    "neurodamus/cell_distributor.py",
+    "neurodamus/commands.py",
+    "neurodamus/connection_manager.py",
+    "neurodamus/connection.py",
+    "neurodamus/core/cell.py",
+    "neurodamus/core/configuration.py",
+    "neurodamus/core/coreneuron_configuration.py",
+    "neurodamus/core/_engine.py",
+    "neurodamus/core/__init__.py",
+    "neurodamus/core/mechanisms.py",
+    "neurodamus/core/_mpi.py",
+    "neurodamus/core/_neurodamus.py",
+    "neurodamus/core/_neuron.py",
+    "neurodamus/core/nodeset.py",
+    "neurodamus/core/random.py",
+    "neurodamus/core/_shmutils.py",
+    "neurodamus/core/stimuli.py",
+    "neurodamus/core/synapses.py",
+    "neurodamus/core/_utils.py",
+    "neurodamus/data/init.py",
+    "neurodamus/gap_junction.py",
+    "neurodamus/gj_user_corrections.py",
+    "neurodamus/hocify.py",
+    "neurodamus/__init__.py",
+    "neurodamus/io/cell_readers.py",
+    "neurodamus/io/__init__.py",
+    "neurodamus/io/sonata_config.py",
+    "neurodamus/io/synapse_reader.py",
+    "neurodamus/lfp_manager.py",
+    "neurodamus/metype.py",
+    "neurodamus/modification_manager.py",
+    "neurodamus/morphio_wrapper.py",
+    "neurodamus/neuromodulation_manager.py",
+    "neurodamus/ngv.py",
+    "neurodamus/node.py",
+    "neurodamus/replay.py",
+    "neurodamus/report.py",
+    "neurodamus/stimulus_manager.py",
+    "neurodamus/target_manager.py",
+    "neurodamus/utils/cli.py",
+    "neurodamus/utils/compat.py",
+    "neurodamus/utils/__init__.py",
+    "neurodamus/utils/logging.py",
+    "neurodamus/utils/memory.py",
+    "neurodamus/utils/multimap.py",
+    "neurodamus/utils/progressbar.py",
+    "neurodamus/utils/pyutils.py",
+    "neurodamus/utils/timeit.py",
+]
+
 [tool.ruff.lint.isort]
 known-local-folder = [
     "neurodamus",
 ]
 combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+    "ANN",     # Missing type annotation
+    "D",       # pydocstyle
+    "ERA001",  # Found commented-out code
+    "INP001",  # Missing `__init__.py`
+    "PLC2701", # Private name import from external module
+    "PLR2004", # magic value (constant) used in comparison (i.e. expected == 3)
+    "S101",    # Use of `assert` detected
+    "SLF001",  # private member access
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+# Maximum number of arguments for function / method
+max-args = 12
+# Maximum number of locals for function / method body
+max-locals = 15
+# Maximum number of return / yield for function / method body
+max-returns = 6
+# Maximum number of branch for function / method body
+max-branches = 12
+# Maximum number of statements in function / method body
+max-statements = 50
+# Maximum number of public methods for a class (see R0904).
+max-public-methods = 60

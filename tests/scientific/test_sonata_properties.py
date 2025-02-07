@@ -4,7 +4,6 @@ from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
 CONFIG_FILE = SIM_DIR / "simulation_config_base.json"
-EDGES_FILE = "/gpfs/bbp.cscs.ch/project/proj83/circuits/Bio_M/20200805/sonata/networks/edges/functional/All/edges.h5" # NOQA
 
 
 def test_input_resistance():

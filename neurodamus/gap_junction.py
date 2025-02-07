@@ -1,20 +1,17 @@
-"""
-Main module for handling and instantiating synaptical connections
-"""
+"""Main module for handling and instantiating synaptical connections"""
 
-from __future__ import absolute_import
-import numpy as np
 import logging
 from os import path as ospath
 
+import numpy as np
+
 from .connection_manager import ConnectionManagerBase
-from .core.configuration import ConfigurationError
+from .core.configuration import ConfigurationError, SimConfig
+from .gj_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 from .utils import compat
 from .utils.logging import log_verbose
-from .gj_user_corrections import load_user_modifications
-from .core.configuration import SimConfig
 
 
 class GapJunctionConnParameters(SynapseParameters):
@@ -39,8 +36,7 @@ class GapJunctionSynapseReader(SonataReader):
 
 
 class GapJunctionManager(ConnectionManagerBase):
-    """
-    The GapJunctionManager is similar to the SynapseRuleManager. It will
+    """The GapJunctionManager is similar to the SynapseRuleManager. It will
     open dedicated connectivity files which will have the locations and
     conductance strengths of gap junctions detected in the circuit.
     The user will have the capacity to scale the conductance weights.
@@ -85,13 +81,13 @@ class GapJunctionManager(ConnectionManagerBase):
     def _compute_gj_offsets(self, gj_dir):
         log_verbose("Computing gap-junction offsets from gjinfo.txt")
         gjfname = ospath.join(gj_dir, "gjinfo.txt")
-        assert ospath.isfile(gjfname), "Nrn-format GapJunctions require gjinfo.txt: %s" % gj_dir
+        assert ospath.isfile(gjfname), f"Nrn-format GapJunctions require gjinfo.txt: {gj_dir}"
         gj_offsets = compat.Vector()
         gj_sum = 0
 
         for line in open(gjfname):
             gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
-            gid, offset = map(int, line.strip().split())
+            _, offset = map(int, line.strip().split())
             gj_sum += 2 * offset
 
         return gj_offsets
@@ -102,7 +98,6 @@ class GapJunctionManager(ConnectionManagerBase):
 
     def configure_connections(self, conn_conf):
         """Gap Junctions dont configure_connections"""
-        pass
 
     def finalize(self, *_, **_kw):
         super().finalize(conn_type="Gap-Junctions")

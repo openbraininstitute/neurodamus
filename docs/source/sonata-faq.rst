@@ -16,7 +16,7 @@ you could check this spreadsheet.
 
 There are also some examples where given a BlueConfig, we show the corresponding
 SONATA config file. The examples can be found `here
-<https://bbpgitlab.epfl.ch/hpc/sim/neurodamus-py/-/blob/doc/sonata/docs/sonata-simulation.rst>`__
+<https://github.com/openbraininstitute/neurodamus/blob/main/docs/sonata-simulation.rst>`__
 
 
 How do I know if my new SONATA configuration is valid?

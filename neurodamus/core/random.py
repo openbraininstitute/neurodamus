@@ -1,16 +1,12 @@
-"""
-Py Wrappers for the HOC RNGs
-"""
+"""Py Wrappers for the HOC RNGs"""
 
-from __future__ import absolute_import
 from . import Neuron
-
 
 # NOTE: These are pure wrappers, in the sense they don't create Python objects. Instead
 #       Neuron objects are returned (using __new__)
 
 
-class RNG(object):
+class RNG:
     def __new__(cls, **kw):
         """Creates a default RNG (Random123 with ids of 0,1,2)"""
         seed = kw.get("seed", 0)
@@ -36,8 +32,7 @@ class Random123(RNG):
 
 # Gamma-distributed sample generator (not available in NEURON)
 def gamma(rng, a, b, N=1):
-    """
-    Sample N variates from a gamma distribution with parameters shape = a, scale = b
+    """Sample N variates from a gamma distribution with parameters shape = a, scale = b
     using the NEURON random number generator rng.
     Uses the algorithm by Marsaglia and Tsang 2001.
     """
@@ -54,7 +49,7 @@ def gamma(rng, a, b, N=1):
     c = 1 / 3 / sqrt(d)
 
     vec = Neuron.h.Vector(N)
-    for i in range(0, N):
+    for i in range(N):
         while True:
             x = rng.normal(0, 1)
             v = 1 + c * x

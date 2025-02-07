@@ -33,6 +33,6 @@ tests/output
 build/*
 dist/*
 sdist/*
-docs/_build/*
+docs/build/
 cover/*
 MANIFEST
