@@ -87,6 +87,6 @@ def _read_object_attrs(obj, filter_keys=None):
     res = {}
     for x in dir(obj):
         if (not filter_keys or x not in filter_keys) and not x.startswith("__") and \
-            not callable(getattr(obj, x)):
+                not callable(getattr(obj, x)):
             res[x] = getattr(obj, x)
     return res
