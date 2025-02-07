@@ -936,7 +936,7 @@ class ConnectionManagerBase:
             for key, val in syn_params.items():
                 setattr(conn, key, val)
             if "ModOverride" in conn_config:
-                conn.set_mod_override(conn_config["ModOverride"])
+                conn.mod_override = conn_config["ModOverride"]
             if "SynapseConfigure" in conn_config:
                 conn.add_synapse_configuration(conn_config["SynapseConfigure"])
             configured_conns += 1

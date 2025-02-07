@@ -262,7 +262,13 @@ class Connection(ConnectionBase):
         if configuration is not None:
             self._configurations.append(configuration)
 
-    def set_mod_override(self, mod_override):
+    @property
+    def mod_override(self):
+        """_mod_override getter"""
+        return self._mod_override
+
+    @mod_override.setter
+    def mod_override(self, mod_override):
         """Set a valid mod override"""
         assert mod_override is not None, "ModOverride cannot be None"
         self._mod_override = mod_override
