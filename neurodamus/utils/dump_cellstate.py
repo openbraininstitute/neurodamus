@@ -1,4 +1,7 @@
 import json
+import logging
+
+FILTER_SYNAPSE_ATTRS = ["rng"]
 
 
 def dump_cellstate(pc, cvode, gid):
@@ -8,7 +11,7 @@ def dump_cellstate(pc, cvode, gid):
         cvode: NEURON CVode context, to get netcons list
         gid: cell gid in NEURON context
     """
-    print(f"dump cell state for id {gid}")
+    logging.info(f"dump cell state for id {gid}")
     cell = pc.gid2cell(gid)
     name = cell.hname()
     # remove the cell index from names
@@ -56,7 +59,7 @@ def dump_cells(cell, filter_prefix) -> dict:
     res["synapses"] = []
     for syn in cell.synlist:
         attrs = {"name": syn.hname()}
-        attrs.update(_read_object_attrs(syn))
+        attrs.update(_read_object_attrs(syn, FILTER_SYNAPSE_ATTRS))
         attrs["location"] = syn.get_loc()
         attrs["segment"] = str(syn.get_segment()).removeprefix(filter_prefix)
         res["synapses"].append(attrs)
@@ -79,11 +82,11 @@ def dump_netcons(nclist, filter_prefix) -> list:
     return res
 
 
-def _read_object_attrs(obj):
+def _read_object_attrs(obj, filter_keys=[]):
     res = {}
     for x in dir(obj):
         try:
-            if not x.startswith("__") and not callable(getattr(obj, x)):
+            if x not in filter_keys and not x.startswith("__") and not callable(getattr(obj, x)):
                 res[x] = getattr(obj, x)
         except Exception:
             pass
