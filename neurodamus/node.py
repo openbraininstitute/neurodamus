@@ -697,7 +697,7 @@ class Node:
         """Check for Projection blocks"""
         target_manager = self._target_manager
         # None, GapJunctions, NeuroGlial, NeuroModulation...
-        ptype = projection.get("Type")  
+        ptype = projection.get("Type")
         ptype_cls = EngineBase.connection_types.get(ptype)
         source_t = TargetSpec(projection.get("Source"))
         dest_t = TargetSpec(projection.get("Destination"))
