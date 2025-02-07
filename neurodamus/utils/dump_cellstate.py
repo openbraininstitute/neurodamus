@@ -1,7 +1,10 @@
+"""Function for dumping cell state from NEURON context"""
+
+
 import json
 import logging
 
-FILTER_SYNAPSE_ATTRS = ["rng"]
+FILTER_SYNAPSE_ATTRS = ["delay_times", "delay_weights", "rng"]
 
 
 def dump_cellstate(pc, cvode, gid):
@@ -11,32 +14,30 @@ def dump_cellstate(pc, cvode, gid):
         cvode: NEURON CVode context, to get netcons list
         gid: cell gid in NEURON context
     """
-    logging.info(f"dump cell state for id {gid}")
+    logging.info("Dump cell state for id %s", gid)
     cell = pc.gid2cell(gid)
     name = cell.hname()
     # remove the cell index from names
     cell_name = name[: name.find("[")]
     cell_prefix = name + "."
     res = {cell_name: {"gid": gid}}
-    res[cell_name].update(dump_cells(cell, filter_prefix=cell_prefix))
+    res[cell_name].update(_dump_cells(cell, filter_prefix=cell_prefix))
     nclist = cvode.netconlist("", cell, "")
     res[cell_name]["n_netcons"] = nclist.count()
-    res[cell_name]["netcons"] = dump_netcons(nclist, filter_prefix=cell_prefix)
+    res[cell_name]["netcons"] = _dump_netcons(nclist, filter_prefix=cell_prefix)
 
     outputfile = "cellstate_" + str(gid) + ".json"
-    with open(outputfile, "w") as f:
+    with open(outputfile, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=2)
 
 
-def dump_cells(cell, filter_prefix) -> dict:
+def _dump_cells(cell, filter_prefix) -> dict:
     res = _read_object_attrs(cell)
     if "nSecAll" not in res:
         res["nSecAll"] = -1
     res["sections"] = []
     cell_name = cell.hname()
-    nsec = 0
-    for sec in cell.all:
-        nsec += 1
+    for nsec, sec in enumerate(cell.all):
         res_sec = {}
         sec_name = sec.hname()
         sec_name = sec_name.replace(cell_name + ".", "")
@@ -52,7 +53,7 @@ def dump_cells(cell, filter_prefix) -> dict:
                     vals = _read_object_attrs(item)
                     attrs[key] = vals
             res_sec["segments"].append(attrs)
-        res["nSecAll"] = nsec
+        res["nSecAll"] = nsec + 1
         res["sections"].append(res_sec)
 
     res["n_synapses"] = cell.synlist.count()
@@ -66,7 +67,7 @@ def dump_cells(cell, filter_prefix) -> dict:
     return res
 
 
-def dump_netcons(nclist, filter_prefix) -> list:
+def _dump_netcons(nclist, filter_prefix) -> list:
     res = []
     for nc in nclist:
         attrs = {"name": nc.hname()}
@@ -82,12 +83,10 @@ def dump_netcons(nclist, filter_prefix) -> list:
     return res
 
 
-def _read_object_attrs(obj, filter_keys=[]):
+def _read_object_attrs(obj, filter_keys=None):
     res = {}
     for x in dir(obj):
-        try:
-            if x not in filter_keys and not x.startswith("__") and not callable(getattr(obj, x)):
-                res[x] = getattr(obj, x)
-        except Exception:
-            pass
+        if (not filter_keys or x not in filter_keys) and not x.startswith("__") and \
+            not callable(getattr(obj, x)):
+            res[x] = getattr(obj, x)
     return res
