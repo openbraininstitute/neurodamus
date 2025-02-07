@@ -1,8 +1,5 @@
-"""
-Mechanisms to load and balance cells across the computing resources.
-"""
+"""Mechanisms to load and balance cells across the computing resources."""
 
-from __future__ import absolute_import, print_function
 import abc
 import hashlib
 import logging  # active only in rank 0 (init)
@@ -13,27 +10,36 @@ from io import StringIO
 from os import path as ospath
 from pathlib import Path
 
-import numpy
+import numpy as np
 
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, mpi_no_errors, run_only_rank0
-from .core import NeurodamusCore as Nd
-from .core import ProgressBarRank0 as ProgressBar
-from .core.configuration import ConfigurationError
-from .core.configuration import GlobalConfig, LoadBalanceMode, LogLevel, find_input_file, SimConfig
+from .core import (
+    MPI,
+    NeurodamusCore as Nd,
+    ProgressBarRank0 as ProgressBar,
+    mpi_no_errors,
+    run_only_rank0,
+)
+from .core.configuration import (
+    ConfigurationError,
+    GlobalConfig,
+    LoadBalanceMode,
+    LogLevel,
+    SimConfig,
+    find_input_file,
+)
 from .core.nodeset import NodeSet
 from .io import cell_readers
 from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
-from .utils.logging import log_verbose, log_all
+from .utils.logging import log_all, log_verbose
 from .utils.memory import DryRunStats, get_mem_usage_kb
 
 
 class VirtualCellPopulation:
-    """
-    A virtual cell population offers a compatible interface with Cell Manager,
+    """A virtual cell population offers a compatible interface with Cell Manager,
     however it doesnt instantiate cells.
     It is mostly used as source of projections
     """
@@ -59,7 +65,7 @@ class VirtualCellPopulation:
     is_virtual = property(lambda self: True)
 
     def __str__(self):
-        return "([VIRT] {:s})".format(self.population_name)
+        return f"([VIRT] {self.population_name:s})"
 
 
 class _CellManager(abc.ABC):
@@ -157,7 +163,7 @@ class CellManagerBase(_CellManager):
         return self._local_nodes is not None
 
     def __str__(self):
-        return "({}: {})".format(self.__class__.__name__, str(self._population_name))
+        return f"({self.__class__.__name__}: {self._population_name!s})"
 
     # Compatibility with neurodamus-core (used by TargetManager, CompMapping)
     # Create hoc vector from numpy.array
@@ -165,7 +171,7 @@ class CellManagerBase(_CellManager):
         return compat.hoc_vector(self.local_nodes.final_gids())
 
     def get_final_gids(self):
-        return numpy.array(self.local_nodes.final_gids())
+        return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
         if not ospath.isabs(circuit_conf.CellLibraryFile):
@@ -248,7 +254,7 @@ class CellManagerBase(_CellManager):
         logging.info(" -> Distributing target '%s' using Load-Balance", target_spec.name)
         self._binfo = load_balancer.load_balance_info(target_spec)
         # self._binfo has gidlist, but gids can appear multiple times
-        all_gids = numpy.unique(self._binfo.gids.as_numpy().astype("uint32"))
+        all_gids = np.unique(self._binfo.gids.as_numpy().astype("uint32"))
         total_cells = len(all_gids)
         gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
         return gidvec, me_infos, total_cells, full_size
@@ -258,7 +264,7 @@ class CellManagerBase(_CellManager):
 
         population = targetspec.population
         all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
-        all_gids = numpy.array(all_gids, dtype="uint32")
+        all_gids = np.array(all_gids, dtype="uint32")
         logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
         total_cells = len(all_gids)
         if total_cells == 0:
@@ -304,8 +310,7 @@ class CellManagerBase(_CellManager):
 
     @mpi_no_errors
     def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
-        """
-        Instantiates the subset of selected cells while measuring memory taken by each metype
+        """Instantiates the subset of selected cells while measuring memory taken by each metype
 
         Args:
             CellType: The cell type class
@@ -341,7 +346,7 @@ class CellManagerBase(_CellManager):
         for gid, cell_info in gid_info_items:
             if cell_info is None:
                 continue
-            metype = "{0.mtype}-{0.etype}".format(cell_info)
+            metype = f"{cell_info.mtype}-{cell_info.etype}"
             if metype in skip_metypes:
                 continue
             if prev_metype is not None and metype != prev_metype:
@@ -399,7 +404,6 @@ class CellManagerBase(_CellManager):
             target_name: The target of the report
             use_coreneuron: Whether the simulator is CoreNeuron
         """
-        pass
 
     def load_artificial_cell(self, gid, artificial_cell):
         logging.info(" > Adding Artificial cell for CoreNeuron")
@@ -427,7 +431,7 @@ class CellManagerBase(_CellManager):
     def record_spikes(self, gids=None, append_spike_vecs=None):
         """Setup recording of spike events (crossing of threshold) for cells on this node"""
         if not self._local_nodes:
-            return
+            return None
         spikevec, idvec = append_spike_vecs or (Nd.Vector(), Nd.Vector())
         if gids is None:
             gids = self._local_nodes.final_gids()
@@ -455,12 +459,10 @@ class CellManagerBase(_CellManager):
 
     def post_stdinit(self):
         """Post stdinit actions"""
-        pass
 
 
 class GlobalCellManager(_CellManager):
-    """
-    GlobalCellManager is a wrapper over all Cell Managers so that we can query
+    """GlobalCellManager is a wrapper over all Cell Managers so that we can query
     any cell from its global gid
     """
 
@@ -486,7 +488,7 @@ class GlobalCellManager(_CellManager):
         return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
 
     def get_final_gids(self):
-        return numpy.concatenate([man.get_final_gids() for man in self._cell_managers])
+        return np.concatenate([man.get_final_gids() for man in self._cell_managers])
 
     def _find_manager(self, gid):
         cell_managers_iter = iter(self._cell_managers)
@@ -549,7 +551,7 @@ class CellDistributor(CellManagerBase):
         super()._init_config(circuit_conf, _pop)
 
     def load_nodes(self, load_balancer=None, **kw):
-        """gets gids from target, splits and returns a GidSet with all metadata"""
+        """Gets gids from target, splits and returns a GidSet with all metadata"""
         loader_opts = kw.pop("loader_opts", {}).copy()
         all_cell_requirements = SimConfig.cell_requirements
         cell_requirements = all_cell_requirements.get(self._population_name) or (
@@ -564,8 +566,7 @@ class CellDistributor(CellManagerBase):
         return super().load_nodes(load_balancer, _loader=loader, loader_opts=loader_opts)
 
     def _instantiate_cells(self, dry_run_stats_obj: DryRunStats = None, **opts):
-        """
-        Instantiates cells, honouring dry_run if provided
+        """Instantiates cells, honouring dry_run if provided
 
         Args:
             dry_run_store_stats: Do a dry-run and update the inner fields accordingly
@@ -591,8 +592,7 @@ class CellDistributor(CellManagerBase):
 
 
 class LoadBalance:
-    """
-    Class handling the several types of load_balance info, including
+    """Class handling the several types of load_balance info, including
     generating and loading the various files.
 
     LoadBalance instances target the current system (cpu count) and circuit
@@ -614,9 +614,7 @@ class LoadBalance:
     _cpu_assign_filename_tpl = "cx_%s#.%s.dat"  # prefix must be same (imposed by Neuron)
 
     def __init__(self, balance_mode, nodes_path, pop, target_manager, target_cpu_count=None):
-        """
-        Creates a new Load Balance object, associated with a given node file
-        """
+        """Creates a new Load Balance object, associated with a given node file"""
         self.lb_mode = balance_mode
         self.target_cpu_count = target_cpu_count or MPI.size
         self._target_manager = target_manager
@@ -756,7 +754,7 @@ class LoadBalance:
         if not cxpath.is_file():
             log_verbose("  - cxpath doesnt exist: %s", cxpath)
             return False
-        with open(cxpath, "r") as f:
+        with open(cxpath) as f:
             cx_saved = cls._read_msdat(f)
         if not set(cx_saved.keys()) >= set(target_gids):
             log_verbose("  - Not all GIDs in target %s %s", set(cx_saved.keys()), set(target_gids))
@@ -821,9 +819,7 @@ class LoadBalance:
 
     @staticmethod
     def _cell_complexity_total_max(cx_cells):
-        """
-        Returns: Tuple of (TotalComplexity, max_complexity)
-        """
+        """Returns: Tuple of (TotalComplexity, max_complexity)"""
         local_max = max(cx_cells) if len(cx_cells) > 0 else 0.0
         local_sum = sum(cx_cells) if len(cx_cells) > 0 else 0.0
 
@@ -841,10 +837,9 @@ class LoadBalance:
 
     @staticmethod
     def _get_optimal_piece_complexity(total_cx, nhost, msfactor):
-        """
-        Args:
-            total_cx: Total complexity
-            nhost: Prospective no of hosts
+        """Args:
+        total_cx: Total complexity
+        nhost: Prospective no of hosts
         """
         lps = total_cx * msfactor / nhost
         return int(lps + 1)
@@ -862,7 +857,7 @@ class LoadBalance:
     def _write_msdat(fp, ms):
         """Writes load balancing info to an output stream"""
         fp.write("%d" % ms.x[0])  # gid
-        fp.write(" %g" % ms.x[1])  # total complexity of cell
+        fp.write(f" {ms.x[1]:g}")  # total complexity of cell
         piece_count = int(ms.x[2])
         fp.write(" %d\n" % piece_count)
         i = 2
@@ -890,7 +885,7 @@ class LoadBalance:
 
     @staticmethod
     def _read_msdat(fp):
-        """read load balancing info from an input stream"""
+        """Read load balancing info from an input stream"""
         cx_saved = {}  # dict with key = gid, value = line content
         piece_count = 0
         gid = None
@@ -920,7 +915,7 @@ class LoadBalance:
                 fp.write(line)  # raw lines, include \n
 
     # -
-    def _get_target_raw_gids(self, target_spec) -> numpy.ndarray:
+    def _get_target_raw_gids(self, target_spec) -> np.ndarray:
         return self._target_manager.get_target(target_spec).get_raw_gids()
 
     def load_balance_info(self, target_spec):
@@ -933,7 +928,7 @@ class LoadBalance:
     @classmethod
     def _loadbal_dir(cls, nodefile, population) -> Path:
         """Returns the dir where load balance files are stored for a given nodes file"""
-        nodefile_hash = hashlib.md5(nodefile.encode()).digest().hex()[:10]
+        nodefile_hash = hashlib.md5(nodefile.encode()).hexdigest()[:10]
         return Path(cls._base_output_dir) / (cls._circuit_lb_dir_tpl % (nodefile_hash, population))
 
     def _cx_filename(self, target_str, basename_str=False) -> Path:

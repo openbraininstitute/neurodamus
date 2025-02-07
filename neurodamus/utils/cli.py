@@ -16,12 +16,12 @@ def extract_arguments(args):
                 raise ValueError("Usage: ... init.py --configFile <config_file.json> ...")
             continue
 
-        elif not arg.startswith("-"):
+        if not arg.startswith("-"):
             raise ValueError(
                 "Positional arguments are not supported by init.py. "
                 f"Found positional argument: '{arg}'"
             )
-        elif arg.startswith("--configFile="):
+        if arg.startswith("--configFile="):
             config_file = arg.split("=")[1]
 
     result_args = [config_file] + [

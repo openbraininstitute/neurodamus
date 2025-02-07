@@ -1,6 +1,4 @@
-"""
-Definitions for implementing new Engines to handle different cell types
-"""
+"""Definitions for implementing new Engines to handle different cell types"""
 
 import importlib
 import logging

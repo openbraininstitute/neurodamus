@@ -1,29 +1,27 @@
-"""
-Module which defines and handles Glia Cells and connectivity
-"""
+"""Module which defines and handles Glia Cells and connectivity"""
 
-import libsonata
 import logging
-import numpy as np
 import os.path
 
+import libsonata
+import numpy as np
+
 from .cell_distributor import CellDistributor
-from .metype import BaseCell
 from .connection import Connection
 from .connection_manager import ConnectionManagerBase
-from .core import EngineBase
-from .core import NeurodamusCore as Nd, MPI
+from .core import MPI, EngineBase, NeurodamusCore as Nd
 from .core.configuration import GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
-from .io.synapse_reader import SynapseParameters, SonataReader
+from .io.synapse_reader import SonataReader, SynapseParameters
+from .metype import BaseCell
+from .morphio_wrapper import MorphIOWrapper
 from .utils import bin_search
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray
-from .morphio_wrapper import MorphIOWrapper
 
 
 class Astrocyte(BaseCell):
-    __slots__ = ("_glut_list", "_secidx2names", "_nseg_warning")
+    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names")
 
     def __init__(self, gid, meinfos, circuit_conf):
         """Instantiate a new Cell from node info."""
@@ -43,13 +41,12 @@ class Astrocyte(BaseCell):
     endfeet = property(lambda self: self._cellref.endfeet)
 
     def create_endfeet(self, size):
-        """
-        Create endfeet sections in the cell's context.
+        """Create endfeet sections in the cell's context.
         :param size: number of sections to create
         """
         self._cellref.execute_commands(
             [
-                "create endfoot[{}]".format(size),
+                f"create endfoot[{size}]",
                 "endfeet = new SectionList()",
                 'forsec "endfoot" endfeet.append',
             ]
@@ -57,11 +54,9 @@ class Astrocyte(BaseCell):
 
     @staticmethod
     def _er_as_hoc(morph_wrap):
-        """
-        Create hoc commands for Endoplasmic Reticulum data.
+        """Create hoc commands for Endoplasmic Reticulum data.
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
         """
-
         """
             For example:
                 dend[0] { er_area_mcd = 0.21 er_vol_mcd = 0.4 }
@@ -115,8 +110,7 @@ class Astrocyte(BaseCell):
 
     @staticmethod
     def _secparams_as_hoc(morph_wrap):
-        """
-        Create hoc commands for section parameters (perimeters & cross-sectional area)
+        """Create hoc commands for section parameters (perimeters & cross-sectional area)
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
 
         For example:
@@ -270,11 +264,9 @@ class NeuroGlialConnection(Connection):
         self._synapse_params = append_recarray(self._synapse_params, params_obj)
 
     def finalize(self, astrocyte, base_Seed, *, base_connections=None, **kw):
-        """
-        Bind each glia connection to synapses in connections target cells via
+        """Bind each glia connection to synapses in connections target cells via
         the assigned unique gid.
         """
-
         # TODO: Currently it receives the base_connections object to look (bin search)
         # for the sinapse to attach to. However since target cells and Glia might be
         # distributed differently across MPI ranks, this is bound to work in a single rank.
@@ -322,8 +314,7 @@ class NeuroGlialConnection(Connection):
         return n_bindings
 
     def _find_neuron_endpoint_id(self, syn_params, conns):
-        """
-        Gets the endpoint id on the neuronal synapse.
+        """Gets the endpoint id on the neuronal synapse.
         To avoid gaps, the optimized version has to search along the existing connections
         for the given synapse id.
 
@@ -387,8 +378,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
             cur_conn.add_synapse(None, syn_params)
 
     def finalize(self, base_Seed=0, *_):
-        """
-        Instantiate connections to the simulator.
+        """Instantiate connections to the simulator.
 
         This is a two-step process:
         First we create netcons to listen events on target synapses.Ustate,
@@ -421,8 +411,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
             )
 
     def _create_synapse_ustate_endpoints(self, base_manager):
-        """
-        Creating an endpoint netcon to listen for events in synapse.Ustate
+        """Creating an endpoint netcon to listen for events in synapse.Ustate
         Netcon ids are directly the synapse id (hence we are limited in number space)
         """
         pc = Nd.pc
@@ -564,11 +553,8 @@ class GlioVascularManager(ConnectionManagerBase):
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
                 # because soma glut must be the last
                 astrocyte._glut_list.insert(len(astrocyte._glut_list) - 1, glut)
-                exec(
-                    "parent_sec = astrocyte.CellRef.{}; sec.connect(parent_sec)".format(
-                        astrocyte._secidx2names[parent_section_id + 1]
-                    )
-                )
+                name = astrocyte._secidx2names[parent_section_id + 1]
+                exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
                 # astrocyte.CellRef.all.append(sec)
             # Some useful debug lines:
             # cell = astrocyte.CellRef

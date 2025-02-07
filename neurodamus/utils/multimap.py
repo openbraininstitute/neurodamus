@@ -1,8 +1,5 @@
-"""
-A collection of Pure-Python MultiMaps
-"""
+"""A collection of Pure-Python MultiMaps"""
 
-import numpy as np
 from functools import reduce
 from operator import add
 
@@ -12,7 +9,7 @@ except ImportError:
     import collections as collections_abc
 
 
-class MultiMap(collections_abc.Mapping):
+class MultiMap(collections.abc.Mapping):
     """A memory-efficient map, which accepts duplicates"""
 
     __slots__ = ("_keys", "_values")
@@ -76,7 +73,7 @@ class MultiMap(collections_abc.Mapping):
     def __getitem__(self, key):
         idx = self.find(key)
         if idx is None:
-            raise KeyError("{} does not exist".format(key))
+            raise KeyError(f"{key} does not exist")
         return self._values[idx]
 
     def __setitem__(self, key, value):
@@ -94,7 +91,7 @@ class MultiMap(collections_abc.Mapping):
     exists = __contains__  # Compat. w Hoc map
 
     def __iadd__(self, other):
-        """inplace add (incorporate other)"""
+        """Inplace add (incorporate other)"""
         self._keys, self._values = self.sort_together(
             np.concatenate((self._keys, other._keys)), self.concat(self._values, other._values)
         )

@@ -1,11 +1,9 @@
-"""
-Loggeers init & Formatters
-"""
+"""Loggeers init & Formatters"""
 
-from __future__ import absolute_import
 import logging as _logging
 import os
 import sys
+
 from .pyutils import ConsoleColors
 
 STAGE_LOGLEVEL = 25
@@ -73,10 +71,10 @@ class _LevelColorFormatter(_logging.Formatter):
     def _format_msg(self, record, style):
         msg = ""
         if self._with_time:
-            msg += "(%s) " % self.formatTime(record, self._datefmt) + msg
+            msg += f"({self.formatTime(record, self._datefmt)}) " + msg
         # Show rank only for ERRORs
         if self._rank is not None and record.levelno >= _logging.ERROR:
-            msg += "(rank {:d}) ".format(self._rank)
+            msg += f"(rank {self._rank:d}) "
 
         levelno = record.levelno
         msg += self._level_tabs.get(levelno, "") + record.msg
@@ -120,7 +118,7 @@ def setup_logging(loglevel, logfile=None, rank=None):
         try:
             sys.stdout.tell()  # works only if it's file
             use_color = False
-        except IOError:
+        except OSError:
             pass
     hdlr.setFormatter(_LevelColorFormatter(False, rank, use_color))
     if rank == 0:
