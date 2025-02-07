@@ -2,7 +2,7 @@ import json
 
 
 def dump_cellstate(pc, cvode, gid):
-    """ Dump cell, synapse, netcon states from NEURON context
+    """Dump cell, synapse, netcon states from NEURON context
     Args:
         pc: NEURON parallel contect
         cvode: NEURON CVode context, to get netcons list
@@ -12,7 +12,7 @@ def dump_cellstate(pc, cvode, gid):
     cell = pc.gid2cell(gid)
     name = cell.hname()
     # remove the cell index from names
-    cell_name = name[:name.find("[")]
+    cell_name = name[: name.find("[")]
     cell_prefix = name + "."
     res = {cell_name: {"gid": gid}}
     res[cell_name].update(dump_cells(cell, filter_prefix=cell_prefix))
