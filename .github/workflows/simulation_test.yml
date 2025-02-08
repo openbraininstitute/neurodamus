@@ -27,7 +27,7 @@ on:
 env:
   NEURON_COMMIT_ID: 'c48d7d5'
   RDMAV_FORK_SAFE: '1'
-  VENV_PATH: /venv/
+  VENV_PATH: /home/runner/work/neurodamus/neurodamus/venv/
 
 jobs:
   simulation:

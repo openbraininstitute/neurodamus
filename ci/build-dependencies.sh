@@ -2,7 +2,8 @@
 #set -euxo pipefail
 
 VENV_PATH=/venv
-VENV=/venv
+VENV_PATH=/home/runner/work/neurodamus/neurodamus/venv/
+VENV=$VENV_PATH
 
 check_venv() {
     #if [[ -z "$VIRTUAL_ENV" ]]; then
@@ -111,6 +112,7 @@ build-neuron() {
 
     #XXX
     export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
+    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
 
     local NRN=$(pwd)/nrn
     local NRN_BUILD=$NRN/build
@@ -159,6 +161,7 @@ build-neocortex-models() {
     export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
     #XXX
     export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
+    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
 
     export PATH=$(pwd)/nrn/build/install/bin:$PATH
 
@@ -194,6 +197,7 @@ build-neocortex-multiscale-models() {
 
     #XXX
     export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
+    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
 
     cmake -B neurodamus-models/build_multiscale -S neurodamus-models/ \
       -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install_multiscale \
