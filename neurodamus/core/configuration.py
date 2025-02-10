@@ -145,7 +145,7 @@ class LoadBalanceMode(Enum):
         """
         if lb_mode is None:
             return None
-        _modes = {
+        modes = {
             "rr": cls.RoundRobin,
             "roundrobin": cls.RoundRobin,
             "wholecell": cls.WholeCell,
@@ -153,7 +153,7 @@ class LoadBalanceMode(Enum):
             "multisplit": cls.MultiSplit,
             "memory": cls.Memory,
         }
-        lb_mode_enum = _modes.get(lb_mode.lower())
+        lb_mode_enum = modes.get(lb_mode.lower())
         if lb_mode_enum is None:
             raise ConfigurationError("Unknown load balance mode: " + lb_mode)
         return lb_mode_enum

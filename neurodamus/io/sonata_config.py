@@ -348,23 +348,23 @@ class SonataConfig:
 
     @property
     def parsedStimuli(self):
-        _input_type_translation = {
+        input_type_translation = {
             "spikes": "Current",
             "current_clamp": "Current",
             "voltage_clamp": "Voltage",
             "extracellular_stimulation": "Extracellular",
             "conductance": "Conductance",
         }
-        _module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
+        module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
         stimuli = {}
         for name in self._sim_conf.list_input_names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
-            stimulus["Pattern"] = _module_translation.get(
+            stimulus["Pattern"] = module_translation.get(
                 stimulus["Pattern"], snake_to_camel(stimulus["Pattern"])
             )
-            stimulus["Mode"] = _input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
+            stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
         return stimuli
 
@@ -381,7 +381,7 @@ class SonataConfig:
 
     @property
     def parsedReports(self):
-        _report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
+        report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
         reports = {}
         for name in self._sim_conf.list_report_names:
             rep = self._translate_dict("reports", self._sim_conf.report(name))
@@ -389,7 +389,7 @@ class SonataConfig:
             self._adapt_libsonata_fields(rep)
             # Format is SONATA with sonata_config
             rep["Format"] = "SONATA"
-            rep["Type"] = _report_type_translation.get(rep["Type"], rep["Type"])
+            rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
         return reports

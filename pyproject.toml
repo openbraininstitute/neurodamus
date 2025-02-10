@@ -156,7 +156,6 @@ ignore = [
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "D103",   # undocumented-public-function
-    "RUF052", # used-dummy-variable
     "BLE001", # blind-except
     "G003",   # logging-string-concat
     "RET503", # implicit-return
