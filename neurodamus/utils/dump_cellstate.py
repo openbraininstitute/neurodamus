@@ -20,17 +20,22 @@ def dump_cellstate(pc, cvode, gid):
     cell_name = name[: name.find("[")]
     cell_prefix = name + "."
     res = {cell_name: {"gid": gid}}
-    res[cell_name].update(_dump_cells(cell, filter_prefix=cell_prefix))
+    res[cell_name].update(dump_cell(cell))
+    res[cell_name]["synapses"] = dump_synapses(cell.synlist, remove_prefix=cell_prefix)
     nclist = cvode.netconlist("", cell, "")
     res[cell_name]["n_netcons"] = nclist.count()
-    res[cell_name]["netcons"] = _dump_netcons(nclist, filter_prefix=cell_prefix)
+    res[cell_name]["netcons"] = dump_netcons(nclist, remove_prefix=cell_prefix)
 
     outputfile = "cellstate_" + str(gid) + ".json"
     with open(outputfile, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=2)
 
 
-def _dump_cells(cell, filter_prefix) -> dict:
+def dump_cell(cell) -> dict:
+    """Dump cell state from NEURON context
+    Args:
+        cell: NEURON cell object
+    """
     res = _read_object_attrs(cell)
     if "nSecAll" not in res:
         res["nSecAll"] = -1
@@ -56,23 +61,37 @@ def _dump_cells(cell, filter_prefix) -> dict:
         res["sections"].append(res_sec)
 
     res["n_synapses"] = cell.synlist.count()
-    res["synapses"] = []
-    for syn in cell.synlist:
-        attrs = {"name": syn.hname()}
-        attrs.update(_read_object_attrs(syn, FILTER_SYNAPSE_ATTRS))
-        attrs["location"] = syn.get_loc()
-        attrs["segment"] = str(syn.get_segment()).removeprefix(filter_prefix)
-        res["synapses"].append(attrs)
     return res
 
 
-def _dump_netcons(nclist, filter_prefix) -> list:
+def dump_synapses(synlist, remove_prefix) -> list:
+    """Dump states of synapses
+    Args:
+        synlist: Hoc list of synapse objects
+        remove_prefix: remove prefix from key name
+    """
+    res = []
+    for syn in synlist:
+        attrs = {"name": syn.hname()}
+        attrs.update(_read_object_attrs(syn, FILTER_SYNAPSE_ATTRS))
+        attrs["location"] = syn.get_loc()
+        attrs["segment"] = str(syn.get_segment()).removeprefix(remove_prefix)
+        res.append(attrs)
+    return res
+
+
+def dump_netcons(nclist, remove_prefix) -> list:
+    """Dump states of netcons from NEURON CVode
+    Args:
+        nclist: NEURON netcons list
+        remove_prefix: remove prefix from key name
+    """
     res = []
     for nc in nclist:
         attrs = {"name": nc.hname()}
         tsyn = nc.syn()
-        attrs["target_syn"] = str(tsyn).removeprefix(filter_prefix)
-        attrs["target_syn_segment"] = str(tsyn.get_segment()).removeprefix(filter_prefix)
+        attrs["target_syn"] = str(tsyn).removeprefix(remove_prefix)
+        attrs["target_syn_segment"] = str(tsyn.get_segment()).removeprefix(remove_prefix)
         attrs["afferent_section_position"] = tsyn.get_segment().x
         attrs["srcgid"] = nc.srcgid()
         attrs["active"] = nc.active()
