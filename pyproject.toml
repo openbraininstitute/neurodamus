@@ -157,7 +157,6 @@ ignore = [
     "N815",   # mixed-case-variable-in-class-scope
     "D103",   # undocumented-public-function
     "BLE001", # blind-except
-    "G003",   # logging-string-concat
     "RET503", # implicit-return
     "SIM108", # if-else-block-instead-of-if-exp
     "ARG003", # unused-class-method-argument

@@ -89,7 +89,7 @@ class _NeurodamusCore(_Neuron):
             for libpath in mechlib.split(":"):
                 libpath = libpath.strip()
                 if os.path.isfile(libpath):
-                    logging.info("Loading MECH lib: " + libpath)
+                    logging.info("Loading MECH lib: %s", libpath)
                     cls.load_dll(libpath)
                 else:
                     logging.warning("Invalid entry in %s: %s", env_lib_path, libpath)

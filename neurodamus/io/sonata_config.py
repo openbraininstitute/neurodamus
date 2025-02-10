@@ -298,7 +298,7 @@ class SonataConfig:
                 pop_type = edge_pop_config.get("type", "chemical")
                 # skip unhandled synapse type
                 if pop_type not in projection_type_convert:
-                    logging.warning("Unhandled synapse type: " + pop_type)
+                    logging.warning("Unhandled synapse type: %s", pop_type)
                     continue
 
                 edges_file = edge_config["edges_file"]
@@ -446,7 +446,7 @@ class SonataConfig:
         # Otherwise attempt translation
         item_tr = self._translation.get(item)
         if item_tr is None:
-            logging.warning("Non-native Property needs conversion: " + item)
+            logging.warning("Non-native Property needs conversion: %s", item)
             return {}
         return self._entries.get(item_tr) or self._sections.get(item_tr) or {}
 

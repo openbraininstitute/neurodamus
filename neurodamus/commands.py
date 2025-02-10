@@ -141,7 +141,7 @@ def hocify(args=None):
         return 1
     from neuron import version as nrn_version
 
-    logging.info("Neuron version used for hocifying: " + nrn_version)
+    logging.info("Neuron version used for hocifying: %s", nrn_version)
     return 0
 
 
