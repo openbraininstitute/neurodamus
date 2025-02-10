@@ -913,13 +913,16 @@ class ConnectionManagerBase:
         """
         src_target = conn_config["Source"]
         dst_target = conn_config["Destination"]
-        syn_params = dict_filter_map(conn_config, {
-            "Weight": "weight_factor",
-            "SpontMinis": "minis_spont_rate",
-            "SynDelayOverride": "syndelay_override",
-            "NeuromodStrength": "neuromod_strength",
-            "NeuromodDtc": "neuromod_dtc",
-        })
+        syn_params = dict_filter_map(
+            conn_config,
+            {
+                "Weight": "weight_factor",
+                "SpontMinis": "minis_spont_rate",
+                "SynDelayOverride": "syndelay_override",
+                "NeuromodStrength": "neuromod_strength",
+                "NeuromodDtc": "neuromod_dtc",
+            },
+        )
 
         # Load eventual mod override helper
         if "ModOverride" in conn_config:

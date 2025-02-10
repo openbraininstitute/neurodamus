@@ -3,13 +3,12 @@ import os
 import sys
 from time import strftime
 
-from neurodamus.utils import classproperty
-from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
-
 from ._engine import EngineBase
 from ._mpi import MPI
 from ._neuron import _Neuron
 from .configuration import GlobalConfig
+from neurodamus.utils import classproperty
+from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
