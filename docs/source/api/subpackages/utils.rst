@@ -15,7 +15,6 @@ neurodamus.utils.compat
 
    .. autosummary::
       List
-      Map
       Vector
 
 
