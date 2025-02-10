@@ -267,18 +267,18 @@ class _SimConfig:
         log_verbose("CLI Options: %s", cli_options)
         cls.config_file = config_file
         cls._config_parser = cls._init_config_parser(config_file)
-        cls._parsed_run = compat.Map(cls._config_parser.parsedRun)  # easy access to hoc Map
+        cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
         cls.sonata_circuits = cls._config_parser.circuits
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
 
-        cls.projections = compat.Map(cls._config_parser.parsedProjections)
-        cls.connections = compat.Map(cls._config_parser.parsedConnects)
-        cls.stimuli = compat.Map(cls._config_parser.parsedStimuli)
-        cls.injects = compat.Map(cls._config_parser.parsedInjects)
-        cls.reports = compat.Map(cls._config_parser.parsedReports)
-        cls.configures = compat.Map(cls._config_parser.parsedConfigures or {})
-        cls.modifications = compat.Map(cls._config_parser.parsedModifications or {})
+        cls.projections = cls._config_parser.parsedProjections
+        cls.connections = cls._config_parser.parsedConnects
+        cls.stimuli = cls._config_parser.parsedStimuli
+        cls.injects = cls._config_parser.parsedInjects
+        cls.reports = cls._config_parser.parsedReports
+        cls.configures = cls._config_parser.parsedConfigures or {}
+        cls.modifications = cls._config_parser.parsedModifications or {}
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
         cls.dry_run = cls.cli_options.dry_run
@@ -288,7 +288,7 @@ class _SimConfig:
         if cls.cli_options.simulator:
             cls._parsed_run["Simulator"] = cls.cli_options.simulator
 
-        cls.run_conf = run_conf = cls._parsed_run.as_dict(parse_strings=True)
+        cls.run_conf = run_conf = cls._parsed_run
         for validator in cls._validators:
             validator(cls, run_conf)
 
@@ -316,12 +316,12 @@ class _SimConfig:
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
 
-        parsed_run = cls._parsed_run.hoc_map
+        parsed_run = cls._parsed_run
 
         cls.rng_info = h.RNGSettings()
         cls.rng_info.interpret(parsed_run, cls.use_coreneuron)
-        if parsed_run.exists("BaseSeed"):
-            logging.info("User-defined RNG base seed %s", parsed_run.valueOf("BaseSeed"))
+        if "BaseSeed" in parsed_run:
+            logging.info("User-defined RNG base seed %s", parsed_run["BaseSeed"])
 
     @classmethod
     def validator(cls, f):
@@ -355,7 +355,6 @@ class _SimConfig:
 
         new_connections = {}
         for name, conn in cls.connections.items():
-            conn = compat.Map(conn).as_dict(True)
             update_item(conn, "Source")
             update_item(conn, "Destination")
             if Feature.SpontMinis not in restrict_features:
@@ -373,8 +372,7 @@ class _SimConfig:
 
     @classmethod
     def get_stim_inject(cls, stim_name):
-        for _, inject in cls.injects.items():
-            inject = compat.Map(inject).as_dict(parse_strings=True)
+        for inject in cls.injects.values():
             if stim_name == inject["Stimulus"]:
                 return inject
         return None
@@ -503,8 +501,8 @@ def _projection_params(config: _SimConfig, run_conf):
     required_fields = ("Path",)
     non_negatives = ("PopulationID",)
     for name, proj in config.projections.items():
-        _check_params("Projection " + name, compat.Map(proj), required_fields, (), non_negatives)
-        _validate_file_extension(compat.Map(proj).get("Path"))
+        _check_params("Projection " + name, proj, required_fields, (), non_negatives)
+        _validate_file_extension(proj.get("Path"))
 
 
 @SimConfig.validator
@@ -571,7 +569,7 @@ def _stimulus_params(config: _SimConfig, run_conf):
     for name, stim in config.stimuli.items():
         _check_params(
             "Stimulus " + name,
-            compat.Map(stim),
+            stim,
             required_fields,
             numeric_fields,
             non_negatives,
@@ -587,7 +585,7 @@ def _modification_params(config: _SimConfig, run_conf):
         "Type",
     )
     for name, mod_block in config.modifications.items():
-        _check_params("Modification " + name, compat.Map(mod_block), required_fields, ())
+        _check_params("Modification " + name, mod_block, required_fields, ())
 
 
 def _make_circuit_config(config_dict, req_morphology=True):
@@ -1088,7 +1086,6 @@ def _report_vars(config: _SimConfig, run_conf):
     report_configs_dict = {}
 
     for rep_name, rep_config in config.reports.items():
-        rep_config = compat.Map(rep_config).as_dict(parse_strings=True)
         report_configs_dict[rep_name] = rep_config
 
         _check_params(
@@ -1218,9 +1215,7 @@ def check_connections_configure(SimConfig, target_manager):
             conn = conn.get("_overrides")
 
     logging.info("Checking Connection Configurations")
-    all_conn_blocks = [
-        compat.Map(conn).as_dict(parse_strings=True) for conn in SimConfig.connections.values()
-    ]
+    all_conn_blocks = SimConfig.connections.values()
 
     # On a first phase process only for t=0
     for name, conn_conf in zip(SimConfig.connections, all_conn_blocks):
@@ -1281,7 +1276,6 @@ def check_connections_configure(SimConfig, target_manager):
 def _input_resistance(config: _SimConfig, target_manager):
     prop = "@dynamics:input_resistance"
     for stim_name, stim in config.stimuli.items():
-        stim = compat.Map(stim).as_dict(parse_strings=True)
         stim_inject = config.get_stim_inject(stim_name)
         if stim_inject is None:
             continue  # not injected, do not care

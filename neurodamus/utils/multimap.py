@@ -1,11 +1,10 @@
 """A collection of Pure-Python MultiMaps"""
 
+import collections.abc
 from functools import reduce
 from operator import add
 
 import numpy as np
-
-import collections.abc
 
 
 class MultiMap(collections.abc.Mapping):

@@ -27,9 +27,9 @@ proc init() {
 }
 
 /**
- * Given the Run block from a BlueConfig, check if there are special flags governing rng behavior
+ * Given the Run block from Sonata, check if there are special flags governing rng behavior
  *
- * $o1 ParsedRun from a BlueConfig (type is Map)
+ * $o1 ParsedRun from Sonata (type is TODO)
  * $2  coreNeuronUsed: When simulating with CoreNeuron (default: false)
  */
 proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
@@ -46,8 +46,8 @@ proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
         print "As of Oct 2020 Neurodamus uses Random123 as default"
     }
 
-    if( runInfo.exists( "RNGMode" ) ) {
-        rngModeField = runInfo.get( "RNGMode" ).s
+    if( runInfo.__contains__( "RNGMode" ) ) {
+        rngModeField = runInfo.get( "RNGMode" )
         if( strcmp( rngModeField, "Random123" ) == 0 ) {
             rngMode = RANDOM123
         } else {
@@ -55,25 +55,25 @@ proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
         }
     }
 
-    if( runInfo.exists("BaseSeed") ) {
-        globalSeed = runInfo.valueOf( "BaseSeed" )
+    if( runInfo.__contains__("BaseSeed") ) {
+        globalSeed = runInfo.get("BaseSeed")
 
         // random123 can set the global index now
         rng = new Random()
         rng.Random123_globalindex( globalSeed )
     }
     
-    if( runInfo.exists("IonChannelSeed") ) {
-        ionchannelSeed = runInfo.valueOf( "IonChannelSeed" )
+    if( runInfo.__contains__("IonChannelSeed") ) {
+        ionchannelSeed = runInfo.get("IonChannelSeed")
     }
-    if( runInfo.exists("StimulusSeed") ) {
-        stimulusSeed = runInfo.valueOf( "StimulusSeed" )
+    if( runInfo.__contains__("StimulusSeed") ) {
+        stimulusSeed = runInfo.get("StimulusSeed")
     }
-    if( runInfo.exists("MinisSeed") ) {
-        minisSeed = runInfo.valueOf( "MinisSeed" )
+    if( runInfo.__contains__("MinisSeed") ) {
+        minisSeed = runInfo.get("MinisSeed")
     }
-    if( runInfo.exists("SynapseSeed") ) {
-        synapseSeed = runInfo.valueOf( "SynapseSeed" )
+    if( runInfo.__contains__("SynapseSeed") ) {
+        synapseSeed = runInfo.get("SynapseSeed")
     }
 }
 

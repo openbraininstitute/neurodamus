@@ -529,6 +529,7 @@ class NodesetTarget(_TargetInterface):
                       default = "soma"
             compartments: compartment type, such as "center" and "all",
                           default = "center" for "soma", default = "all" for others
+
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
@@ -604,7 +605,9 @@ class SerializedSections:
             if v_value < 0:
                 if not self._serialized_sections_warned:
                     logging.warning(
-                        "SerializedSections: v(0.0001) < 0. index={%d} v()={%f}", index, v_value
+                        "SerializedSections: v(0.0001) < 0. index={%d} v()={%f}",
+                        index,
+                        v_value,
                     )
                     self._serialized_sections_warned = True
             else:

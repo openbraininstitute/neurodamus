@@ -1,5 +1,5 @@
 ==========================
-Neurodamus .io Sub-Modules
+Neurodamus.io Sub-Modules
 ==========================
 
 
