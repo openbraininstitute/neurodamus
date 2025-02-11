@@ -145,7 +145,6 @@ exclude = [
     "neurodamus/gap_junction.py",
     "neurodamus/gj_user_corrections.py",
     "neurodamus/hocify.py",
-    "neurodamus/__init__.py",
     "neurodamus/io/cell_readers.py",
     "neurodamus/io/__init__.py",
     "neurodamus/io/sonata_config.py",

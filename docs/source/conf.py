@@ -2,10 +2,7 @@
 #
 import sys
 import os
-import time
-from fileinput import FileInput
 from importlib.metadata import version as get_version
-
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -42,7 +39,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Neurodamus '
-author = u'BlueBrain HPC'
+author = u'Open Brain Institute'
 # copyright = u'2019, Blue Brain Project, EPFL'  # Theme has fixed copyright
 
 # Find root, from under 'docs' folder

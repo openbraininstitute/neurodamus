@@ -1,5 +1,5 @@
 =============================
-Neurodamus .utils Sub-Modules
+Neurodamus.utils Sub-Modules
 =============================
 
 
@@ -15,7 +15,6 @@ neurodamus.utils.compat
 
    .. autosummary::
       List
-      Map
       Vector
 
 

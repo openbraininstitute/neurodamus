@@ -262,8 +262,15 @@ class Connection(ConnectionBase):
         if configuration is not None:
             self._configurations.append(configuration)
 
-    def override_mod(self, mod_override):
-        assert mod_override.exists("ModOverride"), "ModOverride requires hoc config obj"
+    @property
+    def mod_override(self):
+        """_mod_override getter"""
+        return self._mod_override
+
+    @mod_override.setter
+    def mod_override(self, mod_override):
+        """Set a valid mod override"""
+        assert mod_override is not None, "ModOverride cannot be None"
         self._mod_override = mod_override
 
     @property
@@ -522,11 +529,10 @@ class Connection(ConnectionBase):
         """
         is_inh = params_obj["synType"] < 100
         if self._mod_override is not None:
-            mod_override = self._mod_override.get("ModOverride").s
-            self._mod_overrides.add(mod_override)
-            override_helper = mod_override + "Helper"
+            self._mod_overrides.add(self._mod_override)
+            override_helper = self._mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)
-            add_params = (self._src_pop_id, self._dst_pop_id, self._mod_override)
+            add_params = (self._src_pop_id, self._dst_pop_id)
         else:
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
