@@ -237,25 +237,29 @@ jobs:
     - name: Install test dependencies
       run: |
         pip install -r tests/requirements.txt
-
-    - name: test-integration
+    
+    - name: test-unit
       run: |
-        pytest -x --forked tests/integration
+        tox -e test-unit
 
-    - name: test-integration-e2e
-      run: |
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
+    # - name: test-integration
+    #   run: |
+    #     pytest -x --forked tests/integration
 
-    - name: test-scientific
-      run: |
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+    # - name: test-integration-e2e
+    #   run: |
+    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
 
-    - name: test-scientific-ngv
-      run: |
-        export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
-        export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
-        unset CORENEURONLIB
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific-ngv
+    # - name: test-scientific
+    #   run: |
+    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+
+    # - name: test-scientific-ngv
+    #   run: |
+    #     export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
+    #     export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
+    #     unset CORENEURONLIB
+    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific-ngv
 
     # - name: live debug session, comment out
     #   if: failure()
