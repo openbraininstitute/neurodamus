@@ -71,8 +71,8 @@ def test_dry_run_workflow(neurodamus_instance, USECASE3):
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 1.0
     # the following uncommented line should be investigated with:
     # https://github.com/openbraininstitute/neurodamus/issues/44?issue=openbraininstitute%7Cneurodamus%7C45
-    # it should be min 55 but on mac it consumes a little more. For now I increase the limit
-    # to 35 as a workaround
+    # it should be min 55 but on mac it consumes a little more. For now I decrease the limit to
+    # to 50 as a workaround
     assert 50.0 <= nd._dry_run_stats.base_memory <= 120.0
     expected_items = {
         'L4_PC-dSTUT': 2,
