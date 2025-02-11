@@ -6,7 +6,7 @@ import logging
 FILTER_SYNAPSE_ATTRS = ["delay_times", "delay_weights", "rng"]
 
 
-def dump_cellstate(pc, cvode, gid):
+def dump_cellstate(pc, cvode, gid, outputfile="cellstate.json"):
     """Dump cell, synapse, netcon states from NEURON context
     Args:
         pc: NEURON parallel contect
@@ -26,7 +26,6 @@ def dump_cellstate(pc, cvode, gid):
     res[cell_name]["n_netcons"] = nclist.count()
     res[cell_name]["netcons"] = dump_netcons(nclist, remove_prefix=cell_prefix)
 
-    outputfile = "cellstate_" + str(gid) + ".json"
     with open(outputfile, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=2)
 

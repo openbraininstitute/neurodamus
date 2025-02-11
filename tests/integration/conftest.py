@@ -15,6 +15,7 @@ def ringtest_baseconfig():
         manifest={"$CIRCUIT_DIR": str(RINGTEST_DIR)},
         network="$CIRCUIT_DIR/circuit_config.json",
         node_sets_file="$CIRCUIT_DIR/nodesets.json",
+        target_simulator="NEURON",
         run={
             "random_seed": 1122,
             "dt": 0.1,
