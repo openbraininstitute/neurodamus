@@ -242,6 +242,29 @@ jobs:
     - name: test-unit
       run: |
         tox -e test-unit
+      
+    - name: test-baseline
+      run: |
+        tox -e test-baseline
+
+    - name: test-integration
+      run: |
+        tox -e test-integration
+      
+    - name: test-integration-e2e
+      run: |
+        tox -e test-integration-e2e
+
+    - name: test-scientific
+      run: |
+        tox -e test-scientific
+
+    - name: test-scientific-ngv
+      run: |
+        export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
+        export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
+        unset CORENEURONLIB
+        tox -e test-scientific-ngv
 
     # - name: test-integration
     #   run: |
