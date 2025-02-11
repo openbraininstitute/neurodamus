@@ -5,9 +5,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 
-pytestmark = pytest.mark.forked
-
-
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
 REF_DIR = SIM_DIR / "reference"
 CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
