@@ -1,3 +1,4 @@
+import platform
 import pytest
 import os
 from pathlib import Path
@@ -55,6 +56,7 @@ def test_dry_run_workflow(neurodamus_instance, USECASE3):
     Test that the dry run mode works
 
     """
+    isMacOS = platform.system() == "Darwin"
     from neurodamus.utils.memory import export_allocation_stats
     from neurodamus.utils.memory import export_metype_memory_usage
 
@@ -67,13 +69,13 @@ def test_dry_run_workflow(neurodamus_instance, USECASE3):
     # https://github.com/openbraininstitute/neurodamus/issues/44?issue=openbraininstitute%7Cneurodamus%7C45
     # it should be max 30 but on mac it consumes a little more. For now I increase the limit to
     # 35 as a workaround
-    assert 20.0 <= nd._dry_run_stats.cell_memory_total <= 35.0
+    assert 20.0 <= nd._dry_run_stats.cell_memory_total <= (35.0 if isMacOS else 30)
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 1.0
     # the following uncommented line should be investigated with:
     # https://github.com/openbraininstitute/neurodamus/issues/44?issue=openbraininstitute%7Cneurodamus%7C45
     # it should be min 55 but on mac it consumes a little more. For now I decrease the limit to
     # to 50 as a workaround
-    assert 50.0 <= nd._dry_run_stats.base_memory <= 120.0
+    assert (50.0 if isMacOS else 55) <= nd._dry_run_stats.base_memory <= 120.0
     expected_items = {
         'L4_PC-dSTUT': 2,
         'L4_MC-dSTUT': 1,
