@@ -23,7 +23,7 @@ jobs:
 
     - name: Run tox
       run: |
-        tox -e test-baseline
+        tox -e baseline
 
     - name: Coveralls
       uses: coverallsapp/github-action@v2
@@ -33,7 +33,7 @@ jobs:
     - name: Run tox
       run: |
         rm -rf .coverage
-        tox -e test-unit
+        tox -e unit
 
     - name: Coveralls
       uses: coverallsapp/github-action@v2
@@ -43,7 +43,7 @@ jobs:
     - name: Run tox
       run: |
         rm -rf .coverage
-        tox -e test-integration
+        tox -e integration
 
     - name: Coveralls
       uses: coverallsapp/github-action@v2

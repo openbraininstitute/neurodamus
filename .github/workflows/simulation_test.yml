@@ -239,51 +239,32 @@ jobs:
         python -m pip install --upgrade pip tox
         pip install -r tests/requirements.txt
     
-    - name: test-unit
+    - name: unit
       run: |
-        tox -e test-unit
+        tox -e unit
       
-    - name: test-baseline
+    - name: baseline
       run: |
-        tox -e test-baseline
+        tox -e baseline
 
-    - name: test-integration
+    - name: integration
       run: |
-        tox -e test-integration
+        tox -e integration
       
-    - name: test-integration-e2e
+    - name: integration-e2e
       run: |
-        tox -e test-integration-e2e
+        tox -e integration-e2e
 
-    - name: test-scientific
+    - name: scientific
       run: |
-        tox -e test-scientific
+        tox -e scientific
 
-    - name: test-scientific-ngv
+    - name: scientific-ngv
       run: |
         export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
         export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
         unset CORENEURONLIB
-        tox -e test-scientific-ngv
-
-    # - name: test-integration
-    #   run: |
-    #     pytest -x --forked tests/integration
-
-    # - name: test-integration-e2e
-    #   run: |
-    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
-
-    # - name: test-scientific
-    #   run: |
-    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
-
-    # - name: test-scientific-ngv
-    #   run: |
-    #     export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
-    #     export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
-    #     unset CORENEURONLIB
-    #     pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific-ngv
+        tox -e scientific-ngv
 
     # - name: live debug session, comment out
     #   if: failure()
