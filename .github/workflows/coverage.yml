@@ -21,7 +21,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip tox coverage
 
-    - name: Run tox
+    - name: Run tox baseline
       run: |
         tox -e baseline
 
@@ -29,8 +29,9 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: baseline
+        base-path: ${{ github.workspace }}
 
-    - name: Run tox
+    - name: Run tox unit
       run: |
         rm -rf .coverage
         tox -e unit
@@ -39,8 +40,9 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
+        base-path: ${{ github.workspace }}
 
-    - name: Run tox
+    - name: Run tox integration
       run: |
         rm -rf .coverage
         tox -e integration
@@ -49,3 +51,4 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: integration
+        base-path: ${{ github.workspace }}
