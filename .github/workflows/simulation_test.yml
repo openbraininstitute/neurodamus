@@ -236,26 +236,34 @@ jobs:
 
     - name: Install test dependencies
       run: |
-        pip install -r tests/requirements.txt
-
-    - name: test-integration
+        python -m pip install --upgrade pip tox
+    
+    - name: unit
       run: |
-        pytest -x --forked tests/integration
-
-    - name: test-integration-e2e
+        tox -e unit
+      
+    - name: baseline
       run: |
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
+        tox -e baseline
 
-    - name: test-scientific
+    - name: integration
       run: |
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+        tox -e integration
+      
+    - name: integration-e2e
+      run: |
+        tox -e integration-e2e
 
-    - name: test-scientific-ngv
+    - name: scientific
+      run: |
+        tox -e scientific
+
+    - name: scientific-ngv
       run: |
         export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/share/neurodamus_neocortex/hoc
         export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT/lib/libnrnmech.so
         unset CORENEURONLIB
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific-ngv
+        tox -e scientific-ngv
 
     # - name: live debug session, comment out
     #   if: failure()
