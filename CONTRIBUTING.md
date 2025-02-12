@@ -9,7 +9,7 @@ As a contributor, here are the guidelines we would like you to follow:
 
 # Got a Question?
 
-Please do not hesitate to raise an issue on [github project page][github].
+Please do not hesitate to [raise an issue](https://github.com/openbraininstitute/neurodamus/issues).
 
 # Found a Bug?
 
