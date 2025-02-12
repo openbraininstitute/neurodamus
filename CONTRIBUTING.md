@@ -17,7 +17,14 @@ Please do not hesitate to raise an issue on [github project page][github].
 # Found a Bug?
 
 If you find a bug in the source code, you can help us by [submitting an issue](#issues)
-to our [GitHub Repository][github]. Even better, you can [submit a Pull Request](#pull-requests) with a fix.
+to our [GitHub Repository][github].
+
+However, before you submit an issue, please search the issue tracker, maybe an issue for your problem
+already exists and the discussion might inform you of workarounds readily available.
+
+We want to fix all the issues as soon as possible, but before fixing a bug we need to reproduce
+and confirm it. In order to reproduce bugs we will need as much information as possible, and
+preferably with an example.
 
 #  Missing a Feature?
 
