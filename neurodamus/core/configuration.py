@@ -9,7 +9,6 @@ from enum import Enum
 
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
-from neurodamus.utils import compat
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT
 

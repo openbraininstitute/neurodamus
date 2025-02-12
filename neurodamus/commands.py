@@ -127,7 +127,7 @@ def hocify(args=None):
         print(f"Hocifying {morph_path} -> {dest_file}")
         result = hocify_process_file((morph_path, str(dest_file)))
         if isinstance(result, Exception):
-            logging.critical(str(result), exc_info=True)
+            logging.critical(str(result))
             return 1
         print("Done.")
         return 0
