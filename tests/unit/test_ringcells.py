@@ -2,8 +2,6 @@ import json
 import os
 import pytest
 import numpy as np
-from neurodamus import Neurodamus
-from neurodamus.core import NeurodamusCore as Nd
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from neurodamus.core.configuration import SimConfig
@@ -30,6 +28,9 @@ def simconfig_update(ringtest_baseconfig, extra_config):
     "extra_config", [{"network": "$CIRCUIT_DIR/circuit_config_RingB.json", "node_set": "RingB"}]
 )
 def test_dump_RingB_2cells(simconfig_update):
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Nd
+
     n = Neurodamus(simconfig_update.name, disable_reports=True)
     edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
@@ -51,6 +52,9 @@ def test_dump_RingB_2cells(simconfig_update):
 
 @pytest.mark.parametrize("extra_config", [{"node_set": "Mosaic"}])
 def test_dump_RingA_RingB(simconfig_update):
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Nd
+
     n = Neurodamus(simconfig_update.name, disable_reports=True)
     from neurodamus.utils.dump_cellstate import dump_cellstate
 
