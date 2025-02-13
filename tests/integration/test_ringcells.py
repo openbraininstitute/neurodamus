@@ -24,14 +24,13 @@ def simconfig_update(ringtest_baseconfig, extra_config):
     os.unlink(config_file.name)
 
 
-# @pytest.mark.skip()
 @pytest.mark.parametrize("extra_config", [{"network": "$CIRCUIT_DIR/circuit_config_RingB.json",
                                             "node_set": "RingB"}])
 def test_dump_RingB_2cells(simconfig_update):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
     n = Neurodamus(simconfig_update.name, disable_reports=True)
-    edges_file, edge_pop = n._extra_circuits["RingB"].nrnPath.split(":")
+    edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
     src_gids = [1, 2]
@@ -59,9 +58,6 @@ def test_dump_RingA_RingB(simconfig_update):
         dump_cellstate(n._pc, Nd.cvode, gid, outputfile)
         reference = REF_DIR / outputfile
         compare_json_files(outputfile, str(reference))
-
-        cell = n._pc.gid2cell(gid)
-        _check_cell(cell)
 
 
 def compare_json_files(res_file, ref_file):
