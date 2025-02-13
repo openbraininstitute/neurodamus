@@ -245,10 +245,6 @@ jobs:
     - name: baseline
       run: |
         tox -e baseline
-
-    - name: integration
-      run: |
-        tox -e integration
       
     - name: integration-e2e
       run: |

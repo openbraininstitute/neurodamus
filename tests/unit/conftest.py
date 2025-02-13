@@ -1,30 +1,30 @@
 import pytest
-import sys
-import unittest.mock
+
+from pathlib import Path
+# !! NOTE: Please don't import NEURON/Neurodamus at module level
+# pytest weird discovery system will trigger NEURON init and open a can of worms
+
+# Make all tests run forked
+pytestmark = pytest.mark.forked
+
+RINGTEST_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
 
 
-class MockParallelExec:
-    """We need to create a replacement since a magic-mock will return garbage"""
-
-    def allreduce(self, number, _op):
-        return number
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _mock_neuron():
-    from neurodamus.core import _mpi
-    from neurodamus.utils import compat
-    _mpi._MPI._pc = MockParallelExec()
-
-    # Dont convert
-    compat.hoc_vector = lambda x: x
-
-    class VectorMock(compat.Vector):
-
-        def __new__(cls, len=0):
-            init = [0] * len
-            return compat.Vector.__new__(cls, "d", init)
-
-    neuron_mock = unittest.mock.Mock()
-    neuron_mock.h.Vector = VectorMock
-    sys.modules['neuron'] = neuron_mock
+@pytest.fixture
+def ringtest_baseconfig():
+    return dict(
+        manifest={"$CIRCUIT_DIR": str(RINGTEST_DIR)},
+        network="$CIRCUIT_DIR/circuit_config.json",
+        node_sets_file="$CIRCUIT_DIR/nodesets.json",
+        target_simulator="NEURON",
+        run={
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        node_set="Mosaic",
+        conditions={
+            "celsius": 35,
+            "v_init": -65
+        }
+    )
