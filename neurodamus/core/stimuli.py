@@ -56,21 +56,18 @@ class SignalSource:
         return self
 
     def add_pulse(self, max_amp, duration, **kw):
-        """Adds a pulse.
+        """Add a constant-amplitude pulse.
 
-        A pulse is characterized by raising from a base amplitude, for a certain duration.
+        Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
+        This is a special case of `add_ramp` with no amplitude change over time.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
-        self.add_segment(max_amp, duration)
-        self._add_point(base_amp)
-        return self
+        return self.add_ramp(max_amp, max_amp, duration, **kw)
 
     def add_ramp(self, amp1, amp2, duration, **kw):
-        """Adds a ramp.
+        """Add a linear amplitude ramp.
 
-        A ramp is characterized by a pulse whose peak changes uniformly during its length.
-        Neuron automatically interpolates all values between [t0, t1] as a ramp
+        Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over the given `duration`.
+        All intermediate values between the start and end times are linearly interpolated.
         """
         base_amp = kw.get("base_amp", self._base_amp)
         self._add_point(base_amp)
@@ -82,15 +79,27 @@ class SignalSource:
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
-            amp: the amplitude of a each pulse
-            frequency: determines the number of pulses per second (hz)
-            pulse_duration: the duration of a single pulse (peak time) (ms)
-            total_duration: duration of the whole train (ms)
-            base_amp: The base amplitude
+            amp (float): Amplitude of each pulse.
+            frequency (float): Number of pulses per second (Hz).
+            pulse_duration (float): Duration of a single pulse (peak time) in milliseconds.
+            total_duration (float): Total duration of the pulse train in milliseconds.
+            base_amp (float, optional): Base amplitude (default is 0.0).
+
+        Returns:
+            SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
         base_amp = kw.get("base_amp", self._base_amp)
         tau = 1000 / frequency
         delay = tau - pulse_duration
+
+        # we cannot have overlapping pulses otherwise we may go back in time. For now it is disabled until we decide
+        # how to handle this
+        if delay < 0.0:
+            raise ValueError(
+                f"Invalid configuration: The pulse duration ({pulse_duration} ms) is longer than the pulse interval ({tau} ms). "
+                f"Calculated delay: {delay} ms. Please adjust the pulse duration or frequency."
+            )
+
         number_pulses = int(total_duration / tau)
         for _ in range(number_pulses):
             self.add_pulse(amp, pulse_duration, base_amp=base_amp)
@@ -367,7 +376,10 @@ class CurrentSource(SignalSource):
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, physical_electrode=False):
         """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
-            base_amp, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+            base_amp,
+            delay=delay,
+            rng=rng,
+            represents_physical_electrode=physical_electrode,
         )
         self._clamps = set()
         self._all_sources.append(self)
@@ -452,7 +464,10 @@ class ConductanceSource(SignalSource):
         """
         # set SignalSource's base_amp to zero
         super().__init__(
-            reversal, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+            reversal,
+            delay=delay,
+            rng=rng,
+            represents_physical_electrode=physical_electrode,
         )
         self._reversal = reversal  # set reversal from base_amp parameter in classmethods
         self._clamps = set()
