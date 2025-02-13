@@ -2,8 +2,6 @@ import json
 import os
 import pytest
 import numpy as np
-from neurodamus import Neurodamus
-from neurodamus.core import NeurodamusCore as Nd
 from pathlib import Path
 from neurodamus.core.configuration import SimConfig
 from libsonata import EdgeStorage
