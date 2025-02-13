@@ -2,6 +2,8 @@ import json
 import os
 import pytest
 import numpy as np
+from neurodamus import Neurodamus
+from neurodamus.core import NeurodamusCore as Nd
 from pathlib import Path
 from neurodamus.core.configuration import SimConfig
 from libsonata import EdgeStorage
@@ -34,7 +36,11 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         cell = n._pc.gid2cell(tgid)
         _check_cell(cell)
         selection = edges.afferent_edges(tgid - 1)
-        _check_synapses(cell.synlist, edges, selection)
+
+        assert cell.synlist.count() == selection.flat_size
+        for syn in cell.synlist:
+            _check_synapse(syn, edges, selection)
+
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
         _check_netcons(sgid, nclist, edges, selection)
 
@@ -52,14 +58,42 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     from neurodamus.core import NeurodamusCore as Nd
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     from neurodamus.utils.dump_cellstate import dump_cellstate
-    target_rawgids = [("RingA", 1), ("RingB", 1)]
-    for pop, raw_gid in target_rawgids:
-        pop_offset = n.circuits.get_node_manager(pop).local_nodes.offset
-        gid = raw_gid + pop_offset
-        outputfile = "cellstate_" + str(gid) + ".json"
-        dump_cellstate(n._pc, Nd.cvode, gid, outputfile)
+
+    connections = [
+        [("RingA", 3), ("RingA", 1)],
+        [("RingB", 2), ("RingB", 1)],
+        [("RingA", 1), ("RingB", 1)],
+    ]
+
+    for (s_pop, s_rawgid), (t_pop, t_rawgid) in connections:
+        tpop_offset = n.circuits.get_node_manager(t_pop).local_nodes.offset
+        tgid = t_rawgid + tpop_offset
+        spop_offset = n.circuits.get_node_manager(s_pop).local_nodes.offset
+        sgid = s_rawgid + spop_offset
+
+        # dump cell/synapses/netcons states to a json and compare with ref
+        outputfile = "cellstate_" + str(tgid) + ".json"
+        if not os.path.exists(outputfile):
+            dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
         reference = REF_DIR / outputfile
         compare_json_files(outputfile, str(reference))
+
+        cell = n._pc.gid2cell(tgid)
+        _check_cell(cell)
+
+        if s_pop == t_pop:
+            edges_file, edge_pop = \
+                n.circuits.get_edge_managers(t_pop, t_pop)[0].circuit_conf.nrnPath.split(":")
+        else:
+            edges_file, edge_pop = \
+                n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
+        edge_storage = EdgeStorage(edges_file)
+        edges = edge_storage.open_population(edge_pop)
+        selection = edges.afferent_edges(t_rawgid - 1)
+
+        nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
+        for syn in _check_netcons(sgid, nclist, edges, selection):
+            _check_synapse(syn, edges, selection)
 
 
 def compare_json_files(res_file, ref_file):
@@ -69,7 +103,7 @@ def compare_json_files(res_file, ref_file):
         result = json.load(f_res)
     with open(ref_file) as f_ref:
         reference = json.load(f_ref)
-    assert result  == reference
+    assert result == reference
 
 
 def _check_cell(cell):
@@ -78,32 +112,32 @@ def _check_cell(cell):
     assert cell.x == cell.y == cell.z == 0
 
 
-def _check_synapses(synlist, edges, selection):
+def _check_synapse(syn, edges, selection):
     # check synapse state from NEURON w.r.t libsonata reader
-    assert synlist.count() == selection.flat_size
-    for syn in synlist:
-        syn_id = int(syn.synapseID)
-        syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
-        if syn_type_id < 100:
-            assert "ProbGABAAB_EMS" in syn.hname()
-            assert syn.tau_d_GABAA == edges.get_attribute("decay_time", selection)[syn_id]
-        else:
-            assert "ProbAMPANMDA_EMS" in syn.hname()
-            assert syn.tau_d_AMPA == edges.get_attribute("decay_time", selection)[syn_id]
-        assert syn.Use == edges.get_attribute("u_syn", selection)[syn_id]
-        assert syn.Dep == edges.get_attribute("depression_time", selection)[syn_id]
-        assert syn.Fac == edges.get_attribute("facilitation_time", selection)[syn_id]
+    syn_id = int(syn.synapseID)
+    syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
+    if syn_type_id < 100:
+        assert "ProbGABAAB_EMS" in syn.hname()
+        assert syn.tau_d_GABAA == edges.get_attribute("decay_time", selection)[syn_id]
+    else:
+        assert "ProbAMPANMDA_EMS" in syn.hname()
+        assert syn.tau_d_AMPA == edges.get_attribute("decay_time", selection)[syn_id]
+    assert syn.Use == edges.get_attribute("u_syn", selection)[syn_id]
+    assert syn.Dep == edges.get_attribute("depression_time", selection)[syn_id]
+    assert syn.Fac == edges.get_attribute("facilitation_time", selection)[syn_id]
 
-        if edges.get_attribute("n_rrp_vesicles", selection)[syn_id] >= 0:
-            assert syn.Nrrp == edges.get_attribute("n_rrp_vesicles", selection)[syn_id]
+    if edges.get_attribute("n_rrp_vesicles", selection)[syn_id] >= 0:
+        assert syn.Nrrp == edges.get_attribute("n_rrp_vesicles", selection)[syn_id]
 
 
 def _check_netcons(ref_srcgid, netconlist, edges, selection):
-    # check netcons
-    assert netconlist.count() == 1
-    nc = netconlist.o(0)
-    assert nc.srcgid() == ref_srcgid
-    assert nc.weight[0] == edges.get_attribute("conductance", selection)[0]
-    assert np.isclose(nc.delay, edges.get_attribute("delay", selection)[0], rtol=1e-2)
-    assert nc.threshold == SimConfig.spike_threshold
-    assert nc.x == SimConfig.v_init
+    # check netcons and yield the associated synpase object
+    assert netconlist.count() == selection.flat_size
+    for idx, nc in enumerate(netconlist):
+        nc = netconlist.o(idx)
+        assert nc.srcgid() == ref_srcgid
+        assert nc.weight[0] == edges.get_attribute("conductance", selection)[idx]
+        assert np.isclose(nc.delay, edges.get_attribute("delay", selection)[idx], rtol=1e-2)
+        assert nc.threshold == SimConfig.spike_threshold
+        assert nc.x == SimConfig.v_init
+        yield nc.syn()
