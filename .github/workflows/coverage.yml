@@ -29,6 +29,7 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: baseline
+        fail-on-error: false
 
     - name: Run tox unit
       run: |
@@ -39,3 +40,4 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
+        fail-on-error: false
