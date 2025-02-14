@@ -32,3 +32,8 @@ def ringtest_baseconfig():
             "v_init": -65
         }
     )
+
+
+@pytest.fixture(autouse=True)
+def change_test_dir(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
