@@ -1,3 +1,5 @@
+import json
+import os
 import pytest
 from pathlib import Path
 
@@ -32,3 +34,28 @@ def sonata_config():
             "tstop": 10,
         }
     )
+
+
+@pytest.fixture(autouse=True)
+def change_test_dir(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture
+def create_tmp_simulation_file(request, tmp_path):
+    """ copy simulation config file to tmp_path
+    """
+    params = request.param
+    src_dir = params.get["src_dir"]
+    config_file = params.get["simconfig_file"]
+    with open(str(src_dir / config_file)) as src_f:
+        sim_config_data = json.load(src_f)
+    circuit_conf = sim_config_data.get("network", "circuit_config.json")
+    if not os.path.isabs(circuit_conf):
+        sim_config_data["network"] = str(src_dir / circuit_conf)
+    node_sets_file = sim_config_data.get("node_sets_file")
+    if node_sets_file and not os.path.isabs(node_sets_file):
+        sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
+    with open(str(tmp_path / config_file), "w") as dst_f:
+        json.dump(sim_config_data, dst_f, indent=2)
+    return str(tmp_path / config_file)

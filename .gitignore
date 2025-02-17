@@ -1,7 +1,6 @@
 # Temporary and binary files
 *~
 *.orig
-*.log
 *.pot
 **/__pycache__/*
 .cache/*
@@ -27,14 +26,6 @@ venv
 # tests and coverage
 .coverage
 .tox
-*pkl.gz
-cell_memory_usage.json
-mcomplex.dat
-memory_per_metype.json
-sim_conf/*
-tests/simulations/*/output*
-tests/simulations/usecase3/reporting*
-*.SUCCESS
 
 # Build and docs folder/files
 build/*

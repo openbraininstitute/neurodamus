@@ -142,14 +142,17 @@ def test_multisplit(target_manager, circuit_conf, capsys):
     assert "Target VerySmall is a subset of the target default_Mini5" in captured.out
 
 
-def _create_tmpconfig_lbal(config_file):
+def _create_tmpconfig_lbal(config_file, tmp_path):
     import json
-    import shutil
     from tempfile import NamedTemporaryFile
-
+    src_dir = os.path.dirname(config_file)
     with open(config_file, "r") as f:
         sim_config_data = json.load(f)
-        sim_config_data["network"] = "circuit_config_virtualpop.json"
+        sim_config_data["network"] = os.path.join(src_dir, "circuit_config_virtualpop.json")
+        node_sets_file = sim_config_data.get("node_sets_file")
+        if node_sets_file and not os.path.isabs(node_sets_file):
+            sim_config_data["node_sets_file"] = os.path.join(src_dir, node_sets_file)
+        sim_config_data["output"]["output_dir"] = str(tmp_path / "reporting")
         sim_config_data["connection_overrides"] = [
             {
                 "name": "virtual_proj",
@@ -165,8 +168,7 @@ def _create_tmpconfig_lbal(config_file):
                 "weight": 0.0
             }
         ]
-    tmp_file = NamedTemporaryFile(suffix=".json", dir=os.path.dirname(config_file), delete=True)
-    shutil.copy2(config_file, tmp_file.name)
+    tmp_file = NamedTemporaryFile(suffix=".json", dir=tmp_path, delete=True)
 
     with open(tmp_file.name, "w") as f:
         json.dump(sim_config_data, f, indent=2)
@@ -191,7 +193,7 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
             print(f"File not found: {file_path}")
 
 
-def test_loadbal_integration():
+def test_loadbal_integration(tmp_path):
     """Ensure given the right files are in the lbal dir, the correct situation is detected
     """
     from neurodamus import Neurodamus
@@ -200,7 +202,7 @@ def test_loadbal_integration():
     GlobalConfig.verbosity = 2
 
     # Add connection_overrides for the virtual population so the offsets are calculated before LB
-    tmp_file = _create_tmpconfig_lbal(SIM_DIR / "usecase3" / "simulation_sonata.json")
+    tmp_file = _create_tmpconfig_lbal(SIM_DIR / "usecase3" / "simulation_sonata.json", tmp_path)
     nd = Neurodamus(tmp_file.name, lb_mode="WholeCell")
     nd.run()
 
