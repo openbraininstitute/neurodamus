@@ -11,6 +11,11 @@ RINGTEST_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringte
 
 
 @pytest.fixture
+def ringtest_dir():
+    return RINGTEST_DIR
+
+
+@pytest.fixture
 def ringtest_baseconfig():
     return dict(
         manifest={"$CIRCUIT_DIR": str(RINGTEST_DIR)},
