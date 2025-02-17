@@ -83,7 +83,7 @@ def load_user_modifications(gj_manager):
             logging.warning("Unknown GJ remove_channels setting: %s", remove_channels)
             rm_mechanisms = []
         if rm_mechanisms:
-            logging.info("Removing channels type = " + remove_channels)
+            logging.info("Removing channels type = %s", remove_channels)
             _perform_remove_channels(node_manager, rm_mechanisms)
 
     if "special_tag" in settings:

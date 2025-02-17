@@ -117,8 +117,8 @@ def load_sonata(
             morpho_names = node_pop.get_attribute("morphology", node_sel)
             mtypes = node_pop.get_attribute("mtype", node_sel)
             etypes = node_pop.get_attribute("etype", node_sel)
-            _model_templates = node_pop.get_attribute("model_template", node_sel)
-            emodel_templates = [emodel.removeprefix("hoc:") for emodel in _model_templates]
+            model_templates = node_pop.get_attribute("model_template", node_sel)
+            emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
             meinfos.load_infoNP(gids, morpho_names, emodel_templates, mtypes, etypes)
 
         return gidvec, meinfos, total_cells
@@ -143,8 +143,8 @@ def load_sonata(
         except libsonata.SonataError:
             logging.warning("etype not found in node population, setting to None")
             etypes = None
-        _model_templates = node_pop.get_attribute("model_template", node_sel)
-        emodel_templates = [emodel.removeprefix("hoc:") for emodel in _model_templates]
+        model_templates = node_pop.get_attribute("model_template", node_sel)
+        emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
         if set(["exc_mini_frequency", "inh_mini_frequency"]).issubset(attr_names):
             exc_mini_freqs = node_pop.get_attribute("exc_mini_frequency", node_sel)
             inh_mini_freqs = node_pop.get_attribute("inh_mini_frequency", node_sel)
