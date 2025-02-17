@@ -46,8 +46,9 @@ def create_tmp_simulation_file(request, tmp_path):
     """ copy simulation config file to tmp_path
     """
     params = request.param
-    src_dir = params.get["src_dir"]
-    config_file = params.get["simconfig_file"]
+    src_dir = Path(params.get("src_dir"))
+    extra_config = params.get("extra_config")
+    config_file = Path(params.get("simconfig_file"))
     with open(str(src_dir / config_file)) as src_f:
         sim_config_data = json.load(src_f)
     circuit_conf = sim_config_data.get("network", "circuit_config.json")
@@ -56,6 +57,12 @@ def create_tmp_simulation_file(request, tmp_path):
     node_sets_file = sim_config_data.get("node_sets_file")
     if node_sets_file and not os.path.isabs(node_sets_file):
         sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
+    for input in sim_config_data.get("inputs", {}).values():
+        spike_file = input.get("spike_file", "")
+        if spike_file and not os.path.isabs(spike_file):
+            input["spike_file"] = str(src_dir / input["spike_file"])
+    if extra_config:
+        sim_config_data.update(extra_config)
     with open(str(tmp_path / config_file), "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
     return str(tmp_path / config_file)
