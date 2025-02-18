@@ -35,6 +35,7 @@ sim_conf/*
 tests/simulations/*/output*
 tests/simulations/usecase3/reporting*
 *.SUCCESS
+cellstate*.json
 
 # Build and docs folder/files
 build/*

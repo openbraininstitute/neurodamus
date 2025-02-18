@@ -56,21 +56,18 @@ class SignalSource:
         return self
 
     def add_pulse(self, max_amp, duration, **kw):
-        """Adds a pulse.
+        """Add a constant-amplitude pulse.
 
-        A pulse is characterized by raising from a base amplitude, for a certain duration.
+        Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
+        This is a special case of `add_ramp` with no amplitude change over time.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
-        self.add_segment(max_amp, duration)
-        self._add_point(base_amp)
-        return self
+        return self.add_ramp(max_amp, max_amp, duration, **kw)
 
     def add_ramp(self, amp1, amp2, duration, **kw):
-        """Adds a ramp.
+        """Add a linear amplitude ramp.
 
-        A ramp is characterized by a pulse whose peak changes uniformly during its length.
-        Neuron automatically interpolates all values between [t0, t1] as a ramp
+        Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over the given `duration`.
+        All intermediate values between the start and end times are linearly interpolated.
         """
         base_amp = kw.get("base_amp", self._base_amp)
         self._add_point(base_amp)
@@ -82,15 +79,27 @@ class SignalSource:
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
-            amp: the amplitude of a each pulse
-            frequency: determines the number of pulses per second (hz)
-            pulse_duration: the duration of a single pulse (peak time) (ms)
-            total_duration: duration of the whole train (ms)
-            base_amp: The base amplitude
+            amp (float): Amplitude of each pulse.
+            frequency (float): Number of pulses per second (Hz).
+            pulse_duration (float): Duration of a single pulse (peak time) in milliseconds.
+            total_duration (float): Total duration of the pulse train in milliseconds.
+            base_amp (float, optional): Base amplitude (default is 0.0).
+
+        Returns:
+            SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
         base_amp = kw.get("base_amp", self._base_amp)
         tau = 1000 / frequency
         delay = tau - pulse_duration
+
+        # we cannot have overlapping pulses otherwise we may go back in time. For now it is disabled until we decide
+        # how to handle this
+        if delay < 0.0:
+            raise ValueError(
+                f"Invalid configuration: The pulse duration ({pulse_duration} ms) is longer than the pulse interval ({tau} ms). "
+                f"Calculated delay: {delay} ms. Please adjust the pulse duration or frequency."
+            )
+
         number_pulses = int(total_duration / tau)
         for _ in range(number_pulses):
             self.add_pulse(amp, pulse_duration, base_amp=base_amp)
@@ -175,21 +184,26 @@ class SignalSource:
 
     def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):
         """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
-        bi-exponential impulse response.
+        bi-exponential impulse response: https://paulbourke.net/miscellaneous/functions/
 
         tau_D: bi-exponential decay time [ms]
-        tau_R: bi-exponential rise time [ms]
+        tau_R: bi-exponential raise time [ms]
         rate: Poisson event rate [Hz]
         amp_mean: mean of gamma-distributed amplitudes [nA]
         amp_var: variance of gamma-distributed amplitudes [nA^2]
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, log, sqrt
+        from math import exp, log, sqrt, isclose
 
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for shot noise generation")
+
+        if isclose(tau_R, tau_D):
+            raise NotImplementedError(
+                f"tau_R ({tau_R}), and tau_D ({tau_D}) are too close. Edge case not implemented"
+            )
 
         tvec = Neuron.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
@@ -207,12 +221,7 @@ class SignalSource:
         ev = Neuron.h.Vector()
         ev.integral(iei, 1).mul(1000)  # generate events in ms
         # add events if last event falls short of duration
-        while ev[-1] < duration:
-            iei_new = Neuron.h.Vector(100)  # generate 100 new inter-event intervals
-            iei_new.setrand(rng)  # here rng is still negexp
-            ev_new = Neuron.h.Vector()
-            ev_new.integral(iei_new, 1).mul(1000).add(ev[-1])  # generate new shifted events in ms
-            ev.append(ev_new)  # append new events
+
         ev.where("<", duration)  # remove events exceeding duration
         ev.div(dt)  # divide events by timestep
 
@@ -452,7 +461,10 @@ class ConductanceSource(SignalSource):
         """
         # set SignalSource's base_amp to zero
         super().__init__(
-            reversal, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+            reversal,
+            delay=delay,
+            rng=rng,
+            represents_physical_electrode=physical_electrode,
         )
         self._reversal = reversal  # set reversal from base_amp parameter in classmethods
         self._clamps = set()
@@ -464,7 +476,6 @@ class ConductanceSource(SignalSource):
             cell_section,
             position=0.5,
             clamp_container=None,
-            stim_vec_mode=True,
             time_vec=None,
             stim_vec=None,
             reversal=0.0,
@@ -478,22 +489,18 @@ class ConductanceSource(SignalSource):
             else:
                 self.clamp = Neuron.h.SEClamp(position, sec=cell_section)
 
-            if stim_vec_mode:
-                assert time_vec is not None and stim_vec is not None
-                self.clamp.dur1 = time_vec[-1]
-                self.clamp.amp1 = reversal
-                # support delay with initial zero
-                self.time_vec = Neuron.h.Vector(1, 0).append(time_vec)
-                self.stim_vec = Neuron.h.Vector(1, 0).append(stim_vec)
-                # replace self.stim_vec with inverted and clamped signal
-                # rs is in MOhm, so conductance is in uS (micro Siemens)
-                self.stim_vec = Neuron.h.Vector(
-                    [1 / x if x > 1e-9 and x < 1e9 else 1e9 for x in self.stim_vec]
-                )
-                self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
-            else:
-                for param, val in clamp_params.items():
-                    setattr(self.clamp, param, val)
+            assert time_vec is not None and stim_vec is not None
+            self.clamp.dur1 = time_vec[-1]
+            self.clamp.amp1 = reversal
+            # support delay with initial zero
+            self.time_vec = Neuron.h.Vector(1, 0).append(time_vec)
+            self.stim_vec = Neuron.h.Vector(1, 0).append(stim_vec)
+            # replace self.stim_vec with inverted and clamped signal
+            # rs is in MOhm, so conductance is in uS (micro Siemens)
+            self.stim_vec = Neuron.h.Vector(
+                [1 / x if abs(x) > 1e-9 else (1e9 if x >= 0 else -1e9) for x in self.stim_vec]
+            )
+            self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
@@ -508,7 +515,6 @@ class ConductanceSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
             self.time_vec,
             self.stim_vec,
             self._reversal,
