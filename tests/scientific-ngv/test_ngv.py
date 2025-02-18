@@ -5,6 +5,7 @@ from pathlib import Path
 
 import libsonata
 import numpy as np
+import pytest
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ngv"
 SONATACONFIG_FILE = SIM_DIR / "simulation_config.json"
@@ -46,11 +47,18 @@ def get_R0pas_ref(astro_id, manager):
     ]
 
 
-def test_vasccouplingB_radii():
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR),
+        "simconfig_file": "simulation_config.json"
+    }
+], indirect=True)
+def test_vasccouplingB_radii(create_tmp_simulation_file):
     from neurodamus import Neurodamus
     from neurodamus.ngv import GlioVascularManager
+    config_file = create_tmp_simulation_file
     ndamus = Neurodamus(
-        str(SONATACONFIG_FILE),
+        config_file,
         enable_reports=False,
         logging_level=None,
         enable_coord_mapping=True,
