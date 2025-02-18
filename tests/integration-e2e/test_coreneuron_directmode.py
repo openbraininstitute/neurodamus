@@ -1,30 +1,25 @@
-import json
 import os
 import numpy.testing as npt
 import numpy as np
+import pytest
+from pathlib import Path
 
 
-def _copy_simulation_file(src_dir, config_file, dst_dir):
-    """copy simulation config file to dst_dir"""
-    with open(str(src_dir / config_file)) as src_f:
-        sim_config_data = json.load(src_f)
-    circuit_conf = sim_config_data.get("network", "circuit_config.json")
-    if not os.path.isabs(circuit_conf):
-        sim_config_data["network"] = str(src_dir / circuit_conf)
-    node_sets_file = sim_config_data.get("node_sets_file")
-    if node_sets_file and not os.path.isabs(node_sets_file):
-        sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
-    with open(str(dst_dir / config_file), "w") as dst_f:
-        json.dump(sim_config_data, dst_f, indent=2)
-    return str(dst_dir / config_file)
+SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
-def test_coreneuron_no_write_model(USECASE3, tmp_path):
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR / "usecase3"),
+        "simconfig_file": "simulation_sonata_coreneuron.json"
+    }
+], indirect=True)
+def test_coreneuron_no_write_model(create_tmp_simulation_file):
     from libsonata import SpikeReader, ElementReportReader
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
 
-    tmp_file = _copy_simulation_file(USECASE3, "simulation_sonata_coreneuron.json", tmp_path)
+    tmp_file = create_tmp_simulation_file
 
     nd = Neurodamus(tmp_file, keep_build=True, coreneuron_direct_mode=True)
     nd.run()
