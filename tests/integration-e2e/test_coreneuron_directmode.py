@@ -1,17 +1,27 @@
 import os
 import numpy.testing as npt
 import numpy as np
+import pytest
+from pathlib import Path
 
 
-def test_coreneuron_no_write_model(USECASE3):
+SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
+
+
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR / "usecase3"),
+        "simconfig_file": "simulation_sonata_coreneuron.json"
+    }
+], indirect=True)
+def test_coreneuron_no_write_model(create_tmp_simulation_file):
     from libsonata import SpikeReader, ElementReportReader
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
-    nd = Neurodamus(
-        str(USECASE3 / "simulation_sonata_coreneuron.json"),
-        keep_build=True,
-        coreneuron_direct_mode=True
-    )
+
+    tmp_file = create_tmp_simulation_file
+
+    nd = Neurodamus(tmp_file, keep_build=True, coreneuron_direct_mode=True)
     nd.run()
     coreneuron_data = SimConfig.coreneuron_datadir
     assert not next(os.scandir(coreneuron_data), None), f"{coreneuron_data} should be empty."
@@ -24,7 +34,9 @@ def test_coreneuron_no_write_model(USECASE3):
                                                                 4.2, 5.5, 7., 7.4, 8.6]))
     npt.assert_allclose(spike_dict["node_ids"][:10], np.array([0, 1, 2, 0, 1, 2, 0, 0, 1, 2]))
 
-    soma_reader = ElementReportReader(SimConfig.reports.get("soma_report").get('FileName'))
+    soma_file = SimConfig.reports.get("soma_report").get("FileName")
+    soma_path = os.path.join(SimConfig.output_root, os.path.basename(soma_file))
+    soma_reader = ElementReportReader(soma_path)
     soma_A = soma_reader["NodeA"]
     soma_B = soma_reader["NodeB"]
     data_A = soma_A.get(tstop=0.5)

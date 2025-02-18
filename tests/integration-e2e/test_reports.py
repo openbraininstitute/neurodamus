@@ -90,6 +90,9 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
 
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
+    # Update the output directory to tmp_path
+    output_dir = tmp_path / config["output"]["output_dir"]
+    config["output"]["output_dir"] = str(output_dir)
 
     # Modify the necessary fields
     config["reports"] = config.get("reports", {})
@@ -127,9 +130,6 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
     with open(temp_config_path, "w") as f:
         json.dump(config, f, indent=4)
 
-    # Create output directory
-    output_dir = tmp_path / config["output"]["output_dir"]
-
     return str(temp_config_path), str(output_dir)
 
 
@@ -141,7 +141,7 @@ def test_v5_sonata_reports(tmp_path):
     config_file = SIM_DIR / "simulation_config_mini.json"
     temp_config_path, output_dir = _create_reports_config(config_file, tmp_path)
 
-    nd = Neurodamus(temp_config_path, output_path=output_dir)
+    nd = Neurodamus(temp_config_path)
     nd.run()
 
     report_refs = {

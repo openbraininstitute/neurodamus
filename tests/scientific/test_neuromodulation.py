@@ -1,17 +1,22 @@
 import numpy as np
 import numpy.testing as npt
-import os
+import pytest
 from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "neuromodulation"
 
 
-def test_neuromodulation_sims_neuron():
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR),
+        "simconfig_file": "simulation_config.json"
+    }
+], indirect=True)
+def test_neuromodulation_sims_neuron(create_tmp_simulation_file, tmp_path):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = str(SIM_DIR / "simulation_config.json")
-    os.chdir(SIM_DIR)
+    config_file = create_tmp_simulation_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
@@ -24,14 +29,19 @@ def test_neuromodulation_sims_neuron():
     npt.assert_allclose(timestamps, obtained_timestamps)
 
 
-def test_neuromodulation_sims_coreneuron():
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR),
+        "simconfig_file": "simulation_config.json",
+        "extra_config" : {"target_simulator": "CORENEURON"}
+    }
+], indirect=True)
+def test_neuromodulation_sims_coreneuron(create_tmp_simulation_file):
     from neurodamus import Neurodamus
     from neurodamus.replay import SpikeManager
 
-    config_file = str(SIM_DIR / "simulation_config.json")
-    os.chdir(SIM_DIR)
-    nd = Neurodamus(config_file, disable_reports=True, simulator="CORENEURON",
-                    output_path="output_coreneuron")
+    config_file = create_tmp_simulation_file
+    nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
     # compare spikes with refs

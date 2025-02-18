@@ -142,37 +142,6 @@ def test_multisplit(target_manager, circuit_conf, capsys):
     assert "Target VerySmall is a subset of the target default_Mini5" in captured.out
 
 
-def _create_tmpconfig_lbal(config_file):
-    import json
-    import shutil
-    from tempfile import NamedTemporaryFile
-
-    with open(config_file, "r") as f:
-        sim_config_data = json.load(f)
-        sim_config_data["network"] = "circuit_config_virtualpop.json"
-        sim_config_data["connection_overrides"] = [
-            {
-                "name": "virtual_proj",
-                "source": "virtual_target",
-                "target": "l4pc",
-                "weight": 0.0
-            },
-            {
-                "name": "disconnect",
-                "source": "l4pc",
-                "target": "virtual_target",
-                "delay": 0.025,
-                "weight": 0.0
-            }
-        ]
-    tmp_file = NamedTemporaryFile(suffix=".json", dir=os.path.dirname(config_file), delete=True)
-    shutil.copy2(config_file, tmp_file.name)
-
-    with open(tmp_file.name, "w") as f:
-        json.dump(sim_config_data, f, indent=2)
-    return tmp_file
-
-
 def _read_complexity_file(base_dir, pattern, cx_pattern):
     import glob
     # Construct the full pattern path
@@ -191,7 +160,34 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
             print(f"File not found: {file_path}")
 
 
-def test_loadbal_integration():
+@pytest.mark.parametrize("create_tmp_simulation_file", [
+    {
+        "src_dir": str(SIM_DIR / "usecase3"),
+        "simconfig_file": "simulation_sonata.json",
+        "extra_config": {
+            "network": os.path.join(str(SIM_DIR / "usecase3"), "circuit_config_virtualpop.json"),
+            "output": {
+                "output_dir": "reporting"
+            },
+            "connection_overrides": [
+                {
+                    "name": "virtual_proj",
+                    "source": "virtual_target",
+                    "target": "l4pc",
+                    "weight": 0.0
+                },
+                {
+                    "name": "disconnect",
+                    "source": "l4pc",
+                    "target": "virtual_target",
+                    "delay": 0.025,
+                    "weight": 0.0
+                }
+            ]
+        }
+    }
+], indirect=True)
+def test_loadbal_integration(create_tmp_simulation_file):
     """Ensure given the right files are in the lbal dir, the correct situation is detected
     """
     from neurodamus import Neurodamus
@@ -200,8 +196,8 @@ def test_loadbal_integration():
     GlobalConfig.verbosity = 2
 
     # Add connection_overrides for the virtual population so the offsets are calculated before LB
-    tmp_file = _create_tmpconfig_lbal(SIM_DIR / "usecase3" / "simulation_sonata.json")
-    nd = Neurodamus(tmp_file.name, lb_mode="WholeCell")
+    tmp_file = create_tmp_simulation_file
+    nd = Neurodamus(tmp_file, lb_mode="WholeCell")
     nd.run()
 
     # Check the complexity file
