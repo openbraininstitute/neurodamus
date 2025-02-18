@@ -184,21 +184,26 @@ class SignalSource:
 
     def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):
         """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
-        bi-exponential impulse response.
+        bi-exponential impulse response: https://paulbourke.net/miscellaneous/functions/
 
         tau_D: bi-exponential decay time [ms]
-        tau_R: bi-exponential rise time [ms]
+        tau_R: bi-exponential raise time [ms]
         rate: Poisson event rate [Hz]
         amp_mean: mean of gamma-distributed amplitudes [nA]
         amp_var: variance of gamma-distributed amplitudes [nA^2]
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, log, sqrt
+        from math import exp, log, sqrt, isclose
 
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for shot noise generation")
+
+        if isclose(tau_R, tau_D):
+            raise NotImplementedError(
+                f"tau_R ({tau_R}), and tau_D ({tau_D}) are too close. Edge case not implemented"
+            )
 
         tvec = Neuron.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
@@ -216,12 +221,7 @@ class SignalSource:
         ev = Neuron.h.Vector()
         ev.integral(iei, 1).mul(1000)  # generate events in ms
         # add events if last event falls short of duration
-        while ev[-1] < duration:
-            iei_new = Neuron.h.Vector(100)  # generate 100 new inter-event intervals
-            iei_new.setrand(rng)  # here rng is still negexp
-            ev_new = Neuron.h.Vector()
-            ev_new.integral(iei_new, 1).mul(1000).add(ev[-1])  # generate new shifted events in ms
-            ev.append(ev_new)  # append new events
+
         ev.where("<", duration)  # remove events exceeding duration
         ev.div(dt)  # divide events by timestep
 
@@ -390,7 +390,6 @@ class CurrentSource(SignalSource):
             cell_section,
             position=0.5,
             clamp_container=None,
-            stim_vec_mode=True,
             time_vec=None,
             stim_vec=None,
             **clamp_params,
@@ -403,13 +402,10 @@ class CurrentSource(SignalSource):
             else:
                 self.clamp = Neuron.h.IClamp(position, sec=cell_section)
 
-            if stim_vec_mode:
-                assert time_vec is not None and stim_vec is not None
-                self.clamp.dur = time_vec[-1]
-                stim_vec.play(self.clamp._ref_amp, time_vec, 1)
-            else:
-                for param, val in clamp_params.items():
-                    setattr(self.clamp, param, val)
+            assert time_vec is not None and stim_vec is not None
+            self.clamp.dur = time_vec[-1]
+            stim_vec.play(self.clamp._ref_amp, time_vec, 1)
+
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
@@ -424,7 +420,6 @@ class CurrentSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
             self.time_vec,
             self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
