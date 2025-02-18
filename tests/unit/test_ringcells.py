@@ -14,10 +14,10 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
 
 @pytest.fixture
-def simconfig_update(ringtest_baseconfig, extra_config):
+def simconfig_update(ringtest_baseconfig, extra_config, tmp_path):
     ringtest_baseconfig.update(extra_config)
 
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+    with NamedTemporaryFile("w", suffix='.json', dir=str(tmp_path), delete=False) as config_file:
         json.dump(ringtest_baseconfig, config_file)
 
     yield config_file
