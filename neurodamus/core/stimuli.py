@@ -376,10 +376,7 @@ class CurrentSource(SignalSource):
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, physical_electrode=False):
         """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
-            base_amp,
-            delay=delay,
-            rng=rng,
-            represents_physical_electrode=physical_electrode,
+            base_amp, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
         )
         self._clamps = set()
         self._all_sources.append(self)
@@ -390,6 +387,7 @@ class CurrentSource(SignalSource):
             cell_section,
             position=0.5,
             clamp_container=None,
+            stim_vec_mode=True,
             time_vec=None,
             stim_vec=None,
             **clamp_params,
@@ -402,10 +400,13 @@ class CurrentSource(SignalSource):
             else:
                 self.clamp = Neuron.h.IClamp(position, sec=cell_section)
 
-            assert time_vec is not None and stim_vec is not None
-            self.clamp.dur = time_vec[-1]
-            stim_vec.play(self.clamp._ref_amp, time_vec, 1)
-
+            if stim_vec_mode:
+                assert time_vec is not None and stim_vec is not None
+                self.clamp.dur = time_vec[-1]
+                stim_vec.play(self.clamp._ref_amp, time_vec, 1)
+            else:
+                for param, val in clamp_params.items():
+                    setattr(self.clamp, param, val)
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
@@ -420,6 +421,7 @@ class CurrentSource(SignalSource):
             section,
             position,
             self._clamps,
+            True,
             self.time_vec,
             self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
@@ -474,7 +476,6 @@ class ConductanceSource(SignalSource):
             cell_section,
             position=0.5,
             clamp_container=None,
-            stim_vec_mode=True,
             time_vec=None,
             stim_vec=None,
             reversal=0.0,
@@ -488,22 +489,18 @@ class ConductanceSource(SignalSource):
             else:
                 self.clamp = Neuron.h.SEClamp(position, sec=cell_section)
 
-            if stim_vec_mode:
-                assert time_vec is not None and stim_vec is not None
-                self.clamp.dur1 = time_vec[-1]
-                self.clamp.amp1 = reversal
-                # support delay with initial zero
-                self.time_vec = Neuron.h.Vector(1, 0).append(time_vec)
-                self.stim_vec = Neuron.h.Vector(1, 0).append(stim_vec)
-                # replace self.stim_vec with inverted and clamped signal
-                # rs is in MOhm, so conductance is in uS (micro Siemens)
-                self.stim_vec = Neuron.h.Vector(
-                    [1 / x if x > 1e-9 and x < 1e9 else 1e9 for x in self.stim_vec]
-                )
-                self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
-            else:
-                for param, val in clamp_params.items():
-                    setattr(self.clamp, param, val)
+            assert time_vec is not None and stim_vec is not None
+            self.clamp.dur1 = time_vec[-1]
+            self.clamp.amp1 = reversal
+            # support delay with initial zero
+            self.time_vec = Neuron.h.Vector(1, 0).append(time_vec)
+            self.stim_vec = Neuron.h.Vector(1, 0).append(stim_vec)
+            # replace self.stim_vec with inverted and clamped signal
+            # rs is in MOhm, so conductance is in uS (micro Siemens)
+            self.stim_vec = Neuron.h.Vector(
+                [1 / x if abs(x) > 1e-9 else (1e9 if x >= 0 else -1e9) for x in self.stim_vec]
+            )
+            self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
@@ -518,7 +515,6 @@ class ConductanceSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
             self.time_vec,
             self.stim_vec,
             self._reversal,

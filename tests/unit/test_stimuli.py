@@ -368,9 +368,9 @@ class TestSignalSource:
             0.022358363086789193,
             self.base_amp,
         ]
-        assert np.allclose(self.stim.stim_vec, expected_stim_vec), (
-            f"{list(self.stim.stim_vec)}, {list(expected_stim_vec)}"
-        )
+        assert np.allclose(
+            self.stim.stim_vec, expected_stim_vec
+        ), f"{list(self.stim.stim_vec)}, {list(expected_stim_vec)}"
 
     def test_plot(self):
         import matplotlib
@@ -433,31 +433,67 @@ def create_ball_and_stick():
     return sec1, soma
 
 
+def clamp_attach_detach(stim, clamp_type):
+    """Attach and detach a Clamp."""
+    sec1, soma = create_ball_and_stick()
+    assert clamp_type not in soma.psection()["point_processes"]
+    assert clamp_type not in sec1.psection()["point_processes"]
+    assert len(stim._all_sources) == 1
+    assert len(stim._clamps) == 0
+    clamp02 = stim.attach_to(soma, position=0.28)
+    assert clamp_type in soma.psection()["point_processes"]
+    assert clamp_type not in sec1.psection()["point_processes"]
+    assert len(stim._clamps) == 1
+    # we placed it at 0.28. Neuron snaps it to the center of the location
+    # compartment. We have 5 real comartments. One center is in 0.3
+    assert np.allclose(clamp02.clamp.get_loc(), 0.3)
+    clamp02.detach()
+    assert clamp_type not in soma.psection()["point_processes"]
+    assert clamp_type not in sec1.psection()["point_processes"]
+    assert len(stim._all_sources) == 1
+    assert len(stim._clamps) == 0
+
+
 class TestCurrentSource:
     def setup_method(self):
-        rng = Random123(1, 2, 3)
+        self.rng = Random123(1, 2, 3)
         self.base_delay = 1.0
         self.base_amp = 2.0
-        self.stim = st.CurrentSource(rng=rng, base_amp=self.base_amp, delay=self.base_delay)
+        self.stim = st.CurrentSource(rng=self.rng, base_amp=self.base_amp, delay=self.base_delay)
         self.stim.add_segment(3, 4)
 
-    def test_attach_detach(self):
+    def test_clamp_attach_detach(self):
+        clamp_attach_detach(self.stim, "IClamp")
+
+    def test_constant_attach_detach(self):
         sec1, soma = create_ball_and_stick()
+        duration = 3.0
         assert "IClamp" not in soma.psection()["point_processes"]
         assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(self.stim._all_sources) == 1
-        assert len(self.stim._clamps) == 0
-        clamp07 = self.stim.attach_to(soma, position=0.28)
+
+        stim = st.CurrentSource.Constant(
+            amp=self.base_amp, duration=duration, delay=self.base_delay
+        )
+        clamp07 = stim.attach_to(soma, position=0.72)
         assert "IClamp" in soma.psection()["point_processes"]
         assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(self.stim._clamps) == 1
-        # we placed it at 0.28. Neuron snaps it to the center of the location
-        # compartment. We have 5 real comartments. One center is in 0.3
-        assert np.allclose(clamp07.clamp.get_loc(), 0.3)
+        assert len(stim._clamps) == 1
+        assert np.allclose(clamp07.clamp.get_loc(), 0.7)
         clamp07.detach()
         assert "IClamp" not in soma.psection()["point_processes"]
         assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(self.stim._all_sources) == 1
-        assert len(self.stim._clamps) == 0
-        # assert hasattr(Neuron.h, "MembraneCurrentSource")
-        # TODO continue
+        assert len(stim._clamps) == 0
+
+
+class TestConductanceSource:
+    def setup_method(self):
+        self.rng = Random123(1, 2, 3)
+        self.base_delay = 1.0
+        self.base_amp = 2.0
+        self.stim = st.ConductanceSource(
+            reversal=0.5, rng=self.rng, delay=self.base_delay, physical_electrode=False
+        )
+        self.stim.add_segment(3, 4)
+
+    def test_clamp_attach_detach(self):
+        clamp_attach_detach(self.stim, "SEClamp")
