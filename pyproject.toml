@@ -171,7 +171,6 @@ ignore = [
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "A005",   # stdlib-module-shadowing
-    "C401",   # unnecessary-generator-set
     "EM103",  # dot-format-in-exception
     "FIX001", # line-contains-fixme
     "ISC003", # explicit-string-concatenation
