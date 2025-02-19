@@ -183,7 +183,6 @@ ignore = [
     "S324",   # hashlib-insecure-hash-function
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
-    "PT018",  # pytest-composite-assertion
     "SIM112", # uncapitalized-environment-variables
     "ARG004", # unused-static-method-argument
     "N804",   # invalid-first-argument-name-for-class-method
