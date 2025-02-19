@@ -120,55 +120,116 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
-]
-exclude = [
-    "neurodamus/cell_distributor.py",
-    "neurodamus/commands.py",
-    "neurodamus/connection_manager.py",
-    "neurodamus/connection.py",
-    "neurodamus/core/cell.py",
-    "neurodamus/core/configuration.py",
-    "neurodamus/core/coreneuron_configuration.py",
-    "neurodamus/core/_engine.py",
-    "neurodamus/core/__init__.py",
-    "neurodamus/core/mechanisms.py",
-    "neurodamus/core/_mpi.py",
-    "neurodamus/core/_neurodamus.py",
-    "neurodamus/core/_neuron.py",
-    "neurodamus/core/nodeset.py",
-    "neurodamus/core/random.py",
-    "neurodamus/core/_shmutils.py",
-    "neurodamus/core/stimuli.py",
-    "neurodamus/core/synapses.py",
-    "neurodamus/core/_utils.py",
-    "neurodamus/data/init.py",
-    "neurodamus/gap_junction.py",
-    "neurodamus/gj_user_corrections.py",
-    "neurodamus/hocify.py",
-    "neurodamus/io/cell_readers.py",
-    "neurodamus/io/__init__.py",
-    "neurodamus/io/sonata_config.py",
-    "neurodamus/io/synapse_reader.py",
-    "neurodamus/lfp_manager.py",
-    "neurodamus/metype.py",
-    "neurodamus/modification_manager.py",
-    "neurodamus/morphio_wrapper.py",
-    "neurodamus/neuromodulation_manager.py",
-    "neurodamus/ngv.py",
-    "neurodamus/node.py",
-    "neurodamus/replay.py",
-    "neurodamus/report.py",
-    "neurodamus/stimulus_manager.py",
-    "neurodamus/target_manager.py",
-    "neurodamus/utils/cli.py",
-    "neurodamus/utils/compat.py",
-    "neurodamus/utils/__init__.py",
-    "neurodamus/utils/logging.py",
-    "neurodamus/utils/memory.py",
-    "neurodamus/utils/multimap.py",
-    "neurodamus/utils/progressbar.py",
-    "neurodamus/utils/pyutils.py",
-    "neurodamus/utils/timeit.py",
+    
+    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47  
+    "D102",   # undocumented-public-method
+    "TRY003", # raise-vanilla-args
+    "SLF001", # private-member-access
+    "EM101",  # raw-string-in-exception
+    "EM102",  # f-string-in-exception
+    "D107",   # undocumented-public-init
+    "PLC0415",# import-outside-top-level
+    "D101",   # undocumented-public-class
+    "RUF012", # mutable-class-default
+    "TRY002", # raise-vanilla-class
+    "N806",   # non-lowercase-variable-in-function
+    "D417",   # undocumented-param
+    "PLR6301",# no-self-use
+    "ARG002", # unused-method-argument
+    "ERA001", # commented-out-code
+    "G004",   # logging-f-string
+    "PLW1514",# unspecified-encoding
+    "FBT003", # boolean-positional-value-in-call
+    "PLR2004",# magic-value-comparison
+    "PLW2901",# redefined-loop-name
+    "C901",   # complex-structure
+    "UP031",  # printf-string-formatting
+    "G001",   # logging-string-format
+    "ARG001", # unused-function-argument
+    "N803",   # invalid-argument-name
+    "I001",   # unsorted-imports
+    "RET504", # unnecessary-assign
+    "B007",   # unused-loop-control-variable
+    "B904",   # raise-without-from-inside-except
+    "D100",   # undocumented-public-module
+    "SIM102", # collapsible-if
+    "T201",   # print
+    "N815",   # mixed-case-variable-in-class-scope
+    "D103",   # undocumented-public-function
+    "BLE001", # blind-except
+    "RET503", # implicit-return
+    "SIM108", # if-else-block-instead-of-if-exp
+    "ARG003", # unused-class-method-argument
+    "ARG005", # unused-lambda-argument
+    "N805",   # invalid-first-argument-name-for-method
+    "TRY401", # verbose-log-message
+    "S603",   # subprocess-without-shell-equals-true
+    "C405",   # unnecessary-literal-set
+    "SIM115", # open-file-with-context-handler
+    "N801",   # invalid-class-name
+    "D106",   # undocumented-public-nested-class
+    "PLR0915",# too-many-statements
+    "FURB189",# subclass-builtin
+    "A005",   # stdlib-module-shadowing
+    "C401",   # unnecessary-generator-set
+    "EM103",  # dot-format-in-exception
+    "FIX001", # line-contains-fixme
+    "ISC003", # explicit-string-concatenation
+    "E501",   # line-too-long
+    "E731",   # lambda-assignment
+    "PLR0912",# too-many-branches
+    "PLR0914",# too-many-locals
+    "RUF005", # collection-literal-concatenation
+    "RUF015", # unnecessary-iterable-allocation-for-first-element
+    "S102",   # exec-builtin
+    "S108",   # hardcoded-temp-file
+    "S324",   # hashlib-insecure-hash-function
+    "S403",   # suspicious-pickle-import
+    "S404",   # suspicious-subprocess-import
+    "A002",   # builtin-argument-shadowing
+    "C416",   # unnecessary-comprehension
+    "PT018",  # pytest-composite-assertion
+    "SIM112", # uncapitalized-environment-variables
+    "ARG004", # unused-static-method-argument
+    "N804",   # invalid-first-argument-name-for-class-method
+    "PERF203",# try-except-in-loop
+    "PGH004", # blanket-noqa
+    "PLC1901",# compare-to-empty-string
+    "PLC2801",# unnecessary-dunder-call
+    "PLW1508",# invalid-envvar-default
+    "FURB103",# write-whole-file
+    "FURB122",# for-loop-writes
+    "S301",   # suspicious-pickle-usage
+    "S606",   # start-process-with-no-shell
+    "B006",   # mutable-argument-default
+    "B018",   # useless-expression
+    "B019",   # cached-instance-method
+    "B027",   # empty-method-without-abstract-decorator
+    "A001",   # builtin-variable-shadowing
+    "FA100",  # future-rewritable-type-annotation
+    "INP001", # implicit-namespace-package
+    "PIE810", # multiple-starts-ends-with
+    "T203",   # p-print
+    "PYI024", # collections-named-tuple
+    "SIM103", # needless-bool
+    "SIM105", # suppressible-exception
+    "SIM113", # enumerate-for-loop
+    "SIM223", # expr-and-false
+    "SIM401", # if-else-block-instead-of-dict-get
+    "N818",   # error-suffix-on-exception-name
+    "PERF102",# incorrect-dict-iterator
+    "E741",   # ambiguous-variable-name
+    "D104",   # undocumented-public-package
+    "D212",   # multi-line-summary-first-line
+    "PLC0205",# single-string-slots
+    "PLE1141",# dict-iter-missing-items
+    "PLR0913",# too-many-arguments
+    "PLR0917",# too-many-positional-arguments
+    "PLR1702",# too-many-nested-blocks
+    "PLW1641",# eq-without-hash
+    "PLW3301",# nested-min-max
+    "FURB101",# read-whole-file
+    "FURB110",# if-exp-instead-of-or-operator
 ]
 
 [tool.ruff.lint.isort]
