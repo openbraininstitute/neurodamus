@@ -9,13 +9,12 @@ from pathlib import Path
 
 from docopt import docopt
 
-from neurodamus.utils.timeit import TimerManager
-
 from . import Neurodamus
 from .core import MPI, OtherRankError
 from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
 from .hocify import Hocify, process_file as hocify_process_file
 from .utils.pyutils import docopt_sanitize
+from neurodamus.utils.timeit import TimerManager
 
 
 def neurodamus(args=None):
@@ -128,7 +127,7 @@ def hocify(args=None):
         print(f"Hocifying {morph_path} -> {dest_file}")
         result = hocify_process_file((morph_path, str(dest_file)))
         if isinstance(result, Exception):
-            logging.critical(str(result), exc_info=True)
+            logging.critical(str(result))
             return 1
         print("Done.")
         return 0
@@ -141,7 +140,7 @@ def hocify(args=None):
         return 1
     from neuron import version as nrn_version
 
-    logging.info("Neuron version used for hocifying: " + nrn_version)
+    logging.info("Neuron version used for hocifying: %s", nrn_version)
     return 0
 
 
