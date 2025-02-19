@@ -4,7 +4,6 @@ import pytest
 import neurodamus.core.stimuli as st
 from neurodamus.core.random import Random123
 import numpy as np
-from neurodamus.core import Neuron
 
 
 class TestSignalSource:
@@ -79,7 +78,7 @@ class TestSignalSource:
         self.stim.add_pulse(1.2, 10, base_amp=base_amp)
         expected = np.array([-self.base_delay, 0, 0, 10, 10]) + self.base_delay
         assert np.allclose(list(self.stim.time_vec), expected)
-        assert np.allclose(list(self.stim.stim_vec), [2, base_amp, 1.2, 1.2, base_amp])
+        assert np.allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
 
     def test_add_train(self):
         """Add train of pulses.
@@ -167,7 +166,8 @@ class TestSignalSource:
         )
         assert np.allclose(self.stim.time_vec, expected)
         assert np.allclose(
-            self.stim.stim_vec, [self.base_amp] + [2, 1.2, 1.2, 2] * 4 + [self.base_amp]
+            self.stim.stim_vec,
+            [self.base_amp] + [self.base_amp, 1.2, 1.2, self.base_amp] * 4 + [self.base_amp],
         )
 
     def test_add_sin(self):
@@ -425,6 +425,8 @@ class TestSignalSource:
 
 
 def create_ball_and_stick():
+    from neurodamus.core import Neuron
+
     sec1 = Neuron.h.Section(name="sec1")
     sec1.nseg = 5
     soma = Neuron.h.Section(name="soma")
@@ -454,12 +456,17 @@ def clamp_attach_detach(stim, clamp_type):
     assert len(stim._clamps) == 0
 
 
-class TestCurrentSource:
+class TestIClampSource:
     def setup_method(self):
         self.rng = Random123(1, 2, 3)
         self.base_delay = 1.0
         self.base_amp = 2.0
-        self.stim = st.CurrentSource(rng=self.rng, base_amp=self.base_amp, delay=self.base_delay)
+        self.stim = st.CurrentSource(
+            rng=self.rng,
+            base_amp=self.base_amp,
+            delay=self.base_delay,
+            represents_physical_electrode=True,
+        )
         self.stim.add_segment(3, 4)
 
     def test_clamp_attach_detach(self):
@@ -472,7 +479,10 @@ class TestCurrentSource:
         assert "IClamp" not in sec1.psection()["point_processes"]
 
         stim = st.CurrentSource.Constant(
-            amp=self.base_amp, duration=duration, delay=self.base_delay
+            amp=self.base_amp,
+            duration=duration,
+            delay=self.base_delay,
+            represents_physical_electrode=True,
         )
         clamp07 = stim.attach_to(soma, position=0.72)
         assert "IClamp" in soma.psection()["point_processes"]
@@ -485,15 +495,46 @@ class TestCurrentSource:
         assert len(stim._clamps) == 0
 
 
+class TestMembraneCurrentSource:
+    def setup_method(self):
+        self.rng = Random123(1, 2, 3)
+        self.base_delay = 1.0
+        self.base_amp = 2.0
+        self.stim = st.CurrentSource(
+            rng=self.rng,
+            base_amp=self.base_amp,
+            delay=self.base_delay,
+            represents_physical_electrode=False,
+        )
+        self.stim.add_segment(3, 4)
+
+    def test_clamp_attach_detach(self):
+        clamp_attach_detach(self.stim, "MembraneCurrentSource")
+
+
+class TestSEClampSource:
+    def setup_method(self):
+        self.rng = Random123(1, 2, 3)
+        self.base_delay = 1.0
+        self.base_amp = 2.0
+        self.stim = st.ConductanceSource(
+            reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
+        )
+        self.stim.add_segment(3, 4)
+
+    def test_clamp_attach_detach(self):
+        clamp_attach_detach(self.stim, "SEClamp")
+
+
 class TestConductanceSource:
     def setup_method(self):
         self.rng = Random123(1, 2, 3)
         self.base_delay = 1.0
         self.base_amp = 2.0
         self.stim = st.ConductanceSource(
-            reversal=0.5, rng=self.rng, delay=self.base_delay, physical_electrode=False
+            reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=False
         )
         self.stim.add_segment(3, 4)
 
     def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "SEClamp")
+        clamp_attach_detach(self.stim, "ConductanceSource")

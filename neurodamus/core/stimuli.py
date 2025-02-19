@@ -2,7 +2,7 @@
 
 import logging
 
-from . import Neuron
+from neurodamus.core import NeurodamusCore as Nd
 from .random import RNG, gamma
 
 
@@ -15,7 +15,7 @@ class SignalSource:
             represents_physical_electrode: Whether the source represents a phsyical
             electrode or missing synaptic input
         """
-        h = Neuron.h
+        h = Nd.h
         self.stim_vec = h.Vector()
         self.time_vec = h.Vector()
         self._cur_t = 0
@@ -127,12 +127,12 @@ class SignalSource:
         """
         base_amp = kw.get("base_amp", self._base_amp)
 
-        tvec = Neuron.h.Vector()
+        tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
         self.delay(total_duration)
 
-        stim = Neuron.h.Vector(len(tvec))
+        stim = Nd.h.Vector(len(tvec))
         stim.sin(freq, 0.0, step)
         stim.mul(amp)
         self.stim_vec.append(stim)
@@ -168,9 +168,9 @@ class SignalSource:
         if not self._rng:
             logging.warning("Using a default RNG for noise generation")
         rng.normal(mean, variance)
-        tvec = Neuron.h.Vector()
+        tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)
-        svec = Neuron.h.Vector(len(tvec))
+        svec = Nd.h.Vector(len(tvec))
         svec.setrand(rng)
 
         # Delimit noise signals with base_amp
@@ -205,7 +205,7 @@ class SignalSource:
                 f"tau_R ({tau_R}), and tau_D ({tau_D}) are too close. Edge case not implemented"
             )
 
-        tvec = Neuron.h.Vector()
+        tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
         ntstep = len(tvec)  # total number of timesteps
 
@@ -215,17 +215,17 @@ class SignalSource:
 
         exp_scale = 1 / rate  # scale parameter of exponential distribution of time intervals
         rng.negexp(exp_scale)
-        iei = Neuron.h.Vector(napprox)
+        iei = Nd.h.Vector(napprox)
         iei.setrand(rng)  # generate inter-event intervals
 
-        ev = Neuron.h.Vector()
+        ev = Nd.h.Vector()
         ev.integral(iei, 1).mul(1000)  # generate events in ms
         # add events if last event falls short of duration
 
         ev.where("<", duration)  # remove events exceeding duration
         ev.div(dt)  # divide events by timestep
 
-        nev = Neuron.h.Vector([round(x) for x in ev])  # round to integer timestep index
+        nev = Nd.h.Vector([round(x) for x in ev])  # round to integer timestep index
         nev.where("<", ntstep)  # remove events exceeding number of timesteps
 
         sign = 1
@@ -239,7 +239,7 @@ class SignalSource:
         # sample gamma-distributed amplitudes
         amp = gamma(rng, gamma_shape, gamma_scale, len(nev))
 
-        E = Neuron.h.Vector(ntstep, 0)  # full signal
+        E = Nd.h.Vector(ntstep, 0)  # full signal
         for n, A in zip(nev, amp):
             E.x[int(n)] += sign * A  # add impulses, may overlap due to rounding to timestep
 
@@ -254,8 +254,8 @@ class SignalSource:
         t_peak = log(R / D) / (R - D)
         A = (a / b - 1) / (a**t_peak - b**t_peak)
 
-        P = Neuron.h.Vector(ntstep, 0)
-        B = Neuron.h.Vector(ntstep, 0)
+        P = Nd.h.Vector(ntstep, 0)
+        B = Nd.h.Vector(ntstep, 0)
 
         # composite autoregressive process with exact solution
         # P[n] = b * (a ^ n - b ^ n) / (a - b)
@@ -290,13 +290,13 @@ class SignalSource:
         if not self._rng:
             logging.warning("Using a default RNG for Ornstein-Uhlenbeck process")
 
-        tvec = Neuron.h.Vector()
+        tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
         ntstep = len(tvec)  # total number of timesteps
 
-        svec = Neuron.h.Vector(ntstep, 0)  # stim vector
+        svec = Nd.h.Vector(ntstep, 0)  # stim vector
 
-        noise = Neuron.h.Vector(ntstep)  # Gaussian noise
+        noise = Nd.h.Vector(ntstep)  # Gaussian noise
         rng.normal(0.0, 1.0)
         noise.setrand(rng)  # generate Gaussian noise
 
@@ -373,10 +373,13 @@ class SignalSource:
 class CurrentSource(SignalSource):
     _all_sources = []
 
-    def __init__(self, base_amp=0.0, *, delay=0, rng=None, physical_electrode=False):
+    def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
         """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
-            base_amp, delay=delay, rng=rng, represents_physical_electrode=physical_electrode
+            base_amp,
+            delay=delay,
+            rng=rng,
+            represents_physical_electrode=represents_physical_electrode,
         )
         self._clamps = set()
         self._all_sources.append(self)
@@ -390,23 +393,26 @@ class CurrentSource(SignalSource):
             stim_vec_mode=True,
             time_vec=None,
             stim_vec=None,
+            represents_physical_electrode=False,
             **clamp_params,
         ):
-            represents_physical_electrode = clamp_params.get("represents_physical_electrode", False)
-            # Checks if new MembraneCurrentSource mechanism is available and if source does not
-            # represent physical electrode, otherwise fall back to IClamp.
-            if not represents_physical_electrode and hasattr(Neuron.h, "MembraneCurrentSource"):
-                self.clamp = Neuron.h.MembraneCurrentSource(position, sec=cell_section)
-            else:
-                self.clamp = Neuron.h.IClamp(position, sec=cell_section)
+            # Checks if source does not represent physical electrode,
+            # otherwise fall back to IClamp.
+            self.clamp = (
+                Nd.h.IClamp(position, sec=cell_section)
+                if represents_physical_electrode
+                else Nd.h.MembraneCurrentSource(position, sec=cell_section)
+            )
 
             if stim_vec_mode:
                 assert time_vec is not None and stim_vec is not None
                 self.clamp.dur = time_vec[-1]
                 stim_vec.play(self.clamp._ref_amp, time_vec, 1)
             else:
+                # this is probably unused
                 for param, val in clamp_params.items():
                     setattr(self.clamp, param, val)
+
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
@@ -433,10 +439,11 @@ class CurrentSource(SignalSource):
 
         _clamps = set()
 
-        def __init__(self, amp, duration, delay=0):
+        def __init__(self, amp, duration, delay=0, represents_physical_electrode=False):
             self._amp = amp
             self._dur = duration
             self._delay = delay
+            self.represents_physical_electrode = represents_physical_electrode
 
         def attach_to(self, section, position=0.5):
             return CurrentSource._Clamp(
@@ -447,13 +454,14 @@ class CurrentSource(SignalSource):
                 amp=self._amp,
                 delay=self._delay,
                 dur=self._dur,
+                represents_physical_electrode=self.represents_physical_electrode,
             )
 
 
 class ConductanceSource(SignalSource):
     _all_sources = []
 
-    def __init__(self, reversal=0.0, *, delay=0.0, rng=None, physical_electrode=False):
+    def __init__(self, reversal=0.0, *, delay=0.0, rng=None, represents_physical_electrode=False):
         """Creates a new conductance source that injects a conductance by driving
         the rs of an SEClamp at a given reversal potential.
 
@@ -464,7 +472,7 @@ class ConductanceSource(SignalSource):
             reversal,
             delay=delay,
             rng=rng,
-            represents_physical_electrode=physical_electrode,
+            represents_physical_electrode=represents_physical_electrode,
         )
         self._reversal = reversal  # set reversal from base_amp parameter in classmethods
         self._clamps = set()
@@ -479,25 +487,25 @@ class ConductanceSource(SignalSource):
             time_vec=None,
             stim_vec=None,
             reversal=0.0,
-            **clamp_params,
+            represents_physical_electrode=False,
         ):
-            represents_physical_electrode = clamp_params.get("represents_physical_electrode", False)
-            # Checks if new conductanceSource mechanism is available and if source does not
-            # represent physical electrode, otherwise fall back to SEClamp.
-            if not represents_physical_electrode and hasattr(Neuron.h, "ConductanceSource"):
-                self.clamp = Neuron.h.ConductanceSource(position, sec=cell_section)
-            else:
-                self.clamp = Neuron.h.SEClamp(position, sec=cell_section)
+            # source does not represent physical electrode,
+            # otherwise fall back to SEClamp.
+            self.clamp = (
+                Nd.h.SEClamp(position, sec=cell_section)
+                if represents_physical_electrode
+                else Nd.h.ConductanceSource(position, sec=cell_section)
+            )
 
             assert time_vec is not None and stim_vec is not None
             self.clamp.dur1 = time_vec[-1]
             self.clamp.amp1 = reversal
             # support delay with initial zero
-            self.time_vec = Neuron.h.Vector(1, 0).append(time_vec)
-            self.stim_vec = Neuron.h.Vector(1, 0).append(stim_vec)
+            self.time_vec = Nd.h.Vector(1, 0).append(time_vec)
+            self.stim_vec = Nd.h.Vector(1, 0).append(stim_vec)
             # replace self.stim_vec with inverted and clamped signal
             # rs is in MOhm, so conductance is in uS (micro Siemens)
-            self.stim_vec = Neuron.h.Vector(
+            self.stim_vec = Nd.h.Vector(
                 [1 / x if abs(x) > 1e-9 else (1e9 if x >= 0 else -1e9) for x in self.stim_vec]
             )
             self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
