@@ -145,13 +145,13 @@ def load_sonata(
             etypes = None
         model_templates = node_pop.get_attribute("model_template", node_sel)
         emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
-        if set(["exc_mini_frequency", "inh_mini_frequency"]).issubset(attr_names):
+        if {"exc_mini_frequency", "inh_mini_frequency"}.issubset(attr_names):
             exc_mini_freqs = node_pop.get_attribute("exc_mini_frequency", node_sel)
             inh_mini_freqs = node_pop.get_attribute("inh_mini_frequency", node_sel)
         else:
             exc_mini_freqs = None
             inh_mini_freqs = None
-        if set(["threshold_current", "holding_current"]).issubset(dynamics_attr_names):
+        if {"threshold_current", "holding_current"}.issubset(dynamics_attr_names):
             threshold_currents = node_pop.get_dynamics_attribute("threshold_current", node_sel)
             holding_currents = node_pop.get_dynamics_attribute("holding_current", node_sel)
         else:
@@ -259,9 +259,7 @@ def _get_rotations(node_reader, selection):
         double vector of size [N][4] with the rotation quaternions in the order (x,y,z,w)
     """
     attr_names = node_reader.attribute_names
-    if set(["orientation_x", "orientation_y", "orientation_z", "orientation_w"]).issubset(
-        attr_names
-    ):
+    if {"orientation_x", "orientation_y", "orientation_z", "orientation_w"}.issubset(attr_names):
         # Preferred way to present the rotation as quaternions
         return np.array(
             [
@@ -272,7 +270,7 @@ def _get_rotations(node_reader, selection):
             ]
         ).T
 
-    if set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
+    if {"rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"}.intersection(
         attr_names
     ):
         # Some sonata nodes files use the Euler angle rotations, convert them to quaternions

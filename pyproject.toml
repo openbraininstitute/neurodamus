@@ -164,7 +164,6 @@ ignore = [
     "N805",   # invalid-first-argument-name-for-method
     "TRY401", # verbose-log-message
     "S603",   # subprocess-without-shell-equals-true
-    "C405",   # unnecessary-literal-set
     "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
     "D106",   # undocumented-public-nested-class
