@@ -216,7 +216,7 @@ class CircuitManager:
             pop_name: node_manager.local_nodes.offset
             for pop_name, node_manager in self.node_managers.items()
         }
-        alias_pop = {alias: pop_name for alias, pop_name in self.alias.items()}
+        alias_pop = dict(self.alias)
         return pop_offsets, alias_pop
 
     def get_virtual_population_offsets(self):

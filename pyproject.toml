@@ -187,7 +187,6 @@ ignore = [
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "A002",   # builtin-argument-shadowing
-    "C416",   # unnecessary-comprehension
     "PT018",  # pytest-composite-assertion
     "SIM112", # uncapitalized-environment-variables
     "ARG004", # unused-static-method-argument
