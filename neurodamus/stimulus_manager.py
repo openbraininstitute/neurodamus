@@ -485,7 +485,7 @@ class Linear(BaseStim):
                     self.amp_end,
                     self.duration,
                     delay=self.delay,
-                    physical_electrode=self.represents_physical_electrode,
+                    represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
@@ -610,7 +610,7 @@ class Noise(BaseStim):
                     dt=self.dt,
                     delay=self.delay,
                     rng=rng,
-                    physical_electrode=self.represents_physical_electrode,
+                    represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
@@ -695,7 +695,7 @@ class Pulse(BaseStim):
                     self.width,
                     self.duration,
                     delay=self.delay,
-                    physical_electrode=self.represents_physical_electrode,
+                    represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
@@ -736,7 +736,7 @@ class Sinusoidal(BaseStim):
                     self.freq,
                     step=self.dt,
                     delay=self.delay,
-                    physical_electrode=self.represents_physical_electrode,
+                    represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
