@@ -82,8 +82,8 @@ endtemplate {cls_name}"""
                 imp = h.Import3d_MorphML()
             else:
                 raise ValueError(
-                    f"{morpho_path} is not a recognised morphology file format"
-                    + "Should be either .hoc, .asc, .swc, .xml!"
+                    f"{morpho_path} is not a recognised morphology file format, "
+                    "Should be either .hoc, .asc, .swc, .xml!"
                 )
             try:
                 imp.input(morpho_path)
@@ -133,10 +133,10 @@ endtemplate {cls_name}"""
     def section_info(self, section):
         c = self.all[section] if isinstance(section, int) else section
         return (
-            f"|lenght: {c.L} um\n"
-            + f"|diameter: {c.diam} um\n"
-            + f"|N_segments: {c.nseg}\n"
-            + f"|axial resistance: {c.Ra} ohm.cm\n"
+            f"|length: {c.L} um\n"
+            f"|diameter: {c.diam} um\n"
+            f"|N_segments: {c.nseg}\n"
+            f"|axial resistance: {c.Ra} ohm.cm\n"
         )
 
     # ---

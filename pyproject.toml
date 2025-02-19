@@ -173,7 +173,6 @@ ignore = [
     "A005",   # stdlib-module-shadowing
     "EM103",  # dot-format-in-exception
     "FIX001", # line-contains-fixme
-    "ISC003", # explicit-string-concatenation
     "E501",   # line-too-long
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
