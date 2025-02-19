@@ -165,7 +165,7 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
         "src_dir": str(SIM_DIR / "usecase3"),
         "simconfig_file": "simulation_sonata.json",
         "extra_config": {
-            "network": os.path.join(str(SIM_DIR / "usecase3"), "circuit_config_virtualpop.json"),
+            "network": str(SIM_DIR / "usecase3" / "circuit_config_virtualpop.json"),
             "output": {
                 "output_dir": "reporting"
             },

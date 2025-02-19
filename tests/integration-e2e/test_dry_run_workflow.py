@@ -15,7 +15,8 @@ TMP_FOLDER = tempfile.mkdtemp()
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, autouse=True):
     """
-    All tests in this file are using TMP_FOLDER as working directory
+    All tests in this file are using the same working directory, i.e TMP_FOLDER
+    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
     """
     monkeypatch.chdir(TMP_FOLDER)
 
@@ -32,11 +33,11 @@ def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path, tmp_path
     path_to_config = params.get('path_to_config', USECASE3)
     lb_mode = params.get('lb_mode', "")
 
-    with open(str(path_to_config / config_file)) as src_f:
+    with open(path_to_config / config_file) as src_f:
         sim_config_data = json.load(src_f)
     sim_config_data["network"] = str(path_to_config / "circuit_config.json")
     sim_config_data["node_sets_file"] = str(path_to_config / "nodesets.json")
-    with open(str(tmp_path / config_file), "w") as dst_f:
+    with open(tmp_path / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
 
     GlobalConfig.verbosity = LogLevel.DEBUG

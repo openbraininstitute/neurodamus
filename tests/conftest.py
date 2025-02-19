@@ -43,13 +43,15 @@ def change_test_dir(monkeypatch, tmp_path):
 
 @pytest.fixture
 def create_tmp_simulation_file(request, tmp_path):
-    """ copy simulation config file to tmp_path
+    """ Copy simulation config file to tmp_path
+        Updates the config file with extra_config
+        Returns the tmp file path
     """
     params = request.param
     src_dir = Path(params.get("src_dir"))
     extra_config = params.get("extra_config")
     config_file = Path(params.get("simconfig_file"))
-    with open(str(src_dir / config_file)) as src_f:
+    with open(src_dir / config_file) as src_f:
         sim_config_data = json.load(src_f)
     circuit_conf = sim_config_data.get("network", "circuit_config.json")
     if not os.path.isabs(circuit_conf):
@@ -63,6 +65,6 @@ def create_tmp_simulation_file(request, tmp_path):
             input["spike_file"] = str(src_dir / input["spike_file"])
     if extra_config:
         sim_config_data.update(extra_config)
-    with open(str(tmp_path / config_file), "w") as dst_f:
+    with open(tmp_path / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
     return str(tmp_path / config_file)
