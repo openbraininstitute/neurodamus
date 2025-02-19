@@ -125,7 +125,7 @@ class OrnsteinUhlenbeck(BaseStim):
                     "dt": self.dt,
                     "delay": self.delay,
                     "rng": rng,
-                    "physical_electrode": self.represents_physical_electrode,
+                    "represents_physical_electrode": self.represents_physical_electrode,
                 }
                 # inject Ornstein-Uhlenbeck signal
                 if stim_info["Mode"] == "Conductance":
@@ -267,7 +267,7 @@ class ShotNoise(BaseStim):
                     "dt": self.dt,
                     "delay": self.delay,
                     "rng": rng,
-                    "physical_electrode": self.represents_physical_electrode,
+                    "represents_physical_electrode": self.represents_physical_electrode,
                 }
                 # generate shot noise current source
                 if stim_info["Mode"] == "Conductance":
