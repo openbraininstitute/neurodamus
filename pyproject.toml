@@ -204,7 +204,6 @@ ignore = [
     "B019",   # cached-instance-method
     "B027",   # empty-method-without-abstract-decorator
     "A001",   # builtin-variable-shadowing
-    "FA100",  # future-rewritable-type-annotation
     "INP001", # implicit-namespace-package
     "PIE810", # multiple-starts-ends-with
     "T203",   # p-print

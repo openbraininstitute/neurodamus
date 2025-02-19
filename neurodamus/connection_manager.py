@@ -1,11 +1,13 @@
 """Main module for handling and instantiating synaptical connections and gap-junctions"""
 
+from __future__ import annotations
+
 import hashlib
 import logging
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -1212,7 +1214,7 @@ def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_nam
 
 
 @run_only_rank0
-def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> Optional[tuple]:
+def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple | None:
     import h5py
 
     f = h5py.File(edge_file, "r")
