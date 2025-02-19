@@ -14,7 +14,6 @@ def make_nodes():
     count = 3
     with h5py.File("nodes_A.h5", "w") as h5:
         h5.create_dataset(f"/nodes/{name}/0/model_template", data=["hoc:B_BallStick"] * count)
-        h5.create_dataset(f"/nodes/{name}/0/model_type", data=["biophysical"] * count)
         h5.create_dataset(f"/nodes/{name}/node_type_id", data=[-1] * count)
 
         # neurodamus/io/cell_readers.py:140: SonataError
@@ -32,7 +31,6 @@ def make_nodes():
     count = 2
     with h5py.File("nodes_B.h5", "w") as h5:
         h5.create_dataset(f"/nodes/{name}/0/model_template", data=["hoc:B_BallStick"] * count)
-        h5.create_dataset(f"/nodes/{name}/0/model_type", data=["biophysical"] * count)
         h5.create_dataset(f"/nodes/{name}/node_type_id", data=[-1] * count)
 
         # neurodamus/io/cell_readers.py:140: SonataError
