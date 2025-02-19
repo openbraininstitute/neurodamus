@@ -18,9 +18,9 @@ class classproperty:
         raise AttributeError("Class properties can't be override")
 
 
-def dict_filter(dic, filter):
+def dict_filter(dic, filter_):
     """Creates a generator for filtering elements in a dictionary"""
-    return ((key, val) for key, val in dic.items() if filter(key, val))
+    return ((key, val) for key, val in dic.items() if filter_(key, val))
 
 
 def dict_filter_map(dic, mapp):
