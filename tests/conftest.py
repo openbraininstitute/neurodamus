@@ -41,7 +41,7 @@ def change_test_dir(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def create_tmp_simulation_file(request, tmp_path):
+def create_tmp_simulation_config_file(request, tmp_path):
     """ Copy simulation config file to tmp_path
         Updates the config file with extra_config
         Returns the tmp file path

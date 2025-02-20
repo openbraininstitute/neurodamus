@@ -6,15 +6,15 @@ from pathlib import Path
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "usecase3"),
         "simconfig_file": "simulation_sonata.json"
     }
 ], indirect=True)
-def test_simulation_sonata_config(create_tmp_simulation_file):
+def test_simulation_sonata_config(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
@@ -32,18 +32,18 @@ def test_simulation_sonata_config(create_tmp_simulation_file):
     npt.assert_allclose(timestamps, obtained_timestamps)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "v5_sonata"),
         "simconfig_file": "simulation_config_mini.json"
     }
 ], indirect=True)
-def test_v5_sonata_config(create_tmp_simulation_file):
+def test_v5_sonata_config(create_tmp_simulation_config_file):
     import numpy as np
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
@@ -60,18 +60,18 @@ def test_v5_sonata_config(create_tmp_simulation_file):
     npt.assert_allclose(timestamps, obtained_timestamps)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "v5_gapjunctions"),
         "simconfig_file": "simulation_config.json"
     }
 ], indirect=True)
-def test_v5_gap_junction(create_tmp_simulation_file):
+def test_v5_gap_junction(create_tmp_simulation_config_file):
     import numpy as np
     from neurodamus import Neurodamus
     from neurodamus.gap_junction import GapJunctionManager
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
 
     cell_manager = nd.circuits.get_node_manager("default")
@@ -133,7 +133,7 @@ def test_v5_gap_junction(create_tmp_simulation_file):
     assert spikes[0][0] == pytest.approx(21.025)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "v5_gapjunctions"),
         "simconfig_file": "simulation_config.json",
@@ -151,12 +151,12 @@ def test_v5_gap_junction(create_tmp_simulation_file):
         }
     }
 ], indirect=True)
-def test_v5_gap_junction_corrections(capsys, create_tmp_simulation_file):
+def test_v5_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
 
     # Add beta_features section for gj user corrections
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
 
     Neurodamus(config_file, disable_reports=True)
     captured = capsys.readouterr()

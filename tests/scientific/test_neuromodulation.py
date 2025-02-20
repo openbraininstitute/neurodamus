@@ -6,17 +6,17 @@ from pathlib import Path
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "neuromodulation"
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR),
         "simconfig_file": "simulation_config.json"
     }
 ], indirect=True)
-def test_neuromodulation_sims_neuron(create_tmp_simulation_file, tmp_path):
+def test_neuromodulation_sims_neuron(create_tmp_simulation_config_file, tmp_path):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
@@ -29,18 +29,18 @@ def test_neuromodulation_sims_neuron(create_tmp_simulation_file, tmp_path):
     npt.assert_allclose(timestamps, obtained_timestamps)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR),
         "simconfig_file": "simulation_config.json",
         "extra_config" : {"target_simulator": "CORENEURON"}
     }
 ], indirect=True)
-def test_neuromodulation_sims_coreneuron(create_tmp_simulation_file):
+def test_neuromodulation_sims_coreneuron(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.replay import SpikeManager
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 

@@ -153,7 +153,7 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
             print(f"File not found: {file_path}")
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "usecase3"),
         "simconfig_file": "simulation_sonata.json",
@@ -180,7 +180,7 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
         }
     }
 ], indirect=True)
-def test_loadbal_integration(create_tmp_simulation_file):
+def test_loadbal_integration(create_tmp_simulation_config_file):
     """Ensure given the right files are in the lbal dir, the correct situation is detected
     """
     from neurodamus import Neurodamus
@@ -189,7 +189,7 @@ def test_loadbal_integration(create_tmp_simulation_file):
     GlobalConfig.verbosity = 2
 
     # Add connection_overrides for the virtual population so the offsets are calculated before LB
-    tmp_file = create_tmp_simulation_file
+    tmp_file = create_tmp_simulation_config_file
     nd = Neurodamus(tmp_file, lb_mode="WholeCell")
     nd.run()
 

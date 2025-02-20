@@ -47,16 +47,16 @@ def get_R0pas_ref(astro_id, manager):
     ]
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR),
         "simconfig_file": "simulation_config.json"
     }
 ], indirect=True)
-def test_vasccouplingB_radii(create_tmp_simulation_file):
+def test_vasccouplingB_radii(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.ngv import GlioVascularManager
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     ndamus = Neurodamus(
         config_file,
         enable_reports=False,

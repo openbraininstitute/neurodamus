@@ -45,7 +45,7 @@ def _read_sonata_spike_file(spike_file):
     return timestamps, spike_gids
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "v5_sonata"),
         "simconfig_file": "simulation_config_mini.json",
@@ -54,11 +54,11 @@ def _read_sonata_spike_file(spike_file):
         }
     }
 ], indirect=True)
-def test_v5_sonata_multisteps(capsys, create_tmp_simulation_file):
+def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
 
     nd = Neurodamus(config_file, modelbuilding_steps=3)
     nd.run()
@@ -82,17 +82,17 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_file):
     assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "usecase3"),
         "simconfig_file": "simulation_sonata_coreneuron.json"
     }
 ], indirect=True)
-def test_usecase3_sonata_multisteps(create_tmp_simulation_file):
+def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = create_tmp_simulation_file
+    config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, modelbuilding_steps=2)
     nd.run()
 

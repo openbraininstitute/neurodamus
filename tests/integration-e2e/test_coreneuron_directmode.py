@@ -7,18 +7,18 @@ from pathlib import Path
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
-@pytest.mark.parametrize("create_tmp_simulation_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "usecase3"),
         "simconfig_file": "simulation_sonata_coreneuron.json"
     }
 ], indirect=True)
-def test_coreneuron_no_write_model(create_tmp_simulation_file):
+def test_coreneuron_no_write_model(create_tmp_simulation_config_file):
     from libsonata import SpikeReader, ElementReportReader
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
 
-    tmp_file = create_tmp_simulation_file
+    tmp_file = create_tmp_simulation_config_file
 
     nd = Neurodamus(tmp_file, keep_build=True, coreneuron_direct_mode=True)
     nd.run()
