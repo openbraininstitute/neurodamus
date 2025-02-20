@@ -386,8 +386,7 @@ class Node:
             self._shm_enabled = False
             self._dry_run_stats = None
         else:
-            # Assert this is defined (if not multicyle runs are not properly set)
-            self._run_conf
+            assert self._run_conf, "this is defined (if not multicyle runs are not properly set)"
 
         # Init unconditionally
         self._circuits = CircuitManager()
