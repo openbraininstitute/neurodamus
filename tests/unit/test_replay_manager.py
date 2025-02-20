@@ -9,7 +9,7 @@ def input_spikes_file(ringtest_dir):
 
 
 @pytest.fixture
-def replay_sim_config_file(ringtest_baseconfig, input_spikes_file):
+def replay_sim_config_file(ringtest_baseconfig, input_spikes_file, tmp_path):
     from tempfile import NamedTemporaryFile
     import json
 
@@ -23,7 +23,7 @@ def replay_sim_config_file(ringtest_baseconfig, input_spikes_file):
         "node_set": "RingB",
     }
 
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+    with NamedTemporaryFile("w", suffix='.json', dir=tmp_path, delete=False) as config_file:
         json.dump(ringtest_baseconfig, config_file)
     yield config_file
     os.unlink(config_file.name)
