@@ -1,5 +1,4 @@
 import json
-import os
 import pytest
 from pathlib import Path
 
@@ -53,15 +52,15 @@ def create_tmp_simulation_file(request, tmp_path):
     config_file = Path(params.get("simconfig_file"))
     with open(src_dir / config_file) as src_f:
         sim_config_data = json.load(src_f)
-    circuit_conf = sim_config_data.get("network", "circuit_config.json")
-    if not os.path.isabs(circuit_conf):
+    circuit_conf = Path(sim_config_data.get("network", "circuit_config.json"))
+    if not circuit_conf.is_absolute():
         sim_config_data["network"] = str(src_dir / circuit_conf)
     node_sets_file = sim_config_data.get("node_sets_file")
-    if node_sets_file and not os.path.isabs(node_sets_file):
+    if node_sets_file and not Path(node_sets_file).is_absolute():
         sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
     for input in sim_config_data.get("inputs", {}).values():
         spike_file = input.get("spike_file", "")
-        if spike_file and not os.path.isabs(spike_file):
+        if spike_file and not Path(spike_file).is_absolute():
             input["spike_file"] = str(src_dir / input["spike_file"])
     if extra_config:
         sim_config_data.update(extra_config)

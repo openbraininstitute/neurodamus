@@ -1,7 +1,6 @@
 import json
 import platform
 import pytest
-import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -29,7 +28,7 @@ def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path, tmp_path
     dry_run = params.get('dry_run', True)
     num_target_ranks = params.get('num_target_ranks', '1')
     modelbuilding_steps = params.get('modelbuilding_steps', '1')
-    config_file = os.path.basename(params.get('config_file', "simulation_sonata.json"))
+    config_file = Path(params.get('config_file', "simulation_sonata.json")).name
     path_to_config = params.get('path_to_config', USECASE3)
     lb_mode = params.get('lb_mode', "")
 

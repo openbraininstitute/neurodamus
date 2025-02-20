@@ -3,10 +3,8 @@
 import logging
 import numpy as np
 import numpy.testing as npt
-import os
 import pytest
 import shutil
-import tempfile
 from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
@@ -37,8 +35,7 @@ def test_loadbal_subtarget(target_manager, caplog):
     """Ensure given the right files are in the lbal dir, the correct situation is detected
     """
     from neurodamus.cell_distributor import LoadBalance, TargetSpec
-    tmp_path = tempfile.TemporaryDirectory("test_loadbal_subtarget")
-    os.chdir(tmp_path.name)
+
     nodes_file = "/gpfs/fake_node_path"
     lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "pop")
     shutil.copyfile(SIM_DIR / "v5_sonata" / "sub_mini5" / "cx_Mini5.dat", lbdir / "cx_Mini5#.dat")
@@ -77,8 +74,6 @@ def test_load_balance_integrated(target_manager, circuit_conf):
     """Comprehensive test using real cells and deriving cx for a sub-target
     """
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-    tmp_path = tempfile.TemporaryDirectory("test_load_balance_integrated")
-    os.chdir(tmp_path.name)
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
 
@@ -107,8 +102,6 @@ def test_multisplit(target_manager, circuit_conf, capsys):
     """
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
     MULTI_SPLIT = 2
-    tmp_path = tempfile.TemporaryDirectory("test_multisplit")
-    os.chdir(tmp_path.name)
 
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
@@ -145,10 +138,10 @@ def test_multisplit(target_manager, circuit_conf, capsys):
 def _read_complexity_file(base_dir, pattern, cx_pattern):
     import glob
     # Construct the full pattern path
-    full_pattern = os.path.join(base_dir, pattern, cx_pattern)
+    full_pattern = Path(base_dir) / pattern / cx_pattern
 
     # Use glob to find files that match the pattern
-    matching_files = glob.glob(full_pattern)
+    matching_files = glob.glob(str(full_pattern))
 
     # Read each matching file
     for file_path in matching_files:

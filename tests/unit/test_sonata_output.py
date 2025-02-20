@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 pytestmark = pytest.mark.forked  # independent processes
@@ -14,7 +15,7 @@ def test_sonata_logfile(sonata_config):
         json.dump(sonata_config, config_file)
     _ = Node(config_file.name)
 
-    assert os.path.exists("my_pydamus.log")
+    assert Path("my_pydamus.log").exists()
     os.unlink(config_file.name)
 
 

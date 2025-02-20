@@ -1,4 +1,3 @@
-import os
 import numpy.testing as npt
 import numpy as np
 import pytest
@@ -23,10 +22,12 @@ def test_coreneuron_no_write_model(create_tmp_simulation_file):
 
     nd = Neurodamus(tmp_file, keep_build=True, coreneuron_direct_mode=True)
     nd.run()
-    coreneuron_data = SimConfig.coreneuron_datadir
-    assert not next(os.scandir(coreneuron_data), None), f"{coreneuron_data} should be empty."
+    coreneuron_data = Path(SimConfig.coreneuron_datadir)
+    assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
+        f"{coreneuron_data} should be empty."
+    )
 
-    spikes_path = os.path.join(SimConfig.output_root, nd._run_conf.get("SpikesFile"))
+    spikes_path = Path(SimConfig.output_root) / nd._run_conf.get("SpikesFile")
     spikes_reader = SpikeReader(spikes_path)
     pop_A = spikes_reader["NodeA"]
     spike_dict = pop_A.get_dict()
@@ -34,8 +35,8 @@ def test_coreneuron_no_write_model(create_tmp_simulation_file):
                                                                 4.2, 5.5, 7., 7.4, 8.6]))
     npt.assert_allclose(spike_dict["node_ids"][:10], np.array([0, 1, 2, 0, 1, 2, 0, 0, 1, 2]))
 
-    soma_file = SimConfig.reports["soma_report"]["FileName"]
-    soma_path = os.path.join(SimConfig.output_root, os.path.basename(soma_file))
+    soma_file = Path(SimConfig.reports["soma_report"]["FileName"]).name
+    soma_path = Path(SimConfig.output_root) / soma_file
     soma_reader = ElementReportReader(soma_path)
     soma_A = soma_reader["NodeA"]
     soma_B = soma_reader["NodeB"]

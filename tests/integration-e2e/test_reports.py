@@ -154,7 +154,7 @@ def test_v5_sonata_reports(tmp_path):
 
     # Go through each report and compare the results
     for report_name, refs in report_refs.items():
-        result_ids, result_data = _read_sonata_report(os.path.join(output_dir, report_name))
+        result_ids, result_data = _read_sonata_report(Path(output_dir) / report_name)
         assert result_ids == node_id_refs
         for row, col, ref in refs:
             npt.assert_allclose(result_data.data[row][col], ref)

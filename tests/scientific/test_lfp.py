@@ -1,6 +1,5 @@
 import pytest
 import h5py
-import os
 import numpy as np
 from pathlib import Path
 
@@ -191,7 +190,7 @@ def test_v5_sonata_lfp(tmpdir, test_file, tmp_path):
     # t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
     # t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
     node_ids = np.array([0, 4])
-    result_ids, result_data = _read_sonata_lfp_file(os.path.join(output_dir, "lfp.h5"))
+    result_ids, result_data = _read_sonata_lfp_file(Path(output_dir) / "lfp.h5")
 
     # TODO: reenable after: https://github.com/openbraininstitute/neurodamus/issues/3
     # is solved
