@@ -2,11 +2,10 @@ import logging
 import os
 from pathlib import Path
 
-from neurodamus.report import get_section_index
-
 from . import NeurodamusCore as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError
+from neurodamus.report import get_section_index
 
 
 class CompartmentMapping:
@@ -74,8 +73,11 @@ class CompartmentMapping:
 
 
 class _CoreNEURONConfig:
-    """The CoreConfig class is responsible for managing the configuration of the CoreNEURON simulation.
+    """Responsible for managing the configuration of the CoreNEURON simulation.
+
     It writes the simulation / report configurations and calls the CoreNEURON solver.
+
+    Note: this creates the `CoreConfig` singleton
     """
 
     sim_config_file = "sim.conf"

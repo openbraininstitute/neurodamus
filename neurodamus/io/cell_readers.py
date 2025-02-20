@@ -33,7 +33,7 @@ def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
     return gidvec
 
 
-def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cells=None):
+def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     """Distribute gid in metype bundles for dry run.
 
     The principle is the following: all gids with the same metype
@@ -61,7 +61,6 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cel
         gid_metype_bundle: list of lists of gids to be distributed
         mpi_size: MPI size
         mpi_rank: MPI rank
-        total_cells: total number of cells in the circuit
     Returns:
         A numpy array of gids that are sequentially in the same metype
     """
@@ -106,7 +105,7 @@ def load_sonata(
         dry_run_stats.metype_counts += counts
         dry_run_stats.pop_metype_gids[node_population] = metype_gids
         gid_metype_bundle = list(metype_gids.values())
-        gidvec = dry_run_distribution(gid_metype_bundle, stride, stride_offset, total_cells)
+        gidvec = dry_run_distribution(gid_metype_bundle, stride, stride_offset)
 
         log_verbose("Loading node attributes... (subset of cells from each metype)")
         for gids in metype_gids.values():

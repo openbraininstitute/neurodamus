@@ -386,8 +386,7 @@ class Node:
             self._shm_enabled = False
             self._dry_run_stats = None
         else:
-            # Assert this is defined (if not multicyle runs are not properly set)
-            self._run_conf
+            assert self._run_conf, "this is defined (if not multicyle runs are not properly set)"
 
         # Init unconditionally
         self._circuits = CircuitManager()
@@ -739,7 +738,7 @@ class Node:
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath] + pop_name)
+                proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 

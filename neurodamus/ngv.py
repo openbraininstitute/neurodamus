@@ -53,7 +53,7 @@ class Astrocyte(BaseCell):
         )
 
     @staticmethod
-    def _er_as_hoc(morph_wrap):
+    def _er_as_hoc(_morph_wrap):
         """Create hoc commands for Endoplasmic Reticulum data.
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
         """
@@ -109,7 +109,7 @@ class Astrocyte(BaseCell):
         return section.id, perimeter, cross_sectional_area
 
     @staticmethod
-    def _secparams_as_hoc(morph_wrap):
+    def _secparams_as_hoc(_morph_wrap):
         """Create hoc commands for section parameters (perimeters & cross-sectional area)
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
 
