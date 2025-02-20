@@ -108,6 +108,7 @@ ignore = [
     "FIX002",  # Line contains TODO, consider resolving the issue
     "TD",      # TODOs
     "D415",    # First line should end with a period, question mark, or exclamation point
+    "S324",    # hashlib-insecure-hash-function
     ### TODO: these are low priority to fix, but perhaps should be considered in the future
     "ANN",     # Missing type annotation
     "FBT002",  # Boolean default positional argument in function definition
@@ -120,8 +121,8 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
-    
-    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47  
+
+    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
     "D102",   # undocumented-public-method
     "TRY003", # raise-vanilla-args
     "SLF001", # private-member-access
@@ -178,7 +179,6 @@ ignore = [
     "RUF015", # unnecessary-iterable-allocation-for-first-element
     "S102",   # exec-builtin
     "S108",   # hardcoded-temp-file
-    "S324",   # hashlib-insecure-hash-function
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
