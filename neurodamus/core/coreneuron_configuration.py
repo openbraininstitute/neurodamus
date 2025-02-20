@@ -73,8 +73,11 @@ class CompartmentMapping:
 
 
 class _CoreNEURONConfig:
-    """The CoreConfig class is responsible for managing the configuration of the CoreNEURON simulation.
+    """Responsible for managing the configuration of the CoreNEURON simulation.
+
     It writes the simulation / report configurations and calls the CoreNEURON solver.
+
+    Note: this creates the `CoreConfig` singleton
     """
 
     sim_config_file = "sim.conf"
