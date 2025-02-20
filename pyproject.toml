@@ -164,17 +164,14 @@ ignore = [
     "N805",   # invalid-first-argument-name-for-method
     "TRY401", # verbose-log-message
     "S603",   # subprocess-without-shell-equals-true
-    "C405",   # unnecessary-literal-set
     "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
     "D106",   # undocumented-public-nested-class
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "A005",   # stdlib-module-shadowing
-    "C401",   # unnecessary-generator-set
     "EM103",  # dot-format-in-exception
     "FIX001", # line-contains-fixme
-    "ISC003", # explicit-string-concatenation
     "E501",   # line-too-long
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
@@ -186,9 +183,6 @@ ignore = [
     "S324",   # hashlib-insecure-hash-function
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
-    "A002",   # builtin-argument-shadowing
-    "C416",   # unnecessary-comprehension
-    "PT018",  # pytest-composite-assertion
     "SIM112", # uncapitalized-environment-variables
     "ARG004", # unused-static-method-argument
     "N804",   # invalid-first-argument-name-for-class-method
@@ -206,7 +200,6 @@ ignore = [
     "B019",   # cached-instance-method
     "B027",   # empty-method-without-abstract-decorator
     "A001",   # builtin-variable-shadowing
-    "FA100",  # future-rewritable-type-annotation
     "INP001", # implicit-namespace-package
     "PIE810", # multiple-starts-ends-with
     "T203",   # p-print

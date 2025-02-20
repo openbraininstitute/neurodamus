@@ -257,7 +257,7 @@ if __name__ == "__main__":
     l2 = range(100, 200, 10)
     for x in bar(l1):
         time.sleep(0.2)
-    l2 = [x for x in bar(l2, 5)]
+    l2 = list(bar(l2, 5))
     assert l2 == [100, 110, 120, 130, 140]
 
     # Alternativelly, if unknown, use False (creates a spinner)

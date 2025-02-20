@@ -1237,8 +1237,8 @@ def check_connections_configure(SimConfig, target_manager):
             "Global variables in SynapseConfigure. Review the following "
             "connections and move the global vars to Conditions block"
         )
-        for name, vars in conn_configure_global_vars.items():
-            logging.warning(" -> %s: %s", name, vars)
+        for name, vars_ in conn_configure_global_vars.items():
+            logging.warning(" -> %s: %s", name, vars_)
     else:
         logging.info(" => CHECK No Global vars!")
 
