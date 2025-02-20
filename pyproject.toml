@@ -145,7 +145,6 @@ ignore = [
     "C901",   # complex-structure
     "UP031",  # printf-string-formatting
     "G001",   # logging-string-format
-    "ARG001", # unused-function-argument
     "N803",   # invalid-argument-name
     "I001",   # unsorted-imports
     "RET504", # unnecessary-assign
