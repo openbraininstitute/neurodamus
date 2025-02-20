@@ -147,7 +147,7 @@ begintemplate {cls_name}
 endtemplate {cls_name}
 """
 
-    def __new__(cls, *args, **kw):
+    def __new__(cls, *_args, **_kw):
         if cls is HocEntity:
             raise TypeError("HocEntity must be subclassed")
         if cls._hoc_cls is None:
