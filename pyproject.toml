@@ -174,7 +174,6 @@ ignore = [
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
-    "RUF005", # collection-literal-concatenation
     "RUF015", # unnecessary-iterable-allocation-for-first-element
     "S102",   # exec-builtin
     "S108",   # hardcoded-temp-file

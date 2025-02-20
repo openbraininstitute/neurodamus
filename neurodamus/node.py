@@ -739,7 +739,7 @@ class Node:
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath] + pop_name)
+                proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
