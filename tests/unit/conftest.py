@@ -18,9 +18,8 @@ def ringtest_dir():
 @pytest.fixture
 def ringtest_baseconfig():
     return dict(
-        manifest={"$CIRCUIT_DIR": str(RINGTEST_DIR)},
-        network="$CIRCUIT_DIR/circuit_config.json",
-        node_sets_file="$CIRCUIT_DIR/nodesets.json",
+        network=str(RINGTEST_DIR / "circuit_config.json"),
+        node_sets_file=str(RINGTEST_DIR / "nodesets.json"),
         target_simulator="NEURON",
         run={
             "random_seed": 1122,

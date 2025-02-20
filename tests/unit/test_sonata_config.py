@@ -1,7 +1,5 @@
-import os
 import pytest
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
 SONATA_CONF_FILE = str(USECASE3 / "simulation_sonata.json")
@@ -70,12 +68,8 @@ def test_SimConfig_from_sonata():
     assert conditions['randomize_Gaba_risetime'] == 'False'
 
 
-contents = """
-{
-    "manifest": {
-        "$CIRCUIT_DIR": "%s"
-    },
-    "network": "$CIRCUIT_DIR/circuit_config.json",
+contents = {
+    "network": "circuit_config.json",
     "run":
     {
         "random_seed": 12345,
@@ -106,7 +100,7 @@ contents = """
             "target": "Mosaic",
             "weight": 1.0,
             "synapse_delay_override": 0.5,
-            "synapse_configure": "%%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77",
+            "synapse_configure": "%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77",
             "neuromodulation_dtc": 100,
             "neuromodulation_strength": 0.75
         }
@@ -141,23 +135,18 @@ contents = """
         }
     }
 }
-"""
 
 
-@pytest.fixture(scope="module")
-def sonataconfig():
-    # dump content to json file
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as tmp_config:
-        tmp_config.write(contents % USECASE3)
-    yield tmp_config.name
-
-    os.unlink(tmp_config.name)
-
-
-def test_parse_seeds(sonataconfig):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_data": contents,
+        "src_dir": USECASE3
+    }
+], indirect=True)
+def test_parse_seeds(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
-    SimConfig.init(sonataconfig, {})
+    SimConfig.init(create_tmp_simulation_config_file, {})
     assert SimConfig.rng_info.getGlobalSeed() == 12345
     assert SimConfig.rng_info.getStimulusSeed() == 1122
     assert SimConfig.rng_info.getIonChannelSeed() == 0
@@ -166,10 +155,16 @@ def test_parse_seeds(sonataconfig):
     assert SimConfig.run_conf["SpikeLocation"] == "AIS"
 
 
-def test_parse_modifications(sonataconfig):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_data": contents,
+        "src_dir": USECASE3
+    }
+], indirect=True)
+def test_parse_modifications(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
-    SimConfig.init(sonataconfig, {})
+    SimConfig.init(create_tmp_simulation_config_file, {})
     TTX_mod = SimConfig.modifications["applyTTX"]
     assert TTX_mod["Type"] == "TTX"
     assert TTX_mod["Target"] == "single"
@@ -179,10 +174,16 @@ def test_parse_modifications(sonataconfig):
     ConfigureAllSections_mod["SectionConfigure"] = "%s.gSK_E2bar_SK_E2 = 0"
 
 
-def test_parse_connections(sonataconfig):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_data": contents,
+        "src_dir": USECASE3
+    }
+], indirect=True)
+def test_parse_connections(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
-    SimConfig.init(sonataconfig, {})
+    SimConfig.init(create_tmp_simulation_config_file, {})
     conn = SimConfig.connections["GABAB_erev"]
     assert conn["Source"] == "Inhibitory"
     assert conn["Destination"] == "Mosaic"
@@ -196,10 +197,16 @@ def test_parse_connections(sonataconfig):
     assert conn["NeuromodStrength"] == 0.75
 
 
-def test_parse_inputs(sonataconfig):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_data": contents,
+        "src_dir": USECASE3
+    }
+], indirect=True)
+def test_parse_inputs(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
-    SimConfig.init(sonataconfig, {})
+    SimConfig.init(create_tmp_simulation_config_file, {})
     input_hp = SimConfig.stimuli["hypamp_mosaic"]
     assert input_hp["Pattern"] == "Hyperpolarizing"
     assert input_hp["Mode"] == "Current"

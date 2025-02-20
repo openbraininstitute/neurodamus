@@ -1,43 +1,38 @@
-import json
 import numpy
-import os
 import pytest
-from pathlib import Path
-from tempfile import NamedTemporaryFile
 
-USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 SPONT_RATE = 100
 
 
-@pytest.fixture
-def sonata_config_file(sonata_config):
-    sonata_config["run"]["tstop"] = 20
-    sonata_config["connection_overrides"] = [
-        {
-            "name": "in-nodeA",
-            "source": "nodesPopA",
-            "target": "l4pc",
-            "spont_minis": SPONT_RATE,
-            "synapse_configure": "%s.verboseLevel=1"  # output when a spike is received
-        },
-    ]
-
-    # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(sonata_config, config_file)
-
-    yield config_file
-
-    os.unlink(config_file.name)
-
-
-def test_spont_minis(sonata_config_file):
+@pytest.mark.slow
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "sonata_config",
+        "extra_config": {
+            "run": {
+                "random_seed": 12345,
+                "dt": 0.05,
+                "tstop": 20,
+            },
+            "connection_overrides": [
+                {
+                    "name": "in-nodeA",
+                    "source": "nodesPopA",
+                    "target": "l4pc",
+                    "spont_minis": SPONT_RATE,
+                    "synapse_configure": "%s.verboseLevel=1"  # output when a spike is received
+                }
+            ]
+        }
+    }
+], indirect=True)
+def test_spont_minis(create_tmp_simulation_config_file):
     from neurodamus.connection_manager import Nd, SynapseRuleManager
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
     nd = Neurodamus(
-        sonata_config_file.name,
+        create_tmp_simulation_config_file,
         restrict_node_populations=["NodeA"],
         restrict_features=[Feature.SpontMinis],  # Enable Feature.SynConfigure to see events
         restrict_connectivity=1,  # base restriction, no projections

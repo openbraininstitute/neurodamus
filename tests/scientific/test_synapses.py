@@ -1,9 +1,7 @@
 import numpy as np
 import numpy.testing as npt
-import os
 import pytest
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
@@ -218,29 +216,25 @@ def get_target_raw_gids(target_manager, target_name):
     return tuple(zip(tgt.population_names, tgt.get_raw_gids() - 1))  # 0-based
 
 
-def test_no_edge_creation(capsys):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_data": {
+            "network": "no_edge_circuit_config.json",
+            "node_sets_file": "nodesets.json",
+            "run":
+            {
+                "random_seed": 12345,
+                "dt": 0.05,
+                "tstop": 1000
+            }
+        },
+        "src_dir": USECASE3
+    }
+], indirect=True)
+def test_no_edge_creation(capsys, create_tmp_simulation_config_file):
     from neurodamus.node import Node
 
-    contents = """
-    {
-        "manifest": {
-            "$CIRCUIT_DIR": "%s"
-        },
-        "network": "$CIRCUIT_DIR/%s",
-        "node_sets_file": "$CIRCUIT_DIR/nodesets.json",
-        "run":
-        {
-            "random_seed": 12345,
-            "dt": 0.05,
-            "tstop": 1000
-        }
-    }
-    """
-    # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as tmp_config:
-        tmp_config.write(contents % (USECASE3, "no_edge_circuit_config.json"))
-
-    n = Node(tmp_config.name)
+    n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
     n.create_synapses()
@@ -248,5 +242,3 @@ def test_no_edge_creation(capsys):
     captured = capsys.readouterr()
     assert "No connectivity set as internal" in captured.out
     assert len(n.circuits.edge_managers) == 0
-
-    os.unlink(tmp_config.name)

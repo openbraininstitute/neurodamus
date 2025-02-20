@@ -42,28 +42,47 @@ def change_test_dir(monkeypatch, tmp_path):
 
 @pytest.fixture
 def create_tmp_simulation_config_file(request, tmp_path):
-    """ Copy simulation config file to tmp_path
-        Updates the config file with extra_config
-        Returns the tmp file path
+    """create simulation config file in tmp_path from
+        1. simconfig_data in request: either dict or fixture's name (str)
+        2. or copy "simconfig_file" in request
+    Updates the config file with extra_config
+    Returns the tmp file path
     """
     params = request.param
-    src_dir = Path(params.get("src_dir"))
-    extra_config = params.get("extra_config")
-    config_file = Path(params.get("simconfig_file"))
-    with open(src_dir / config_file) as src_f:
-        sim_config_data = json.load(src_f)
-    circuit_conf = Path(sim_config_data.get("network", "circuit_config.json"))
-    if not circuit_conf.is_absolute():
+    src_dir = Path(params.get("src_dir", ""))
+    config_file = Path(params.get("simconfig_file", "simulation_config.json"))
+    sim_config_data = params.get("simconfig_data")
+
+    if "simconfig_fixture" in params:
+        sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
+    if not sim_config_data:
+        # read sim_config_data from a config file
+        with open(src_dir / config_file) as src_f:
+            sim_config_data = json.load(src_f)
+
+    if "extra_config" in params:
+        sim_config_data.update(params.get("extra_config"))
+
+    # patch the relative file path to src_dir
+    circuit_conf = sim_config_data.get("network", "circuit_config.json")
+    if _is_valid_relative_path(circuit_conf):
         sim_config_data["network"] = str(src_dir / circuit_conf)
-    node_sets_file = sim_config_data.get("node_sets_file")
-    if node_sets_file and not Path(node_sets_file).is_absolute():
+    node_sets_file = sim_config_data.get("node_sets_file", "")
+    if _is_valid_relative_path(node_sets_file):
         sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
     for input in sim_config_data.get("inputs", {}).values():
         spike_file = input.get("spike_file", "")
-        if spike_file and not Path(spike_file).is_absolute():
+        if _is_valid_relative_path(spike_file):
             input["spike_file"] = str(src_dir / input["spike_file"])
-    if extra_config:
-        sim_config_data.update(extra_config)
+
     with open(tmp_path / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
     return str(tmp_path / config_file)
+
+
+def _is_valid_relative_path(filepath: str):
+    return (
+        filepath
+        and not Path(filepath).is_absolute()
+        and not Path(filepath).parts[0].startswith("$")
+    )

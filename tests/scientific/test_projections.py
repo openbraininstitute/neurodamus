@@ -15,7 +15,7 @@ By applying Replay to it we should see received events
 
 
 @pytest.fixture
-def sonata_config_file(sonata_config, request):
+def sonata_config_file(sonata_config, request, tmp_path):
     enable_synapse_delay = request.param['enable_synapse_delay']
     simulator = request.param['simulator']
     sonata_config["node_set"] = "nodesPopA"
@@ -62,7 +62,7 @@ def sonata_config_file(sonata_config, request):
     }
 
     # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+    with NamedTemporaryFile("w", suffix='.json', dir=tmp_path, delete=False) as config_file:
         json.dump(sonata_config, config_file)
 
     yield config_file, request.param
