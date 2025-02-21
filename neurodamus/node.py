@@ -266,8 +266,7 @@ class CircuitManager:
 
 
 class Node:
-    """
-    The Node class is the main entity for a distributed Neurodamus execution.
+    """The Node class is the main entity for a distributed Neurodamus execution.
 
     Note that this concept of a "Node" differs from both an MPI node, which
     refers to a process in a parallel computing environment, and a node in the
