@@ -41,9 +41,8 @@ class StimulusManager:
     def interpret(self, target_spec, stim_info):
         stim_t = self._stim_types.get(stim_info["Pattern"])
         if not stim_t:
-            raise ConfigurationError(
-                "No implementation for Stimulus {} ".format(stim_info["Pattern"])
-            )
+            msg = f"No implementation for Stimulus {stim_info['Pattern']}"
+            raise ConfigurationError(msg)
         if self._stim_seed is None and getattr(stim_t, "IsNoise", False):
             logging.warning(
                 "StimulusSeed unset (default %d), set explicitly to vary noisy stimuli across runs",
