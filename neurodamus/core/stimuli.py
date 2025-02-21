@@ -2,8 +2,8 @@
 
 import logging
 
-from neurodamus.core import NeurodamusCore as Nd
 from .random import RNG, gamma
+from neurodamus.core import NeurodamusCore as Nd
 
 
 class SignalSource:
@@ -66,8 +66,9 @@ class SignalSource:
     def add_ramp(self, amp1, amp2, duration, **kw):
         """Add a linear amplitude ramp.
 
-        Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over the given `duration`.
-        All intermediate values between the start and end times are linearly interpolated.
+        Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
+        the given `duration`. All intermediate values between the start and end times
+        are linearly interpolated.
         """
         base_amp = kw.get("base_amp", self._base_amp)
         self._add_point(base_amp)
@@ -92,12 +93,13 @@ class SignalSource:
         tau = 1000 / frequency
         delay = tau - pulse_duration
 
-        # we cannot have overlapping pulses otherwise we may go back in time. For now it is disabled until we decide
-        # how to handle this
+        # we cannot have overlapping pulses otherwise we may go back in time.
+        # For now it is disabled until we decide how to handle this
         if delay < 0.0:
             raise ValueError(
-                f"Invalid configuration: The pulse duration ({pulse_duration} ms) is longer than the pulse interval ({tau} ms). "
-                f"Calculated delay: {delay} ms. Please adjust the pulse duration or frequency."
+                f"Invalid configuration: The pulse duration ({pulse_duration} ms) is "
+                f"longer than the pulse interval ({tau} ms). Calculated delay: "
+                f"{delay} ms. Please adjust the pulse duration or frequency."
             )
 
         number_pulses = int(total_duration / tau)
@@ -194,7 +196,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, log, sqrt, isclose
+        from math import exp, isclose, log, sqrt
 
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
