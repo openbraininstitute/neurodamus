@@ -196,7 +196,6 @@ ignore = [
     "E741",   # ambiguous-variable-name
     "D104",   # undocumented-public-package
     "D212",   # multi-line-summary-first-line
-    "PLC0205",# single-string-slots
     "PLE1141",# dict-iter-missing-items
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments

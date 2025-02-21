@@ -846,7 +846,7 @@ class InhExcSpontMinis(SpontMinis):
 class ReplayStim(ArtificialStim):
     """A class creating/holding replays of a connection"""
 
-    __slots__ = "time_vec"
+    __slots__ = ("time_vec", )
 
     def __init__(self):
         super().__init__()
