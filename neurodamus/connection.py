@@ -1,5 +1,6 @@
 """Implementation of the core Connection classes"""
 
+import contextlib
 import logging
 import re
 from enum import Enum
@@ -692,10 +693,8 @@ class Connection(ConnectionBase):
     def __del__(self):
         """Clear Random123 objects when connection is deleted"""
         for syn in self._synapses:
-            try:
+            with contextlib.suppress(AttributeError):
                 syn.clearRNG()
-            except AttributeError:
-                pass
 
 
 class ArtificialStim:

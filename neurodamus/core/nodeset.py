@@ -221,7 +221,7 @@ class NodeSet(_NodeSetBase):
         """Add raw gids, recomputing gid offsets as needed"""
         self._gidvec.extend(gids)
         if len(gids) > 0:
-            self._max_gid = max(self.max_gid, max(gids))
+            self._max_gid = max(self.max_gid, np.max(gids))
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)

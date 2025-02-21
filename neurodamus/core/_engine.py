@@ -42,7 +42,7 @@ class _EngineMeta(type):
         if plugin_module:
             importlib.import_module(plugin_module)
         # Auto import correctly named modules
-        for finder, name, ispkg in pkgutil.iter_modules():
+        for _finder, name, _ispkg in pkgutil.iter_modules():
             if name.startswith("neurodamus_"):
                 importlib.import_module(name)
         logging.info(" => Engines Available: %s", list(cls.__engines.keys()))

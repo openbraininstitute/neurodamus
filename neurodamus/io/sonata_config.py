@@ -417,9 +417,8 @@ class SonataConfig:
                 "Mode",
                 "Pattern",
                 "SpikeLocation",
-            }:
-                if not isinstance(rep[key], str):
-                    rep[key] = rep[key].name
+            } and not isinstance(rep[key], str):
+                rep[key] = rep[key].name
             # Convert comma separated variable names to space separated
             if key == "ReportOn":
                 rep[key] = rep[key].replace(",", " ")

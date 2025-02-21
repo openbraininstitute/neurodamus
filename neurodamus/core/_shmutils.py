@@ -3,6 +3,8 @@ import subprocess
 
 import psutil
 
+SHM = "/dev/shm"  # noqa: S108
+
 
 class SHMUtil:
     """Helper class for the SHM file transfer mechanism of CoreNEURON."""
@@ -103,14 +105,14 @@ class SHMUtil:
 
     @staticmethod
     def get_shm_avail():
-        return psutil.disk_usage("/dev/shm").free
+        return psutil.disk_usage(SHM).free
 
     @staticmethod
     def get_datadir_shm(datadir=""):
         shmdir = os.environ.get("SHMDIR")
         return (
             None
-            if not shmdir or not shmdir.startswith("/dev/shm/")
+            if not shmdir or not shmdir.startswith(SHM)
             else os.path.join(shmdir, os.path.abspath(datadir)[1:])
         )
 

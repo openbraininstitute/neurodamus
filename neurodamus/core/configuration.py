@@ -35,9 +35,9 @@ class ConfigurationError(Exception):
 
 class GlobalConfig:
     verbosity = LogLevel.DEFAULT
-    debug_conn = os.getenv("ND_DEBUG_CONN", [])
+    debug_conn = os.getenv("ND_DEBUG_CONN", "")
     if debug_conn:
-        debug_conn = [int(gid) for gid in os.getenv("ND_DEBUG_CONN", "").split(",")]
+        debug_conn = [int(gid) for gid in debug_conn.split(",")]
         verbosity = 3
 
     @classmethod
@@ -1102,12 +1102,15 @@ def _report_vars(config: _SimConfig, _run_conf):
                 f"Unsupported report format: '{rep_config['Format']}'. Use 'SONATA' instead."
             )
 
-        if config.use_coreneuron and rep_config["Type"] == "compartment":
-            if rep_config["ReportOn"] not in {"v", "i_membrane"}:
-                logging.warning(
-                    "Compartment reports on vars other than v and i_membrane "
-                    " are still not fully supported (CoreNeuron)"
-                )
+        if (
+            config.use_coreneuron
+            and rep_config["Type"] == "compartment"
+            and rep_config["ReportOn"] not in {"v", "i_membrane"}
+        ):
+            logging.warning(
+                "Compartment reports on vars other than v and i_membrane "
+                " are still not fully supported (CoreNeuron)"
+            )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
 
