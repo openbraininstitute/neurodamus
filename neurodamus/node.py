@@ -1321,11 +1321,7 @@ class Node:
                 self._spike_populations.append(
                     (cell_manager.population_name, cell_manager.local_nodes.offset)
                 )
-                self._spike_vecs.append(
-                    cell_manager.record_spikes()
-                    if cell_manager.record_spikes()
-                    else (Nd.Vector(), Nd.Vector())
-                )
+                self._spike_vecs.append(cell_manager.record_spikes() or (Nd.Vector(), Nd.Vector()))
 
         self._pc.timeout(200)  # increase by 10x
 
