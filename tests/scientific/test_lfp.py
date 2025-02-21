@@ -139,7 +139,7 @@ def _read_sonata_lfp_file(lfp_file):
     return node_ids, data
 
 
-def _create_lfp_config(original_config_path, lfp_file, tmp_path):
+def _create_lfp_config(original_config_path, lfp_file, base_dir: Path):
     """
     Create a modified lfp configuration file in a temporary directory.
     """
@@ -165,12 +165,12 @@ def _create_lfp_config(original_config_path, lfp_file, tmp_path):
     }
 
     # Write the modified configuration to a temporary file
-    temp_config_path = tmp_path / "lfp_config.json"
+    temp_config_path = base_dir / "lfp_config.json"
     with open(temp_config_path, "w") as f:
         json.dump(config, f, indent=4)
 
     # Create output directory
-    output_dir = tmp_path / config["output"]["output_dir"]
+    output_dir = base_dir / config["output"]["output_dir"]
 
     return str(temp_config_path), str(output_dir)
 

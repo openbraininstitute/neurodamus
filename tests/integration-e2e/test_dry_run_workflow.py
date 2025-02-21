@@ -21,7 +21,7 @@ def change_test_dir(monkeypatch, autouse=True):
 
 
 @pytest.fixture
-def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path, tmp_path):
+def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path):
     from neurodamus import Neurodamus
 
     params = request.param
@@ -36,12 +36,12 @@ def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path, tmp_path
         sim_config_data = json.load(src_f)
     sim_config_data["network"] = str(path_to_config / "circuit_config.json")
     sim_config_data["node_sets_file"] = str(path_to_config / "nodesets.json")
-    with open(tmp_path / config_file, "w") as dst_f:
+    with open(config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
 
     GlobalConfig.verbosity = LogLevel.DEBUG
     nd = Neurodamus(
-        str(tmp_path / config_file),
+        str(config_file),
         dry_run=dry_run,
         num_target_ranks=num_target_ranks,
         modelbuilding_steps=modelbuilding_steps,
@@ -69,7 +69,7 @@ def convert_to_standard_types(obj):
         'lb_mode': ""
     }
 ], indirect=True)
-def test_dry_run_workflow(neurodamus_instance, tmp_path):
+def test_dry_run_workflow(neurodamus_instance):
     """
     Test that the dry run mode works
 
@@ -106,10 +106,10 @@ def test_dry_run_workflow(neurodamus_instance, tmp_path):
     # Test that the allocation works and can be saved and loaded
     rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
     export_allocation_stats(rank_alloc,
-                            tmp_path / "allocation", 2, 1)
-    export_metype_memory_usage(cell_mem_use, tmp_path / "memory_per_metype.json")
+                            "allocation", 2, 1)
+    export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
 
-    rank_alloc = nd._dry_run_stats.import_allocation_stats(tmp_path / "allocation_r2_c1.pkl.gz", 0)
+    rank_alloc = nd._dry_run_stats.import_allocation_stats("allocation_r2_c1.pkl.gz", 0)
     rank_allocation_standard = convert_to_standard_types(rank_alloc)
 
     expected_items = {
@@ -122,7 +122,7 @@ def test_dry_run_workflow(neurodamus_instance, tmp_path):
     # Test that the allocation works and can be saved and loaded
     # and generate allocation file for 1 rank
     rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
-    export_metype_memory_usage(cell_mem_use, tmp_path / "memory_per_metype.json")
+    export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
     rank_allocation_standard = convert_to_standard_types(rank_alloc)
 
     expected_items = {
