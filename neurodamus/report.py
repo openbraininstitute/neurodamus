@@ -60,7 +60,7 @@ class Report:
         report_type,
         variable_name,
         unit,
-        format,
+        _format,
         dt,
         start_time,
         end_time,

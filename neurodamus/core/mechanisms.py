@@ -1,8 +1,7 @@
 """Module defining cell mechanisms"""
 
-from neurodamus.utils import ConfigT
-
 from ._neuron import Neuron
+from neurodamus.utils import ConfigT
 
 
 class Mechanism(ConfigT):
@@ -12,7 +11,7 @@ class Mechanism(ConfigT):
     HH = None  # type: HH
     PAS = None  # type: PAS
 
-    def __new__(cls, **opts):
+    def __new__(cls, **_opts):
         if cls is Mechanism:
             raise TypeError("Mechanisms is abstract. Instantiate a specific Mechanism")
         return object.__new__(cls)

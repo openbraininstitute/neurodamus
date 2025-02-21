@@ -56,11 +56,11 @@ class _Neuron:
         h = cls._h or cls._init()
         mod_filename = mod_name + ".hoc"
         if not h.load_file(mod_filename):
-            raise RuntimeError(
-                "Cant load HOC library {}. Consider checking HOC_LIBRARY_PATH (currently '{}')".format(
-                    mod_filename, os.environ.get("HOC_LIBRARY_PATH")
-                )
+            msg = (
+                f"Can't load HOC library {mod_filename}. "
+                f"Consider checking HOC_LIBRARY_PATH: `{os.environ.get('HOC_LIBRARY_PATH')}`"
             )
+            raise RuntimeError(msg)
         cls._hocs_loaded.add(mod_name)
 
     @classmethod
@@ -147,7 +147,7 @@ begintemplate {cls_name}
 endtemplate {cls_name}
 """
 
-    def __new__(cls, *args, **kw):
+    def __new__(cls, *_args, **_kw):
         if cls is HocEntity:
             raise TypeError("HocEntity must be subclassed")
         if cls._hoc_cls is None:

@@ -476,7 +476,7 @@ def _check_params(
 
 
 @SimConfig.validator
-def _run_params(config: _SimConfig, run_conf):
+def _run_params(_config: _SimConfig, run_conf):
     required_fields = ("Duration",)
     numeric_fields = ("BaseSeed", "StimulusSeed", "Celsius", "V_Init")
     non_negatives = ("Duration", "Dt", "ModelBuildingSteps", "ForwardSkip")
@@ -495,7 +495,7 @@ def _loadbal_mode(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _projection_params(config: _SimConfig, run_conf):
+def _projection_params(config: _SimConfig, _run_conf):
     required_fields = ("Path",)
     non_negatives = ("PopulationID",)
     for name, proj in config.projections.items():
@@ -504,7 +504,7 @@ def _projection_params(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _stimulus_params(config: _SimConfig, run_conf):
+def _stimulus_params(config: _SimConfig, _run_conf):
     required_fields = (
         "Mode",
         "Pattern",
@@ -577,7 +577,7 @@ def _stimulus_params(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _modification_params(config: _SimConfig, run_conf):
+def _modification_params(config: _SimConfig, _run_conf):
     required_fields = (
         "Target",
         "Type",
@@ -635,7 +635,7 @@ def _base_circuit(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _extra_circuits(config: _SimConfig, run_conf):
+def _extra_circuits(config: _SimConfig, _run_conf):
     from . import EngineBase
 
     extra_circuits = {}
@@ -754,7 +754,7 @@ _condition_checks = {
 
 
 @SimConfig.validator
-def _simulator_globals(config: _SimConfig, run_conf):
+def _simulator_globals(config: _SimConfig, _run_conf):
     if not hasattr(config._simulation_config, "Conditions"):
         return
     from neuron import h
@@ -783,7 +783,10 @@ def _simulator_globals(config: _SimConfig, run_conf):
                 setattr(h, key, value)
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
-                    f"Value of {key} ({value}) is not the same as extracellular_calcium ({config.extracellular_calcium})"
+                    "Value of %s (%s) is not the same as extracellular_calcium (%s)",
+                    key,
+                    value,
+                    config.extracellular_calcium,
                 )
 
 
@@ -804,7 +807,7 @@ def _second_order(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _single_vesicle(config: _SimConfig, run_conf):
+def _single_vesicle(_config: _SimConfig, run_conf):
     if "MinisSingleVesicle" not in run_conf:
         return
     from neuron import h
@@ -821,7 +824,7 @@ def _single_vesicle(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _randomize_gaba_risetime(config: _SimConfig, run_conf):
+def _randomize_gaba_risetime(_config: _SimConfig, run_conf):
     randomize_risetime = run_conf.get("RandomizeGabaRiseTime")
     if randomize_risetime is None:
         return
@@ -979,7 +982,7 @@ def _coreneuron_params(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _check_model_build_mode(config: _SimConfig, run_conf):
+def _check_model_build_mode(config: _SimConfig, _run_conf):
     user_config = config.cli_options
     config.build_model = user_config.build_model
     config.simulate_model = user_config.simulate_model
@@ -1076,7 +1079,7 @@ def _model_building_steps(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _report_vars(config: _SimConfig, run_conf):
+def _report_vars(config: _SimConfig, _run_conf):
     """Compartment reports read voltages or i_membrane only. Other types must be summation"""
     mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
     report_types = {"compartment", "Summation", "Synapse", "PointType", "lfp"}
@@ -1110,7 +1113,7 @@ def _report_vars(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _spikes_sort_order(config: _SimConfig, run_conf):
+def _spikes_sort_order(_config: _SimConfig, run_conf):
     order = run_conf.get("SpikesSortOrder", "by_time")
     if order not in {"none", "by_time"}:
         raise ConfigurationError(
@@ -1119,7 +1122,7 @@ def _spikes_sort_order(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _coreneuron_direct_mode(config: _SimConfig, run_conf):
+def _coreneuron_direct_mode(config: _SimConfig, _run_conf):
     user_config = config.cli_options
     direct_mode = user_config.coreneuron_direct_mode
     if direct_mode:
@@ -1237,8 +1240,8 @@ def check_connections_configure(SimConfig, target_manager):
             "Global variables in SynapseConfigure. Review the following "
             "connections and move the global vars to Conditions block"
         )
-        for name, vars in conn_configure_global_vars.items():
-            logging.warning(" -> %s: %s", name, vars)
+        for name, vars_ in conn_configure_global_vars.items():
+            logging.warning(" -> %s: %s", name, vars_)
     else:
         logging.info(" => CHECK No Global vars!")
 

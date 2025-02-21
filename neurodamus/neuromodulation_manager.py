@@ -88,8 +88,7 @@ class NeuroModulationConnection(Connection):
                 if GlobalConfig.debug_conn == [self.tgid]:
                     log_all(
                         logging.DEBUG,
-                        "Neuromodulatory event on tgid: %d, "
-                        + "weights: [%f, %f, %f], nc_type: %d",
+                        "Neuromodulatory event on tgid: %d, weights: [%f, %f, %f], nc_type: %d",
                         self.tgid,
                         nc.weight[0],
                         nc.weight[1],

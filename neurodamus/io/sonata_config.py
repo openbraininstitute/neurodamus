@@ -289,7 +289,7 @@ class SonataConfig:
             "endfoot": ConnectionTypes.GlioVascular,
             "neuromodulatory": ConnectionTypes.NeuroModulation,
         }
-        internal_edge_pops = set(c_conf["nrnPath"] for c_conf in self._bc_circuits.values())
+        internal_edge_pops = {c_conf["nrnPath"] for c_conf in self._bc_circuits.values()}
         projections = {}
 
         for edge_config in self._circuit_networks.get("edges") or []:

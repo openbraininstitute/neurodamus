@@ -405,7 +405,8 @@ class CurrentSource(SignalSource):
             )
 
             if stim_vec_mode:
-                assert time_vec is not None and stim_vec is not None
+                assert time_vec is not None
+                assert stim_vec is not None
                 self.clamp.dur = time_vec[-1]
                 stim_vec.play(self.clamp._ref_amp, time_vec, 1)
             else:
@@ -497,7 +498,8 @@ class ConductanceSource(SignalSource):
                 else Nd.h.ConductanceSource(position, sec=cell_section)
             )
 
-            assert time_vec is not None and stim_vec is not None
+            assert time_vec is not None
+            assert stim_vec is not None
             self.clamp.dur1 = time_vec[-1]
             self.clamp.amp1 = reversal
             # support delay with initial zero
