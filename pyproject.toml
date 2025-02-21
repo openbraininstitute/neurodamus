@@ -201,7 +201,6 @@ ignore = [
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
-    "FURB101",# read-whole-file
 ]
 
 [tool.ruff.lint.isort]
