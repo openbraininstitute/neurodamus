@@ -181,7 +181,6 @@ ignore = [
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
     "PGH004", # blanket-noqa
-    "PLC1901",# compare-to-empty-string
     "PLC2801",# unnecessary-dunder-call
     "PLW1508",# invalid-envvar-default
     "FURB103",# write-whole-file

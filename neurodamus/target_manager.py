@@ -35,7 +35,7 @@ class TargetSpec:
         else:
             self.name = target_name
             self.population = None
-        if self.name == "":
+        if not self.name:
             self.name = None
 
     def __str__(self):

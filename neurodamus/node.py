@@ -159,7 +159,7 @@ class CircuitManager:
 
         if not self.has_population(destination):
             # This is likely an error, except...
-            if src_target.population == "" and self.has_population(""):
+            if not src_target.population and self.has_population(""):
                 logging.warning(
                     "Sonata Edges target population %s was not found. "
                     "Since base population is unknown, assuming that's the target.\n"
