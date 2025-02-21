@@ -82,6 +82,8 @@ class TargetSpec:
     def __eq__(self, other):
         return self.matches(other.population, other.name)
 
+    __hash__ = None
+
 
 class TargetManager:
     def __init__(self, run_conf):

@@ -211,7 +211,6 @@ ignore = [
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
-    "PLW1641",# eq-without-hash
     "FURB101",# read-whole-file
     "FURB110",# if-exp-instead-of-or-operator
 ]
