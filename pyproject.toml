@@ -121,6 +121,7 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
+    "FIX001", # line-contains-fixme
 
     ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
     "D102",   # undocumented-public-method
@@ -168,7 +169,6 @@ ignore = [
     "FURB189",# subclass-builtin
     "A005",   # stdlib-module-shadowing
     "EM103",  # dot-format-in-exception
-    "FIX001", # line-contains-fixme
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
