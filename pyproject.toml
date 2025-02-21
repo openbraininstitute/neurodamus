@@ -174,7 +174,6 @@ ignore = [
     "PLR0914",# too-many-locals
     "RUF015", # unnecessary-iterable-allocation-for-first-element
     "S102",   # exec-builtin
-    "S108",   # hardcoded-temp-file
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
