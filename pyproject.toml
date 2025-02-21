@@ -196,7 +196,6 @@ ignore = [
     "PIE810", # multiple-starts-ends-with
     "T203",   # p-print
     "PYI024", # collections-named-tuple
-    "SIM103", # needless-bool
     "N818",   # error-suffix-on-exception-name
     "PERF102",# incorrect-dict-iterator
     "E741",   # ambiguous-variable-name

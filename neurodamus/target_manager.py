@@ -117,9 +117,7 @@ class TargetManager:
         """
 
         def _is_sonata_file(file_name):
-            if file_name.endswith(".h5"):
-                return True
-            return False
+            return file_name.endswith(".h5")
 
         nodes_file = circuit.get("CellLibraryFile")
         if nodes_file and _is_sonata_file(nodes_file) and self._nodeset_reader:
