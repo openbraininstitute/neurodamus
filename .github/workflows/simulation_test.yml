@@ -103,24 +103,28 @@ jobs:
     - name: Upgrade pip and install base Python packages
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-
         python -m venv $VENV_PATH
         . $VENV_PATH/bin/activate
         source ./ci/build-dependencies.sh
         install-python-dependencies
 
     - name: Add virtual environment to PATH
-      run: echo "$VENV_PATH/bin/" >> $GITHUB_PATH
+      run: |
+        echo "$VENV_PATH/bin/" >> $GITHUB_PATH
 
     - name: Build h5py with the local hdf5
       run: |
         source ./ci/build-dependencies.sh
+        source $VENV_PATH/bin/activate
+
         build-h5py
 
     - name: Install libsonata
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         source ./ci/build-dependencies.sh
+        source $VENV_PATH/bin/activate
+
         build-libsonata "${{ env.LIBSONATA_BRANCH }}"
 
     - name: Cache libsonatareport
@@ -151,10 +155,12 @@ jobs:
       if: steps.cache-neuron.outputs.cache-hit != 'true'
       run: |
         source ./ci/build-dependencies.sh
+        source $VENV_PATH/bin/activate
         build-neuron ${{ env.NEURON_BRANCH }} ${{ env.NEURON_COMMIT_ID }}
 
     - name: Install neurodamus
       run: |
+        source $VENV_PATH/bin/activate
         pip install .[full]
 
     - name: Build neocortex models

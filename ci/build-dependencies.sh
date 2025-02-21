@@ -1,16 +1,34 @@
 #!/bin/bash
 #set -euxo pipefail
 
-VENV_PATH=/venv
-VENV_PATH=/home/runner/work/neurodamus/neurodamus/venv/
-VENV=$VENV_PATH
+
+if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    export BASE=/home/runner/work/neurodamus/neurodamus
+    export ENV_FILE=$GITHUB_ENV
+else
+    # environment variables are appended to this file, in the style of GITHUB_ENV,
+    # to pass outputs between stages. I would consider this hacky
+    export ENV_FILE=environment
+    export BASE=/opt/ci/
+fi
+
+if [[ -e $ENV_FILE ]]; then
+    echo "Old env: "
+    cat $ENV_FILE
+
+    [[ -z $GITHUB_ENV ]] && rm $ENV_FILE
+fi
+
+export VENV_PATH=$BASE/venv/
+export VENV=$VENV_PATH
 
 check_venv() {
-    #if [[ -z "$VIRTUAL_ENV" ]]; then
-    #    echo "Error: No virtual environment activated"
-    #    exit 1
-    #fi
-    echo "CHECK"
+    if [[ -z "$VIRTUAL_ENV" ]]; then
+        echo "Error: No virtual environment activated"
+        exit 1
+    fi
+    which pip
+    which pip3
 }
 
 install-apt-dependencies() {
@@ -45,7 +63,6 @@ install-apt-dependencies() {
 
 install-python-dependencies() {
     check_venv
-    . $VENV/bin/activate
 
     python3 -m pip install --upgrade pip setuptools
     pip install cython numpy wheel pkgconfig mpi4py
@@ -54,7 +71,6 @@ install-python-dependencies() {
 
 build-libsonata() {
     check_venv
-    . $VENV/bin/activate
 
     local branch=$1
 
@@ -72,13 +88,14 @@ build-libsonata() {
 build-libsonatareport() {
     local branch=$1
 
-    local LIBSONATAREPORT=$(pwd)/libsonatareport/
+    local LIBSONATAREPORT=$BASE/libsonatareport/
     local LIBSONATAREPORT_BUILD=$LIBSONATAREPORT/build
     local LIBSONATAREPORT_INSTALL=$LIBSONATAREPORT_BUILD/install
 
     git clone --branch="$branch" --depth=1 \
         https://github.com/openbraininstitute/libsonatareport.git \
         $LIBSONATAREPORT
+
     (cd $LIBSONATAREPORT && \
         git submodule update --init --depth=1 \
         extlib/spdlog \
@@ -98,25 +115,22 @@ build-libsonatareport() {
 
     cmake --build $LIBSONATAREPORT_BUILD --parallel
     cmake --build $LIBSONATAREPORT_BUILD --target install
+
+    echo "SONATAREPORT_DIR=$LIBSONATAREPORT_INSTALL" >> $ENV_FILE
 }
 
 
 build-neuron() {
     check_venv
-    . $VENV/bin/activate
+
+    source $ENV_FILE
 
     local branch=$1
     local commit_id=$2
 
-    local SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
-
-    #XXX
-    export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
-    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
-
-    local NRN=$(pwd)/nrn
+    local NRN=$BASE/nrn
     local NRN_BUILD=$NRN/build
-    local NRN_INSTALL=$NRN_BUILD/install
+    export NRN_INSTALL=$NRN_BUILD/install
 
     if [[ ! -e $NRN ]]; then
         if [[ "$branch" == 'master' ]]; then
@@ -139,13 +153,14 @@ build-neuron() {
       -DCMAKE_CXX_COMPILER=g++ \
       -DCORENRN_ENABLE_REPORTING=ON \
       -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR
+
     cmake --build nrn/build --parallel
     cmake --build nrn/build --target install
 }
 
 build-h5py() {
     check_venv
-    . $VENV/bin/activate
+
 
     CC="mpicc" \
         HDF5_MPI="ON" \
@@ -158,30 +173,32 @@ build-h5py() {
 build-neocortex-models() {
     local branch=$1
 
-    export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
-    #XXX
-    export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
-    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
+    source $ENV_FILE
 
-    export PATH=$(pwd)/nrn/build/install/bin:$PATH
+    local NEOCORTEX_MOD=$BASE/neurodamus-models/
+    local NEOCORTEX_MOD_BUILD=$NEOCORTEX_MOD/build
+    local NEOCORTEX_MOD_INSTALL=$NEOCORTEX_MOD_BUILD/install
 
-    if [[ ! -e neurodamus-models ]]; then
-        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git
+    export PATH=$BASE/nrn/build/install/bin:$PATH
+
+    if [[ ! -e $NEOCORTEX_MOD ]]; then
+        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git $NEOCORTEX_MOD
     fi
 
     DATADIR=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
 
-    cmake -B neurodamus-models/build -S neurodamus-models/ \
-      -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install \
+    cmake -B $NEOCORTEX_MOD_BUILD -S $NEOCORTEX_MOD  \
+      -DCMAKE_INSTALL_PREFIX=$NEOCORTEX_MOD_INSTALL \
       -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
       -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR \
       -DNEURODAMUS_CORE_DIR=${DATADIR} \
       -DNEURODAMUS_MECHANISMS=neocortex \
       -DNEURODAMUS_NCX_V5=ON
 
-    cmake --build neurodamus-models/build
-    cmake --install neurodamus-models/build
-    echo "NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install" #>> $GITHUB_ENV;
+    cmake --build $NEOCORTEX_MOD_BUILD
+    cmake --install $NEOCORTEX_MOD_INSTALL
+
+    echo "NEURODAMUS_NEOCORTEX_ROOT=$NEOCORTEX_MOD_INSTALL" >> $ENV_FILE
 }
 
 build-neocortex-multiscale-models() {
@@ -189,18 +206,21 @@ build-neocortex-multiscale-models() {
 
     echo "build neurodamus-neocortex-multiscale model"
 
-    if [[ ! -e "neurodamus-models" ]]; then
-        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git
+    source $ENV_FILE
+
+    local NEOCORTEX_MOD_MULTI=$BASE/neurodamus-models/
+    local NEOCORTEX_MOD_MULTI_BUILD=$NEOCORTEX_MOD/build
+    local NEOCORTEX_MOD_MULTI_INSTALL=$NEOCORTEX_MOD_BUILD/install
+
+    if [[ ! -e $NEOCORTEX_MOD_MULTI ]]; then
+        git clone --branch="$branch" --depth=1 https://github.com/openbraininstitute/neurodamus-models.git $NEOCORTEX_MOD_MULTI
     fi
 
     DATADIR=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
 
-    #XXX
-    export SONATAREPORT_DIR=/opt/ci/libsonatareport/build/install/
-    export SONATAREPORT_DIR=/home/runner/work/neurodamus/neurodamus/libsonatareport/build/install/
 
-    cmake -B neurodamus-models/build_multiscale -S neurodamus-models/ \
-      -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install_multiscale \
+    cmake -B $NEOCORTEX_MOD_MULTI_BUILD -S $NEOCORTEX_MOD_MULTI \
+      -DCMAKE_INSTALL_PREFIX=$NEOCORTEX_MOD_MULTI_INSTALL \
       -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
       -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR \
       -DNEURODAMUS_CORE_DIR=${DATADIR} \
@@ -208,10 +228,11 @@ build-neocortex-multiscale-models() {
       -DNEURODAMUS_NCX_METABOLISM=ON \
       -DNEURODAMUS_NCX_NGV=ON \
       -DNEURODAMUS_ENABLE_CORENEURON=OFF
-    cmake --build neurodamus-models/build_multiscale
-    cmake --install neurodamus-models/build_multiscale
 
-    echo "NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT=$(pwd)/neurodamus-models/install_multiscale" #>> $GITHUB_ENV;
+    cmake --build $NEOCORTEX_MOD_MULTI_BUILD
+    cmake --install $NEOCORTEX_MOD_MULTI_INSTALL
+
+    echo "NEURODAMUS_NEOCORTEX_MULTISCALE_ROOT=$NEOCORTEX_MOD_MULTI_INSTALL" >> $ENV_FILE
 }
 
 github-tag() {
@@ -221,6 +242,8 @@ github-tag() {
 
 
 run-usecase() {
+
+    source $ENV_FILE
 
     export NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install
 
@@ -250,11 +273,13 @@ run-usecase() {
 
 run-pytest() {
 
-    export NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install
+    source $ENV_FILE
 
-    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
+    #export NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install
+
+    export PYTHONPATH=$BASE/nrn/build/install/lib/python:$PYTHONPATH
     export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/neurodamus/data
+    export NEURODAMUS_PYTHON=$BASE/neurodamus/neurodamus/data
     export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
     export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
     export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
