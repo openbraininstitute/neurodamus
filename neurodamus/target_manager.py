@@ -1,6 +1,7 @@
 import itertools
 import logging
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from functools import lru_cache
 
 import libsonata
@@ -559,7 +560,6 @@ class NodesetTarget(_TargetInterface):
             return False
 
         all_raw_gids = {ns.population_name: ns.final_gids() - ns.offset for ns in self.nodesets}
-        from collections import defaultdict
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
@@ -596,8 +596,7 @@ class SerializedSections:
         # Flag to control warning message display
         self._serialized_sections_warned = False
 
-        index = 0
-        for sec in cell.all:
+        for index, sec in enumerate(cell.all):
             # Accessing the 'v' value at location 0.0001 of the section
             v_value = sec(0.0001).v
             if v_value >= self.num_sections:
@@ -614,7 +613,6 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
-            index += 1
 
 
 class TPointList:
