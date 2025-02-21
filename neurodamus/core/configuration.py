@@ -1,4 +1,5 @@
 """Runtime configuration"""
+
 import logging
 import os
 import os.path
@@ -1007,8 +1008,9 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
         contents = Path(config.output_root, "sim.conf").read_text()
-        core_data_exists = ("datpath='/dev/shm/" not in contents
-                            and Path(core_data_location, "files.dat").is_file())
+        core_data_exists = (
+            "datpath='/dev/shm/" not in contents and Path(core_data_location, "files.dat").is_file()
+        )
     except FileNotFoundError:
         core_data_exists = False
 

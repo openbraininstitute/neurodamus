@@ -194,7 +194,6 @@ ignore = [
     "N818",   # error-suffix-on-exception-name
     "PERF102",# incorrect-dict-iterator
     "E741",   # ambiguous-variable-name
-    "D104",   # undocumented-public-package
     "D212",   # multi-line-summary-first-line
     "PLE1141",# dict-iter-missing-items
     "PLR0913",# too-many-arguments
