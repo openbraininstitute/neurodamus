@@ -148,7 +148,6 @@ ignore = [
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
     "RET504", # unnecessary-assign
-    "B007",   # unused-loop-control-variable
     "B904",   # raise-without-from-inside-except
     "D100",   # undocumented-public-module
     "SIM102", # collapsible-if

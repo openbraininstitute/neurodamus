@@ -247,7 +247,7 @@ if __name__ == "__main__":
     # progressbars can also be used as a consumer-generators to monitor loop progress
     l1 = range(0, 100, 10)
 
-    for j in ProgressBar.iter(l1):
+    for _j in ProgressBar.iter(l1):
         # Do something with j
         time.sleep(0.2)
 
@@ -255,14 +255,14 @@ if __name__ == "__main__":
     # It is the user responsability to initialize with the right number of iterations
     bar = ProgressBar(15)
     l2 = range(100, 200, 10)
-    for x in bar(l1):
+    for _x in bar(l1):
         time.sleep(0.2)
     l2 = list(bar(l2, 5))
     assert l2 == [100, 110, 120, 130, 140]
 
     # Alternativelly, if unknown, use False (creates a spinner)
     bar = ProgressBar(False)
-    for x in bar(l1):
+    for _x in bar(l1):
         time.sleep(0.2)
-    for y in bar(range(60)):
+    for _y in bar(range(60)):
         time.sleep(0.04)

@@ -440,13 +440,13 @@ class Node:
         circuit = self._base_circuit
         for name, circuit in self._extra_circuits.items():
             if circuit.get("PopulationType") != "virtual":
+                logging.info("Activating experimental LB for Sonata circuit '%s'", name)
                 break
         if circuit.get("PopulationType") == "virtual":
             logging.warning(
                 "Cannot calculate the load balance because only virtual populations were found"
             )
             return None
-        logging.info("Activating experimental LB for Sonata circuit '%s'", name)
 
         if not circuit.CircuitPath:
             logging.info(" => No circuit for Load Balancing. Skipping... ")
@@ -1306,7 +1306,7 @@ class Node:
             Nd.t = -1e9
             prev_dt = Nd.dt
             Nd.dt = fwd_skip * 0.1
-            for flushIndex in range(10):
+            for _flushIndex in range(10):
                 Nd.fadvance()
             Nd.dt = prev_dt
             Nd.t = 0

@@ -537,7 +537,7 @@ class GlioVascularManager(ConnectionManagerBase):
             astrocyte.create_endfeet(parent_section_ids.size)
 
             # Iterate through endfeet: insert mechanisms, set values and connect to parent section
-            for sec, parent_section_id, l, d, p in zip(
+            for sec, parent_section_id, l, d, _p in zip(
                 astrocyte.endfeet, parent_section_ids, lengths, diameters, perimeters
             ):
                 sec.L = l
