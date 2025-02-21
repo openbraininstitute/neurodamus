@@ -1,6 +1,5 @@
 # Neurodamus
 # Copyright 2018 - Blue Brain Project, EPFL
-
 import gc
 import glob
 import itertools
@@ -8,7 +7,8 @@ import logging
 import math
 import os
 import subprocess
-from collections import defaultdict, namedtuple
+import typing
+from collections import defaultdict
 from contextlib import contextmanager
 from os import path as ospath
 
@@ -937,12 +937,18 @@ class Node:
             mod_manager.interpret(target_spec, mod_info)
 
     # Reporting
-    ReportParams = namedtuple(
-        "ReportParams",
-        "name, rep_type, report_on, unit, format, dt, start, end, output_dir, scaling",
-    )
+    class ReportParams(typing.NamedTuple):
+        name: str
+        rep_type: str
+        report_on: str
+        unit: str
+        format: str
+        dt: float
+        start: float
+        end: float
+        output_dir: str
+        scaling: str
 
-    # -
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
     def enable_reports(self):
