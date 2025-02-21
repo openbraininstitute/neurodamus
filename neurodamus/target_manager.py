@@ -188,9 +188,8 @@ class TargetManager:
         t1, t2 = self.get_target(target1_spec), self.get_target(target2_spec)
 
         # Check for Sonata nodesets, they might have the same population and overlap
-        if set(t1.populations) == set(t2.populations):
-            if target1_spec.overlap_byname(target2_spec):
-                return True
+        if set(t1.populations) == set(t2.populations) and target1_spec.overlap_byname(target2_spec):
+            return True
 
         # TODO: Investigate this might yield different results depending on the rank.
         return t1.intersects(t2)  # Otherwise go with full gid intersection

@@ -971,10 +971,13 @@ class Node:
                 n_errors += 1
                 continue
 
-            if SimConfig.use_coreneuron and MPI.rank == 0:
-                if not self._report_write_coreneuron_config(rep_conf, target, rep_params):
-                    n_errors += 1
-                    continue
+            if (
+                SimConfig.use_coreneuron
+                and MPI.rank == 0
+                and not self._report_write_coreneuron_config(rep_conf, target, rep_params)
+            ):
+                n_errors += 1
+                continue
 
             if SimConfig.restore_coreneuron:
                 continue  # we dont even need to initialize reports
@@ -1034,10 +1037,9 @@ class Node:
             rep_dt,
         )
 
-        if rep_format != "SONATA":
-            if MPI.rank == 0:
-                logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
-                return None
+        if rep_format != "SONATA" and MPI.rank == 0:
+            logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
+            return None
 
         if Nd.t > 0:
             start_time += Nd.t
@@ -1610,10 +1612,8 @@ class Node:
         self._pc.gid_clear()
         self._target_manager.clear_simulation_data()
 
-        if not avoid_creating_objs:
-            if SimConfig.use_neuron:
-                if self._sonatareport_helper:
-                    self._sonatareport_helper.clear()
+        if not avoid_creating_objs and SimConfig.use_neuron and self._sonatareport_helper:
+            self._sonatareport_helper.clear()
 
         Node.__init__(self, None, None)  # Reset vars
 

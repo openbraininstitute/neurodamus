@@ -150,7 +150,6 @@ ignore = [
     "RET504", # unnecessary-assign
     "B904",   # raise-without-from-inside-except
     "D100",   # undocumented-public-module
-    "SIM102", # collapsible-if
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "D103",   # undocumented-public-function
