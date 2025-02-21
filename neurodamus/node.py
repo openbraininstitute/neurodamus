@@ -1935,7 +1935,7 @@ class Neurodamus(Node):
             if SimConfig.loadbal_mode != LoadBalanceMode.Memory:
                 for cur_target in sub_targets[cycle_i]:
                     self._target_manager.register_target(cur_target)
-                    pop = list(cur_target.population_names)[0]
+                    pop = next(iter(cur_target.population_names))
                     for circuit in itertools.chain(
                         [self._base_circuit], self._extra_circuits.values()
                     ):

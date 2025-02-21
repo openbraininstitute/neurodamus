@@ -172,7 +172,6 @@ ignore = [
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
-    "RUF015", # unnecessary-iterable-allocation-for-first-element
     "S102",   # exec-builtin
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
