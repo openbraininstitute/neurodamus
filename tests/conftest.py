@@ -43,8 +43,9 @@ def change_test_dir(monkeypatch, tmp_path):
 @pytest.fixture
 def create_tmp_simulation_config_file(request, tmp_path):
     """create simulation config file in tmp_path from
-        1. simconfig_data in request: either dict or fixture's name (str)
-        2. or copy "simconfig_file" in request
+        1. simconfig_fixture in request: fixture's name (str)
+        2. or simconfig_data in request: dict
+        3. or copy "simconfig_file" in request
     Updates the config file with extra_config
     Returns the tmp file path
     """
