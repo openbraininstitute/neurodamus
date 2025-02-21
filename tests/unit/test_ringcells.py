@@ -63,7 +63,6 @@ def test_dump_RingA_RingB(simconfig_update):
 def compare_json_files(res_file, ref_file):
     assert os.path.isfile(res_file)
     assert os.path.isfile(ref_file)
-    import json
     with open(res_file) as f_res:
         result = json.load(f_res)
     with open(ref_file) as f_ref:
