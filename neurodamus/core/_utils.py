@@ -18,7 +18,7 @@ class ProgressBarRank0(progressbar.Progress):
 
     def __new__(cls, end, *args, **kwargs):
         if MPI.rank == 0:
-            return progressbar.ProgressBar(end, *args, tty_bar=False and None, **kwargs)
+            return progressbar.ProgressBar(end, *args, tty_bar=False, **kwargs)
         return progressbar.Progress(end, *args, **kwargs)
 
 
