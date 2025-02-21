@@ -537,11 +537,11 @@ class GlioVascularManager(ConnectionManagerBase):
             astrocyte.create_endfeet(parent_section_ids.size)
 
             # Iterate through endfeet: insert mechanisms, set values and connect to parent section
-            for sec, parent_section_id, l, d, _p in zip(
+            for sec, parent_section_id, length, diameter, _p in zip(
                 astrocyte.endfeet, parent_section_ids, lengths, diameters, perimeters
             ):
-                sec.L = l
-                sec.diam = d
+                sec.L = length
+                sec.diam = diameter
                 # here we just insert the mechanism. Population comes after
 
                 logging.info("ADDING vascouplingB")

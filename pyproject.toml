@@ -193,7 +193,6 @@ ignore = [
     "T203",   # p-print
     "N818",   # error-suffix-on-exception-name
     "PERF102",# incorrect-dict-iterator
-    "E741",   # ambiguous-variable-name
     "PLE1141",# dict-iter-missing-items
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
