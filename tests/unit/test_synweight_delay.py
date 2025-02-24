@@ -36,7 +36,7 @@ def simconfig_update(ringtest_baseconfig, extra_config, tmp_path):
                     "name": "init_conn",
                     "source": "RingB",
                     "target": "RingB",
-                    "weight": 1,
+                    "weight": 2,
                 },
                 {
                     "name": "delayed_conn",
@@ -63,7 +63,7 @@ def test_synweight_delay_neuron(simconfig_update):
         cell = n._pc.gid2cell(tgid)
         selection = edges.afferent_edges(tgid - 1)
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
-        _check_netcon_weight(nclist, edges, selection, weight_factor=1)
+        _check_netcon_weight(nclist, edges, selection, weight_factor=2)
 
     # run simulation 10s, and check the delayed weight
     n.solve(10)
