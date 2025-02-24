@@ -222,7 +222,6 @@ class SignalSource:
 
         ev = Nd.h.Vector()
         ev.integral(iei, 1).mul(1000)  # generate events in ms
-        # add events if last event falls short of duration
 
         ev.where("<", duration)  # remove events exceeding duration
         ev.div(dt)  # divide events by timestep
