@@ -223,6 +223,11 @@ class SignalSource:
         ev = Nd.h.Vector()
         ev.integral(iei, 1).mul(1000)  # generate events in ms
 
+        assert ev[-1] >= duration, (
+            f"The last event (ev[-1]: {ev[-1]}) is before "
+            f"duration: {duration}. This should not be possible!"
+        )
+
         ev.where("<", duration)  # remove events exceeding duration
         ev.div(dt)  # divide events by timestep
 
