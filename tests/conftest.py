@@ -37,6 +37,8 @@ def sonata_config():
 
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_path):
+    """change the working directory to tmp_path per test function automatically
+    """
     monkeypatch.chdir(tmp_path)
 
 
@@ -45,7 +47,7 @@ def create_tmp_simulation_config_file(request, tmp_path):
     """create simulation config file in tmp_path from
         1. simconfig_fixture in request: fixture's name (str)
         2. or simconfig_data in request: dict
-        3. or copy "simconfig_file" in request
+        3. or copy of simconfig_file in request, and attach relative paths to src_dir
     Updates the config file with extra_config
     Returns the tmp file path
     """

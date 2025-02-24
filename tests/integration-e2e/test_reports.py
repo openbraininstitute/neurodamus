@@ -71,7 +71,7 @@ def _read_sonata_report(report_file):
     return node_ids, data
 
 
-def _create_reports_config(original_config_path: Path, base_dir: Path) -> tuple[Path, Path]:
+def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[Path, Path]:
     """
     Create a modified configuration file in a temporary directory.
     """
@@ -81,9 +81,6 @@ def _create_reports_config(original_config_path: Path, base_dir: Path) -> tuple[
 
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
-    # Update the output directory to base_dir
-    output_dir = base_dir / config["output"]["output_dir"]
-    config["output"]["output_dir"] = str(output_dir)
 
     # Modify the necessary fields
     config["reports"] = config.get("reports", {})
@@ -116,10 +113,14 @@ def _create_reports_config(original_config_path: Path, base_dir: Path) -> tuple[
         "end_time": 40.0
     }
 
-    # Write the modified configuration to a temporary file
-    temp_config_path = base_dir / "reports_config.json"
+    # Write the modified configuration to a temporary file in tmp_path
+    temp_config_path = tmp_path / "reports_config.json"
     with open(temp_config_path, "w") as f:
         json.dump(config, f, indent=4)
+
+    output_dir = Path(config["output"]["output_dir"])
+    if not output_dir.is_absolute():
+        output_dir = tmp_path / output_dir
 
     return str(temp_config_path), str(output_dir)
 

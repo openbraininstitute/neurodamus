@@ -9,7 +9,7 @@ USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 SAMPLE_DATA_DIR = Path(__file__).parent.parent.absolute() / "sample_data"
 
 
-def replay_sim_config(sonata_config, replay_files, base_dir):
+def replay_sim_config(sonata_config, replay_files):
     sonata_config["inputs"] = {}
     for i, replay_file in enumerate(replay_files):
         sonata_config["inputs"][f"spikeReplay{i}"] = {
@@ -22,17 +22,17 @@ def replay_sim_config(sonata_config, replay_files, base_dir):
         }
 
     # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', dir=base_dir, delete=False) as config_file:
+    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
         json.dump(sonata_config, config_file)
 
     return config_file
 
 
-def test_replay_sim(sonata_config, tmp_path):
+def test_replay_sim(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
-    config_file = replay_sim_config(sonata_config, [str(USECASE3 / "input.h5")], tmp_path)
+    config_file = replay_sim_config(sonata_config, [str(USECASE3 / "input.h5")])
     nd = Neurodamus(
         config_file.name,
         restrict_node_populations=["NodeA"],
@@ -67,12 +67,12 @@ def test_replay_sim(sonata_config, tmp_path):
     os.unlink(config_file.name)
 
 
-def test_many_replay_sim(sonata_config, tmp_path):
+def test_many_replay_sim(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
     replay_files = [str(USECASE3 / file) for file in ["input.h5", "input1.h5", "input2.h5"]]
-    config_file = replay_sim_config(sonata_config, replay_files, tmp_path)
+    config_file = replay_sim_config(sonata_config, replay_files)
     nd = Neurodamus(
         config_file.name,
         restrict_node_populations=["NodeA"],
@@ -109,11 +109,11 @@ def test_many_replay_sim(sonata_config, tmp_path):
 
 # A more comprehensive example, using Sonata replay with two populations
 # ======================================================================
-def test_replay_sonata_spikes(sonata_config, tmp_path):
+def test_replay_sonata_spikes(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
-    config_file = replay_sim_config(sonata_config, [str(SAMPLE_DATA_DIR / "out.h5")], tmp_path)
+    config_file = replay_sim_config(sonata_config, [str(SAMPLE_DATA_DIR / "out.h5")])
     nd = Neurodamus(
         config_file.name,
         restrict_features=[Feature.Replay],
