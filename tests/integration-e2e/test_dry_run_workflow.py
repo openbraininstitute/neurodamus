@@ -12,7 +12,7 @@ TMP_FOLDER = tempfile.mkdtemp()
 
 
 @pytest.fixture(autouse=True)
-def change_test_dir(monkeypatch, autouse=True):
+def change_test_dir(monkeypatch):
     """
     All tests in this file are using the same working directory, i.e TMP_FOLDER
     Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
