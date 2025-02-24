@@ -76,7 +76,7 @@ def test_synweight_delay_neuron(simconfig_update):
 
 
 def _check_netcon_weight(netconlist, edges, selection, weight_factor):
-    # check netcons
+    """Check synapse weight in netcon w.r.t the values in edges file read by libsonata"""
     assert netconlist.count() == selection.flat_size
     for idx, nc in enumerate(netconlist):
         nc = netconlist.o(idx)
