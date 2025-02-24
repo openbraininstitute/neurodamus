@@ -1,6 +1,5 @@
 import pytest
 import h5py
-import os
 import numpy as np
 from pathlib import Path
 
@@ -8,9 +7,10 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
 @pytest.fixture
-def test_file(tmpdir):
+def test_file(tmp_path):
     """
     Generates example weights file
+    Returns the h5py.File obj and the file path
     """
     # Define populations and their GIDs
     populations = {
@@ -19,7 +19,7 @@ def test_file(tmpdir):
     }
 
     # Create a test HDF5 file with sample data
-    test_file = h5py.File(tmpdir.join("test_file.h5"), 'w')
+    test_file = h5py.File(tmp_path / "test_file.h5", 'w')
 
     for population, gids in populations.items():
         # Create population group
@@ -52,10 +52,10 @@ def test_file(tmpdir):
             incrementy -= 0.0032
         electrodes_group.create_dataset("scaling_factors", dtype='f8', data=matrix)
 
-    return test_file
+    return test_file, str(tmp_path / "test_file.h5")
 
 
-def test_load_lfp_config(tmpdir, test_file):
+def test_load_lfp_config(test_file):
     """
     Test that the 'load_lfp_config' function opens and loads correctly
     the LFP weights file and checks its format
@@ -64,7 +64,7 @@ def test_load_lfp_config(tmpdir, test_file):
     from neurodamus.core.configuration import ConfigurationError
 
     # Load the electrodes file
-    lfp_weights_file = tmpdir.join("test_file.h5")
+    _, lfp_weights_file = test_file
 
     # Create an instance of the class
     lfp = LFPManager()
@@ -95,7 +95,7 @@ def test_read_lfp_factors(test_file):
     from neurodamus.cell_distributor import LFPManager
     # Create an instance of the class
     lfp = LFPManager()
-    lfp._lfp_file = test_file
+    lfp._lfp_file, _ = test_file
     # Test the function with valid input (node_id is 0 based, so expected 42 in the file)
     gid = 43
     result = lfp.read_lfp_factors(gid).to_python()
@@ -117,7 +117,7 @@ def test_number_electrodes(test_file):
     from neurodamus.cell_distributor import LFPManager
     # Create an instance of the class
     lfp = LFPManager()
-    lfp._lfp_file = test_file
+    lfp._lfp_file, _ = test_file
     # Test the function with valid input
     gid = 1
     result = lfp.get_number_electrodes(gid)
@@ -140,7 +140,7 @@ def _read_sonata_lfp_file(lfp_file):
     return node_ids, data
 
 
-def _create_lfp_config(original_config_path, lfp_file, tmp_path):
+def _create_lfp_config(original_config_path, lfp_file, base_dir: Path):
     """
     Create a modified lfp configuration file in a temporary directory.
     """
@@ -166,22 +166,22 @@ def _create_lfp_config(original_config_path, lfp_file, tmp_path):
     }
 
     # Write the modified configuration to a temporary file
-    temp_config_path = tmp_path / "lfp_config.json"
+    temp_config_path = base_dir / "lfp_config.json"
     with open(temp_config_path, "w") as f:
         json.dump(config, f, indent=4)
 
     # Create output directory
-    output_dir = tmp_path / config["output"]["output_dir"]
+    output_dir = base_dir / config["output"]["output_dir"]
 
     return str(temp_config_path), str(output_dir)
 
 
-def test_v5_sonata_lfp(tmpdir, test_file, tmp_path):
+def test_v5_sonata_lfp(test_file, tmp_path):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
     config_file = SIM_DIR / "v5_sonata" / "simulation_config_mini.json"
-    lfp_weights_file = tmpdir.join("test_file.h5")
+    _, lfp_weights_file = test_file
     temp_config_path, output_dir = _create_lfp_config(config_file, lfp_weights_file, tmp_path)
 
     nd = Neurodamus(temp_config_path, output_path=output_dir)
@@ -191,7 +191,7 @@ def test_v5_sonata_lfp(tmpdir, test_file, tmp_path):
     # t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
     # t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
     node_ids = np.array([0, 4])
-    result_ids, result_data = _read_sonata_lfp_file(os.path.join(output_dir, "lfp.h5"))
+    result_ids, result_data = _read_sonata_lfp_file(Path(output_dir) / "lfp.h5")
 
     # TODO: reenable after: https://github.com/openbraininstitute/neurodamus/issues/3
     # is solved

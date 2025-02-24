@@ -1,12 +1,23 @@
+import json
 import platform
 import pytest
-import os
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 from neurodamus.utils.memory import DryRunStats
 from neurodamus.core.configuration import GlobalConfig, LogLevel
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
+TMP_FOLDER = tempfile.mkdtemp()
+
+
+@pytest.fixture(autouse=True)
+def change_test_dir(monkeypatch):
+    """
+    All tests in this file are using the same working directory, i.e TMP_FOLDER
+    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
+    """
+    monkeypatch.chdir(TMP_FOLDER)
 
 
 @pytest.fixture
@@ -17,13 +28,20 @@ def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path):
     dry_run = params.get('dry_run', True)
     num_target_ranks = params.get('num_target_ranks', '1')
     modelbuilding_steps = params.get('modelbuilding_steps', '1')
-    config_file = os.path.basename(params.get('config_file', "simulation_sonata.json"))
+    config_file = Path(params.get('config_file', "simulation_sonata.json")).name
     path_to_config = params.get('path_to_config', USECASE3)
     lb_mode = params.get('lb_mode', "")
 
+    with open(path_to_config / config_file) as src_f:
+        sim_config_data = json.load(src_f)
+    sim_config_data["network"] = str(path_to_config / "circuit_config.json")
+    sim_config_data["node_sets_file"] = str(path_to_config / "nodesets.json")
+    with open(config_file, "w") as dst_f:
+        json.dump(sim_config_data, dst_f, indent=2)
+
     GlobalConfig.verbosity = LogLevel.DEBUG
     nd = Neurodamus(
-        str(path_to_config / config_file),
+        str(config_file),
         dry_run=dry_run,
         num_target_ranks=num_target_ranks,
         modelbuilding_steps=modelbuilding_steps,
@@ -51,7 +69,7 @@ def convert_to_standard_types(obj):
         'lb_mode': ""
     }
 ], indirect=True)
-def test_dry_run_workflow(neurodamus_instance, USECASE3):
+def test_dry_run_workflow(neurodamus_instance):
     """
     Test that the dry run mode works
 
@@ -88,10 +106,10 @@ def test_dry_run_workflow(neurodamus_instance, USECASE3):
     # Test that the allocation works and can be saved and loaded
     rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
     export_allocation_stats(rank_alloc,
-                            USECASE3 / "allocation", 2, 1)
-    export_metype_memory_usage(cell_mem_use, USECASE3 / "memory_per_metype.json")
+                            "allocation", 2, 1)
+    export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
 
-    rank_alloc = nd._dry_run_stats.import_allocation_stats(USECASE3 / "allocation_r2_c1.pkl.gz", 0)
+    rank_alloc = nd._dry_run_stats.import_allocation_stats("allocation_r2_c1.pkl.gz", 0)
     rank_allocation_standard = convert_to_standard_types(rank_alloc)
 
     expected_items = {
@@ -104,7 +122,7 @@ def test_dry_run_workflow(neurodamus_instance, USECASE3):
     # Test that the allocation works and can be saved and loaded
     # and generate allocation file for 1 rank
     rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
-    export_metype_memory_usage(cell_mem_use, USECASE3 / "memory_per_metype.json")
+    export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
     rank_allocation_standard = convert_to_standard_types(rank_alloc)
 
     expected_items = {

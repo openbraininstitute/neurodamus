@@ -1,7 +1,7 @@
-import os
 import struct
 
 from neurodamus.core.coreneuron_configuration import CoreConfig
+from pathlib import Path
 
 
 def test_write_report_config(tmpdir):
@@ -36,8 +36,8 @@ def test_write_report_config(tmpdir):
     CoreConfig.write_spike_filename(spikes_name)
 
     # Check that the report configuration file was created
-    report_config_file = os.path.join(CoreConfig.output_root, CoreConfig.report_config_file)
-    assert os.path.exists(report_config_file)
+    report_config_file = Path(CoreConfig.output_root) / CoreConfig.report_config_file
+    assert report_config_file.exists()
 
     # Check the content of the report configuration file
     with open(report_config_file, "rb") as fp:
@@ -92,13 +92,13 @@ def test_write_sim_config(tmpdir):
         enable_reports
     )
     # Check that the sim configuration file was created
-    sim_config_file = os.path.join(CoreConfig.output_root, CoreConfig.sim_config_file)
-    assert os.path.exists(sim_config_file)
+    sim_config_file = Path(CoreConfig.output_root) / CoreConfig.sim_config_file
+    assert sim_config_file.exists()
     # Check the content of the simulation configuration file
     with open(sim_config_file, "r") as fp:
         lines = fp.readlines()
-        assert lines[0].strip() == f"outpath='{os.path.abspath(CoreConfig.output_root)}'"
-        assert lines[1].strip() == f"datpath='{os.path.abspath(CoreConfig.datadir)}'"
+        assert lines[0].strip() == f"outpath='{Path(CoreConfig.output_root).absolute()}'"
+        assert lines[1].strip() == f"datpath='{Path(CoreConfig.datadir).absolute()}'"
         assert lines[2].strip() == f"tstop={tstop}"
         assert lines[3].strip() == f"dt={dt}"
         assert lines[4].strip() == f"forwardskip={forwardskip}"

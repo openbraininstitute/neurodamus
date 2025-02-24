@@ -1,7 +1,4 @@
 {
-    "manifest": {
-        "$CURRENT_DIR": "."
-    },
     "run": {
         "random_seed": 21800000,
         "tstop": 50.0,
@@ -12,7 +9,7 @@
     "node_set": "mini2",
     "node_sets_file": "node_sets.json",
     "output": {
-        "output_dir": "$CURRENT_DIR/output"
+        "output_dir": "output"
     },
     "inputs": {
         "spikeReplayIntoUniverse": {
@@ -21,7 +18,7 @@
             "delay": 0.0,
             "duration": 100000000.0,
             "module": "synapse_replay",
-            "spike_file": "$CURRENT_DIR/input.h5"
+            "spike_file": "input.h5"
         },
         "ThresholdIntoExc": {
             "node_set": "Excitatory",

@@ -1,9 +1,6 @@
-import json
 import numpy
-import os
 import pytest
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 
@@ -12,40 +9,32 @@ Test multiple simulated populations, with/without interconnections
 """
 
 
-@pytest.fixture
-def sonata_config_file(sonata_config, extra_config):
-    sonata_config["inputs"] = {
-        "spikeReplay": {
-            "module": "synapse_replay",
-            "input_type": "spikes",
-            "spike_file": str(USECASE3 / "input.h5"),
-            "delay": 0,
-            "duration": 1000,
-            "node_set": "nodesPopA"
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "sonata_config",
+        "extra_config": {
+            "inputs": {
+                "spikeReplay": {
+                    "module": "synapse_replay",
+                    "input_type": "spikes",
+                    "spike_file": str(USECASE3 / "input.h5"),
+                    "delay": 0,
+                    "duration": 1000,
+                    "node_set": "nodesPopA"
+                }
+            },
+            "connection_overrides": [
+                {
+                    "name": "nodeB-nodeB",
+                    "source": "nodesPopB",
+                    "target": "nodesPopB",
+                    "synapse_configure": "%s.verboseLevel=1"  # output when a spike is received
+                },
+            ]
         }
     }
-
-    if extra_config:
-        sonata_config.update(extra_config)
-
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(sonata_config, config_file)
-
-    yield config_file
-    os.unlink(config_file.name)
-
-
-@pytest.mark.parametrize("extra_config", [{
-    "connection_overrides": [
-        {
-            "name": "nodeB-nodeB",
-            "source": "nodesPopB",
-            "target": "nodesPopB",
-            "synapse_configure": "%s.verboseLevel=1"  # output when a spike is received
-        },
-    ]
-}])
-def test_multipop_simple(sonata_config_file):
+], indirect=True)
+def test_multipop_simple(create_tmp_simulation_config_file):
     """
     Test that two populations are correctly set for running in parallel, with offsetting
     """
@@ -54,7 +43,7 @@ def test_multipop_simple(sonata_config_file):
     from neurodamus.core.configuration import Feature
 
     nd = Neurodamus(
-        sonata_config_file.name,
+        create_tmp_simulation_config_file,
         restrict_features=[Feature.SynConfigure],  # use config verboseLevel as Flag
         restrict_connectivity=1,  # start off with two initial disconnected populations
         disable_reports=True,
@@ -88,29 +77,44 @@ def test_multipop_simple(sonata_config_file):
         assert conn.synapses[0].verboseLevel == 1
 
 
-@pytest.mark.parametrize("extra_config", [{
-    "connection_overrides": [
-        {
-            "name": "nodeB-nodeB",
-            "source": "nodesPopB",
-            "target": "nodesPopB",
-            "synapse_configure": "%s.verboseLevel=1"  # use as a flag for tests
-        },
-        {
-            "name": "nodeB-nodeA",
-            "source": "nodesPopB",
-            "target": "nodesPopA",
-            "synapse_configure": "%s.verboseLevel=2"
-        },
-        {
-            "name": "nodeA-nodeB",
-            "source": "nodesPopA",
-            "target": "nodesPopB",
-            "synapse_configure": "%s.verboseLevel=3"
-        },
-    ]
-}])
-def test_multipop_full_conn(sonata_config_file):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "sonata_config",
+        "extra_config": {
+            "inputs": {
+                "spikeReplay": {
+                    "module": "synapse_replay",
+                    "input_type": "spikes",
+                    "spike_file": str(USECASE3 / "input.h5"),
+                    "delay": 0,
+                    "duration": 1000,
+                    "node_set": "nodesPopA"
+                }
+            },
+            "connection_overrides": [
+                {
+                    "name": "nodeB-nodeB",
+                    "source": "nodesPopB",
+                    "target": "nodesPopB",
+                    "synapse_configure": "%s.verboseLevel=1"  # use as a flag for tests
+                },
+                {
+                    "name": "nodeB-nodeA",
+                    "source": "nodesPopB",
+                    "target": "nodesPopA",
+                    "synapse_configure": "%s.verboseLevel=2"
+                },
+                {
+                    "name": "nodeA-nodeB",
+                    "source": "nodesPopA",
+                    "target": "nodesPopB",
+                    "synapse_configure": "%s.verboseLevel=3"
+                },
+            ]
+        }
+    }
+], indirect=True)
+def test_multipop_full_conn(create_tmp_simulation_config_file):
     """
     Test that two populations are correctly set for running in parallel, with offsetting
     """
@@ -119,7 +123,7 @@ def test_multipop_full_conn(sonata_config_file):
     from neurodamus.core.configuration import Feature
 
     nd = Neurodamus(
-        sonata_config_file.name,
+        create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
         restrict_connectivity=False,
         disable_reports=True,

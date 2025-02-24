@@ -3,10 +3,11 @@ import numpy
 import os
 import pytest
 from tempfile import NamedTemporaryFile
+from pathlib import Path
 
 
 @pytest.fixture
-def sonata_config_files(sonata_config, input_type):
+def sonata_config_files(sonata_config, input_type, tmp_path):
     config_files = []
     for represents_physical_electrode in [True, False]:
         # Create a deep copy of sonata_config for each configuration to avoid conflicts
@@ -56,7 +57,7 @@ def sonata_config_files(sonata_config, input_type):
             }
         }
 
-        with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+        with NamedTemporaryFile("w", suffix='.json', dir=tmp_path, delete=False) as config_file:
             json.dump(config_copy, config_file)
             config_files.append(config_file.name)
 
@@ -84,9 +85,9 @@ def _run_simulation(config_file):
         config_file,
         f"--output-path={output_dir}"
     ]
-    config_dir = os.path.dirname(config_file)
+    config_dir = Path(config_file).parent
     subprocess.run(command, cwd=config_dir, check=True)
-    soma_report_path = os.path.join(config_dir, output_dir, "voltage.h5")
+    soma_report_path = config_dir / output_dir / "voltage.h5"
     return _read_sonata_soma_report(soma_report_path)
 
 
