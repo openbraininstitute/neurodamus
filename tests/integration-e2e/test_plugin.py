@@ -138,8 +138,8 @@ def test_run_acell_circuit():
     simdir = SIM_DIR / "acell_engine"
     env = os.environ.copy()
     env['NEURODAMUS_PYTHON'] = "."
-    env['PYTHONPATH'] += ":" + os.path.dirname(__file__)
-    env['NEURODAMUS_PLUGIN'] = os.path.splitext(os.path.basename(__file__))[0]
+    env['PYTHONPATH'] += ":" + str(Path(__file__).parent)
+    env['NEURODAMUS_PLUGIN'] = str(Path(__file__).stem)
     subprocess.run(
         ["bash", "tests/test_simulation.bash", str(simdir), "BlueConfig", ""],
         env=env,
