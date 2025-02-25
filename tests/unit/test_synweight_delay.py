@@ -1,36 +1,19 @@
-import json
-import os
 import pytest
 import numpy as np
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from neurodamus.core.configuration import SimConfig
 from libsonata import EdgeStorage
 
-
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
-REF_DIR = SIM_DIR / "reference"
-CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
 
-@pytest.fixture
-def simconfig_update(ringtest_baseconfig, extra_config, tmp_path):
-    ringtest_baseconfig.update(extra_config)
-
-    with NamedTemporaryFile("w", suffix=".json", dir=str(tmp_path), delete=False) as config_file:
-        json.dump(ringtest_baseconfig, config_file)
-
-    yield config_file
-    os.unlink(config_file.name)
-
-
-@pytest.mark.parametrize(
-    "extra_config",
-    [
-        {
-            "network": "$CIRCUIT_DIR/circuit_config_RingB.json",
-            "target_simulator": "NEURON",
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(SIM_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
+            "target_simulator": "NEURON",
             "connection_overrides": [
                 {
                     "name": "init_conn",
@@ -45,15 +28,15 @@ def simconfig_update(ringtest_baseconfig, extra_config, tmp_path):
                     "weight": 0.5,
                     "delay": 10,
                 },
-            ],
+            ]
         }
-    ],
-)
-def test_synweight_delay_neuron(simconfig_update):
+    }
+], indirect=True)
+def test_synweight_delay_neuron(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
 
-    n = Neurodamus(simconfig_update.name, disable_reports=True)
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
