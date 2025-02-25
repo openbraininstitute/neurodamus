@@ -36,9 +36,7 @@ def dump_cell(cell) -> dict:
         cell: NEURON cell object
     """
     res = _read_object_attrs(cell)
-    # In case of non-BBP cell model template
-    if "nSecAll" not in res:  # pragma: no cover
-        res["nSecAll"] = -1
+    res.setdefault("nSecAll", 0)
     res["sections"] = []
     cell_name = cell.hname()
     for nsec, sec in enumerate(cell.all):

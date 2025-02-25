@@ -1,5 +1,4 @@
 import json
-import os
 import pytest
 import numpy as np
 from pathlib import Path
@@ -24,6 +23,7 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
+
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
@@ -54,6 +54,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
 def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
+
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     from neurodamus.utils.dump_cellstate import dump_cellstate
 
@@ -71,10 +72,9 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
 
         # dump cell/synapses/netcons states to a json and compare with ref
         outputfile = "cellstate_" + str(tgid) + ".json"
-        if not os.path.exists(outputfile):
-            dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
+        dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
         reference = REF_DIR / outputfile
-        compare_json_files(outputfile, str(reference))
+        compare_json_files(Path(outputfile), reference)
 
         cell = n._pc.gid2cell(tgid)
         _check_cell(cell)
@@ -94,9 +94,10 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
             _check_synapse(syn, edges, selection)
 
 
-def compare_json_files(res_file, ref_file):
-    assert os.path.isfile(res_file)
-    assert os.path.isfile(ref_file)
+def compare_json_files(res_file: Path, ref_file: Path):
+    """compare two json files"""
+    assert res_file.exists()
+    assert ref_file.exists()
     with open(res_file) as f_res:
         result = json.load(f_res)
     with open(ref_file) as f_ref:
@@ -105,13 +106,13 @@ def compare_json_files(res_file, ref_file):
 
 
 def _check_cell(cell):
-    # check cell state from NEURON context
+    """check cell state from NEURON context"""
     assert cell.nSecAll == 3
     assert cell.x == cell.y == cell.z == 0
 
 
 def _check_synapse(syn, edges, selection):
-    # check synapse state from NEURON w.r.t libsonata reader
+    """check synapse state from NEURON w.r.t libsonata reader"""
     syn_id = int(syn.synapseID)
     syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
     if syn_type_id < 100:
@@ -129,7 +130,7 @@ def _check_synapse(syn, edges, selection):
 
 
 def _check_netcons(ref_srcgid, netconlist, edges, selection):
-    # check netcons and yield the associated synpase object
+    """check netcons and yield the associated synpase object"""
     assert netconlist.count() == selection.flat_size
     for idx, nc in enumerate(netconlist):
         nc = netconlist.o(idx)
