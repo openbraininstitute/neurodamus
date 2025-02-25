@@ -1,15 +1,8 @@
 import numpy as np
-import json
-import os
 import pytest
 from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
-
-
-@pytest.fixture(autouse=True)
-def _change_test_dir(monkeypatch, tmp_path):
-    monkeypatch.chdir(str(SIM_DIR / "usecase3"))
 
 
 def test_nodeset_target_generate_subtargets():
@@ -42,24 +35,6 @@ def test_nodeset_target_generate_subtargets():
     assert np.array_equal(subtargets[2][1].get_gids(), np.array([1002]))
 
 
-def _create_tmpconfig_coreneuron(config_file):
-    import fileinput
-    import shutil
-    from tempfile import NamedTemporaryFile
-
-    suffix = ".json" if config_file.endswith(".json") else ".BC"
-    tmp_file = NamedTemporaryFile(suffix=suffix, dir=os.path.dirname(config_file), delete=True)
-    shutil.copy2(config_file, tmp_file.name)
-    with fileinput.FileInput(tmp_file.name, inplace=True) as file:
-        for line in file:
-            if config_file.endswith(".json"):
-                print(line.replace("\"target_simulator\": \"NEURON\"",
-                                   "\"target_simulator\": \"CORENEURON\""), end='')
-            else:
-                print(line.replace("Simulator NEURON", "Simulator CORENEURON"), end='')
-    return tmp_file
-
-
 def _read_sonata_spike_file(spike_file):
     import libsonata
     spikes = libsonata.SpikeReader(spike_file)
@@ -70,28 +45,22 @@ def _read_sonata_spike_file(spike_file):
     return timestamps, spike_gids
 
 
-def test_v5_sonata_multisteps(capsys, tmp_path):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "src_dir": str(SIM_DIR / "v5_sonata"),
+        "simconfig_file": "simulation_config_mini.json",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+    }
+], indirect=True)
+def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = SIM_DIR / "v5_sonata" / "simulation_config_mini.json"
-    with open(config_file, "r") as f:
-        config_data = json.load(f)
+    config_file = create_tmp_simulation_config_file
 
-    # Modify the config for CORENEURON
-    config_data["target_simulator"] = "CORENEURON"
-    # Update the network path in the config
-    config_data["network"] = str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json")
-
-    # Use temporary directory for output
-    output_dir = str(tmp_path / config_data["output"]["output_dir"])
-
-    # Write the modified config to the temporary directory
-    temp_config_path = tmp_path / "simulation_config_mini.json"
-    with open(temp_config_path, "w") as f:
-        json.dump(config_data, f, indent=2)
-
-    nd = Neurodamus(str(temp_config_path), output_path=output_dir, modelbuilding_steps=3)
+    nd = Neurodamus(config_file, modelbuilding_steps=3)
     nd.run()
 
     # compare spikes with refs
@@ -101,8 +70,8 @@ def test_v5_sonata_multisteps(capsys, tmp_path):
     # timestamps = np.array([
     #     33.425, 37.35, 39.725
     # ])
-    obtained_timestamps, obtained_spike_gids = _read_sonata_spike_file(os.path.join(output_dir,
-                                                                                    "out.h5"))
+    spike_file = Path(nd._run_conf.get("OutputRoot"))/nd._run_conf.get("SpikesFile")
+    obtained_timestamps, obtained_spike_gids = _read_sonata_spike_file(spike_file)
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     # coreneuron and neuron have a discrepancy now:
     # https://github.com/openbraininstitute/neurodamus/issues/44?issue=openbraininstitute%7Cneurodamus%7C3
@@ -113,15 +82,18 @@ def test_v5_sonata_multisteps(capsys, tmp_path):
     assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
 
 
-def test_usecase3_sonata_multisteps():
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "src_dir": str(SIM_DIR / "usecase3"),
+        "simconfig_file": "simulation_sonata_coreneuron.json"
+    }
+], indirect=True)
+def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
-    config_file = str(SIM_DIR / "usecase3" / "simulation_sonata.json")
-    output_dir = str(SIM_DIR / "usecase3" / "output_coreneuron")
-    tmp_file = _create_tmpconfig_coreneuron(config_file)
-
-    nd = Neurodamus(tmp_file.name, output_path=output_dir, modelbuilding_steps=2)
+    config_file = create_tmp_simulation_config_file
+    nd = Neurodamus(config_file, modelbuilding_steps=2)
     nd.run()
 
     # compare spikes with refs
@@ -132,7 +104,7 @@ def test_usecase3_sonata_multisteps():
         0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7., 7.4, 8.6, 13.8, 19.6, 25.7, 32., 36.4, 38.5,
         40.8, 42.6, 45.2, 48.3, 49.9
     ])
-    obtained_timestamps, obtained_spike_gids = _read_sonata_spike_file(os.path.join(output_dir,
-                                                                                    "spikes.h5"))
+    spike_file = Path(nd._run_conf.get("OutputRoot"))/nd._run_conf.get("SpikesFile")
+    obtained_timestamps, obtained_spike_gids = _read_sonata_spike_file(spike_file)
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     npt.assert_allclose(timestamps, obtained_timestamps)
