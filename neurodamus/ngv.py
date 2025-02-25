@@ -507,12 +507,12 @@ class GlioVascularManager(ConnectionManagerBase):
         # the file
         edge_file, *pop = sonata_source.split(":")
         storage = libsonata.EdgeStorage(edge_file)
-        pop_name = pop[0] if pop else list(storage.population_names)[0]
+        pop_name = pop[0] if pop else next(iter(storage.population_names))
         self._gliovascular = storage.open_population(pop_name)
 
         if "VasculaturePath" in circuit_conf:
             storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"])
-            pop_name = list(storage.population_names)[0]
+            pop_name = next(iter(storage.population_names))
             self._vasculature = storage.open_population(pop_name)
 
     def create_connections(self, *_, **__):
@@ -537,7 +537,7 @@ class GlioVascularManager(ConnectionManagerBase):
             astrocyte.create_endfeet(parent_section_ids.size)
 
             # Iterate through endfeet: insert mechanisms, set values and connect to parent section
-            for sec, parent_section_id, l, d, p in zip(
+            for sec, parent_section_id, l, d, _p in zip(
                 astrocyte.endfeet, parent_section_ids, lengths, diameters, perimeters
             ):
                 sec.L = l

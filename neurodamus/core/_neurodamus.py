@@ -33,7 +33,7 @@ class _NeurodamusCore(_Neuron):
         if cls._pc is not None:
             return
         # Neurodamus requires MPI. We still respect NEURON_INIT_MPI though
-        _Neuron._init(int(os.environ.get("NEURON_INIT_MPI", 1)))  # if needed, sets cls._h
+        _Neuron._init(int(os.environ.get("NEURON_INIT_MPI", "1")))  # if needed, sets cls._h
 
         # Init logging
         log_name = kwargs.get("log_filename") or LOG_FILENAME
