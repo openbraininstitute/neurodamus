@@ -16,7 +16,16 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "network": str(SIM_DIR / "circuit_config_RingB.json"),
-            "node_set": "RingB"
+            "node_set": "RingB",
+            "target_simulator": "NEURON"
+            }
+    },
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(SIM_DIR / "circuit_config_RingB.json"),
+            "node_set": "RingB",
+            "target_simulator": "CORENEURON"
             }
     }
 ], indirect=True)
@@ -47,6 +56,14 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic"
+            }
+    },
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
             "node_set": "Mosaic"
             }
     }
