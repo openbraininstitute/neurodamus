@@ -57,7 +57,7 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.flake8]
-exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
+exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox", "tests/simulations/ringtest/create_data.py"]
 extend-ignore = [
     "E127",  # continuation line over-indented for visual indent
     "E203",  # whitespace before ':'
@@ -121,6 +121,7 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
+    "FIX001", # line-contains-fixme
 
     ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
     "D102",   # undocumented-public-method
@@ -148,10 +149,8 @@ ignore = [
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
     "RET504", # unnecessary-assign
-    "B007",   # unused-loop-control-variable
     "B904",   # raise-without-from-inside-except
     "D100",   # undocumented-public-module
-    "SIM102", # collapsible-if
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "D103",   # undocumented-public-function
@@ -170,22 +169,17 @@ ignore = [
     "FURB189",# subclass-builtin
     "A005",   # stdlib-module-shadowing
     "EM103",  # dot-format-in-exception
-    "FIX001", # line-contains-fixme
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
-    "RUF015", # unnecessary-iterable-allocation-for-first-element
     "S102",   # exec-builtin
-    "S108",   # hardcoded-temp-file
     "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
     "PGH004", # blanket-noqa
-    "PLC1901",# compare-to-empty-string
     "PLC2801",# unnecessary-dunder-call
-    "PLW1508",# invalid-envvar-default
     "FURB103",# write-whole-file
     "FURB122",# for-loop-writes
     "S301",   # suspicious-pickle-usage
@@ -197,12 +191,6 @@ ignore = [
     "INP001", # implicit-namespace-package
     "PIE810", # multiple-starts-ends-with
     "T203",   # p-print
-    "PYI024", # collections-named-tuple
-    "SIM103", # needless-bool
-    "SIM105", # suppressible-exception
-    "SIM113", # enumerate-for-loop
-    "SIM223", # expr-and-false
-    "SIM401", # if-else-block-instead-of-dict-get
     "N818",   # error-suffix-on-exception-name
     "PERF102",# incorrect-dict-iterator
     "E741",   # ambiguous-variable-name
@@ -213,10 +201,7 @@ ignore = [
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
-    "PLW1641",# eq-without-hash
-    "PLW3301",# nested-min-max
     "FURB101",# read-whole-file
-    "FURB110",# if-exp-instead-of-or-operator
 ]
 
 [tool.ruff.lint.isort]

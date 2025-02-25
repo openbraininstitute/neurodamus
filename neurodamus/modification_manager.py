@@ -67,7 +67,7 @@ class TTX:
 
         # insert and activate TTX mechanism in all sections of each cell in target
         for tpoint_list in tpoints:
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+            for sc in tpoint_list.sclst:
                 if not sc.exists():  # skip sections not on this split
                     continue
                 sec = sc.sec

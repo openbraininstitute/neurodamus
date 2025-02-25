@@ -1,6 +1,7 @@
 import itertools
 import logging
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from functools import lru_cache
 
 import libsonata
@@ -34,7 +35,7 @@ class TargetSpec:
         else:
             self.name = target_name
             self.population = None
-        if self.name == "":
+        if not self.name:
             self.name = None
 
     def __str__(self):
@@ -82,6 +83,8 @@ class TargetSpec:
     def __eq__(self, other):
         return self.matches(other.population, other.name)
 
+    __hash__ = None
+
 
 class TargetManager:
     def __init__(self, run_conf):
@@ -114,9 +117,7 @@ class TargetManager:
         """
 
         def _is_sonata_file(file_name):
-            if file_name.endswith(".h5"):
-                return True
-            return False
+            return file_name.endswith(".h5")
 
         nodes_file = circuit.get("CellLibraryFile")
         if nodes_file and _is_sonata_file(nodes_file) and self._nodeset_reader:
@@ -188,9 +189,8 @@ class TargetManager:
         t1, t2 = self.get_target(target1_spec), self.get_target(target2_spec)
 
         # Check for Sonata nodesets, they might have the same population and overlap
-        if set(t1.populations) == set(t2.populations):
-            if target1_spec.overlap_byname(target2_spec):
-                return True
+        if set(t1.populations) == set(t2.populations) and target1_spec.overlap_byname(target2_spec):
+            return True
 
         # TODO: Investigate this might yield different results depending on the rank.
         return t1.intersects(t2)  # Otherwise go with full gid intersection
@@ -558,7 +558,6 @@ class NodesetTarget(_TargetInterface):
             return False
 
         all_raw_gids = {ns.population_name: ns.final_gids() - ns.offset for ns in self.nodesets}
-        from collections import defaultdict
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
@@ -595,8 +594,7 @@ class SerializedSections:
         # Flag to control warning message display
         self._serialized_sections_warned = False
 
-        index = 0
-        for sec in cell.all:
+        for index, sec in enumerate(cell.all):
             # Accessing the 'v' value at location 0.0001 of the section
             v_value = sec(0.0001).v
             if v_value >= self.num_sections:
@@ -613,7 +611,6 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
-            index += 1
 
 
 class TPointList:

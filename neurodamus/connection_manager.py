@@ -327,12 +327,11 @@ class ConnectionManagerBase:
             raise ConfigurationError("Edges source is a directory")
 
         self._synapse_reader = self._open_synapse_file(synapse_file, edge_population)
-        if self._load_offsets:
-            if not self._synapse_reader.has_property("synapse_index"):
-                raise Exception(
-                    "Synapse offsets required but not available. "
-                    "Please use a more recent version of neurodamus-core/synapse-tool"
-                )
+        if self._load_offsets and not self._synapse_reader.has_property("synapse_index"):
+            raise Exception(
+                "Synapse offsets required but not available. "
+                "Please use a more recent version of neurodamus-core/synapse-tool"
+            )
 
         self._init_conn_population(src_name, src_pop_id)
         self._unlock_all_connections()  # Allow appending synapses from new sources
