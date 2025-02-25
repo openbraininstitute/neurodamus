@@ -15,10 +15,9 @@ from collections import Counter, defaultdict
 import numpy as np
 import psutil
 
+from .compat import Vector
 from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
 from neurodamus.io.sonata_config import ConnectionTypes
-
-from .compat import Vector
 
 # The factor to multiply the cell + synapses memory usage by to get the simulation memory estimate.
 # This is an heuristic estimate based on tests on multiple circuits.

@@ -573,6 +573,7 @@ class CellDistributor(CellManagerBase):
         """
         if self.CellType is not NotImplemented:
             return super()._instantiate_cells(self.CellType)
+
         conf = self._circuit_conf
         CellType = Cell_V6
         if conf.MorphologyType:
@@ -589,6 +590,8 @@ class CellDistributor(CellManagerBase):
             memory_dict = self._instantiate_cells_dry(CellType, cur_metypes_mem, **opts)
             log_verbose("Updating global dry-run memory counters with %d items", len(memory_dict))
             cur_metypes_mem.update(memory_dict)
+
+        return None
 
 
 class LoadBalance:
@@ -646,10 +649,10 @@ class LoadBalance:
     def _get_lbdir_targets(cls, lb_dir: Path) -> list:
         """Inspects the load-balance folder and detects which targets are load balanced"""
         prefix, suffix = cls._cx_filename_tpl.split("%s")
-        return set(
+        return {
             fname.name[len(prefix) : -len(suffix)]
             for fname in lb_dir.glob(cls._cx_filename_tpl.replace("%s", "*"))
-        )
+        }
 
     @run_only_rank0
     def valid_load_distribution(self, target_spec: TargetSpec) -> bool:

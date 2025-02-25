@@ -1,70 +1,61 @@
 import json
-import os
 import pytest
 from pathlib import Path
 
 from neurodamus.node import Node
-from tempfile import NamedTemporaryFile
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
 
 
-@pytest.fixture
-def sonata_config_new_report(sonata_config):
-
-    extra_config = {"reports": {
-        "new_report": {
-            "type": "compartment",
-            "cells": "Mosaic",
-            "variable_name": "v",
-            "sections": "all",
-            "dt": 0.1,
-            "start_time": 0.0,
-            "end_time": 40.0
-        }
-    }}
-
-    sonata_config.update(extra_config)
-
-    return sonata_config
-
-
-@pytest.fixture
-def sonata_config_file_err(sonata_config_new_report):
-
-    sonata_config_new_report["reports"]["new_report"]["variable_name"] = "wrong"
-
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(sonata_config_new_report, config_file)
-
-    yield config_file
-    os.unlink(config_file.name)
-
-
-@pytest.fixture
-def sonata_config_file_disabled_report(sonata_config_new_report):
-
-    sonata_config_new_report["reports"]["new_report"]["enabled"] = False
-
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(sonata_config_new_report, config_file)
-
-    yield config_file
-    os.unlink(config_file.name)
-
-
 @pytest.mark.slow
-def test_report_config_error(sonata_config_file_err):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "sonata_config",
+        "extra_config": {
+            "reports": {
+                "new_report": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "wrong",
+                    "sections": "all",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0,
+                }
+            }
+        }
+    }
+], indirect=True)
+def test_report_config_error(create_tmp_simulation_config_file):
     with pytest.raises(Exception):
-        n = Node(str(sonata_config_file_err.name))
+        n = Node(create_tmp_simulation_config_file)
         n.load_targets()
         n.create_cells()
         n.enable_reports()
 
 
 @pytest.mark.slow
-def test_report_disabled(sonata_config_file_disabled_report):
-    n = Node(str(sonata_config_file_disabled_report.name))
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "sonata_config",
+        "extra_config": {
+            "reports": {
+                "new_report": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "wrong",
+                    "sections": "all",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0,
+                    "enabled": False
+                }
+            }
+        }
+    }
+], indirect=True)
+def test_report_disabled(create_tmp_simulation_config_file):
+    n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
     n.enable_reports()
@@ -122,13 +113,14 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
         "end_time": 40.0
     }
 
-    # Write the modified configuration to a temporary file
+    # Write the modified configuration to a temporary file in tmp_path
     temp_config_path = tmp_path / "reports_config.json"
     with open(temp_config_path, "w") as f:
         json.dump(config, f, indent=4)
 
-    # Create output directory
-    output_dir = tmp_path / config["output"]["output_dir"]
+    output_dir = Path(config["output"]["output_dir"])
+    if not output_dir.is_absolute():
+        output_dir = tmp_path / output_dir
 
     return str(temp_config_path), str(output_dir)
 
@@ -141,7 +133,7 @@ def test_v5_sonata_reports(tmp_path):
     config_file = SIM_DIR / "simulation_config_mini.json"
     temp_config_path, output_dir = _create_reports_config(config_file, tmp_path)
 
-    nd = Neurodamus(temp_config_path, output_path=output_dir)
+    nd = Neurodamus(temp_config_path)
     nd.run()
 
     report_refs = {
@@ -154,7 +146,7 @@ def test_v5_sonata_reports(tmp_path):
 
     # Go through each report and compare the results
     for report_name, refs in report_refs.items():
-        result_ids, result_data = _read_sonata_report(os.path.join(output_dir, report_name))
+        result_ids, result_data = _read_sonata_report(Path(output_dir) / report_name)
         assert result_ids == node_id_refs
         for row, col, ref in refs:
             npt.assert_allclose(result_data.data[row][col], ref)

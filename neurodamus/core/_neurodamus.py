@@ -3,13 +3,12 @@ import os
 import sys
 from time import strftime
 
-from neurodamus.utils import classproperty
-from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
-
 from ._engine import EngineBase
 from ._mpi import MPI
 from ._neuron import _Neuron
 from .configuration import GlobalConfig
+from neurodamus.utils import classproperty
+from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
@@ -34,7 +33,7 @@ class _NeurodamusCore(_Neuron):
         if cls._pc is not None:
             return
         # Neurodamus requires MPI. We still respect NEURON_INIT_MPI though
-        _Neuron._init(int(os.environ.get("NEURON_INIT_MPI", 1)))  # if needed, sets cls._h
+        _Neuron._init(int(os.environ.get("NEURON_INIT_MPI", "1")))  # if needed, sets cls._h
 
         # Init logging
         log_name = kwargs.get("log_filename") or LOG_FILENAME
@@ -89,7 +88,7 @@ class _NeurodamusCore(_Neuron):
             for libpath in mechlib.split(":"):
                 libpath = libpath.strip()
                 if os.path.isfile(libpath):
-                    logging.info("Loading MECH lib: " + libpath)
+                    logging.info("Loading MECH lib: %s", libpath)
                     cls.load_dll(libpath)
                 else:
                     logging.warning("Invalid entry in %s: %s", env_lib_path, libpath)

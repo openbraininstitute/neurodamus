@@ -12,44 +12,46 @@ import numpy as np
 from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
-non_stochastic_mechs = (
-    [
-        "NaTs2_t",
-        "SKv3_1",
-        "Nap_Et2",
-        "Ih",
-        "Im",
-        "KdShu2007",
-        "K_Pst",
-        "K_Tst",
-        "Ca",
-        "SK_E2",
-        "Ca_LVAst",
-        "CaDynamics_E2",
-        "NaTa_t",
-        "CaDynamics_DC0",
-        "Ca_HVA2",
-        "NaTg",
-    ]
-    + ["TC_cad", "TC_ih_Bud97", "TC_Nap_Et2", "TC_iA", "TC_iL", "TC_HH", "TC_iT_Des98"]
-    + [
-        "kdrb",
-        "na3",
-        "kap",
-        "hd",
-        "can",
-        "cal",
-        "cat",
-        "cagk",
-        "kca",
-        "cacum",
-        "kdb",
-        "kmb",
-        "kad",
-        "nax",
-        "cacumb",
-    ]
-)
+non_stochastic_mechs = [
+    "NaTs2_t",
+    "SKv3_1",
+    "Nap_Et2",
+    "Ih",
+    "Im",
+    "KdShu2007",
+    "K_Pst",
+    "K_Tst",
+    "Ca",
+    "SK_E2",
+    "Ca_LVAst",
+    "CaDynamics_E2",
+    "NaTa_t",
+    "CaDynamics_DC0",
+    "Ca_HVA2",
+    "NaTg",
+    "TC_cad",
+    "TC_ih_Bud97",
+    "TC_Nap_Et2",
+    "TC_iA",
+    "TC_iL",
+    "TC_HH",
+    "TC_iT_Des98",
+    "kdrb",
+    "na3",
+    "kap",
+    "hd",
+    "can",
+    "cal",
+    "cat",
+    "cagk",
+    "kca",
+    "cacum",
+    "kdb",
+    "kmb",
+    "kad",
+    "nax",
+    "cacumb",
+]
 
 stochastic_mechs = ["StochKv", "StochKv2", "StochKv3"]
 
@@ -83,7 +85,7 @@ def load_user_modifications(gj_manager):
             logging.warning("Unknown GJ remove_channels setting: %s", remove_channels)
             rm_mechanisms = []
         if rm_mechanisms:
-            logging.info("Removing channels type = " + remove_channels)
+            logging.info("Removing channels type = %s", remove_channels)
             _perform_remove_channels(node_manager, rm_mechanisms)
 
     if "special_tag" in settings:

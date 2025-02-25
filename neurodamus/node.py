@@ -1,6 +1,5 @@
 # Neurodamus
 # Copyright 2018 - Blue Brain Project, EPFL
-
 import gc
 import glob
 import itertools
@@ -8,7 +7,8 @@ import logging
 import math
 import os
 import subprocess
-from collections import defaultdict, namedtuple
+import typing
+from collections import defaultdict
 from contextlib import contextmanager
 from os import path as ospath
 
@@ -159,7 +159,7 @@ class CircuitManager:
 
         if not self.has_population(destination):
             # This is likely an error, except...
-            if src_target.population == "" and self.has_population(""):
+            if not src_target.population and self.has_population(""):
                 logging.warning(
                     "Sonata Edges target population %s was not found. "
                     "Since base population is unknown, assuming that's the target.\n"
@@ -216,7 +216,7 @@ class CircuitManager:
             pop_name: node_manager.local_nodes.offset
             for pop_name, node_manager in self.node_managers.items()
         }
-        alias_pop = {alias: pop_name for alias, pop_name in self.alias.items()}
+        alias_pop = dict(self.alias)
         return pop_offsets, alias_pop
 
     def get_virtual_population_offsets(self):
@@ -386,8 +386,7 @@ class Node:
             self._shm_enabled = False
             self._dry_run_stats = None
         else:
-            # Assert this is defined (if not multicyle runs are not properly set)
-            self._run_conf
+            assert self._run_conf, "this is defined (if not multicyle runs are not properly set)"
 
         # Init unconditionally
         self._circuits = CircuitManager()
@@ -441,13 +440,13 @@ class Node:
         circuit = self._base_circuit
         for name, circuit in self._extra_circuits.items():
             if circuit.get("PopulationType") != "virtual":
+                logging.info("Activating experimental LB for Sonata circuit '%s'", name)
                 break
         if circuit.get("PopulationType") == "virtual":
             logging.warning(
                 "Cannot calculate the load balance because only virtual populations were found"
             )
             return None
-        logging.info("Activating experimental LB for Sonata circuit '%s'", name)
 
         if not circuit.CircuitPath:
             logging.info(" => No circuit for Load Balancing. Skipping... ")
@@ -739,7 +738,7 @@ class Node:
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath] + pop_name)
+                proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
@@ -938,12 +937,18 @@ class Node:
             mod_manager.interpret(target_spec, mod_info)
 
     # Reporting
-    ReportParams = namedtuple(
-        "ReportParams",
-        "name, rep_type, report_on, unit, format, dt, start, end, output_dir, scaling",
-    )
+    class ReportParams(typing.NamedTuple):
+        name: str
+        rep_type: str
+        report_on: str
+        unit: str
+        format: str
+        dt: float
+        start: float
+        end: float
+        output_dir: str
+        scaling: str
 
-    # -
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
     def enable_reports(self):
@@ -972,10 +977,13 @@ class Node:
                 n_errors += 1
                 continue
 
-            if SimConfig.use_coreneuron and MPI.rank == 0:
-                if not self._report_write_coreneuron_config(rep_conf, target, rep_params):
-                    n_errors += 1
-                    continue
+            if (
+                SimConfig.use_coreneuron
+                and MPI.rank == 0
+                and not self._report_write_coreneuron_config(rep_conf, target, rep_params)
+            ):
+                n_errors += 1
+                continue
 
             if SimConfig.restore_coreneuron:
                 continue  # we dont even need to initialize reports
@@ -1035,10 +1043,9 @@ class Node:
             rep_dt,
         )
 
-        if rep_format != "SONATA":
-            if MPI.rank == 0:
-                logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
-                return None
+        if rep_format != "SONATA" and MPI.rank == 0:
+            logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
+            return None
 
         if Nd.t > 0:
             start_time += Nd.t
@@ -1307,7 +1314,7 @@ class Node:
             Nd.t = -1e9
             prev_dt = Nd.dt
             Nd.dt = fwd_skip * 0.1
-            for flushIndex in range(10):
+            for _flushIndex in range(10):
                 Nd.fadvance()
             Nd.dt = prev_dt
             Nd.t = 0
@@ -1320,11 +1327,7 @@ class Node:
                 self._spike_populations.append(
                     (cell_manager.population_name, cell_manager.local_nodes.offset)
                 )
-                self._spike_vecs.append(
-                    cell_manager.record_spikes()
-                    if cell_manager.record_spikes()
-                    else (Nd.Vector(), Nd.Vector())
-                )
+                self._spike_vecs.append(cell_manager.record_spikes() or (Nd.Vector(), Nd.Vector()))
 
         self._pc.timeout(200)  # increase by 10x
 
@@ -1611,10 +1614,8 @@ class Node:
         self._pc.gid_clear()
         self._target_manager.clear_simulation_data()
 
-        if not avoid_creating_objs:
-            if SimConfig.use_neuron:
-                if self._sonatareport_helper:
-                    self._sonatareport_helper.clear()
+        if not avoid_creating_objs and SimConfig.use_neuron and self._sonatareport_helper:
+            self._sonatareport_helper.clear()
 
         Node.__init__(self, None, None)  # Reset vars
 
@@ -1934,7 +1935,7 @@ class Neurodamus(Node):
             if SimConfig.loadbal_mode != LoadBalanceMode.Memory:
                 for cur_target in sub_targets[cycle_i]:
                     self._target_manager.register_target(cur_target)
-                    pop = list(cur_target.population_names)[0]
+                    pop = next(iter(cur_target.population_names))
                     for circuit in itertools.chain(
                         [self._base_circuit], self._extra_circuits.values()
                     ):

@@ -3,7 +3,6 @@ import os
 import pytest
 import numpy as np
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from neurodamus.core.configuration import SimConfig
 from libsonata import EdgeStorage
 
@@ -13,23 +12,19 @@ REF_DIR = SIM_DIR / "reference"
 CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
 
-@pytest.fixture
-def simconfig_update(ringtest_baseconfig, extra_config):
-    ringtest_baseconfig.update(extra_config)
-
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(ringtest_baseconfig, config_file)
-
-    yield config_file
-    os.unlink(config_file.name)
-
-
-@pytest.mark.parametrize("extra_config", [{"network": "$CIRCUIT_DIR/circuit_config_RingB.json",
-                                            "node_set": "RingB"}])
-def test_dump_RingB_2cells(simconfig_update):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(SIM_DIR / "circuit_config_RingB.json"),
+            "node_set": "RingB"
+            }
+    }
+], indirect=True)
+def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
-    n = Neurodamus(simconfig_update.name, disable_reports=True)
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
@@ -44,11 +39,18 @@ def test_dump_RingB_2cells(simconfig_update):
         _check_netcons(sgid, nclist, edges, selection)
 
 
-@pytest.mark.parametrize("extra_config", [{"node_set": "Mosaic"}])
-def test_dump_RingA_RingB(simconfig_update):
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "node_set": "Mosaic"
+            }
+    }
+], indirect=True)
+def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
-    n = Neurodamus(simconfig_update.name, disable_reports=True)
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     from neurodamus.utils.dump_cellstate import dump_cellstate
     target_rawgids = [("RingA", 1), ("RingB", 1)]
     for pop, raw_gid in target_rawgids:

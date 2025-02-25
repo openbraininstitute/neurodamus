@@ -6,10 +6,9 @@ from datetime import timedelta
 from functools import wraps
 from inspect import Signature, signature
 
-from neurodamus.utils import progressbar
-
 from . import NeurodamusCore as Nd
 from ._mpi import MPI
+from neurodamus.utils import progressbar
 
 
 class ProgressBarRank0(progressbar.Progress):
@@ -19,7 +18,7 @@ class ProgressBarRank0(progressbar.Progress):
 
     def __new__(cls, end, *args, **kwargs):
         if MPI.rank == 0:
-            return progressbar.ProgressBar(end, *args, tty_bar=False and None, **kwargs)
+            return progressbar.ProgressBar(end, *args, tty_bar=False, **kwargs)
         return progressbar.Progress(end, *args, **kwargs)
 
 

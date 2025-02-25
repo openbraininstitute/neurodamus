@@ -44,7 +44,10 @@ class _MPI:
 
             # Print exceptions local to this rank
             time.sleep(0.01 * cls._rank)  # Order errors
-            logging.critical(str(value), exc_info=True)
+
+            # exception should be set, hence the exc_info
+            logging.critical(str(value), exc_info=True)  # noqa: LOG014
+
             if cls._rank == 0:
                 import traceback
 

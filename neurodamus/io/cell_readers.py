@@ -33,7 +33,7 @@ def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
     return gidvec
 
 
-def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cells=None):
+def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     """Distribute gid in metype bundles for dry run.
 
     The principle is the following: all gids with the same metype
@@ -61,7 +61,6 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0, total_cel
         gid_metype_bundle: list of lists of gids to be distributed
         mpi_size: MPI size
         mpi_rank: MPI rank
-        total_cells: total number of cells in the circuit
     Returns:
         A numpy array of gids that are sequentially in the same metype
     """
@@ -106,7 +105,7 @@ def load_sonata(
         dry_run_stats.metype_counts += counts
         dry_run_stats.pop_metype_gids[node_population] = metype_gids
         gid_metype_bundle = list(metype_gids.values())
-        gidvec = dry_run_distribution(gid_metype_bundle, stride, stride_offset, total_cells)
+        gidvec = dry_run_distribution(gid_metype_bundle, stride, stride_offset)
 
         log_verbose("Loading node attributes... (subset of cells from each metype)")
         for gids in metype_gids.values():
@@ -117,8 +116,8 @@ def load_sonata(
             morpho_names = node_pop.get_attribute("morphology", node_sel)
             mtypes = node_pop.get_attribute("mtype", node_sel)
             etypes = node_pop.get_attribute("etype", node_sel)
-            _model_templates = node_pop.get_attribute("model_template", node_sel)
-            emodel_templates = [emodel.removeprefix("hoc:") for emodel in _model_templates]
+            model_templates = node_pop.get_attribute("model_template", node_sel)
+            emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
             meinfos.load_infoNP(gids, morpho_names, emodel_templates, mtypes, etypes)
 
         return gidvec, meinfos, total_cells
@@ -143,15 +142,15 @@ def load_sonata(
         except libsonata.SonataError:
             logging.warning("etype not found in node population, setting to None")
             etypes = None
-        _model_templates = node_pop.get_attribute("model_template", node_sel)
-        emodel_templates = [emodel.removeprefix("hoc:") for emodel in _model_templates]
-        if set(["exc_mini_frequency", "inh_mini_frequency"]).issubset(attr_names):
+        model_templates = node_pop.get_attribute("model_template", node_sel)
+        emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
+        if {"exc_mini_frequency", "inh_mini_frequency"}.issubset(attr_names):
             exc_mini_freqs = node_pop.get_attribute("exc_mini_frequency", node_sel)
             inh_mini_freqs = node_pop.get_attribute("inh_mini_frequency", node_sel)
         else:
             exc_mini_freqs = None
             inh_mini_freqs = None
-        if set(["threshold_current", "holding_current"]).issubset(dynamics_attr_names):
+        if {"threshold_current", "holding_current"}.issubset(dynamics_attr_names):
             threshold_currents = node_pop.get_dynamics_attribute("threshold_current", node_sel)
             holding_currents = node_pop.get_dynamics_attribute("holding_current", node_sel)
         else:
@@ -259,9 +258,7 @@ def _get_rotations(node_reader, selection):
         double vector of size [N][4] with the rotation quaternions in the order (x,y,z,w)
     """
     attr_names = node_reader.attribute_names
-    if set(["orientation_x", "orientation_y", "orientation_z", "orientation_w"]).issubset(
-        attr_names
-    ):
+    if {"orientation_x", "orientation_y", "orientation_z", "orientation_w"}.issubset(attr_names):
         # Preferred way to present the rotation as quaternions
         return np.array(
             [
@@ -272,7 +269,7 @@ def _get_rotations(node_reader, selection):
             ]
         ).T
 
-    if set(["rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"]).intersection(
+    if {"rotation_angle_xaxis", "rotation_angle_yaxis", "rotation_angle_zaxis"}.intersection(
         attr_names
     ):
         # Some sonata nodes files use the Euler angle rotations, convert them to quaternions

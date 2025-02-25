@@ -1,11 +1,13 @@
 """Main module for handling and instantiating synaptical connections and gap-junctions"""
 
+from __future__ import annotations
+
 import hashlib
 import logging
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -325,12 +327,11 @@ class ConnectionManagerBase:
             raise ConfigurationError("Edges source is a directory")
 
         self._synapse_reader = self._open_synapse_file(synapse_file, edge_population)
-        if self._load_offsets:
-            if not self._synapse_reader.has_property("synapse_index"):
-                raise Exception(
-                    "Synapse offsets required but not available. "
-                    "Please use a more recent version of neurodamus-core/synapse-tool"
-                )
+        if self._load_offsets and not self._synapse_reader.has_property("synapse_index"):
+            raise Exception(
+                "Synapse offsets required but not available. "
+                "Please use a more recent version of neurodamus-core/synapse-tool"
+            )
 
         self._init_conn_population(src_name, src_pop_id)
         self._unlock_all_connections()  # Allow appending synapses from new sources
@@ -913,14 +914,16 @@ class ConnectionManagerBase:
         """
         src_target = conn_config["Source"]
         dst_target = conn_config["Destination"]
-        _properties = {
-            "Weight": "weight_factor",
-            "SpontMinis": "minis_spont_rate",
-            "SynDelayOverride": "syndelay_override",
-            "NeuromodStrength": "neuromod_strength",
-            "NeuromodDtc": "neuromod_dtc",
-        }
-        syn_params = dict_filter_map(conn_config, _properties)
+        syn_params = dict_filter_map(
+            conn_config,
+            {
+                "Weight": "weight_factor",
+                "SpontMinis": "minis_spont_rate",
+                "SynDelayOverride": "syndelay_override",
+                "NeuromodStrength": "neuromod_strength",
+                "NeuromodDtc": "neuromod_dtc",
+            },
+        )
 
         # Load eventual mod override helper
         if "ModOverride" in conn_config:
@@ -1210,7 +1213,7 @@ def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_nam
 
 
 @run_only_rank0
-def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> Optional[tuple]:
+def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple | None:
     import h5py
 
     f = h5py.File(edge_file, "r")
