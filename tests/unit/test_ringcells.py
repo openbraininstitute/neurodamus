@@ -51,6 +51,9 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
         _check_netcons(sgid, nclist, edges, selection)
 
+    if SimConfig.use_coreneuron:
+        check_directory(Path(SimConfig.coreneuron_datadir))
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -110,6 +113,9 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         for syn in _check_netcons(sgid, nclist, edges, selection):
             _check_synapse(syn, edges, selection)
 
+    if SimConfig.use_coreneuron:
+        check_directory(Path(SimConfig.coreneuron_datadir))
+
 
 def compare_json_files(res_file: Path, ref_file: Path):
     """compare two json files"""
@@ -120,6 +126,12 @@ def compare_json_files(res_file: Path, ref_file: Path):
     with open(ref_file) as f_ref:
         reference = json.load(f_ref)
     assert result == reference
+
+
+def check_directory(dir_name: Path):
+    """Check directory is not empty """
+    assert dir_name.is_dir(), f"{str(dir_name)} doesn't exist"
+    assert any(dir_name.iterdir()), f"{str(dir_name)} is empty"
 
 
 def _check_cell(cell):
