@@ -2,6 +2,22 @@
 Change Log
 ==========
 
+Version 3.8.0
+=============
+**26 February 2025**
+
+*Improvements*
+  * Remove Map.hoc, compat.Map, and compat.PyMap (#26)
+  * Improve unit tests and code coverage (#71, #89, #76, #69, #74, #66)
+  * Improve testing workflows (#73, #70, #51, #34, #29, #12, #7, #17)
+  * Add a SONATA ring circuit for unit tests(#79, #49)
+  * Lint and format checks(#88, #84, #81, #63, #43, #48, #38, #16, #15)
+  * Improve docs (#19, #22)
+  * Various changes regarding the new OBI repo (#31, #10)
+  * Improvements on the Dockerfile (#20, #1)
+  * NEURON's NMODL language should now be properly recognized by GitHub. (#232)
+
+
 Version 3.7.2
 =============
 **6 December 2024**
