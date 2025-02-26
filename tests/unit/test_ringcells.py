@@ -12,10 +12,12 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
 REF_DIR = SIM_DIR / "reference"
 CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
+
 def check_cell(cell):
     """check cell state from NEURON context"""
     assert cell.nSecAll == 3
     assert cell.x == cell.y == cell.z == 0
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -24,7 +26,7 @@ def check_cell(cell):
             "network": str(SIM_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "NEURON"
-            }
+        }
     },
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -32,7 +34,7 @@ def check_cell(cell):
             "network": str(SIM_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "CORENEURON"
-            }
+        }
     }
 ], indirect=True)
 def test_dump_RingB_2cells(create_tmp_simulation_config_file):
@@ -67,14 +69,14 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         "extra_config": {
             "target_simulator": "NEURON",
             "node_set": "Mosaic"
-            }
+        }
     },
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
             "node_set": "Mosaic"
-            }
+        }
     }
 ], indirect=True)
 def test_dump_RingA_RingB(create_tmp_simulation_config_file):
@@ -121,5 +123,3 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
 
     if SimConfig.use_coreneuron:
         utils.check_directory(Path(SimConfig.coreneuron_datadir))
-
-

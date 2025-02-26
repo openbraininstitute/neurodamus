@@ -12,12 +12,13 @@ def _get_attr(name, kwargs, edges, selection, syn_id):
     """
     return kwargs.get(name, edges.get_attribute(name, selection)[syn_id])
 
+
 def compare_json_files(res_file: Path, ref_file: Path):
     """
     Compare two JSON files to check if their contents are identical.
 
-    This function opens and loads two JSON files, `res_file` and `ref_file`, 
-    and compares their contents. If the files are identical, the function 
+    This function opens and loads two JSON files, `res_file` and `ref_file`,
+    and compares their contents. If the files are identical, the function
     completes without any errors. If they differ, an assertion error will be raised.
 
     Args:
@@ -42,14 +43,16 @@ def check_directory(dir_name: Path):
     assert dir_name.is_dir(), f"{str(dir_name)} doesn't exist"
     assert any(dir_name.iterdir()), f"{str(dir_name)} is empty"
 
+
 def check_netcons(ref_srcgid, nclist, edges, selection, **kwargs):
     """
-    Convenience function to validate all netcons in `nclist` 
+    Convenience function to validate all netcons in `nclist`
     by using the underlying `check_netcon` for each item.
     """
     assert nclist.count() == selection.flat_size
     for nc_id, nc in enumerate(nclist):
         check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs)
+
 
 def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
     """
@@ -82,14 +85,16 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
     assert nc.threshold == kwargs.get("spike_threshold", SimConfig.spike_threshold)
     assert nc.x == kwargs.get("v_init", SimConfig.v_init)
 
+
 def check_synapses(nclist, edges, selection, **kwargs):
     """
-    Convenience function to validate all synapses in `nclist` 
+    Convenience function to validate all synapses in `nclist`
     by using the underlying `check_synapse` for each item.
     """
     assert nclist.count() == selection.flat_size
     for nc in nclist:
         check_synapse(nc.syn(), edges, selection, **kwargs)
+
 
 def check_synapse(syn, edges, selection, **kwargs):
     """
@@ -100,9 +105,9 @@ def check_synapse(syn, edges, selection, **kwargs):
     override the corresponding values from the `edges` object.
 
     Args:
-        syn: The synapse object to check, which is expected to have attributes like `synapseID`, `hname()`, 
+        syn: The synapse object to check, which is expected to have attributes like `synapseID`, `hname()`,
              `tau_d_GABAA`, `tau_d_AMPA`, `Use`, `Dep`, `Fac`, `Nrrp`.
-        edges: An object representing the synaptic edges, from which various attributes are fetched 
+        edges: An object representing the synaptic edges, from which various attributes are fetched
                using the `get_attribute` method.
         selection: The selection criterion for retrieving attributes from `edges`.
         kwargs: Optional key-value pairs that can override the default attribute values from `edges`.
@@ -127,4 +132,3 @@ def check_synapse(syn, edges, selection, **kwargs):
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
         assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
-
