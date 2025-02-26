@@ -822,8 +822,8 @@ class LoadBalance:
         if MPI.rank == 0:
             with open(out_filename, "w") as fp:
                 fp.write("1\n%d\n" % cell_distributor.total_cells)
-                for cx_info in all_ranks_cx:
-                    fp.write(cx_info)
+                fp.writelines(all_ranks_cx)
+
         # register
         self._cx_targets.add(target_str)
 

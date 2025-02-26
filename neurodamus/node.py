@@ -206,10 +206,10 @@ class CircuitManager:
         with open(self._pop_offset_file(create=True), "w") as f:
             pop_offsets, alias_pop = self.get_population_offsets()
             virtual_pop_offsets = self.get_virtual_population_offsets()
-            for alias, pop in alias_pop.items():
-                f.write("{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " "))
-            for pop, offset in virtual_pop_offsets.items():
-                f.write("{}::{}::{}\n".format(pop, offset, "virtual"))
+            f.writelines("{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
+                         for alias, pop in alias_pop.items())
+            f.writelines("{}::{}::{}\n".format(pop, offset, "virtual")
+                         for pop, offset in virtual_pop_offsets.items())
 
     def get_population_offsets(self):
         pop_offsets = {
