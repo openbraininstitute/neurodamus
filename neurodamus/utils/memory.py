@@ -11,6 +11,7 @@ import multiprocessing
 import os
 import pickle
 from collections import Counter, defaultdict
+from pathlib import Path
 
 import numpy as np
 import psutil
@@ -188,9 +189,7 @@ def print_allocation_stats(rank_memory):
 def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
     """Export allocation dictionary to a serialized pickle file."""
     compressed_data = gzip.compress(pickle.dumps(rank_allocation))
-    new_filename = f"{filename}_r{ranks}_c{cycles}.pkl.gz"
-    with open(new_filename, "wb") as f:
-        f.write(compressed_data)
+    Path(f"{filename}_r{ranks}_c{cycles}.pkl.gz").write_bytes(compressed_data)
 
 
 @run_only_rank0

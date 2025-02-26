@@ -181,7 +181,6 @@ ignore = [
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
     "PGH004", # blanket-noqa
-    "FURB103",# write-whole-file
     "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
     "B019",   # cached-instance-method
