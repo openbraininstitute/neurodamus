@@ -1,8 +1,6 @@
-"""neurodamus.utils
-----------------
+"""contains generic helper modules
 
-The neurodamus.utils package contains generic helper modules, implementing
-several new data structures, output (logging, progress,...) helpers, timers, etc.
+implementing several new data structures, output (logging, progress,...) helpers, timers, etc.
 """
 
-from .pyutils import *  # NOQA
+# from .pyutils import *

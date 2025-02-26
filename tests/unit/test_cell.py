@@ -16,7 +16,7 @@ def morphologies_root(rootdir):
 @pytest.fixture
 def Cell(rootdir):
     os.environ.setdefault("HOC_LIBRARY_PATH", str(rootdir / "neurodamus" / "data" / "hoc"))
-    from neurodamus.core import Cell
+    from neurodamus.core.cell import Cell
     return Cell
 
 
@@ -88,7 +88,9 @@ def test_create_cell_3(Cell):
 
 
 def test_basic_system():
-    from neurodamus.core import Neuron, Cell, CurrentSource
+    from neurodamus.core import Neuron
+    from neurodamus.core.cell import Cell
+    from neurodamus.core.stimuli import CurrentSource
     c = Cell.Builder.add_soma(60).create()
     Cell.Mechanisms.HH(gkbar=0.0, gnabar=0.0, el=-70).apply(c.soma)
     CurrentSource.pulse(0.1, 50, delay=10).attach_to(c.soma)
