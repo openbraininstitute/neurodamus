@@ -1616,7 +1616,7 @@ class Node:
         if not avoid_creating_objs and SimConfig.use_neuron and self._sonatareport_helper:
             self._sonatareport_helper.clear()
 
-        Node.__init__(self, None, None)  # Reset vars
+        Node.__init__(self, None, None)  # Reset vars  # noqa: PLC2801
 
         # Clear BBSaveState
         self._bbss.ignore()

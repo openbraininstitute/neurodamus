@@ -52,7 +52,7 @@ class TargetSpec:
     def simple_name(self):
         if self.name is None and self.population is None:
             return self.GLOBAL_TARGET_NAME
-        return self.__str__().replace(":", "_")
+        return str(self).replace(":", "_")
 
     @property
     def is_full(self):
