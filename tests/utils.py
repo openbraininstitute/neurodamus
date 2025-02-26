@@ -8,7 +8,8 @@ from neurodamus.core.configuration import SimConfig
 
 def _get_attr(name, kwargs, edges, selection, syn_id):
     """
-    Retrieve an attribute value from `kwargs` if present, otherwise from `edges`.
+    Retrieve an attribute value from `kwargs` if present, otherwise
+    from `edges`.
     """
     return kwargs.get(name, edges.get_attribute(name, selection)[syn_id])
 
@@ -19,7 +20,8 @@ def compare_json_files(res_file: Path, ref_file: Path):
 
     This function opens and loads two JSON files, `res_file` and `ref_file`,
     and compares their contents. If the files are identical, the function
-    completes without any errors. If they differ, an assertion error will be raised.
+    completes without any errors. If they differ, an assertion error will
+    be raised.
 
     Args:
         res_file (Path): The path to the result JSON file to compare.
@@ -60,20 +62,28 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
 
     This function checks the following attributes of a given netcon:
     - `srcgid`: Ensures it matches the reference source ID (`ref_srcgid`).
-    - `conductance`: Compares it with the value from `kwargs` or the edges attribute for the specific netcon ID.
-    - `delay`: Compares it with the expected delay value, allowing for a relative tolerance.
-    - `threshold`: Compares it with the `spike_threshold` value from `kwargs` or the default configuration.
-    - `x`: Compares it with the initial voltage (`v_init`), again using `kwargs` or the default configuration.
+    - `conductance`: Compares it with the value from `kwargs` or the edges
+    attribute for the specific netcon ID.
+    - `delay`: Compares it with the expected delay value, allowing for
+    a relative tolerance.
+    - `threshold`: Compares it with the `spike_threshold` value from `kwargs`
+    or the default configuration.
+    - `x`: Compares it with the initial voltage (`v_init`), again using `kwargs`
+    or the default configuration.
 
-    `kwargs` allows for overriding the default or edge-based values for the above attributes.
+    `kwargs` allows for overriding the default or edge-based values
+    for the above attributes.
 
     Args:
         ref_srcgid (int): The reference source ID to be compared against `nc.srcgid()`.
-        nc_id (int): The index of the current netcon in the list, used to fetch specific attributes from edges.
+        nc_id (int): The index of the current netcon in the list, used to
+        fetch specific attributes from edges.
         nc: The netcon object to be validated.
         edges: An object representing synaptic edges, used to retrieve attribute values.
-        selection: The selection criterion used for fetching attributes for the given netcon.
-        **kwargs: Optional arguments to override default values for conductance, delay, spike threshold, and initial voltage.
+        selection: The selection criterion used for fetching attributes for
+        the given netcon.
+        **kwargs: Optional arguments to override default values
+        for conductance, delay, spike threshold, and initial voltage.
 
     Raises:
         AssertionError: If any of the attribute checks fail.
@@ -98,20 +108,24 @@ def check_synapses(nclist, edges, selection, **kwargs):
 
 def check_synapse(syn, edges, selection, **kwargs):
     """
-    Check the state of a synapse from the NEURON model in comparison to the libsonata reader.
+    Check the state of a synapse from the NEURON model in comparison to the
+    libsonata reader.
 
     This function verifies that the attributes of the synapse match the expected values
     based on its type and the provided parameters. If `kwargs` are provided, they will
     override the corresponding values from the `edges` object.
 
     Args:
-        syn: The synapse object to check, which is expected to have attributes like `synapseID`, `hname()`,
+        syn: The synapse object to check, which is expected to have attributes like
+        `synapseID`, `hname()`,
              `tau_d_GABAA`, `tau_d_AMPA`, `Use`, `Dep`, `Fac`, `Nrrp`.
         edges: An object representing the synaptic edges, from which various attributes are fetched
                using the `get_attribute` method.
         selection: The selection criterion for retrieving attributes from `edges`.
-        kwargs: Optional key-value pairs that can override the default attribute values from `edges`.
-                Keys include `decay_time`, `u_syn`, `depression_time`, `facilitation_time`, and `n_rrp_vesicles`.
+        kwargs: Optional key-value pairs that can override the default attribute
+        values from `edges`.
+                Keys include `decay_time`, `u_syn`, `depression_time`,
+                `facilitation_time`, and `n_rrp_vesicles`.
 
     Raises:
         AssertionError: If any of the synaptic attributes do not match the expected values.
