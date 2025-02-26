@@ -432,6 +432,7 @@ class _TargetInterface(ABC):
     def generate_subtargets(self, n_parts):
         return NotImplemented
 
+    @abstractmethod
     def update_local_nodes(self, _local_nodes):
         """Allows setting the local gids"""
 
