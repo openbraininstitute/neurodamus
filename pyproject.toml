@@ -123,19 +123,24 @@ ignore = [
     "LOG015",  # `info()` call on root logger
     "FIX001", # line-contains-fixme
 
-    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
+    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/108
+    "D100",   # undocumented-public-module
+    "D101",   # undocumented-public-class
     "D102",   # undocumented-public-method
+    "D103",   # undocumented-public-function
+    "D106",   # undocumented-public-nested-class
+    "D107",   # undocumented-public-init
+    "D417",   # undocumented-param
+
+    ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
     "TRY003", # raise-vanilla-args
     "SLF001", # private-member-access
     "EM101",  # raw-string-in-exception
     "EM102",  # f-string-in-exception
-    "D107",   # undocumented-public-init
     "PLC0415",# import-outside-top-level
-    "D101",   # undocumented-public-class
     "RUF012", # mutable-class-default
     "TRY002", # raise-vanilla-class
     "N806",   # non-lowercase-variable-in-function
-    "D417",   # undocumented-param
     "PLR6301",# no-self-use
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
@@ -150,10 +155,8 @@ ignore = [
     "N803",   # invalid-argument-name
     "RET504", # unnecessary-assign
     "B904",   # raise-without-from-inside-except
-    "D100",   # undocumented-public-module
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
-    "D103",   # undocumented-public-function
     "BLE001", # blind-except
     "RET503", # implicit-return
     "SIM108", # if-else-block-instead-of-if-exp
@@ -164,7 +167,6 @@ ignore = [
     "S603",   # subprocess-without-shell-equals-true
     "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
-    "D106",   # undocumented-public-nested-class
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "A005",   # stdlib-module-shadowing
