@@ -208,12 +208,6 @@ def import_metype_memory_usage(memory_per_metype_file):
     return memory_per_metype
 
 
-@run_only_rank0
-def allocation_stats_exists(filename):
-    """Check if the allocation stats file exists."""
-    return os.path.exists(filename)
-
-
 class SynapseMemoryUsage:
     """A small class that works as a lookup table
     for the memory used by each type of synapse.
