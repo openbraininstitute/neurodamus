@@ -183,7 +183,6 @@ ignore = [
     "FURB122",# for-loop-writes
     "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
-    "B006",   # mutable-argument-default
     "B019",   # cached-instance-method
     "B027",   # empty-method-without-abstract-decorator
     "A001",   # builtin-variable-shadowing
