@@ -3,39 +3,24 @@ import numpy
 import os
 
 
-
-
 @pytest.fixture
 def injection_config_file(ringtest_baseconfig):
     from tempfile import NamedTemporaryFile
     import json
-  
+
     ringtest_baseconfig["inputs"] = {
         "Stimulus": {
-            "module": "noise",
+            "module": "pulse",
             "input_type": "current_clamp",
-            "delay": 5,
-            "duration": 100,
+            "delay": 1,
+            "duration": 50,
             "node_set": "RingA",
-            "represents_physical_electrode": False,
-            "mean": 200,
-            "variance": 0.1
+            "represents_physical_electrode": True,
+            "amp_start": 10,
+            "width": 1,
+            "frequency": 50
         }
     }
-
-    # ringtest_baseconfig["inputs"] = {
-    #     "Stimulus": {
-    #         "module": "pulse",
-    #         "input_type": "current_clamp",
-    #         "delay": 1,
-    #         "duration": 100,
-    #         "node_set": "RingA",
-    #         "represents_physical_electrode": True,
-    #         "amp_start": 1000,
-    #         "width": 10,
-    #         "frequency": 50, 
-    #     }
-    # }
 
     with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
         json.dump(ringtest_baseconfig, config_file)
@@ -43,54 +28,27 @@ def injection_config_file(ringtest_baseconfig):
     os.unlink(config_file.name)
 
 
-
-# @pytest.mark.forked
+@pytest.mark.forked
 def test_current_injection(injection_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
 
     nd = Neurodamus(injection_config_file.name,)
-   
 
-    cell_id_ringA = 1
-    manager_ringA = nd.circuits.get_node_manager("RingA")
-    cell_ringA = manager_ringA.get_cell(cell_id_ringA)
-    voltage_ringA = Nd.Vector()
-    voltage_ringA.record(cell_ringA._cellref.soma[0](0.5)._ref_v, 0.125)
-    
+    cell_id = 1001
+    manager = nd.circuits.get_node_manager("RingB")
+    cell_ringB = manager.get_cell(cell_id)
+    voltage_vec = Nd.Vector()
+    voltage_vec.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
 
-    cell_id_ringB = 1001
-    manager_ringB = nd.circuits.get_node_manager("RingB")
-    cell_ringB = manager_ringB.get_cell(cell_id_ringB)
-    voltage_ringB = Nd.Vector()
-    voltage_ringB.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
+    Nd.finitialize()
+    nd.run()
 
+    v_increase_rate = numpy.diff(voltage_vec, 2)
+    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = numpy.nonzero(window_sum < -0.5)[0]
+    non_consecutives_pos = strong_reduction_pos[numpy.insert(
+        numpy.diff(strong_reduction_pos) > 1, 0, True)]
+    expected_positions = numpy.array([42, 242, 442])
 
-    Nd.finitialize()  # reinit for the recordings to be registered
-    nd.run()  # until end
-    voltage_ringA = voltage_ringA.as_numpy()
-    voltage_ringB = voltage_ringB.as_numpy()
-
-    print("-------------------------------")
-    print("-------------------------------")
-    print("-------------------------------")
-    ringA_timestamps = nd._spike_vecs[0][0].as_numpy()
-    ringA_spike_gids = nd._spike_vecs[0][1].as_numpy().astype(int)
-    print("Spikes ringA", ringA_spike_gids, ringA_timestamps)
-
-    # print("Voltage ringA:", voltage_ringA)
-    # print("Maximum voltage ringA cell 1:   ", numpy.max(voltage_ringA))
-    # print("Minimum voltage ringA cell 1:   ", numpy.min(voltage_ringA))
-
-    
-    # print("Voltage ringB:", voltage_ringB)
-    print("Maximum voltage ringB cell 1001:", numpy.max(voltage_ringB))
-    print("Minimum voltage ringB cell 1001:", numpy.min(voltage_ringB))
-
-
-    # print(nd._spike_populations)
-
-
-
-
-
+    assert numpy.array_equal(non_consecutives_pos, expected_positions)
