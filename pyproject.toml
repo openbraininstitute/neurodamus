@@ -183,7 +183,6 @@ ignore = [
     "PGH004", # blanket-noqa
     "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
-    "B019",   # cached-instance-method
     "A001",   # builtin-variable-shadowing
     "INP001", # implicit-namespace-package
     "PIE810", # multiple-starts-ends-with
