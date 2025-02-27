@@ -187,7 +187,6 @@ ignore = [
     "PIE810", # multiple-starts-ends-with
     "T203",   # p-print
     "N818",   # error-suffix-on-exception-name
-    "PLE1141",# dict-iter-missing-items
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
