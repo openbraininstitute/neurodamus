@@ -1,6 +1,5 @@
 import itertools
 import logging
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import lru_cache
 
@@ -365,79 +364,7 @@ class NodeSetReader:
         return NodesetTarget(nodeset_name, nodesets)
 
 
-class _TargetInterface(ABC):
-    """Methods that target/target wrappers should implement"""
-
-    @abstractmethod
-    def gid_count(self):
-        return NotImplemented
-
-    @abstractmethod
-    def get_gids(self):
-        return NotImplemented
-
-    @abstractmethod
-    def get_raw_gids(self):
-        return NotImplemented
-
-    @abstractmethod
-    def __contains__(self, final_gid):
-        """Checks if a gid (with offset) is present in this target.
-        All gids are taken into consideration, not only this ranks.
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def make_subtarget(self, pop_name):
-        return NotImplemented
-
-    @abstractmethod
-    def is_void(self):
-        return NotImplemented
-
-    @abstractmethod
-    def get_hoc_target(self):
-        return NotImplemented
-
-    @abstractmethod
-    def append_nodeset(self, nodeset: NodeSet):
-        """Add a nodeset to the current target"""
-        return NotImplemented
-
-    def contains(self, items, raw_gids=False):
-        """Return a bool or an array of bool's whether the elements are contained"""
-        # Shortcut for empty target. Algorithm below would fail
-        if not self.gid_count():
-            return ([False] * len(items)) if hasattr(items, "__len__") else False
-
-        gids = self.get_raw_gids() if raw_gids else self.get_gids()
-        contained = np.isin(items, gids, kind="table")
-        return bool(contained) if contained.ndim == 0 else contained
-
-    def intersects(self, other):
-        """Check if two targets intersect. At least one common population has to intersect"""
-        if self.population_names.isdisjoint(other.population_names):
-            return False
-
-        other_pops = other.populations  # may be created on the fly
-        # We loop over one target populations and check the other existence and intersection
-        for pop, nodeset in self.populations.items():
-            if pop not in other_pops:
-                continue
-            if nodeset.intersects(other_pops[pop]):
-                return True
-        return False
-
-    @abstractmethod
-    def generate_subtargets(self, n_parts):
-        return NotImplemented
-
-    @abstractmethod
-    def update_local_nodes(self, _local_nodes):
-        """Allows setting the local gids"""
-
-
-class NodesetTarget(_TargetInterface):
+class NodesetTarget:
     def __init__(self, name, nodesets: list[_NodeSetBase], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
@@ -467,12 +394,14 @@ class NodesetTarget(_TargetInterface):
         return np.array(self.nodesets[0].raw_gids())
 
     def __contains__(self, gid):
-        """Determine if a given gid is included in the gid list for this target
-        regardless of which cpu. Offsetting is taken into account
+        """Determine if a given gid is included in the gid list for this target regardless of rank.
+
+        Offsetting is taken into account
         """
         return self.contains(gid)
 
     def append_nodeset(self, nodeset: NodeSet):
+        """Add a nodeset to the current target"""
         self.nodesets.append(nodeset)
 
     @property
@@ -496,6 +425,7 @@ class NodesetTarget(_TargetInterface):
         return self  # impersonate a hoc target
 
     def update_local_nodes(self, local_nodes):
+        """Allows setting the local gids"""
         self.local_nodes = local_nodes
 
     def get_local_gids(self, raw_gids=False):
@@ -580,6 +510,30 @@ class NodesetTarget(_TargetInterface):
         return [
             [targets[cycle_i] for targets in new_targets.values()] for cycle_i in range(n_parts)
         ]
+
+    def contains(self, items, raw_gids=False):
+        """Return a bool or an array of bool's whether the elements are contained"""
+        # Shortcut for empty target. Algorithm below would fail
+        if not self.gid_count():
+            return ([False] * len(items)) if hasattr(items, "__len__") else False
+
+        gids = self.get_raw_gids() if raw_gids else self.get_gids()
+        contained = np.isin(items, gids, kind="table")
+        return bool(contained) if contained.ndim == 0 else contained
+
+    def intersects(self, other):
+        """Check if two targets intersect. At least one common population has to intersect"""
+        if self.population_names.isdisjoint(other.population_names):
+            return False
+
+        other_pops = other.populations  # may be created on the fly
+        # We loop over one target populations and check the other existence and intersection
+        for pop, nodeset in self.populations.items():
+            if pop not in other_pops:
+                continue
+            if nodeset.intersects(other_pops[pop]):
+                return True
+        return False
 
 
 class SerializedSections:
