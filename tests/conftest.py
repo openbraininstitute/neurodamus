@@ -5,6 +5,10 @@ from pathlib import Path
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
 
+# needed to have asserts in utils that also print values
+# in case of failure
+pytest.register_assert_rewrite("tests.utils")
+
 
 @pytest.fixture(scope="session")
 def rootdir(request):

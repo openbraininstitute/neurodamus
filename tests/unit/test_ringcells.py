@@ -1,14 +1,22 @@
-import json
-import pytest
-import numpy as np
+
 from pathlib import Path
-from neurodamus.core.configuration import SimConfig
+
+import numpy as np
+import pytest
 from libsonata import EdgeStorage
 
+from neurodamus.core.configuration import SimConfig
+from tests import utils
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
 REF_DIR = SIM_DIR / "reference"
 CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
+
+
+def check_cell(cell):
+    """check cell state from NEURON context"""
+    assert cell.nSecAll == 3
+    assert cell.x == cell.y == cell.z == 0
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -18,7 +26,7 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
             "network": str(SIM_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "NEURON"
-            }
+        }
     },
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -26,7 +34,7 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
             "network": str(SIM_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "CORENEURON"
-            }
+        }
     }
 ], indirect=True)
 def test_dump_RingB_2cells(create_tmp_simulation_config_file):
@@ -41,18 +49,18 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     target_gids = np.roll(src_gids, -1)
     for sgid, tgid in zip(src_gids, target_gids):
         cell = n._pc.gid2cell(tgid)
-        _check_cell(cell)
+        check_cell(cell)
         selection = edges.afferent_edges(tgid - 1)
 
         assert cell.synlist.count() == selection.flat_size
         for syn in cell.synlist:
-            _check_synapse(syn, edges, selection)
+            utils.check_synapse(syn, edges, selection)
 
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
-        _check_netcons(sgid, nclist, edges, selection)
+        utils.check_netcons(sgid, nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        check_directory(Path(SimConfig.coreneuron_datadir))
+        utils.check_directory(Path(SimConfig.coreneuron_datadir))
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -61,14 +69,14 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         "extra_config": {
             "target_simulator": "NEURON",
             "node_set": "Mosaic"
-            }
+        }
     },
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
             "node_set": "Mosaic"
-            }
+        }
     }
 ], indirect=True)
 def test_dump_RingA_RingB(create_tmp_simulation_config_file):
@@ -94,10 +102,10 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         outputfile = "cellstate_" + str(tgid) + ".json"
         dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
         reference = REF_DIR / outputfile
-        compare_json_files(Path(outputfile), reference)
+        utils.compare_json_files(Path(outputfile), reference)
 
         cell = n._pc.gid2cell(tgid)
-        _check_cell(cell)
+        check_cell(cell)
 
         if s_pop == t_pop:
             edges_file, edge_pop = \
@@ -110,62 +118,8 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         selection = edges.afferent_edges(t_rawgid - 1)
 
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
-        for syn in _check_netcons(sgid, nclist, edges, selection):
-            _check_synapse(syn, edges, selection)
+        utils.check_netcons(sgid, nclist, edges, selection)
+        utils.check_synapses(nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        check_directory(Path(SimConfig.coreneuron_datadir))
-
-
-def compare_json_files(res_file: Path, ref_file: Path):
-    """compare two json files"""
-    assert res_file.exists()
-    assert ref_file.exists()
-    with open(res_file) as f_res:
-        result = json.load(f_res)
-    with open(ref_file) as f_ref:
-        reference = json.load(f_ref)
-    assert result == reference
-
-
-def check_directory(dir_name: Path):
-    """Check directory is not empty """
-    assert dir_name.is_dir(), f"{str(dir_name)} doesn't exist"
-    assert any(dir_name.iterdir()), f"{str(dir_name)} is empty"
-
-
-def _check_cell(cell):
-    """check cell state from NEURON context"""
-    assert cell.nSecAll == 3
-    assert cell.x == cell.y == cell.z == 0
-
-
-def _check_synapse(syn, edges, selection):
-    """check synapse state from NEURON w.r.t libsonata reader"""
-    syn_id = int(syn.synapseID)
-    syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
-    if syn_type_id < 100:
-        assert "ProbGABAAB_EMS" in syn.hname()
-        assert syn.tau_d_GABAA == edges.get_attribute("decay_time", selection)[syn_id]
-    else:
-        assert "ProbAMPANMDA_EMS" in syn.hname()
-        assert syn.tau_d_AMPA == edges.get_attribute("decay_time", selection)[syn_id]
-    assert syn.Use == edges.get_attribute("u_syn", selection)[syn_id]
-    assert syn.Dep == edges.get_attribute("depression_time", selection)[syn_id]
-    assert syn.Fac == edges.get_attribute("facilitation_time", selection)[syn_id]
-
-    if edges.get_attribute("n_rrp_vesicles", selection)[syn_id] >= 0:
-        assert syn.Nrrp == edges.get_attribute("n_rrp_vesicles", selection)[syn_id]
-
-
-def _check_netcons(ref_srcgid, netconlist, edges, selection):
-    """check netcons and yield the associated synpase object"""
-    assert netconlist.count() == selection.flat_size
-    for idx, nc in enumerate(netconlist):
-        nc = netconlist.o(idx)
-        assert nc.srcgid() == ref_srcgid
-        assert nc.weight[0] == edges.get_attribute("conductance", selection)[idx]
-        assert np.isclose(nc.delay, edges.get_attribute("delay", selection)[idx], rtol=1e-2)
-        assert nc.threshold == SimConfig.spike_threshold
-        assert nc.x == SimConfig.v_init
-        yield nc.syn()
+        utils.check_directory(Path(SimConfig.coreneuron_datadir))
