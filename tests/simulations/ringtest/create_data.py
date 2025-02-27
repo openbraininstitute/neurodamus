@@ -175,7 +175,7 @@ def make_ringtest_edges():
     edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
-        "conductance": 1.0,
+        "conductance": 100.0,
         "decay_time": 2.0,
         "delay": 3.0,
         "depression_time": 4.0,
@@ -186,7 +186,7 @@ def make_ringtest_edges():
         "afferent_segment_id": 1,
         "afferent_segment_offset": 0,
         "n_rrp_vesicles": 4,
-        "syn_type_id": 31,
+        "syn_type_id": 131,
     }
     make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
