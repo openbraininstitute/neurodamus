@@ -170,13 +170,11 @@ ignore = [
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
-    "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
     "PGH004", # blanket-noqa
-    "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
     "N818",   # error-suffix-on-exception-name
