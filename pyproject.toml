@@ -161,7 +161,6 @@ ignore = [
     "RET503", # implicit-return
     "SIM108", # if-else-block-instead-of-if-exp
     "ARG003", # unused-class-method-argument
-    "ARG005", # unused-lambda-argument
     "N805",   # invalid-first-argument-name-for-method
     "TRY401", # verbose-log-message
     "S603",   # subprocess-without-shell-equals-true

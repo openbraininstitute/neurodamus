@@ -103,7 +103,7 @@ class OrnsteinUhlenbeck(BaseStim):
         # setup random seeds
         seed1 = OrnsteinUhlenbeck.stimCount + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 291204  # stimulus type seed
-        seed3 = (lambda x: x + 123) if self.seed is None else (lambda x: self.seed)  # GID seed
+        seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
@@ -238,7 +238,7 @@ class ShotNoise(BaseStim):
         # setup random seeds
         seed1 = ShotNoise.stimCount + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 19216  # stimulus type seed
-        seed3 = (lambda x: x + 123) if self.seed is None else (lambda x: self.seed)  # GID seed
+        seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
