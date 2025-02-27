@@ -41,9 +41,8 @@ class StimulusManager:
     def interpret(self, target_spec, stim_info):
         stim_t = self._stim_types.get(stim_info["Pattern"])
         if not stim_t:
-            raise ConfigurationError(
-                "No implementation for Stimulus {} ".format(stim_info["Pattern"])
-            )
+            msg = f"No implementation for Stimulus {stim_info['Pattern']}"
+            raise ConfigurationError(msg)
         if self._stim_seed is None and getattr(stim_t, "IsNoise", False):
             logging.warning(
                 "StimulusSeed unset (default %d), set explicitly to vary noisy stimuli across runs",
@@ -104,7 +103,7 @@ class OrnsteinUhlenbeck(BaseStim):
         # setup random seeds
         seed1 = OrnsteinUhlenbeck.stimCount + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 291204  # stimulus type seed
-        seed3 = (lambda x: x + 123) if self.seed is None else (lambda x: self.seed)  # GID seed
+        seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
@@ -239,7 +238,7 @@ class ShotNoise(BaseStim):
         # setup random seeds
         seed1 = ShotNoise.stimCount + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 19216  # stimulus type seed
-        seed3 = (lambda x: x + 123) if self.seed is None else (lambda x: self.seed)  # GID seed
+        seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
