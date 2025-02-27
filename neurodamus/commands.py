@@ -150,10 +150,11 @@ def _pop_log_level(options):
         log_level = LogLevel.DEBUG
     elif options.pop("verbose", False):
         log_level = LogLevel.VERBOSE
-    if log_level >= 3:
-        from pprint import pprint
 
-        pprint(options)
+    if log_level >= LogLevel.VERBOSE:
+        from pprint import pprint
+        pprint(options)  # noqa: T203
+
     return log_level
 
 
