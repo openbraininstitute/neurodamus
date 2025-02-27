@@ -166,7 +166,6 @@ ignore = [
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
-    "A005",   # stdlib-module-shadowing
     "EM103",  # dot-format-in-exception
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
