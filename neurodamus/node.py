@@ -1005,8 +1005,8 @@ class Node:
             if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
                 try:
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
-                except Exception as e:
-                    logging.exception("Error setting up report '%s': %s", rep_name, e)
+                except Exception:
+                    logging.exception("Error setting up report '%s'", rep_name)
                     n_errors += 1
                     continue
 
@@ -1981,8 +1981,8 @@ class Neurodamus(Node):
                 self._dry_run_stats.distribute_cells_with_validation(
                     ranks, SimConfig.modelbuilding_steps
                 )
-            except RuntimeError as e:
-                logging.exception("Dry run failed: %s", e)
+            except RuntimeError:
+                logging.exception("Dry run failed")
             return
         if not SimConfig.simulate_model:
             self.sim_init()

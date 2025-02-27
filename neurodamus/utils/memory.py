@@ -378,8 +378,8 @@ class DryRunStats:
         try:
             virtual_memory = psutil.virtual_memory()
             return virtual_memory.total / (1024 * 1024)  # Total available memory in MB
-        except Exception as e:
-            logging.exception(f"Error: {e}")
+        except Exception:
+            logging.exception("Error")
             return None
 
     @run_only_rank0

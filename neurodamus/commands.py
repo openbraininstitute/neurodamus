@@ -88,9 +88,9 @@ def neurodamus(args=None):
     try:
         Neurodamus(config_file, True, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
-    except ConfigurationError as e:  # Common, only show error in Rank 0
+    except ConfigurationError:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init
-            logging.exception(str(e))
+            logging.exception("ConfigurationError")
         return 1
     except OtherRankError:
         return 1  # no need for _mpi_abort, error is being handled by all ranks
