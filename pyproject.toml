@@ -114,6 +114,8 @@ ignore = [
     "FBT002",  # Boolean default positional argument in function definition
     "PTH",     # use of os.path, will move to pathlib at some point
     "S101",    # Use of `assert` detected
+    "RET504", # unnecessary-assign
+
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
     "D301",    # Use `r"""` if any backslashes in a docstring
@@ -153,7 +155,6 @@ ignore = [
     "UP031",  # printf-string-formatting
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
-    "RET504", # unnecessary-assign
     "B904",   # raise-without-from-inside-except
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
