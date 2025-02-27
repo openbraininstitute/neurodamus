@@ -179,7 +179,6 @@ ignore = [
     "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
-    "PIE810", # multiple-starts-ends-with
     "N818",   # error-suffix-on-exception-name
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments
