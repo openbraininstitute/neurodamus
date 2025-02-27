@@ -211,7 +211,7 @@ class Connection(ConnectionBase):
     @classmethod
     def _init_hmod(cls):
         if cls._AMPANMDA_Helper is not None:
-            return Nd.h
+            return
         h = Nd.require("AMPANMDAHelper", "GABAABHelper")
         cls._AMPANMDA_Helper = h.AMPANMDAHelper
         cls._GABAAB_Helper = h.GABAABHelper
