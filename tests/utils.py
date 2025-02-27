@@ -111,10 +111,10 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
     """
 
     assert nc.srcgid() == ref_srcgid
-    assert nc.weight[0] == _get_attr("conductance", kwargs, edges, selection, nc_id)
-    assert np.isclose(nc.delay, _get_attr("delay", kwargs, edges, selection, nc_id), rtol=1e-2)
-    assert nc.threshold == kwargs.get("spike_threshold", SimConfig.spike_threshold)
-    assert nc.x == kwargs.get("v_init", SimConfig.v_init)
+    assert np.isclose(nc.weight[0], _get_attr("conductance", kwargs, edges, selection, nc_id))
+    assert np.isclose(nc.delay, _get_attr("delay", kwargs, edges, selection, nc_id))
+    assert np.isclose(nc.threshold, kwargs.get("spike_threshold", SimConfig.spike_threshold))
+    assert np.isclose(nc.x, kwargs.get("v_init", SimConfig.v_init))
 
 
 def check_synapses(nclist, edges, selection, **kwargs):
@@ -154,15 +154,21 @@ def check_synapse(syn, edges, selection, **kwargs):
         AssertionError: If any of the synaptic attributes do not match the expected values.
     """
 
-    syn_id = int(syn.synapseID)
-    syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
+    expected_types = ["ProbGABAAB_EMS", "ProbAMPANMDA_EMS"]
 
-    if syn_type_id < 100:
-        assert "ProbGABAAB_EMS" in syn.hname()
-        assert syn.tau_d_GABAA == _get_attr("decay_time", kwargs, edges, selection, syn_id)
-    else:
-        assert "ProbAMPANMDA_EMS" in syn.hname()
-        assert syn.tau_d_AMPA == _get_attr("decay_time", kwargs, edges, selection, syn_id)
+    syn_id = int(syn.synapseID)
+
+    syn_type = kwargs.get("hname", syn.hname()).split("[")[0]
+    # for now we test only with the basic ones
+    assert syn_type in expected_types
+
+    if "hname" not in kwargs:
+        syn_type_id = edges.get_attribute("syn_type_id", selection)[syn_id]
+        exp_type = expected_types[0] if syn_type_id < 100 else expected_types[1]
+        assert syn_type == exp_type, f"{syn_type}"
+
+    decay_time = syn.tau_d_GABAA if syn_type == "ProbGABAAB_EMS" else syn.tau_d_AMPA
+    assert decay_time == _get_attr("decay_time", kwargs, edges, selection, syn_id)
     assert syn.Use == _get_attr("u_syn", kwargs, edges, selection, syn_id)
     assert syn.Dep == _get_attr("depression_time", kwargs, edges, selection, syn_id)
     assert syn.Fac == _get_attr("facilitation_time", kwargs, edges, selection, syn_id)
