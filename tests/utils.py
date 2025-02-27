@@ -2,8 +2,27 @@ import json
 from pathlib import Path
 
 import numpy as np
+from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
+
+
+def get_gid_edges_selection(n, s_pop, s_rawgid, t_pop, t_rawgid):
+    tpop_offset = n.circuits.get_node_manager(t_pop).local_nodes.offset
+    tgid = t_rawgid + tpop_offset
+    spop_offset = n.circuits.get_node_manager(s_pop).local_nodes.offset
+    sgid = s_rawgid + spop_offset
+
+    if s_pop == t_pop:
+        edges_file, edge_pop = \
+            n.circuits.get_edge_managers(t_pop, t_pop)[0].circuit_conf.nrnPath.split(":")
+    else:
+        edges_file, edge_pop = \
+            n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
+    edge_storage = EdgeStorage(edges_file)
+    edges = edge_storage.open_population(edge_pop)
+    selection = edges.afferent_edges(t_rawgid - 1)
+    return sgid, tgid, edges, selection
 
 
 def _get_attr(name, kwargs, edges, selection, syn_id):
@@ -51,7 +70,9 @@ def check_netcons(ref_srcgid, nclist, edges, selection, **kwargs):
     Convenience function to validate all netcons in `nclist`
     by using the underlying `check_netcon` for each item.
     """
-    assert nclist.count() == selection.flat_size
+    assert len(nclist) == selection.flat_size
+    # if the list is empty, just check that
+    assert nclist.count()
     for nc_id, nc in enumerate(nclist):
         check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs)
 
@@ -101,7 +122,9 @@ def check_synapses(nclist, edges, selection, **kwargs):
     Convenience function to validate all synapses in `nclist`
     by using the underlying `check_synapse` for each item.
     """
-    assert nclist.count() == selection.flat_size
+    assert len(nclist) == selection.flat_size
+    # if the list is empty, just check that
+    assert nclist.count()
     for nc in nclist:
         check_synapse(nc.syn(), edges, selection, **kwargs)
 
