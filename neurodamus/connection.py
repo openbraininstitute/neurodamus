@@ -117,7 +117,7 @@ class ConnectionBase:
     def update_synapse_parameters(self, **params):
         """A generic function to update several parameters of all synapses"""
         for syn in self._synapses:
-            for key, val in params:
+            for key, val in params.items():
                 setattr(syn, key, val)
 
     def update_weights(self, weight):
@@ -846,7 +846,7 @@ class InhExcSpontMinis(SpontMinis):
 class ReplayStim(ArtificialStim):
     """A class creating/holding replays of a connection"""
 
-    __slots__ = "time_vec"
+    __slots__ = ("time_vec",)
 
     def __init__(self):
         super().__init__()
