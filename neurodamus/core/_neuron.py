@@ -8,7 +8,7 @@ import os.path
 from contextlib import contextmanager
 
 from .configuration import GlobalConfig, NeuronStdrunDefaults, SimConfig
-from neurodamus.utils import classproperty
+from neurodamus.utils.pyutils import classproperty
 
 
 #

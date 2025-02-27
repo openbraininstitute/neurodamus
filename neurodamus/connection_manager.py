@@ -17,9 +17,9 @@ from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, fin
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SynapseReader
 from .target_manager import TargetManager, TargetSpec
-from .utils import bin_search, compat, dict_filter_map
+from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
-from .utils.pyutils import gen_ranges
+from .utils.pyutils import bin_search, dict_filter_map, gen_ranges
 from .utils.timeit import timeit
 
 if TYPE_CHECKING:

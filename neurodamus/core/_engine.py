@@ -58,7 +58,8 @@ class EngineBase(metaclass=_EngineMeta):
     methods (for full flexibility) or specify which are the Manager classes.
 
     Specifying the Manager classes is suitable for most cases.
-    Without any customization an engine will default to use
+    Without any customization an engine will default to use:
+
       CellManagerCls = None   # Use existing instance of CellDistributor
       SynapseManagerCls = None  # Use existing instance of SynapseRuleManager
 

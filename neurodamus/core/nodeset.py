@@ -7,7 +7,8 @@ from contextlib import contextmanager
 import numpy as np
 
 from . import MPI
-from neurodamus.utils import WeakList, compat
+from neurodamus.utils import compat
+from neurodamus.utils.pyutils import WeakList
 
 
 class PopulationNodes:

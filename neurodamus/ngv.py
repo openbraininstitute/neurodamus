@@ -15,9 +15,8 @@ from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
-from .utils import bin_search
 from .utils.logging import log_verbose
-from .utils.pyutils import append_recarray
+from .utils.pyutils import append_recarray, bin_search
 
 
 class Astrocyte(BaseCell):

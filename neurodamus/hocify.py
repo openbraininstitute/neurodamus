@@ -3,7 +3,7 @@ import multiprocessing
 import os
 from time import strftime
 
-from .core import Cell
+from .core.cell import Cell
 from .utils.logging import log_stage, log_verbose, setup_logging
 from .utils.progressbar import ProgressBar
 

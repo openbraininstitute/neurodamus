@@ -1,7 +1,7 @@
 """Module defining cell mechanisms"""
 
 from ._neuron import Neuron
-from neurodamus.utils import ConfigT
+from neurodamus.utils.pyutils import ConfigT
 
 
 class Mechanism(ConfigT):

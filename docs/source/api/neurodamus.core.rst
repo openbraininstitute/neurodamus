@@ -13,8 +13,6 @@ neurodamus.core package
       Neuron
       MPI
       NeurodamusCore
-      Cell
-      CurrentSource
       ProgressBarRank0
 
    .. rubric:: Decorators
@@ -52,13 +50,7 @@ Module API
 .. autoclass:: NeurodamusCore
    :members:
 
-.. autoclass:: Cell
-   :members:
-
-.. autoclass:: CurrentSource
-   :members:
-
-.. autoclass:: ProgressBarRank0
+.. autoclass:: neurodamus.core._utils.ProgressBarRank0
    :members:
 
 .. autoclass:: neurodamus.core._neuron._Neuron
@@ -67,8 +59,8 @@ Module API
 
 **Decorators**
 
-.. autofunction:: return_neuron_timings
+.. autofunction:: neurodamus.core._utils.return_neuron_timings
 
-.. autofunction:: mpi_no_errors
+.. autofunction:: neurodamus.core._utils.mpi_no_errors
 
-.. autofunction:: run_only_rank0
+.. autofunction:: neurodamus.core._utils.run_only_rank0

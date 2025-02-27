@@ -1,7 +1,7 @@
 """High-Level wrapper to Neuron's cell synapse mechanisms"""
 
 from . import Neuron
-from neurodamus.utils import ConfigT
+from neurodamus.utils.pyutils import ConfigT
 
 # -------------------------
 # Synapse (receptor) config
