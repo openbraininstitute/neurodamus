@@ -17,8 +17,8 @@ def main():
     args = []
     try:
         args = extract_arguments(sys.argv)
-    except ValueError as err:
-        logging.exception(err)
+    except ValueError:
+        logging.exception()
         return 1
 
     return commands.neurodamus(args)

@@ -8,7 +8,9 @@ class Vector(array):
 
     __slots__ = ()
 
-    def __new__(cls, type_="I", array=[]):
+    def __new__(cls, type_="I", array=None):
+        if array is None:
+            array = []
         return super().__new__(Vector, type_, array)
 
     def size(self):

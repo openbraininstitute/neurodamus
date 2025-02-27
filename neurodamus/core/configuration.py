@@ -6,6 +6,7 @@ import os.path
 import re
 from collections import defaultdict
 from enum import Enum
+from pathlib import Path
 
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
@@ -1006,10 +1007,10 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        with open(os.path.join(config.output_root, "sim.conf")) as f:
-            core_data_exists = "datpath='/dev/shm/" not in f.read() and os.path.isfile(
-                os.path.join(core_data_location, "files.dat")
-            )
+        contents = Path(config.output_root, "sim.conf").read_text()
+        core_data_exists = (
+            "datpath='/dev/shm/" not in contents and Path(core_data_location, "files.dat").is_file()
+        )
     except FileNotFoundError:
         core_data_exists = False
 
@@ -1263,9 +1264,8 @@ def check_connections_configure(SimConfig, target_manager):
         if full_overriden is None:
             not_overridden_weight_0.append(conn)
         elif full_overriden is False:  # incomplete override
-            raise ConfigurationError(
-                "Partial Weight=0 override is not supported: Conn {}".format(conn["_name"])
-            )
+            msg = f"Partial Weight=0 override is not supported: Conn {conn['_name']}"
+            raise ConfigurationError(msg)
     if not_overridden_weight_0:
         logging.warning(
             "The following connections with Weight=0 are not overridden, "

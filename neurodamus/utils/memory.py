@@ -11,6 +11,7 @@ import multiprocessing
 import os
 import pickle
 from collections import Counter, defaultdict
+from pathlib import Path
 
 import numpy as np
 import psutil
@@ -188,9 +189,7 @@ def print_allocation_stats(rank_memory):
 def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
     """Export allocation dictionary to a serialized pickle file."""
     compressed_data = gzip.compress(pickle.dumps(rank_allocation))
-    new_filename = f"{filename}_r{ranks}_c{cycles}.pkl.gz"
-    with open(new_filename, "wb") as f:
-        f.write(compressed_data)
+    Path(f"{filename}_r{ranks}_c{cycles}.pkl.gz").write_bytes(compressed_data)
 
 
 @run_only_rank0
@@ -207,12 +206,6 @@ def import_metype_memory_usage(memory_per_metype_file):
         memory_per_metype = json.load(f)
 
     return memory_per_metype
-
-
-@run_only_rank0
-def allocation_stats_exists(filename):
-    """Check if the allocation stats file exists."""
-    return os.path.exists(filename)
 
 
 class SynapseMemoryUsage:
@@ -385,8 +378,8 @@ class DryRunStats:
         try:
             virtual_memory = psutil.virtual_memory()
             return virtual_memory.total / (1024 * 1024)  # Total available memory in MB
-        except Exception as e:
-            logging.exception(f"Error: {e}")
+        except Exception:
+            logging.exception("Error")
             return None
 
     @run_only_rank0
