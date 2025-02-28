@@ -77,7 +77,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
                 # replacement and multiplication have the same effect
                 # when `conductance` is 1.0. The behavior cannot be
                 # fully tested in that case.
-                assert np.isclose(edges.get_attribute("conductance", selection)[nc_id], 1.0)
+                assert not np.isclose(edges.get_attribute("conductance", selection)[nc_id], 1.0)
             utils.check_netcon(sgid, nc_id, nc, edges, selection, **kwargs)
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
 

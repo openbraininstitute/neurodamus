@@ -45,9 +45,9 @@ def test_check_netcon(create_tmp_simulation_config_file):
     utils.check_netcon(sgid, 0, next(iter(nclist)), edges, selection)
     # unused value. Same behavior as before
     utils.check_netcon(sgid, 0, next(iter(nclist)), edges, selection, unused_value=0)
-    # wrong conductance
+    # wrong weight
     with pytest.raises(AssertionError):
-        utils.check_netcon(sgid, 0, next(iter(nclist)), edges, selection, conductance=4321)
+        utils.check_netcon(sgid, 0, next(iter(nclist)), edges, selection, weight=4321)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -89,7 +89,7 @@ def test_check_synapse(create_tmp_simulation_config_file):
     utils.check_synapse(next(iter(nclist)).syn(), edges, selection)
     # unused value. Same behavior as before
     utils.check_synapse(next(iter(nclist)).syn(), edges, selection, unused_value=0)
-    # wrong conductance
+    # wrong decay_time
     with pytest.raises(AssertionError):
         utils.check_synapse(next(iter(nclist)).syn(), edges, selection, decay_time=4321)
 
