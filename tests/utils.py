@@ -7,22 +7,26 @@ from libsonata import EdgeStorage
 from neurodamus.core.configuration import SimConfig
 
 
-def get_gid_edges_selection(n, s_pop, s_rawgid, t_pop, t_rawgid):
-    tpop_offset = n.circuits.get_node_manager(t_pop).local_nodes.offset
-    tgid = t_rawgid + tpop_offset
-    spop_offset = n.circuits.get_node_manager(s_pop).local_nodes.offset
-    sgid = s_rawgid + spop_offset
+def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
+    """ Convenience function to retrieve gids, edges, and selection.
 
-    if s_pop == t_pop:
+    Nd is neurodamus.code.Neurodamus
+    """
+    tgt_pop_offset = nd.circuits.get_node_manager(tgt_pop).local_nodes.offset
+    tgt_gid = tgt_rawgid + tgt_pop_offset
+    src_pop_offset = nd.circuits.get_node_manager(src_pop).local_nodes.offset
+    src_gid = src_rawgid + src_pop_offset
+
+    if src_pop == tgt_pop:
         edges_file, edge_pop = \
-            n.circuits.get_edge_managers(t_pop, t_pop)[0].circuit_conf.nrnPath.split(":")
+            nd.circuits.get_edge_managers(tgt_pop, tgt_pop)[0].circuit_conf.nrnPath.split(":")
     else:
         edges_file, edge_pop = \
-            n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
+            nd.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf["Path"].split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
-    selection = edges.afferent_edges(t_rawgid - 1)
-    return sgid, tgid, edges, selection
+    selection = edges.afferent_edges(tgt_rawgid - 1)
+    return src_gid, tgt_gid, edges, selection
 
 
 def _get_attr(name, kwargs, edges, selection, syn_id):
@@ -77,12 +81,12 @@ def check_netcons(ref_srcgid, nclist, edges, selection, **kwargs):
         check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs)
 
 
-def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
+def check_netcon(src_gid, nc_id, nc, edges, selection, **kwargs):
     """
     Validate the attributes of a single netcon against expected values.
 
     This function checks the following attributes of a given netcon:
-    - `srcgid`: Ensures it matches the reference source ID (`ref_srcgid`).
+    - `src_gid`: Ensures it matches the reference source ID (`rsc_gid`).
     - `weight`: Connection overrides uses this value to scale the
     `conductance` in the edge files.
     - `delay`: Compares it with the expected delay value, allowing for
@@ -110,7 +114,7 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
         AssertionError: If any of the attribute checks fail.
     """
 
-    assert nc.srcgid() == ref_srcgid
+    assert nc.srcgid() == src_gid
     assert np.isclose(
         nc.weight[0],
         kwargs.get(
