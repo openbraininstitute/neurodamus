@@ -1,14 +1,7 @@
-
-from pathlib import Path
-
-import pytest
 import numpy as np
+import pytest
 
 from tests import utils
-
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
-REF_DIR = SIM_DIR / "reference"
-CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -131,7 +124,8 @@ def test_synapse_without_weight(create_tmp_simulation_config_file):
     ]
 
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
-        src_gid, tgt_gid, _, _ = utils.get_edge_data(nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
+        src_gid, tgt_gid, _edges, _selection = utils.get_edge_data(
+            nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
         src_cell, tgt_cell = nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid)
 
         nclist = Nd.cvode.netconlist(src_cell, tgt_cell, "")
