@@ -75,8 +75,8 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
                 # Check that we are not testing when `conductance` is 1.0.
                 # Why? Because `weight` is a multiplier of `conductance`:
                 # replacement and multiplication have the same effect
-                # when `conductance` is 1.0. The behavior cannot be
-                # fully tested in that case.
+                # when `conductance` is 1.0. The behavior cannot be fully
+                # tested in that case.
                 assert not np.isclose(edges.get_attribute("conductance", selection)[nc_id], 1.0)
             utils.check_netcon(sgid, nc_id, nc, edges, selection, **kwargs)
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
