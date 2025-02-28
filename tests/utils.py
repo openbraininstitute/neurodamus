@@ -83,8 +83,8 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
 
     This function checks the following attributes of a given netcon:
     - `srcgid`: Ensures it matches the reference source ID (`ref_srcgid`).
-    - `conductance`: Compares it with the value from `kwargs` or the edges
-    attribute for the specific netcon ID.
+    - `weight`: Connection overrides uses this value to scale the
+    `conductance` in the edge files.
     - `delay`: Compares it with the expected delay value, allowing for
     a relative tolerance.
     - `threshold`: Compares it with the `spike_threshold` value from `kwargs`
@@ -111,7 +111,14 @@ def check_netcon(ref_srcgid, nc_id, nc, edges, selection, **kwargs):
     """
 
     assert nc.srcgid() == ref_srcgid
-    assert np.isclose(nc.weight[0], _get_attr("conductance", kwargs, edges, selection, nc_id))
+    assert np.isclose(
+        nc.weight[0],
+        kwargs.get(
+            "weight",
+            1.0) *
+        edges.get_attribute(
+            "conductance",
+            selection)[nc_id])
     assert np.isclose(nc.delay, _get_attr("delay", kwargs, edges, selection, nc_id))
     assert np.isclose(nc.threshold, kwargs.get("spike_threshold", SimConfig.spike_threshold))
     assert np.isclose(nc.x, kwargs.get("v_init", SimConfig.v_init))
