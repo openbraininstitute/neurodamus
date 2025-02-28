@@ -124,7 +124,6 @@ class CellManagerBase(_CellManager):
 
         """
         self._circuit_conf = circuit_conf
-        self._circuit_name = circuit_conf._name
         self._target_manager = target_manager
         self._target_spec = TargetSpec(circuit_conf.CircuitTarget)
         self._population_name = None
@@ -154,8 +153,8 @@ class CellManagerBase(_CellManager):
     pc = property(lambda self: self._pc)
     population_name = property(lambda self: self._population_name)
     circuit_target = property(lambda self: self._target_spec.name)
-    circuit_name = property(lambda self: self._circuit_name)
-    is_default = property(lambda self: self._circuit_name is None)
+    circuit_name = property(lambda self: self._circuit_conf.name)
+    is_default = property(lambda self: self.circuit_name is None)
     is_virtual = property(lambda _self: False)
     connection_managers = property(lambda self: self._conn_managers_per_src_pop)
 
@@ -179,8 +178,8 @@ class CellManagerBase(_CellManager):
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
-        if not pop and circuit_conf._name:
-            pop = circuit_conf._name
+        if not pop and self.circuit_name:
+            pop = self.circuit_name
             logging.warning("(Compat) Assuming population name from Circuit: %s", pop)
         self._population_name = pop
         if not pop:
