@@ -163,7 +163,7 @@ class _CoreNEURONConfig:
             # Write the formatted string to the file
             fp.write(
                 (
-                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"
+                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"  # noqa: UP031
                     % (
                         report_name,
                         target_name,

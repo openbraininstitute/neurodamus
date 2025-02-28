@@ -179,7 +179,7 @@ class ConnectionBase:
             netcon.weight[nc_param_index] = int(nc_type)
 
     def __str__(self):
-        return "[%d->%d]" % (self.sgid, self.tgid)
+        return f"[{self.sgid}->{self.tgid}]"
 
 
 # ----------------------------------------------------------------------

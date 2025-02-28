@@ -1018,7 +1018,8 @@ class Node:
             self._report_list.append(report)
 
         if n_errors > 0:
-            raise Exception("%d reporting errors detected. Terminating" % (n_errors,))
+            msg = f"{n_errors} reporting errors detected. Terminating"
+            raise Exception(msg)
 
         MPI.check_no_errors()
 
