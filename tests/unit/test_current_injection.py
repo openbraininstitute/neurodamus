@@ -1,39 +1,33 @@
 import pytest
 import numpy
-import os
 
 
-@pytest.fixture
-def injection_config_file(ringtest_baseconfig):
-    from tempfile import NamedTemporaryFile
-    import json
-
-    ringtest_baseconfig["inputs"] = {
-        "Stimulus": {
-            "module": "pulse",
-            "input_type": "current_clamp",
-            "delay": 1,
-            "duration": 50,
-            "node_set": "RingA",
-            "represents_physical_electrode": True,
-            "amp_start": 10,
-            "width": 1,
-            "frequency": 50
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "inputs": {
+                "Stimulus": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
         }
-    }
-
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(ringtest_baseconfig, config_file)
-    yield config_file
-    os.unlink(config_file.name)
-
-
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_current_injection(injection_config_file):
+def test_current_injection(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
 
-    nd = Neurodamus(injection_config_file.name,)
+    nd = Neurodamus(create_tmp_simulation_config_file)
 
     cell_id = 1001
     manager = nd.circuits.get_node_manager("RingB")
