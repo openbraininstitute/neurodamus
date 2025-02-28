@@ -225,12 +225,7 @@ class ConnectionSet:
     def __str__(self):
         if self.is_default():
             return "<ConnectionSet: Default>"
-        return "<ConnectionSet: %d-%d (%s->%s)>" % (
-            self.src_id,
-            self.dst_id,
-            self.src_name,
-            self.dst_name,
-        )
+        return f"<ConnectionSet: {self.src_id}-{self.dst_id} ({self.src_name}->{self.dst_name})>"
 
     def __repr__(self):
         return str(self)

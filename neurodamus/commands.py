@@ -71,7 +71,7 @@ def neurodamus(args=None):
 
     if not os.path.isfile(config_file):
         logging.error("Config file not found: %s", config_file)
-        return 1
+        return None
 
     # Shall replace process with special? Don't if is special or already replaced
     if not sys.argv[0].endswith("special") and not os.environ.get("neurodamus_special"):
@@ -150,10 +150,12 @@ def _pop_log_level(options):
         log_level = LogLevel.DEBUG
     elif options.pop("verbose", False):
         log_level = LogLevel.VERBOSE
-    if log_level >= 3:
+
+    if log_level >= LogLevel.VERBOSE:
         from pprint import pprint
 
-        pprint(options)
+        pprint(options)  # noqa: T203
+
     return log_level
 
 
@@ -168,7 +170,7 @@ def show_exception_abort(err_msg, exc_info):
     ALL_RANKS_SYNC_WINDOW = 1
 
     if err_file.exists():
-        return 1
+        return
 
     with open(err_file, "a") as f:
         f.write(str(MPI.rank) + "\n")

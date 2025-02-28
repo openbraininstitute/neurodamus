@@ -179,7 +179,7 @@ class ConnectionBase:
             netcon.weight[nc_param_index] = int(nc_type)
 
     def __str__(self):
-        return "[%d->%d]" % (self.sgid, self.tgid)
+        return f"[{self.sgid}->{self.tgid}]"
 
 
 # ----------------------------------------------------------------------
@@ -211,7 +211,7 @@ class Connection(ConnectionBase):
     @classmethod
     def _init_hmod(cls):
         if cls._AMPANMDA_Helper is not None:
-            return Nd.h
+            return
         h = Nd.require("AMPANMDAHelper", "GABAABHelper")
         cls._AMPANMDA_Helper = h.AMPANMDAHelper
         cls._GABAAB_Helper = h.GABAABHelper

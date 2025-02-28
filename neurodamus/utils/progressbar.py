@@ -82,7 +82,7 @@ class Progress:
 
     def __repr__(self):
         total = "N.A." if self._end is False else str(self._end)
-        return "<Progress: %d/%s>" % (self.progress, total)
+        return f"<Progress: {self.progress}/{total}>"
 
     def reset(self):
         """Resets the current progress to the start point"""

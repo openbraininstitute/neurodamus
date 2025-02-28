@@ -773,7 +773,7 @@ def _simulator_globals(config: _SimConfig, _run_conf):
                 if value not in validator[0]:
                     raise config_exception
             synvar_prefix = "SYNAPSES__"
-            if key.startswith(synvar_prefix) or key.startswith(synvar_prefix.lower()):
+            if key.startswith((synvar_prefix, synvar_prefix.lower())):
                 key = key[len(synvar_prefix) :]
                 config.synapse_options[key] = value
                 log_verbose("SYNAPSES %s = %s", key, value)

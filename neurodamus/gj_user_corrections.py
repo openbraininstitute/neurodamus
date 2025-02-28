@@ -5,7 +5,7 @@
 
 
 import logging
-import pickle
+import pickle  # noqa: S403
 
 import numpy as np
 
