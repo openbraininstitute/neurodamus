@@ -865,7 +865,7 @@ class LoadBalance:
     @staticmethod
     def _write_msdat(fp, ms):
         """Writes load balancing info to an output stream"""
-        fp.write(str(ms.x[0]))  # gid
+        fp.write(str(int(ms.x[0])))  # gid
         fp.write(f" {ms.x[1]:g}")  # total complexity of cell
         piece_count = int(ms.x[2])
         fp.write(f" {piece_count}\n")
@@ -887,8 +887,8 @@ class LoadBalance:
                     fp.write("    ")
                 for _ in range(children_count):
                     i += 1
-                    elem_id = ms.x[i]  # at next child
-                    fp.write(f" {elem_id:d}")
+                    elem_id = int(ms.x[i])  # at next child
+                    fp.write(f" {elem_id}")
                 if children_count > 0:
                     fp.write("\n")
 
