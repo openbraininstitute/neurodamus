@@ -10,7 +10,7 @@ import numpy
                 "Stimulus": {
                     "module": "pulse",
                     "input_type": "current_clamp",
-                    "delay": 1,
+                    "delay": 5,
                     "duration": 50,
                     "node_set": "RingA",
                     "represents_physical_electrode": True,
@@ -43,6 +43,6 @@ def test_current_injection(create_tmp_simulation_config_file):
     strong_reduction_pos = numpy.nonzero(window_sum < -0.5)[0]
     non_consecutives_pos = strong_reduction_pos[numpy.insert(
         numpy.diff(strong_reduction_pos) > 1, 0, True)]
-    expected_positions = numpy.array([42, 242, 442])
+    expected_positions = numpy.array([82, 282, 482])
 
     assert numpy.array_equal(non_consecutives_pos, expected_positions)
