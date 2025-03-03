@@ -1033,32 +1033,6 @@ class ConnectionManagerBase:
             c.disable(also_zero_conductance)
             self._disabled_conns[tgid].append(c)
 
-    def reenable(self, sgid, tgid, population_ids=None):
-        """(Re)enable a connection from given populations."""
-        allowed_pops = self.find_populations(population_ids)
-        delete_indexes = []
-        for i, conn in enumerate(self._disabled_conns[tgid]):
-            if conn.sgid == sgid and any(
-                (p.src_id, p.dst_id) == conn.population_id for p in allowed_pops
-            ):
-                conn.enable()
-                delete_indexes.append(i)
-        self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], delete_indexes).tolist()
-
-    def reenable_all(self, post_gids=None):
-        """Re-enables all disabled connections
-
-        Args:
-            post_gids: The list of target gids to enable (Default: all)
-        """
-        gids = self._raw_gids if post_gids is None else post_gids
-        offset = self._cell_manager.local_nodes.offset
-        for tgid in gids:
-            tgid += offset
-            for c in self._disabled_conns[tgid]:
-                c.enable()
-            del self._disabled_conns[tgid][:]
-
     # GROUPS
     # ------
     def delete_group(self, post_gids, pre_gids=None, population_ids=None):
@@ -1089,28 +1063,6 @@ class ConnectionManagerBase:
             for conn in pop.get_connections(post_gids, pre_gids):
                 self._disabled_conns[conn.tgid].append(conn)
                 conn.disable(also_zero_conductance)
-
-    def reenable_group(self, post_gids, pre_gids=None, population_ids=None):
-        """Enable a number of connections given lists of pre and post gids.
-        Note: None will match all gids.
-        """
-        if post_gids is None:
-            post_gids = self._raw_gids
-        offset = self._cell_manager.local_nodes.offset
-        pre_gids = set(pre_gids)
-        allowed_pops = self.find_populations(population_ids)
-
-        for tgid in post_gids:
-            tgid += offset
-            to_delete = []
-            for i, conn in enumerate(self._disabled_conns[tgid]):
-                if conn.sgid in pre_gids and any(
-                    (p.src_id, p.dst_id) == conn.population_id for p in allowed_pops
-                ):
-                    conn.enable()
-                    to_delete.append(i)
-
-            self._disabled_conns[tgid] = np.delete(self._disabled_conns[tgid], to_delete).tolist()
 
     def get_disabled(self, post_gid=None):
         """Returns the list of disabled connections, optionally for a
