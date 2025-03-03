@@ -177,7 +177,6 @@ ignore = [
     "SIM112", # uncapitalized-environment-variables
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
-    "PGH004", # blanket-noqa
     "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
