@@ -93,7 +93,7 @@ class CliOptions(ConfigT):
 
 
 class CircuitConfig(ConfigT):
-    _name = None
+    name = None
     Engine = None
     CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
@@ -665,7 +665,7 @@ def _extra_circuits(config: _SimConfig, _run_conf):
             circuit_info.setdefault("DetailedAxon", True)
 
         extra_circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        extra_circuits[name]._name = name
+        extra_circuits[name].name = name
 
     # Sort so that iteration is deterministic
     config.extra_circuits = dict(
@@ -747,10 +747,6 @@ _condition_checks = {
         ("True", "False", "0", "false"),
         ConfigurationError("randomize_Gaba_risetime must be True or False"),
     ),
-    "SYNAPSES__minis_single_vesicle": ((0, 1), None),
-    "synapses__minis_single_vesicle": ((0, 1), None),
-    "SYNAPSES__init_depleted": ((0, 1), None),
-    "synapses__init_depleted": ((0, 1), None),
 }
 
 
@@ -772,16 +768,10 @@ def _simulator_globals(config: _SimConfig, _run_conf):
                 )
                 if value not in validator[0]:
                     raise config_exception
-            synvar_prefix = "SYNAPSES__"
-            if key.startswith(synvar_prefix) or key.startswith(synvar_prefix.lower()):
-                key = key[len(synvar_prefix) :]
-                config.synapse_options[key] = value
-                log_verbose("SYNAPSES %s = %s", key, value)
-                for synapse_name in ("ProbAMPANMDA_EMS", "ProbGABAAB_EMS", "GluSynapse"):
-                    setattr(h, key + "_" + synapse_name, value)
-            else:
-                log_verbose("GLOBAL %s = %s", key, value)
-                setattr(h, key, value)
+
+            log_verbose("GLOBAL %s = %s", key, value)
+
+            setattr(h, key, value)
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
                     "Value of %s (%s) is not the same as extracellular_calcium (%s)",
