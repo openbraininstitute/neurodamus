@@ -38,7 +38,7 @@ def dump_cell(cell) -> dict:
     res = _read_object_attrs(cell)
     res["sections"] = []
     cell_name = cell.hname()
-    for nsec, sec in enumerate(cell.all):
+    for sec in cell.all:
         res_sec = {}
         sec_name = sec.hname()
         sec_name = sec_name.replace(cell_name + ".", "")
