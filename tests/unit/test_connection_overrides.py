@@ -35,11 +35,6 @@ from tests import utils
 def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
     """
     Tests simple synapse parameter changes.
-
-    Note: The weight acts as a conductance multiplier. Avoid using `RingA -> RingB`
-    NetCons, as their base conductance is `1.0`. In this case, multiplication and
-    replacement result in the same effect, making it impossible to
-    distinguish between them.
     """
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
