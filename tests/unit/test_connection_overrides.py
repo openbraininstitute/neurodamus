@@ -46,11 +46,13 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
         ("RingA", 1, "RingB", 1),
     ]
 
-    overrides = {("RingA", "RingA"): {"weight": 10001.1,
-                 "depression_time": 10003.1,
-                                      "facilitation_time": 10002.1,
-                                      "delay": 10005.1
-                                      }}
+    overrides = {
+        ("RingA", "RingA"): {
+            "weight": 10001.1,
+            "depression_time": 10003.1,
+            "facilitation_time": 10002.1,
+            "delay": 10005.1
+            }}
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
             nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
