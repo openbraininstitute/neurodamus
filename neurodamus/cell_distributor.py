@@ -61,8 +61,8 @@ class VirtualCellPopulation:
                 "For non-sonata circuit, only a single Virtual Cell Population works with REPLAY"
             )
 
-    is_default = property(lambda self: False)
-    is_virtual = property(lambda self: True)
+    is_default = property(lambda _self: False)
+    is_virtual = property(lambda _self: True)
 
     def __str__(self):
         return f"([VIRT] {self.population_name:s})"
@@ -156,7 +156,7 @@ class CellManagerBase(_CellManager):
     circuit_target = property(lambda self: self._target_spec.name)
     circuit_name = property(lambda self: self._circuit_name)
     is_default = property(lambda self: self._circuit_name is None)
-    is_virtual = property(lambda self: False)
+    is_virtual = property(lambda _self: False)
     connection_managers = property(lambda self: self._conn_managers_per_src_pop)
 
     def is_initialized(self):
@@ -822,8 +822,8 @@ class LoadBalance:
         if MPI.rank == 0:
             with open(out_filename, "w") as fp:
                 fp.write("1\n%d\n" % cell_distributor.total_cells)
-                for cx_info in all_ranks_cx:
-                    fp.write(cx_info)
+                fp.writelines(all_ranks_cx)
+
         # register
         self._cx_targets.add(target_str)
 

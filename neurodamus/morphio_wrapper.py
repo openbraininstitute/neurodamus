@@ -285,7 +285,7 @@ class MorphIOWrapper:
             tstr = self.type2name(type_id)
             tstr1 = f"create {tstr}[{count}]"
             cmds.append(tstr1)
-            tstr1 = self.mksubset(type_id, count, tstr)
+            tstr1 = self.mksubset(type_id, tstr)
             cmds.append(tstr1)
 
         cmds.append("forall all.append")
@@ -350,9 +350,8 @@ class MorphIOWrapper:
     _mksubset_dict = {1: "somatic", 2: "axonal", 3: "basal", 4: "apical"}
 
     @classmethod
-    def mksubset(cls, type_id, freq, type_name):
+    def mksubset(cls, type_id, type_name):
         """:param type_id: id of section type
-        :param freq: frequency of that section type id
         :param type_name: the name of the section type
         :return: command to append section type to subset
         """

@@ -51,7 +51,7 @@ class TargetSpec:
     def simple_name(self):
         if self.name is None and self.population is None:
             return self.GLOBAL_TARGET_NAME
-        return self.__str__().replace(":", "_")
+        return str(self).replace(":", "_")
 
     @property
     def is_full(self):
@@ -173,7 +173,7 @@ class TargetManager:
 
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
-    @lru_cache
+    @lru_cache  # noqa: B019
     def intersecting(self, target1, target2):
         """Checks whether two targets intersect"""
         target1_spec = TargetSpec(target1)

@@ -6,6 +6,7 @@ import os.path
 import re
 from collections import defaultdict
 from enum import Enum
+from pathlib import Path
 
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
@@ -746,10 +747,6 @@ _condition_checks = {
         ("True", "False", "0", "false"),
         ConfigurationError("randomize_Gaba_risetime must be True or False"),
     ),
-    "SYNAPSES__minis_single_vesicle": ((0, 1), None),
-    "synapses__minis_single_vesicle": ((0, 1), None),
-    "SYNAPSES__init_depleted": ((0, 1), None),
-    "synapses__init_depleted": ((0, 1), None),
 }
 
 
@@ -771,16 +768,10 @@ def _simulator_globals(config: _SimConfig, _run_conf):
                 )
                 if value not in validator[0]:
                     raise config_exception
-            synvar_prefix = "SYNAPSES__"
-            if key.startswith(synvar_prefix) or key.startswith(synvar_prefix.lower()):
-                key = key[len(synvar_prefix) :]
-                config.synapse_options[key] = value
-                log_verbose("SYNAPSES %s = %s", key, value)
-                for synapse_name in ("ProbAMPANMDA_EMS", "ProbGABAAB_EMS", "GluSynapse"):
-                    setattr(h, key + "_" + synapse_name, value)
-            else:
-                log_verbose("GLOBAL %s = %s", key, value)
-                setattr(h, key, value)
+
+            log_verbose("GLOBAL %s = %s", key, value)
+
+            setattr(h, key, value)
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
                     "Value of %s (%s) is not the same as extracellular_calcium (%s)",
@@ -1006,10 +997,10 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        with open(os.path.join(config.output_root, "sim.conf")) as f:
-            core_data_exists = "datpath='/dev/shm/" not in f.read() and os.path.isfile(
-                os.path.join(core_data_location, "files.dat")
-            )
+        contents = Path(config.output_root, "sim.conf").read_text()
+        core_data_exists = (
+            "datpath='/dev/shm/" not in contents and Path(core_data_location, "files.dat").is_file()
+        )
     except FileNotFoundError:
         core_data_exists = False
 
@@ -1263,9 +1254,8 @@ def check_connections_configure(SimConfig, target_manager):
         if full_overriden is None:
             not_overridden_weight_0.append(conn)
         elif full_overriden is False:  # incomplete override
-            raise ConfigurationError(
-                "Partial Weight=0 override is not supported: Conn {}".format(conn["_name"])
-            )
+            msg = f"Partial Weight=0 override is not supported: Conn {conn['_name']}"
+            raise ConfigurationError(msg)
     if not_overridden_weight_0:
         logging.warning(
             "The following connections with Weight=0 are not overridden, "
