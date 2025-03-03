@@ -15,7 +15,7 @@ from .connection import Connection, ReplayMode
 from .core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
 from .io.sonata_config import ConnectionTypes
-from .io.synapse_reader import SynapseReader
+from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
 from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
@@ -253,7 +253,7 @@ class ConnectionManagerBase:
 
     # Set depending Classes, customizable
     ConnectionSet = ConnectionSet
-    SynapseReader = SynapseReader
+    SynapseReader = SonataReader
     conn_factory = Connection
 
     cell_manager = property(lambda self: self._cell_manager)

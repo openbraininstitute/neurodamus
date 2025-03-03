@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from abc import abstractmethod
 
 import libsonata
 import numpy as np
@@ -87,10 +86,37 @@ class SynapseParameters(metaclass=_SynParametersMeta):
         return npa
 
 
-class SynapseReader:
-    """Synapse Readers base class.
-    Factory create() will instantiate a SONATA reader.
+class SonataReader:
+    """Reader for SONATA edge files.
+
+    Uses libsonata directly and contains a bunch of workarounds to accomodate files
+    created in the transition to SONATA. Also translates all GIDs from 0-based as on disk
+    to the 1-based convention in Neurodamus.
+
+    Will read each attribute for multiple GIDs at once and cache read data in a columnar
+    fashion.
+
+    FIXME Remove the caching at the np.recarray level.
     """
+
+    SYNAPSE_INDEX_NAMES = ("synapse_index",)
+    LOOKUP_BY_TARGET_IDS = True  # False to lookup by Source Ids
+    Parameters = SynapseParameters  # By default we load synapses
+    EMPTY_DATA = {}
+
+    custom_parameters = {"isec", "ipt", "offset"}
+    """Custom parameters are skipped from direct loading and trigger _load_params_custom()"""
+
+    parameter_mapping = {
+        "weight": "conductance",
+        "U": "u_syn",
+        "D": "depression_time",
+        "F": "facilitation_time",
+        "DTC": "decay_time",
+        "synType": "syn_type_id",
+        "nrrp": "n_rrp_vesicles",
+        "conductance_ratio": "conductance_scale_factor",
+    }
 
     def __init__(self, src, population=None, *_, **kw):
         self._ca_concentration = kw.get("extracellular_calcium")
@@ -102,8 +128,28 @@ class SynapseReader:
         self._extra_fields = ()
         self._extra_scale_vars = []
 
-    def preload_data(self, ids):
-        pass
+    @staticmethod
+    def _get_sonata_circuit(path):
+        """Returns a SONATA edge file in path if present"""
+        if path.endswith(".h5"):
+            import h5py
+
+            f = h5py.File(path, "r")
+            if "edges" in f:
+                return path
+        return None
+
+    @classmethod
+    def create(cls, syn_src, population=None, *args, **kw):
+        """Instantiates a synapse reader, by default SonataReader.
+        syn_src must point to a SONATA edge file.
+        """
+        kw["verbose"] = MPI.rank == 0
+        if fn := cls._get_sonata_circuit(syn_src):
+            if cls is not SonataReader:
+                return cls(fn, population, *args, **kw)
+            return SonataReader(fn, population, *args, **kw)
+        raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
 
     def configure_override(self, mod_override):
         if not mod_override:
@@ -140,10 +186,6 @@ class SynapseReader:
             self._syn_params[gid] = syn_params  # cache parameters
         return syn_params
 
-    @abstractmethod
-    def _load_synapse_parameters(self, gid):
-        """The low level reading of synapses subclasses must override"""
-
     @staticmethod
     def _patch_delay_fp_inaccuracies(records):
         if len(records) == 0 or "delay" not in records.dtype.names:
@@ -164,76 +206,8 @@ class SynapseReader:
         for scale_var in extra_scale_vars:
             syn_params[scale_var] *= scale_factors
 
-    @abstractmethod
-    def _open_file(self, src, population, verbose=False):
-        """Initializes the reader, opens the synapse file"""
-
-    @abstractmethod
-    def has_nrrp(self):
-        """Checks whether source data has the nrrp field."""
-
-    @abstractmethod
-    def has_property(self, field_name):
-        """Checks whether source data has the given additional field."""
-
-    @staticmethod
-    def _get_sonata_circuit(path):
-        """Returns a SONATA edge file in path if present"""
-        if path.endswith(".h5"):
-            import h5py
-
-            f = h5py.File(path, "r")
-            if "edges" in f:
-                return path
-        return None
-
-    @classmethod
-    def create(cls, syn_src, population=None, *args, **kw):
-        """Instantiates a synapse reader, by default SonataReader.
-        syn_src must point to a SONATA edge file.
-        """
-        kw["verbose"] = MPI.rank == 0
-        if fn := cls._get_sonata_circuit(syn_src):
-            if cls is not SynapseReader:
-                return cls(fn, population, *args, **kw)
-            log_verbose("[SynReader] Using SonataReader.")
-            return SonataReader(fn, population, *args, **kw)
-        raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
-
-
-class SonataReader(SynapseReader):
-    """Reader for SONATA edge files.
-
-    Uses libsonata directly and contains a bunch of workarounds to accomodate files
-    created in the transition to SONATA. Also translates all GIDs from 0-based as on disk
-    to the 1-based convention in Neurodamus.
-
-    Will read each attribute for multiple GIDs at once and cache read data in a columnar
-    fashion.
-
-    FIXME Remove the caching at the np.recarray level.
-    """
-
-    SYNAPSE_INDEX_NAMES = ("synapse_index",)
-    LOOKUP_BY_TARGET_IDS = True  # False to lookup by Source Ids
-    Parameters = SynapseParameters  # By default we load synapses
-    EMPTY_DATA = {}
-
-    custom_parameters = {"isec", "ipt", "offset"}
-    """Custom parameters are skipped from direct loading and trigger _load_params_custom()"""
-
-    parameter_mapping = {
-        "weight": "conductance",
-        "U": "u_syn",
-        "D": "depression_time",
-        "F": "facilitation_time",
-        "DTC": "decay_time",
-        "synType": "syn_type_id",
-        "nrrp": "n_rrp_vesicles",
-        "conductance_ratio": "conductance_scale_factor",
-    }
-
     def _open_file(self, src, population, _):
+        """Initializes the reader, opens the synapse file"""
         try:
             from mpi4py import MPI
 
@@ -251,11 +225,8 @@ class SonataReader(SynapseReader):
         # A cache for connection counts, used mostly in dry run
         self._counts = {}
 
-    def has_nrrp(self):
-        """This field is required in SONATA."""
-        return True
-
     def has_property(self, field_name):
+        """Checks whether source data has the given additional field."""
         if field_name in self.SYNAPSE_INDEX_NAMES:
             return True
         return field_name in self._population.attribute_names
@@ -408,6 +379,7 @@ class SonataReader(SynapseReader):
                 _populate("offset", _read("morpho_offset_segment_post"))
 
     def _load_synapse_parameters(self, gid):
+        """The low level reading of synapses"""
         data = self._data.get(gid)
         if data is None:  # not in _data
             self._preload_data_chunk([gid])

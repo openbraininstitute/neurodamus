@@ -1,8 +1,9 @@
+import re
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
 import pytest
-from pathlib import Path
-
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
 SSCX_V7 = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
@@ -16,7 +17,7 @@ def test_synapses_params():
     from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.node import Node
     from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
-    from neurodamus.io.synapse_reader import SynapseReader
+    from neurodamus.io.synapse_reader import SonataReader
     from neurodamus.utils.logging import log_verbose
     from libsonata import EdgeStorage
 
@@ -79,7 +80,7 @@ def test_synapses_params():
     dfs['GluSynapse'] = df
 
     # scale Use with calcium
-    # wrapper class for calling SynapseReader._scale_U_param
+    # wrapper class for calling SonataReader._scale_U_param
     class wrapU:
         def __init__(self, a, b):
             self.U = np.array(a)
@@ -89,22 +90,21 @@ def test_synapses_params():
         def __len__(self):
             return self.U.size
 
-    for _, df in dfs.items():
+    for df in dfs.values():
         tmp = wrapU(df["u_syn"], df["u_hill_coefficient"])
-        SynapseReader._scale_U_param(tmp, SimConfig.extracellular_calcium, [])
+        SonataReader._scale_U_param(tmp, SimConfig.extracellular_calcium, [])
         df["u_syn"] = tmp.U
 
     # 2) get values from NEURON
     post_cell = n.circuits.global_manager.get_cellref(post_L5_PC + 1)  # 1-based in neurodamus
     # here we collect all synapses for the post cell
-    import re
-    _match_index = re.compile(r"\[[0-9]+\]$")
+    match_index = re.compile(r"\[[0-9]+\]$")
     synlist = {}
     for nc in Nd.h.cvode.netconlist('', post_cell, ''):
         if nc.precell() is not None:  # minis netcons only
             continue
         syn = nc.syn()
-        syntype = _match_index.sub('', syn.hname())
+        syntype = match_index.sub('', syn.hname())
         d = {'weight': nc.weight[0]}
         for v in vars(syn):
             try:
