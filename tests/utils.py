@@ -305,10 +305,21 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
     return recorder, tvec
 
 
-def write_report(filename, recorder, tvec):
+def write_ascii_report(filename, recorder, tvec):
     """Write out the report in ASCII format"""
     with open(filename, "w") as f:
         f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<10}{'data':<30}\n")
         for gid, secname, data_vec in recorder:
             for t, data in zip(tvec, data_vec):
                 f.write(f"{gid:<10}{secname:<20}{t:<10}{data:<30}\n")
+
+
+def read_ascii_report(filename):
+    """Read an ASCII report and return report data"""
+    data_vec = []
+    with open(filename) as f:
+        next(f)  # skip header
+        for line in f:
+            gid, seg_name, time, data = line.split()
+            data_vec.append((int(gid), seg_name, float(time), float(data)))
+    return data_vec
