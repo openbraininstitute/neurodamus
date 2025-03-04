@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 
 from neurodamus.node import Node
-from tests.utils import record_compartment_report, write_report
+from tests.utils import record_compartment_report, write_ascii_report, read_ascii_report
 
 
 @pytest.mark.slow
@@ -74,7 +74,7 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "sections": "soma",
                     "dt": 10,
                     "start_time": 0.0,
-                    "end_time": 40.0,
+                    "end_time": 40.0
                 },
                 "compartment_v": {
                     "type": "compartment",
@@ -83,7 +83,7 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "sections": "all",
                     "dt": 10,
                     "start_time": 0.0,
-                    "end_time": 50.0,
+                    "end_time": 40.0
                 },
                 "summation_i": {
                     "type": "summation",
@@ -92,7 +92,7 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "unit": "nA",
                     "dt": 10,
                     "start_time": 0.0,
-                    "end_time": 50.0
+                    "end_time": 40.0
                 }
             }
         }
@@ -117,7 +117,19 @@ def test_neuorn_report(create_tmp_simulation_config_file):
             ascii_recorders[rep_name] = (record_compartment_report(rep_conf, n._target_manager))
     Nd.finitialize()   # reinit for the recordings to be registered
     n.run()
+
+    # Write ASCII reports
     for rep_name, (recorder, tvec) in ascii_recorders.items():
         ascii_report = Path(n._run_conf["OutputRoot"]) / (rep_name + ".txt")
-        write_report(ascii_report, recorder, tvec)
-        assert ascii_report.exists()
+        write_ascii_report(ascii_report, recorder, tvec)
+
+    # Read ASCII reports
+    soma_report = Path(n._run_conf["OutputRoot"]) / ("soma_v.txt")
+    assert soma_report.exists()
+    data = read_ascii_report(soma_report)
+    assert len(data) == 25  # 5 time steps * 5 soma sections
+
+    compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
+    assert compartment_report.exists()
+    data = read_ascii_report(compartment_report)
+    assert len(data) == 125  # 5 time steps * 5*5 compartments
