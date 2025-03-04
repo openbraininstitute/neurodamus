@@ -2,12 +2,20 @@ import json
 import pytest
 from pathlib import Path
 
+from tests import utils
+# utils needs to be registered to let pytest rewrite
+# properly the assert errors. Either import it or use:
+# pytest.register_assert_rewrite("tests.utils")
+#
+# Example:
+# a, b = 3, 4
+# a == b
+# this should say somewhere:
+# AssertError 3 =/= 4
+
+
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
-
-# needed to have asserts in utils that also print values
-# in case of failure
-pytest.register_assert_rewrite("tests.utils")
 
 
 @pytest.fixture(scope="session")
@@ -68,7 +76,7 @@ def create_tmp_simulation_config_file(request, tmp_path):
             sim_config_data = json.load(src_f)
 
     if "extra_config" in params:
-        sim_config_data.update(params.get("extra_config"))
+        sim_config_data = utils.merge_dicts(sim_config_data, params.get("extra_config"))
 
     # patch the relative file path to src_dir
     circuit_conf = sim_config_data.get("network", "circuit_config.json")
