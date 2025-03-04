@@ -166,6 +166,7 @@ def test_merge_dicts_deeply_nested():
     expected = {"A": {"B": {"C": 1, "D": 2}}}
     assert utils.merge_dicts(parent, child) == expected
 
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -186,5 +187,3 @@ def test_merge_simulation_configs(create_tmp_simulation_config_file):
         assert np.isclose(config_data["run"]["dt"], 0.1)
         assert config_data["run"]["random_seed"] == 1122
         assert len(config_data["run"]) == 3
-
-
