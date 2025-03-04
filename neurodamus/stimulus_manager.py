@@ -586,9 +586,9 @@ class Noise(BaseStim):
 
             self.compute_parameters(cell)
 
-            rng = random.Random123(Noise.stimCount + 100,
-                                   SimConfig.rng_info.getStimulusSeed() + 500,
-                                   gid + 300)
+            rng = random.Random123(
+                Noise.stimCount + 100, SimConfig.rng_info.getStimulusSeed() + 500, gid + 300
+            )
 
             # draw already used numbers
             if self.delay > 0:

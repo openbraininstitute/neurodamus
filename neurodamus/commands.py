@@ -176,7 +176,8 @@ def show_exception_abort(err_msg, exc_info):
         f.write(str(MPI.rank) + "\n")
 
     with open(err_file) as f:
-        line0 = open(err_file).readline().strip()
+        line0 = f.readline().strip()
+
     if str(MPI.rank) == line0:
         logging.critical(err_msg, exc_info=exc_info)
 

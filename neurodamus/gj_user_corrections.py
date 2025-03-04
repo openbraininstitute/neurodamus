@@ -228,4 +228,5 @@ def _save_seclamps(seclamp_current_per_gid, output_dir):
     seclamp_current_per_gid_a = {}
     for gid in seclamp_current_per_gid:
         seclamp_current_per_gid_a[gid] = np.array(seclamp_current_per_gid[gid])
-    pickle.dump(seclamp_current_per_gid_a, open(f"{output_dir}/data_for_host_{MPI.rank}.p", "wb"))
+    with open(f"{output_dir}/data_for_host_{MPI.rank}.p", "wb") as fd:
+        pickle.dump(seclamp_current_per_gid_a, fd)
