@@ -71,7 +71,7 @@ def neurodamus(args=None):
 
     if not os.path.isfile(config_file):
         logging.error("Config file not found: %s", config_file)
-        return None
+        return 1
 
     # Shall replace process with special? Don't if is special or already replaced
     if not sys.argv[0].endswith("special") and not os.environ.get("neurodamus_special"):
