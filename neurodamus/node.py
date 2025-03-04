@@ -258,7 +258,7 @@ class CircuitManager:
         return pop_offsets, alias_pop
 
     @classmethod
-    def _pop_offset_file(self, create=False):
+    def _pop_offset_file(cls, create=False):
         outdir = ospath.join(SimConfig.output_root)
         create and os.makedirs(outdir, exist_ok=True)
         return ospath.join(outdir, "populations_offset.dat")
