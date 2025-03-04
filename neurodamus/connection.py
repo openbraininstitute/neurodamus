@@ -490,6 +490,8 @@ class Connection(ConnectionBase):
             self._spont_minis = None
 
         # Delayed vecs: release if not used, sort if over 1 value
+        if self._delay_vec is None and self._delayweight_vec is None:
+            return
         total_delays = self._delay_vec.size()
         if total_delays == 0:
             self._delay_vec = None

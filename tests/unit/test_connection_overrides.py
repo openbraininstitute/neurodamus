@@ -52,7 +52,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
             "depression_time": 10003.1,
             "facilitation_time": 10002.1,
             "delay": 10005.1
-            }}
+        }}
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
             nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
@@ -174,3 +174,41 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
         for nc_id, nc in enumerate(nclist):
             utils.check_netcon(src_gid, nc_id, nc, edges, selection, **kwargs)
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {
+                    "name": "A2B",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "spont_minis": 200,
+                    "synapse_configure": "%s.verboseLevel = 1"
+                }
+            ]
+        }
+    },
+], indirect=True)
+def test_spont_minis_simple(create_tmp_simulation_config_file):
+    """Test that spont_mini fires with roughly """
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Ndc
+
+    cell_id = 1001
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    manager = nd.circuits.get_node_manager("RingB")
+    cell_ringB = manager.get_cell(cell_id)
+    voltage_trace = Ndc.Vector()
+    voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
+    Ndc.finitialize()  # reinit for the recordings to be registered
+    nd.run()
+
+    peaks_pos = utils.find_peaks(voltage_trace)
+
+    assert np.array_equal(peaks_pos, [5, 49, 116, 158, 263, 298, 379])

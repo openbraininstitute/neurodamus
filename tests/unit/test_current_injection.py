@@ -1,5 +1,7 @@
+import numpy as np
 import pytest
-import numpy
+
+from tests import utils
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -38,11 +40,7 @@ def test_current_injection(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.5)[0]
-    non_consecutives_pos = strong_reduction_pos[numpy.insert(
-        numpy.diff(strong_reduction_pos) > 1, 0, True)]
-    expected_positions = numpy.array([82, 282, 482])
+    # extract the peak indexes
+    peaks_pos = utils.find_peaks(voltage_vec)
 
-    assert numpy.array_equal(non_consecutives_pos, expected_positions)
+    assert np.array_equal(peaks_pos, [82, 282, 482])
