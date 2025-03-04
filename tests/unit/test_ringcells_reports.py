@@ -81,10 +81,19 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "cells": "Mosaic",
                     "variable_name": "v",
                     "sections": "all",
-                    "dt": 5,
+                    "dt": 10,
                     "start_time": 0.0,
                     "end_time": 50.0,
                 },
+                "summation_i": {
+                    "type": "summation",
+                    "cells": "Mosaic",
+                    "variable_name": "i_membrane, IClamp",
+                    "unit": "nA",
+                    "dt": 10,
+                    "start_time": 0.0,
+                    "end_time": 50.0
+                }
             }
         }
     }
@@ -95,17 +104,20 @@ def test_neuorn_report(create_tmp_simulation_config_file):
     from neurodamus.core import NeurodamusCore as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
-    assert len(n.reports) == 2
+    assert len(n.reports) == 3
 
     # For unit tests, we don't build libsonatareport to create the standard sonata reports,
-    # instead we use custom functions to record and write report vectors in ASCII format
+    # instead we use custom functions to record and write report vectors in ASCII format,
+    # but currently only for comparment reports
     reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
-    reports = {}
+    ascii_recorders = {}
     for rep_name, rep_conf in reports_conf.items():
-        reports[rep_name] = (record_compartment_report(rep_conf, n._target_manager))
+        rep_type = rep_conf["Type"]
+        if rep_type == "compartment":
+            ascii_recorders[rep_name] = (record_compartment_report(rep_conf, n._target_manager))
     Nd.finitialize()   # reinit for the recordings to be registered
     n.run()
-    for rep_name, (recorder, tvec) in reports.items():
+    for rep_name, (recorder, tvec) in ascii_recorders.items():
         ascii_report = Path(n._run_conf["OutputRoot"]) / (rep_name + ".txt")
         write_report(ascii_report, recorder, tvec)
         assert ascii_report.exists()
