@@ -189,8 +189,8 @@ class CellManagerBase(_CellManager):
         is_base_pop = self.is_default or circuit_conf.get("no_offset")
         self._local_nodes = NodeSet().register_global(pop, is_base_pop)
 
-    @classmethod
-    def _get_sonata_population_name(self, node_file):
+    @staticmethod
+    def _get_sonata_population_name(node_file):
         import libsonata  # only for SONATA
 
         pop_names = libsonata.NodeStorage(node_file).population_names
@@ -288,10 +288,8 @@ class CellManagerBase(_CellManager):
 
     @mpi_no_errors
     def _instantiate_cells(self, _CellType=None, **_opts):
-        if SimConfig.crash_test_mode:
-            CellType = PointCell
-        else:
-            CellType = _CellType or self.CellType
+        CellType = PointCell if SimConfig.crash_test_mode else _CellType or self.CellType
+
         assert CellType is not None, "Undefined CellType in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
