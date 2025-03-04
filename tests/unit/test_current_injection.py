@@ -3,6 +3,7 @@ import pytest
 
 from tests import utils
 
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",

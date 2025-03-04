@@ -52,7 +52,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
             "depression_time": 10003.1,
             "facilitation_time": 10002.1,
             "delay": 10005.1
-            }}
+        }}
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
             nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
@@ -176,7 +176,6 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
 
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -207,10 +206,9 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     cell_ringB = manager.get_cell(cell_id)
     voltage_trace = Ndc.Vector()
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
-    Ndc.finitialize() # reinit for the recordings to be registered
+    Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
     peaks_pos = utils.find_peaks(voltage_trace)
 
-    assert np.array_equal(peaks_pos, [  5,  49, 116, 158, 263, 298, 379])
-
+    assert np.array_equal(peaks_pos, [5, 49, 116, 158, 263, 298, 379])
