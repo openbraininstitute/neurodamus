@@ -233,8 +233,12 @@ class PointCell:
     nSecAll = property(lambda _self: 1)
     all = property(lambda self: self.soma)
     input_resistance = property(lambda _self: 1)
-    getThreshold = lambda self: self._threshold_current
-    getHypAmp = lambda self: self._hypAmp_current
+
+    def getThreshold(self):
+        return self._threshold_current
+
+    def getHypAmp(self):
+        return self._hypAmp_current
 
     def connect2target(self, target_pp=None):
         soma_sec = self.soma[0]
