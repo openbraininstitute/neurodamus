@@ -1,52 +1,120 @@
 import pytest
+import numpy as np
 import numpy.testing as npt
-import os
+
+
+from .conftest import RINGTEST_DIR
+
+INPUT_SPIKES_FILE = str(RINGTEST_DIR / "input_spikes.h5")
 
 
 @pytest.fixture
-def input_spikes_file(ringtest_dir):
-    return str(ringtest_dir / "input_spikes.h5")
-
-
-@pytest.fixture
-def replay_sim_config_file(ringtest_baseconfig, input_spikes_file, tmp_path):
+def ringtest_virtual_pop_config():
     from tempfile import NamedTemporaryFile
+    import os
     import json
 
-    ringtest_baseconfig["inputs"] = {}
-    ringtest_baseconfig["inputs"]["spikeReplay"] = {
-        "module": "synapse_replay",
-        "input_type": "spikes",
-        "spike_file": input_spikes_file,
-        "delay": 0,
-        "duration": 50,
-        "node_set": "RingB",
+    circuit_config_data = {
+        "version": 2,
+        "networks": {
+            "nodes": [
+                {
+                    "nodes_file": str(RINGTEST_DIR / "nodes_A.h5"),
+                    "populations": {
+                        "RingA": {
+                            "type": "virtual",
+                        }
+                    }
+                },
+                {
+                    "nodes_file": str(RINGTEST_DIR / "nodes_B.h5"),
+                    "populations": {
+                        "RingB": {
+                            "type": "biophysical",
+                            "morphologies_dir": "swc",
+                            "biophysical_neuron_models_dir": str(RINGTEST_DIR / "hoc"),
+                        }
+                    }
+                }
+            ],
+            "edges": [
+                {
+                    "edges_file": str(RINGTEST_DIR / "local_edges_B.h5"),
+                    "populations": {
+                        "RingB__RingB__chemical": {
+                            "type": "chemical"
+                        }
+                    }
+                },
+                {
+                    "edges_file": str(RINGTEST_DIR / "edges_AB.h5"),
+                    "populations": {
+                        "RingA__RingB__chemical": {
+                            "type": "chemical"
+                        }
+                    }
+                }
+            ]
+        }
     }
 
-    with NamedTemporaryFile("w", suffix='.json', dir=tmp_path, delete=False) as config_file:
-        json.dump(ringtest_baseconfig, config_file)
-    yield config_file
+    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+        json.dump(circuit_config_data, config_file)
+
+    yield dict(
+        network=config_file.name,
+        node_sets_file=str(RINGTEST_DIR / "nodesets.json"),
+        target_simulator="NEURON",
+        run={
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        node_set="Mosaic",
+        conditions={
+            "celsius": 35,
+            "v_init": -65
+        }
+    )
+
     os.unlink(config_file.name)
 
 
 @pytest.mark.forked
-def test_sonata_spikes_reader(input_spikes_file):
+def test_sonata_spikes_reader():
     from neurodamus.replay import SpikeManager, MissingSpikesPopulationError
 
-    timestamps, spike_gids = SpikeManager._read_spikes_sonata(input_spikes_file, "RingA")
+    timestamps, spike_gids = SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "RingA")
     npt.assert_allclose(timestamps, [0.1, 0.15, 0.175, 2.275, 3.025, 3.45, 4.35, 5.7, 6.975, 7.725])
     npt.assert_equal(spike_gids, [1, 3, 2, 1, 2, 3, 1, 2, 3, 1])
 
     # We do an internal assertion when the population doesnt exist. Verify it works as expected
     with pytest.raises(MissingSpikesPopulationError, match="Spikes population not found"):
-        SpikeManager._read_spikes_sonata(input_spikes_file, "wont-exist")
+        SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "wont-exist")
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "inputs": {
+                "spikeReplay" : {
+                    "module": "synapse_replay",
+                    "input_type": "spikes",
+                    "spike_file": INPUT_SPIKES_FILE,
+                    "delay": 0,
+                    "duration": 50,
+                    "node_set": "RingB",
+                }
+            }
+        }
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_sonata_parse_synapse_replay_input(replay_sim_config_file, input_spikes_file):
+def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
-    SimConfig.init(replay_sim_config_file.name, {})
+    SimConfig.init(create_tmp_simulation_config_file, {})
 
     spikes_replay = SimConfig.stimuli["spikeReplay"]
     assert spikes_replay['Target'] == 'RingB'
@@ -54,31 +122,48 @@ def test_sonata_parse_synapse_replay_input(replay_sim_config_file, input_spikes_
     assert spikes_replay['Pattern'] == 'SynapseReplay'
     assert spikes_replay['Delay'] == 0.0
     assert spikes_replay['Duration'] == 50.0
-    assert spikes_replay['SpikeFile'] == input_spikes_file
+    assert spikes_replay['SpikeFile'] == INPUT_SPIKES_FILE
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "inputs": {
+                "spikeReplay" : {
+                    "module": "synapse_replay",
+                    "input_type": "spikes",
+                    "spike_file": INPUT_SPIKES_FILE,
+                    "delay": 0,
+                    "duration": 50,
+                    "node_set": "RingB",
+                }
+            }
+        }
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_replay_stim_generated(replay_sim_config_file):
+def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.core.configuration import Feature
     from neurodamus.connection import NetConType
 
-    n = Neurodamus(
-        replay_sim_config_file.name,
+    nd = Neurodamus(
+        create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
         disable_reports=True,
         cleanup_atexit=False,
     )
 
-    edges_a_b = n.circuits.get_edge_manager("RingA", "RingB")
+    edges_a_b = nd.circuits.get_edge_manager("RingA", "RingB")
     conn_1_1001 = next(edges_a_b.get_connections(1001, 1))
     time_vec = conn_1_1001._replay.time_vec.as_numpy()
     npt.assert_allclose(time_vec, [0.1, 2.275, 4.35, 7.725])
 
     # get the netcon for connection 1->1001
-    cell = n._pc.gid2cell(1001)
-    pre_cell = n._pc.gid2cell(1)
+    cell = nd._pc.gid2cell(1001)
+    pre_cell = nd._pc.gid2cell(1)
     nclist = Nd.cvode.netconlist(pre_cell, cell, "")
     assert nclist.count() == 1
     netcon1 = nclist.o(0)
@@ -86,9 +171,91 @@ def test_replay_stim_generated(replay_sim_config_file):
 
     # get the netcon generated by ReplayStim for connection 1->1001
     nclist = Nd.cvode.netconlist("", cell, "")
+    replay_netcons = []
     for netcon in nclist:
-        if netcon.srcgid() < 0:
-            assert netcon.weight[4] == int(NetConType.NC_REPLAY)
+        if netcon.srcgid() < 0 and netcon.weight[4] == int(NetConType.NC_REPLAY):
+            replay_netcons += [netcon]
             assert netcon.weight[0] == netcon1.weight[0]
             assert netcon.delay == netcon1.delay
             assert netcon.threshold == 10
+    assert len(replay_netcons) > 0
+
+    # get voltage variations in cell 1001
+    cell = nd.circuits.get_node_manager("RingB").get_cell(1001)
+    voltage_vec = Nd.Vector()
+    voltage_vec.record(cell._cellref.soma[0](0.5)._ref_v)
+
+    Nd.finitialize()
+    nd.run()
+
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = np.nonzero(window_sum < -0.5)[0]
+    non_consecutives_pos = strong_reduction_pos[np.insert(
+        np.diff(strong_reduction_pos) > 1, 0, True)]
+    expected_positions = np.array([32, 75])
+
+    npt.assert_equal(non_consecutives_pos, expected_positions)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_virtual_pop_config",
+        "extra_config": {
+            "inputs": {
+                "spikeReplay" : {
+                    "module": "synapse_replay",
+                    "input_type": "spikes",
+                    "spike_file": INPUT_SPIKES_FILE,
+                    "delay": 0,
+                    "duration": 50,
+                    "node_set": "RingB",
+                }
+            }
+        }
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_replay_virtual_population(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core.configuration import Feature
+    from neurodamus.connection import NetConType
+
+    nd = Neurodamus(
+        create_tmp_simulation_config_file,
+        restrict_features=[Feature.Replay],
+        disable_reports=True,
+        cleanup_atexit=False,
+    )
+
+    edges_a_b = nd.circuits.get_edge_manager("RingA", "RingB")
+    conn_1_1001 = next(edges_a_b.get_connections(1001, 1))
+    time_vec = conn_1_1001._replay.time_vec.as_numpy()
+    npt.assert_allclose(time_vec, [0.1, 2.275, 4.35, 7.725])
+    # # get the netcon generated by ReplayStim for connection 1->1001
+    cell = nd._pc.gid2cell(1001)
+    nclist = Nd.cvode.netconlist("", cell, "")
+
+    replay_netcons = []
+    for netcon in nclist:
+        if netcon.srcgid() < 0 and netcon.weight[4] == int(NetConType.NC_REPLAY):
+            replay_netcons += [netcon]
+    assert len(replay_netcons) > 0
+
+    # get voltage variations in cell 1001
+    cell = nd.circuits.get_node_manager("RingB").get_cell(1001)
+    voltage_vec = Nd.Vector()
+    voltage_vec.record(cell._cellref.soma[0](0.5)._ref_v)
+
+    Nd.finitialize()
+    nd.run()
+
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = np.nonzero(window_sum < -0.5)[0]
+    non_consecutives_pos = strong_reduction_pos[np.insert(
+        np.diff(strong_reduction_pos) > 1, 0, True)]
+    expected_positions = np.array([32, 75])
+
+    npt.assert_equal(non_consecutives_pos, expected_positions)
