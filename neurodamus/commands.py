@@ -74,7 +74,7 @@ def neurodamus(args=None):
         return 1
 
     # Shall replace process with special? Don't if is special or already replaced
-    if not sys.argv[0].endswith("special") and not os.environ.get("neurodamus_special"):
+    if not sys.argv[0].endswith("special") and not os.environ.get("NEURODAMUS_SPECIAL"):
         _attempt_launch_special(config_file)
 
     # Warning control before starting the process
@@ -205,7 +205,7 @@ def _attempt_launch_special(config_file):
         )
         return
     print("::INIT:: Special available. Replacing binary...")
-    os.environ["neurodamus_special"] = "1"
+    os.environ["NEURODAMUS_SPECIAL"] = "1"
     init_script = os.path.join(neurodamus_py_root, "init.py")
     os.execl(special, "-mpi", "-python", init_script, "--configFile=" + config_file, *sys.argv[2:])
 

@@ -167,7 +167,6 @@ ignore = [
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
     "S404",   # suspicious-subprocess-import
-    "SIM112", # uncapitalized-environment-variables
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
     "N818",   # error-suffix-on-exception-name
