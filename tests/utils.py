@@ -264,7 +264,7 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1):
 
 def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
-        More details in NEURON Vector.record()
+    More details in NEURON Vector.record()
     """
     rep_type = rep_conf["Type"]
     assert rep_type == "compartment", "Report type is not supported"
@@ -285,9 +285,7 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
     if sum_currents_into_soma and rep_type == "Summation":
         sections = "all"
         compartments = "all"
-    points = target_manager.getPointList(
-        target, sections=sections, compartments=compartments
-    )
+    points = target_manager.getPointList(target, sections=sections, compartments=compartments)
     recorder = []
     for point in points:
         gid = point.gid
@@ -302,16 +300,15 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
             voltage_vec = Nd.Vector()
             voltage_vec.record(var_ref, tvec)
             segname = str(section(x))
-            segname = segname[segname.find(".")+1:]
+            segname = segname[segname.find(".") + 1 :]
             recorder.append((gid, segname, voltage_vec))
     return recorder, tvec
 
 
 def write_report(filename, recorder, tvec):
-    """Write out the report in ASCII format
-    """
+    """Write out the report in ASCII format"""
     with open(filename, "w") as f:
-        f.write(f'{"cell_id":<10}{"seg_name":<20}{"time":<10}{"data":<30}\n')
+        f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<10}{'data':<30}\n")
         for gid, secname, data_vec in recorder:
             for t, data in zip(tvec, data_vec):
                 f.write(f"{gid:<10}{secname:<20}{t:<10}{data:<30}\n")
