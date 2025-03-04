@@ -11,11 +11,6 @@ RINGTEST_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringte
 
 
 @pytest.fixture
-def ringtest_dir():
-    return RINGTEST_DIR
-
-
-@pytest.fixture
 def ringtest_baseconfig():
     return dict(
         network=str(RINGTEST_DIR / "circuit_config.json"),
