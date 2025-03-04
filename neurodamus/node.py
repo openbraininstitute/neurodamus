@@ -1183,13 +1183,10 @@ class Node:
             for pop_name, offset in pop_offsets.items():
                 if pop_name is not None:
                     CoreConfig.write_spike_population(pop_name or "All", offset)
-            spike_path = self._run_conf.get("SpikesFile")
-            if spike_path is not None:
-                # Get only the spike file name
-                file_name = spike_path.split("/")[-1]
-            else:
-                file_name = "out.h5"
-            CoreConfig.write_spike_filename(file_name)
+
+            spike_path = Path(self._run_conf.get("SpikesFile", "out.h5"))
+
+            CoreConfig.write_spike_filename(spike_path.name)
         else:
             # Report Buffer Size hint in MB.
             reporting_buffer_size = self._run_conf.get("ReportingBufferSize")
@@ -1649,14 +1646,9 @@ class Node:
         output_root = SimConfig.output_root
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
-            spike_path = self._run_conf.get("SpikesFile")
-            if spike_path is not None:
-                # Get only the spike file name
-                file_name = spike_path.split("/")[-1]
-            else:
-                file_name = "out.h5"
+            spike_path = Path(self._run_conf.get("SpikesFile", "out.h5"))
             # create a sonata spike file
-            self._sonatareport_helper.create_spikefile(output_root, file_name)
+            self._sonatareport_helper.create_spikefile(output_root, spike_path.name)
             # write spikes per population
             for (population, population_offset), (spikevec, idvec) in zip(
                 self._spike_populations, self._spike_vecs

@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 import time
-from os.path import abspath
+import warnings
 from pathlib import Path
 
 from docopt import docopt
@@ -113,7 +113,7 @@ def hocify(args=None):
         --output-dir=<PATH>     Output directory for hoc files.
     """
     options = docopt_sanitize(docopt(hocify.__doc__, args))
-    morph_path = abspath(options.pop("MorphologyPath"))
+    morph_path = os.path.abspath(options.pop("MorphologyPath"))
     log_level = _pop_log_level(options)
     neuron_nframe = options.pop("nframe")
     options.pop("help")  # never pass to the library
@@ -190,7 +190,7 @@ def _attempt_launch_special(config_file):
 
     special = shutil.which("special")
     if os.path.isfile("x86_64/special"):  # prefer locally compiled special
-        special = abspath("x86_64/special")
+        special = os.path.abspath("x86_64/special")
     if special is None:
         logging.warning(
             "special not found. Running neurodamus from Python with libnrnmech. "
@@ -227,14 +227,8 @@ def _filter_warnings():
     Note: "special" with build_type = FastDebug/Debug or calling the simulation process
        in python (built with gcc) does not have such flush-to-zero warning.
     """
-    import warnings
-
-    if MPI.rank == 0:
-        action = "once"
-    else:
-        action = "ignore"
     warnings.filterwarnings(
-        action=action,
+        action="once" if MPI.rank == 0 else "ignore",
         message="The value of the smallest subnormal for .* type is zero.",
         category=UserWarning,
         module="numpy",

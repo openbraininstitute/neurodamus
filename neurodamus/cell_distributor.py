@@ -288,10 +288,8 @@ class CellManagerBase(_CellManager):
 
     @mpi_no_errors
     def _instantiate_cells(self, _CellType=None, **_opts):
-        if SimConfig.crash_test_mode:
-            CellType = PointCell
-        else:
-            CellType = _CellType or self.CellType
+        CellType = PointCell if SimConfig.crash_test_mode else _CellType or self.CellType
+
         assert CellType is not None, "Undefined CellType in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
