@@ -3,7 +3,7 @@ import multiprocessing
 import os
 from time import strftime
 
-from .core import Cell
+from .core.cell import Cell
 from .utils.logging import log_stage, log_verbose, setup_logging
 from .utils.progressbar import ProgressBar
 
@@ -50,7 +50,7 @@ class Hocify:
         self._morphdir = os.path.join(self._morpho_path, morpho_folder)
         if not os.path.isdir(self._morphdir):
             logging.critical("Morphology directory does not exist: %s", self._morphdir)
-            return 1
+            return
 
         logging.info("Target fast hoc folder is: %s", Hocify.fasthocdir)
         logging.info("Hoc-ifying morphology folder: %s ...", self._morphdir)
@@ -70,6 +70,6 @@ class Hocify:
         for file in ProgressBar.iter(processed_files, estimated_file_count):
             if isinstance(file, Exception):
                 logging.critical(str(file))
-                return 1
+                return
             log_verbose("Done for: " + file)
         logging.info("Done")

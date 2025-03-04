@@ -93,7 +93,7 @@ class CliOptions(ConfigT):
 
 
 class CircuitConfig(ConfigT):
-    _name = None
+    name = None
     Engine = None
     CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
@@ -665,7 +665,7 @@ def _extra_circuits(config: _SimConfig, _run_conf):
             circuit_info.setdefault("DetailedAxon", True)
 
         extra_circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        extra_circuits[name]._name = name
+        extra_circuits[name].name = name
 
     # Sort so that iteration is deterministic
     config.extra_circuits = dict(
@@ -772,6 +772,7 @@ def _simulator_globals(config: _SimConfig, _run_conf):
             log_verbose("GLOBAL %s = %s", key, value)
 
             setattr(h, key, value)
+
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
                     "Value of %s (%s) is not the same as extracellular_calcium (%s)",

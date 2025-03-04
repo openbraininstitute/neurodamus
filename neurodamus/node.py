@@ -430,7 +430,7 @@ class Node:
             PopulationNodes.create_pop(base_population, is_base_pop=True)
 
         for circuit in self.all_circuits():
-            log_verbose("Loading targets for circuit %s", circuit._name or "(default)")
+            log_verbose("Loading targets for circuit %s", circuit.name or "(default)")
             self._target_manager.load_targets(circuit)
 
     # -
@@ -639,7 +639,7 @@ class Node:
 
     def _create_synapse_manager(self, ctype, conf, *args, **kwargs):
         """Create a synapse manager for intra-circuit connectivity"""
-        log_stage("Circuit %s", conf._name or "(default)")
+        log_stage("Circuit %s", conf.name or "(default)")
         if not conf.get("nrnPath"):
             logging.info(" => No connectivity set as internal. See projections")
             return
@@ -650,7 +650,7 @@ class Node:
 
         c_target = TargetSpec(conf.get("CircuitTarget"))
         if c_target.population is None:
-            c_target.population = self._circuits.alias.get(conf._name)
+            c_target.population = self._circuits.alias.get(conf.name)
 
         edge_file, *pop = conf.get("nrnPath").split(":")
         edge_pop = pop[0] if pop else None
@@ -1018,7 +1018,8 @@ class Node:
             self._report_list.append(report)
 
         if n_errors > 0:
-            raise Exception("%d reporting errors detected. Terminating" % (n_errors,))
+            msg = f"{n_errors} reporting errors detected. Terminating"
+            raise Exception(msg)
 
         MPI.check_no_errors()
 

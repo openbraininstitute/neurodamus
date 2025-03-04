@@ -124,7 +124,6 @@ class CellManagerBase(_CellManager):
 
         """
         self._circuit_conf = circuit_conf
-        self._circuit_name = circuit_conf._name
         self._target_manager = target_manager
         self._target_spec = TargetSpec(circuit_conf.CircuitTarget)
         self._population_name = None
@@ -154,8 +153,8 @@ class CellManagerBase(_CellManager):
     pc = property(lambda self: self._pc)
     population_name = property(lambda self: self._population_name)
     circuit_target = property(lambda self: self._target_spec.name)
-    circuit_name = property(lambda self: self._circuit_name)
-    is_default = property(lambda self: self._circuit_name is None)
+    circuit_name = property(lambda self: self._circuit_conf.name)
+    is_default = property(lambda self: self.circuit_name is None)
     is_virtual = property(lambda _self: False)
     connection_managers = property(lambda self: self._conn_managers_per_src_pop)
 
@@ -179,8 +178,8 @@ class CellManagerBase(_CellManager):
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
-        if not pop and circuit_conf._name:
-            pop = circuit_conf._name
+        if not pop and self.circuit_name:
+            pop = self.circuit_name
             logging.warning("(Compat) Assuming population name from Circuit: %s", pop)
         self._population_name = pop
         if not pop:
@@ -821,7 +820,7 @@ class LoadBalance:
         all_ranks_cx = MPI.py_gather(ostring.getvalue(), 0)
         if MPI.rank == 0:
             with open(out_filename, "w") as fp:
-                fp.write("1\n%d\n" % cell_distributor.total_cells)
+                fp.write(f"1\n{cell_distributor.total_cells}\n")
                 fp.writelines(all_ranks_cx)
 
         # register
@@ -866,30 +865,30 @@ class LoadBalance:
     @staticmethod
     def _write_msdat(fp, ms):
         """Writes load balancing info to an output stream"""
-        fp.write("%d" % ms.x[0])  # gid
+        fp.write(str(int(ms.x[0])))  # gid
         fp.write(f" {ms.x[1]:g}")  # total complexity of cell
         piece_count = int(ms.x[2])
-        fp.write(" %d\n" % piece_count)
+        fp.write(f" {piece_count}\n")
         i = 2
         tcx = 0  # Total accum complexity
 
         for _ in range(piece_count):
             i += 1
             subtree_count = int(ms.x[i])
-            fp.write("  %d\n" % subtree_count)
+            fp.write(f"  {subtree_count}\n")
             for _ in range(subtree_count):
                 i += 1
                 cx = ms.x[i]  # subtree complexity
                 tcx += cx
                 i += 1
                 children_count = int(ms.x[i])
-                fp.write("   %g %d\n" % (cx, children_count))
+                fp.write(f"   {cx:g} {children_count}\n")
                 if children_count > 0:
                     fp.write("    ")
                 for _ in range(children_count):
                     i += 1
-                    elem_id = ms.x[i]  # at next child
-                    fp.write(" %d" % elem_id)
+                    elem_id = int(ms.x[i])  # at next child
+                    fp.write(f" {elem_id}")
                 if children_count > 0:
                     fp.write("\n")
 
@@ -919,7 +918,7 @@ class LoadBalance:
         """Write out selected gid cx lines from a cx_dict"""
         if gids is None:
             gids = cx_dict.keys()
-        fp.write("1\n%d\n" % len(gids))
+        fp.write(f"1\n{len(gids)}\n")
         for gid in gids:
             for line in cx_dict[gid]:
                 fp.write(line)  # raw lines, include \n
