@@ -578,11 +578,6 @@ class Noise(BaseStim):
 
         sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
 
-        # setup RNG
-        rand = lambda gid: random.Random123(
-            Noise.stimCount + 100, SimConfig.rng_info.getStimulusSeed() + 500, gid + 300
-        )
-
         # apply stim to each point in target
         tpoints = target.getPointList(cell_manager)
         for tpoint_list in tpoints:
@@ -591,7 +586,10 @@ class Noise(BaseStim):
 
             self.compute_parameters(cell)
 
-            rng = rand(gid)  # setup RNG
+            rng = random.Random123(Noise.stimCount + 100,
+                                   SimConfig.rng_info.getStimulusSeed() + 500,
+                                   gid + 300)
+
             # draw already used numbers
             if self.delay > 0:
                 self.draw_already_used_numbers(rng, sim_dt)
