@@ -189,8 +189,8 @@ class CellManagerBase(_CellManager):
         is_base_pop = self.is_default or circuit_conf.get("no_offset")
         self._local_nodes = NodeSet().register_global(pop, is_base_pop)
 
-    @classmethod
-    def _get_sonata_population_name(cls, node_file):
+    @staticmethod
+    def _get_sonata_population_name(node_file):
         import libsonata  # only for SONATA
 
         pop_names = libsonata.NodeStorage(node_file).population_names
