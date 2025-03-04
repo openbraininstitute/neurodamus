@@ -536,10 +536,8 @@ class ConnectionManagerBase:
             f"Manager {self.__class__.__name__} doesn't implement delayed connections"
         )
 
-    # -
-    def connect_all(self, weight_factor=1, only_gids=None):
-        """For every gid access its synapse parameters and instantiate
-        all synapses.
+    def connect_all(self, weight_factor=1):
+        """For every gid access its synapse parameters and instantiate all synapses.
 
         Args:
             weight_factor: Factor to scale all netcon weights (default: 1)
@@ -555,7 +553,7 @@ class ConnectionManagerBase:
         pop = self._cur_population
 
         for sgid, tgid, syns_params, extra_params, offset in self._iterate_conn_params(
-            self._src_target_filter, None, only_gids, True
+            src_target=self._src_target_filter, dst_target=None, show_progress=True
         ):
             if self._load_offsets:
                 conn_options["synapses_offset"] = extra_params["synapse_index"][0]
@@ -600,7 +598,7 @@ class ConnectionManagerBase:
             return
 
         for sgid, tgid, syns_params, extra_params, offset in self._iterate_conn_params(
-            src_target, dst_target, mod_override=mod_override
+            src_target, dst_target, show_progress=None, mod_override=mod_override
         ):
             if sgid == tgid:
                 logging.warning("Making connection within same Gid: %d", sgid)
@@ -645,32 +643,23 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
-    # -
-    def _iterate_conn_params(
-        self, src_target, dst_target, gids=None, show_progress=None, mod_override=None
-    ):
+    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):
         """A generator which loads synapse data and yields tuples(sgid, tgid, synapses)
 
         Args:
             src_target: the target to filter the source cells, or None
             dst_target: the target to filter the destination cells, or None
-            gids: Use given gids, instead of the circuit target cells. Default: None
             show_progress: Display a progress bar as tgids are processed
         """
         AUTO_PROGRESS_THRESHOLD = 50
         if (src_target and src_target.is_void()) or (dst_target and dst_target.is_void()):
             return
 
-        def target_gids(gids):
-            if gids is None:
-                gids = self._raw_gids
-            else:
-                gids = np.intersect1d(gids, self._raw_gids)
-            if dst_target:
-                gids = np.intersect1d(gids, dst_target.get_raw_gids())
-            return gids
+        gids = self._raw_gids
 
-        gids = target_gids(gids)
+        if dst_target:
+            gids = np.intersect1d(gids, dst_target.get_raw_gids())
+
         created_conns_0 = self._cur_population.count()
         sgid_offset = self.src_pop_offset
         tgid_offset = self.target_pop_offset
