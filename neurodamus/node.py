@@ -1827,6 +1827,10 @@ class Neurodamus(Node):
     # -
     def init(self):
         """Explicitly initialize, allowing users to make last changes before simulation"""
+        if self._sim_ready:
+            logging.warning("Simulation already initialized. Skip second init")
+            return
+
         log_stage("Creating connections in the simulator")
         base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
@@ -1842,6 +1846,7 @@ class Neurodamus(Node):
         print_mem_usage()
 
         self.sim_init()
+        assert self._sim_ready, "sim_init should have set this"
 
     # -
     def _merge_filesdat(self, ncycles):

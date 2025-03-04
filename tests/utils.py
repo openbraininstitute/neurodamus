@@ -7,6 +7,37 @@ from libsonata import EdgeStorage
 from neurodamus.core.configuration import SimConfig
 
 
+def find_peaks(trace, threshold=-0.05):
+    """
+    Identify peak indices in a signal by detecting strong negative second-order 
+    derivatives after smoothing.
+
+    Args:
+        trace (array-like): Input signal.
+        threshold (float, optional): Threshold for detecting strong reductions. 
+                                     Defaults to -0.05.
+
+    Returns:
+        np.ndarray: Indices of detected peaks.
+    """
+    # Calculate the second-order difference of the 
+    # voltage vector (trace_second_derivative)
+    trace_second_derivative = np.diff(trace, 2)  
+    # Convolve the trace_second_derivative with a smoothing kernel 
+    # [1, 2, 4, 2, 1] to reduce noise
+    kernel = np.array([1, 2, 4, 2, 1])/10
+    window_sum = np.convolve(trace_second_derivative, kernel, 'valid')  
+    # Find the positions where the window sum is below threshold, 
+    # indicating the beginning of a peak
+    strong_reduction_pos = np.nonzero(window_sum < threshold)[0]  
+
+    # Filter out consecutive positions, the negative second
+    # derivative may persist for a while
+    peaks_idxs = strong_reduction_pos[np.insert(
+        np.diff(strong_reduction_pos) > 1, 0, True)]
+
+    return peaks_idxs
+
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
     """ Convenience function to retrieve gids, edges, and selection.
 
