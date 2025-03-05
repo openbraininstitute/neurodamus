@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+from functools import wraps
+import os
 
 import numpy as np
 from libsonata import EdgeStorage
@@ -186,3 +188,43 @@ def check_synapse(syn, edges, selection, **kwargs):
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
         assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
+
+
+def change_directory(temp_dir):
+    """Decorator to change the current working directory temporarily."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Save the current directory
+            original_dir = os.getcwd()
+
+            # Change to the temporary directory
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+            os.chdir(temp_dir)
+            print(f"Changed directory to {os.getcwd()}")
+
+            try:
+                # Run the function
+                result = func(*args, **kwargs)
+            finally:
+                # Return to the original directory
+                os.chdir(original_dir)
+                print(f"Returned to original directory: {os.getcwd()}")
+            
+            return result
+        return wrapper
+    return decorator
+
+def inspect(v):
+    print("-----------")
+    print(v, type(v))
+    print("------")
+    for i in dir(v):
+        if i.startswith('_'):
+            continue
+        try:
+            print(f"{i}: {getattr(v, i)}")
+        except:
+            print(f"{i}: ***")
+    print("-----------")
