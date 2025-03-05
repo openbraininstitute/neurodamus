@@ -7,6 +7,57 @@ from libsonata import EdgeStorage
 from neurodamus.core.configuration import SimConfig
 
 
+def merge_dicts(parent: dict, child: dict):
+    """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
+    for ties. Values of matching keys must match or a TypeError is raised.
+
+    Imported from MultiscaleRun.
+
+    Args:
+        parent: parent dict
+        child: child dict (priority)
+
+    Returns:
+        dict: merged dict following the rules listed before
+
+    Example::
+
+        >>> parent = {"A":1, "B":{"a":1, "b":2}, "C": 2}
+        >>> child = {"A":2, "B":{"a":2, "c":3}, "D": 3}
+        >>> merge_dicts(parent, child)
+        {"A":2, "B":{"a":2, "b":2, "c":3}, "C": 2, "D": 3}
+    """
+
+    def merge_vals(k, parent: dict, child: dict):
+        """Merging logic.
+
+        Args:
+            k (key type): the key can be in either parent, child or both.
+            parent: parent dict.
+            child: child dict (priority).
+
+        Raises:
+            TypeError: in case the key is present in both parent and child and the type missmatches.
+
+        Returns:
+            value type: merged version of the values possibly found in child and/or parent.
+        """
+        if k not in parent:
+            return child[k]
+        if k not in child:
+            return parent[k]
+        if type(parent[k]) is not type(child[k]):
+            raise TypeError(
+                f"Field type missmatch for the values of key {k}: "
+                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+            )
+        if isinstance(parent[k], dict):
+            return merge_dicts(parent[k], child[k])
+        return child[k]
+
+    return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
+
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
     """ Convenience function to retrieve gids, edges, and selection.
 
