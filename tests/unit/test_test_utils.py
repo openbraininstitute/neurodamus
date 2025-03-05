@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import pytest
-from libsonata import EdgeStorage
-
 import numpy as np
+from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
 from tests import utils
@@ -187,3 +186,15 @@ def test_merge_simulation_configs(create_tmp_simulation_config_file):
         assert np.isclose(config_data["run"]["dt"], 0.1)
         assert config_data["run"]["random_seed"] == 1122
         assert len(config_data["run"]) == 3
+
+
+def test_check_signal_peaks():
+    x = np.array([-60., -59., -20., -30., -50., -40., -55., -59., -10., -15., -30., -49., -60.])
+    ref_pos = [2, 5, 8]
+    utils.check_signal_peaks(x, ref_pos)
+
+    x_ramp = x + np.arange(len(x)) * 2
+    utils.check_signal_peaks(x_ramp, ref_pos)
+
+    x_ramp = x + np.arange(len(x)) * -2
+    utils.check_signal_peaks(x_ramp, ref_pos)

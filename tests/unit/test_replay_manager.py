@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import numpy.testing as npt
-
+from tests import utils
 
 from .conftest import RINGTEST_DIR
 
@@ -188,14 +188,8 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    v_increase_rate = np.diff(voltage_vec, 2)
-    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = np.nonzero(window_sum < -0.5)[0]
-    non_consecutives_pos = strong_reduction_pos[np.insert(
-        np.diff(strong_reduction_pos) > 1, 0, True)]
-    expected_positions = np.array([32, 75])
-
-    npt.assert_equal(non_consecutives_pos, expected_positions)
+    expected_positions = np.array([39, 81])
+    utils.check_signal_peaks(voltage_vec, expected_positions)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -251,11 +245,5 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    v_increase_rate = np.diff(voltage_vec, 2)
-    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = np.nonzero(window_sum < -0.5)[0]
-    non_consecutives_pos = strong_reduction_pos[np.insert(
-        np.diff(strong_reduction_pos) > 1, 0, True)]
-    expected_positions = np.array([32, 75])
-
-    npt.assert_equal(non_consecutives_pos, expected_positions)
+    expected_positions = np.array([39, 81])
+    utils.check_signal_peaks(voltage_vec, expected_positions)
