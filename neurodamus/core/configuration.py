@@ -246,7 +246,6 @@ class _SimConfig:
     crash_test_mode = False
 
     _validators = []
-    _requisitors = []
     _cell_requirements = {}
 
     restore_coreneuron = property(lambda self: self.use_coreneuron and bool(self.restore))
@@ -291,10 +290,6 @@ class _SimConfig:
         for validator in cls._validators:
             validator(cls, run_conf)
 
-        logging.info("Checking simulation requirements")
-        for requisitor in cls._requisitors:
-            requisitor(cls, cls._config_parser)
-
         logging.info("Initializing hoc config objects")
         cls._init_hoc_config_objs()
 
@@ -326,11 +321,6 @@ class _SimConfig:
     def validator(cls, f):
         """Decorator to register parameters / config validators"""
         cls._validators.append(f)
-
-    @classmethod
-    def requisitor(cls, f):
-        """Decorator to register requirements investigators"""
-        cls._requisitors.append(f)
 
     @classmethod
     def update_connection_blocks(cls, alias):
