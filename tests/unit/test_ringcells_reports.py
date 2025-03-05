@@ -76,10 +76,10 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "start_time": 0.0,
                     "end_time": 40.0
                 },
-                "compartment_v": {
+                "compartment_i": {
                     "type": "compartment",
                     "cells": "Mosaic",
-                    "variable_name": "v",
+                    "variable_name": "i_membrane",
                     "sections": "all",
                     "dt": 10,
                     "start_time": 0.0,
@@ -129,7 +129,7 @@ def test_neuorn_report(create_tmp_simulation_config_file):
     data = read_ascii_report(soma_report)
     assert len(data) == 25  # 5 time steps * 5 soma sections
 
-    compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
+    compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_report.exists()
     data = read_ascii_report(compartment_report)
     assert len(data) == 125  # 5 time steps * 5*5 compartments
