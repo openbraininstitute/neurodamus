@@ -232,6 +232,33 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     captured = capsys.readouterr()
     assert "3 cells\n3 pieces" in captured.out
 
+    # Check the cpu assign file
+    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    content = Path(cpu_assign_filename).open().read()
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
+
+
+def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
+    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
+    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
+
+    cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
+    cell_manager.load_nodes()
+    lbal = LoadBalance(
+        LoadBalanceMode.WholeCell, circuit_conf_bigcell.CircuitPath, "RingA", target_manager, 2
+    )
+    t1 = TargetSpec("RingA:All")
+    with lbal.generate_load_balance(t1, cell_manager):
+        cell_manager.finalize()
+
+    captured = capsys.readouterr()
+    assert "3 cells\n3 pieces" in captured.out
+
+    # Check the cpu assign file
+    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    content = Path(cpu_assign_filename).open().read()
+    assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
+
 
 class MockedTargetManager:
     """
