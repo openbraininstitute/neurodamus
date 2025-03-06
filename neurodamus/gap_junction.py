@@ -85,10 +85,11 @@ class GapJunctionManager(ConnectionManagerBase):
         gj_offsets = compat.Vector()
         gj_sum = 0
 
-        for line in open(gjfname):
-            gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
-            _, offset = map(int, line.strip().split())
-            gj_sum += 2 * offset
+        with open(gjfname) as fd:
+            for line in fd:
+                gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
+                _, offset = map(int, line.strip().split())
+                gj_sum += 2 * offset
 
         return gj_offsets
 
