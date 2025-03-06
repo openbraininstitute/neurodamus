@@ -20,73 +20,20 @@ class SonataConfig:
     __slots__ = (
         "_bc_circuits",
         "_circuit_networks",
-        "_config_json",
-        "_resolved_manifest",
-        "_sections",
         "_sim_conf",
         "circuits",
     )
 
-    _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
-
-    _path_entries_without_suffix = ("network",)
-
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
-        self._sections = {}
-
-        with open(config_path) as config_fh:
-            self._config_json: dict = json.load(config_fh)
-
-        self._resolved_manifest = self._build_resolver(
-            self._config_json.get("manifest") or {}, os.path.abspath(os.path.dirname(config_path))
-        )
-
-        for section_name in self._config_sections:
-            section_value = self._config_json.get(section_name, {})
-            self._sections[section_name] = self._resolve_section(
-                section_value, self._resolved_manifest
-            )
 
         self.circuits = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
         self._bc_circuits = self._blueconfig_circuits()
 
-    @classmethod
-    def _resolve(cls, entry, name, manifest: dict):
-        if not isinstance(entry, str):
-            return entry  # ints, floats... no need to resolve
-        if (
-            not name.lower().endswith(("_file", "_dir"))
-            and name.lower() not in cls._path_entries_without_suffix
-        ):
-            return entry  # not a path
-        slash_p = entry.find("/")
-        if slash_p == 0:  # abs path
-            return entry
-        if not entry.startswith("$"):
-            return os.path.normpath(os.path.join(manifest["$__CONFIG_DIR"], entry))
-        # Handle variable substitution
-        if slash_p > -1:
-            var_name = entry[:slash_p]
-            remaining = entry[slash_p:]
-        else:
-            var_name = entry  # just alias
-            remaining = ""
-        if var_name not in manifest:
-            raise Exception(f"Cant decode path entry {entry}. Unknown var {var_name}")
-        return os.path.normpath(manifest[var_name] + remaining)
-
-    @classmethod
-    def _build_resolver(cls, manifest, config_dir):
-        resolved = {"$__CONFIG_DIR": config_dir}  # special entry to resolve rel paths
-        for key, value in manifest.items():
-            resolved[key] = cls._resolve(value, key, resolved)
-        return resolved
-
-    @classmethod
-    def _resolve_section(cls, section, manifest):
-        return {key: cls._resolve(val, key, manifest) for key, val in section.items()}
+    @property
+    def beta_features(self):
+        return self._sim_conf.beta_features
 
     _translation = {
         # Section Names
@@ -160,15 +107,10 @@ class SonataConfig:
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
         parsed_run["CircuitTarget"] = self._sim_conf.node_set
-        conditions = self._sections.get("conditions")
-        if conditions:
-            parsed_run["Celsius"] = self._sim_conf.conditions.celsius
-            parsed_run["V_Init"] = self._sim_conf.conditions.v_init
-            parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
-            if hasattr(self._sim_conf.conditions, "spike_location"):
-                # read SpikeLocation from "conditions" with libsonata parser 0.1.17+
-                # before 0.1.17 read from "run" by calling _translate_dict
-                parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        parsed_run["Celsius"] = self._sim_conf.conditions.celsius
+        parsed_run["V_Init"] = self._sim_conf.conditions.v_init
+        parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
+        parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
         return parsed_run
 
     @property
@@ -273,7 +215,9 @@ class SonataConfig:
         }
 
     # Compat with BlueConfig circuit definitions
-    Circuit = property(lambda self: self._bc_circuits)
+    @property
+    def Circuit(self):
+        return self._bc_circuits
 
     @property
     def parsedProjections(self):
@@ -368,7 +312,7 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sections["inputs"]:
+        for name in self._sim_conf.list_input_names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
@@ -430,12 +374,6 @@ class SonataConfig:
             if parsed_value is not None:
                 result[key] = parsed_value
         return result
-
-    def __getattr__(self, item):
-        # Immediately return native items
-        if item in self._config_sections:
-            return self._sections.get(item, {})
-        return {}
 
 
 def snake_to_camel(word):
