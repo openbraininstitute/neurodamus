@@ -20,7 +20,6 @@ class SonataConfig:
     __slots__ = (
         "_bc_circuits",
         "_circuit_networks",
-        "_config_dir",
         "_config_json",
         "_entries",
         "_resolved_manifest",
@@ -38,7 +37,6 @@ class SonataConfig:
     _path_entries_without_suffix = ("network",)
 
     def __init__(self, config_path):
-        self._config_dir = os.path.abspath(os.path.dirname(config_path))
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
         self._entries = {}
         self._sections = {}
@@ -46,7 +44,8 @@ class SonataConfig:
         with open(config_path) as config_fh:
             self._config_json: dict = json.load(config_fh)
         self._resolved_manifest = self._build_resolver(
-            self._config_json.get("manifest") or {}, self._config_dir
+            self._config_json.get("manifest") or {},
+            os.path.abspath(os.path.dirname(config_path))
         )
         for entry_name in self._config_entries:
             value = getattr(self._sim_conf, entry_name)
