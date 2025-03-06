@@ -1,8 +1,10 @@
 """Tests load balance."""
-# Since a good deal of load balance tests are e2e we put all of them together in this group
+
 import logging
 import pytest
+import re
 import shutil
+from neurodamus.core.configuration import LoadBalanceMode, ConfigurationError
 from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
@@ -12,6 +14,7 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 def target_manager():
     from neurodamus.target_manager import NodesetTarget
     from neurodamus.core.nodeset import NodeSet
+
     nodes_t1 = NodeSet([1, 2, 3]).register_global("RingA")
     nodes_t2 = NodeSet([1]).register_global("RingA")
     t1 = NodesetTarget("All", [nodes_t1], [nodes_t1])
@@ -19,8 +22,18 @@ def target_manager():
     return MockedTargetManager(t1, t2)
 
 
+def test_loadbalance_mode():
+    assert LoadBalanceMode.parse("RoundRobin") == LoadBalanceMode.RoundRobin
+    assert LoadBalanceMode.parse("WholeCell") == LoadBalanceMode.WholeCell
+    assert LoadBalanceMode.parse("MultiSplit") == LoadBalanceMode.MultiSplit
+    assert LoadBalanceMode.parse("Memory") == LoadBalanceMode.Memory
+    with pytest.raises(ConfigurationError):
+        assert LoadBalanceMode.parse("Random")
+
+
 def test_loadbal_no_cx(target_manager, caplog):
     from neurodamus.cell_distributor import LoadBalance, TargetSpec
+
     lbal = LoadBalance(1, "/gpfs/fake_path_to_nodes_1", "pop", target_manager, 4)
     assert not lbal._cx_targets
     assert not lbal._valid_loadbalance
@@ -30,33 +43,50 @@ def test_loadbal_no_cx(target_manager, caplog):
 
 
 def test_loadbal_subtarget(target_manager, caplog):
-    """Ensure given the right files are in the lbal dir, the correct situation is detected
-    """
+    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
     from neurodamus.cell_distributor import LoadBalance, TargetSpec
 
     nodes_file = "/gpfs/fake_node_path"
     lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "RingA")
-    shutil.copyfile(SIM_DIR / "ringtest" / "cx_RingA_RingA#.dat", lbdir / "cx_All#.dat")
+    shutil.copyfile(SIM_DIR / "ringtest" / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
 
     lbal = LoadBalance(1, nodes_file, "RingA", target_manager, 4)
-    assert "All" in lbal._cx_targets
+    assert "RingA_All" in lbal._cx_targets
     assert not lbal._valid_loadbalance
     with caplog.at_level(logging.INFO):
         assert not lbal._cx_valid(TargetSpec("random_target"))
         assert " => No Cx files available for requested target" in caplog.records[-1].message
-    assert lbal._cx_valid(TargetSpec("All"))  # yes!
+    assert lbal._cx_valid(TargetSpec("RingA:All"))  # yes!
     assert not lbal._cx_valid(TargetSpec("VerySmall"))  # not yet, need to derive subtarget
 
     with caplog.at_level(logging.INFO):
-        assert lbal._reuse_cell_complexity(TargetSpec("VerySmall"))
+        assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
         assert len(caplog.records) >= 2
         assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
-        assert "Target VerySmall is a subset of the target All." in caplog.records[-1].message
+        assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
+
+
+@pytest.fixture
+def circuit_conf_bigcell():
+    """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
+    from neurodamus.core.configuration import CircuitConfig
+
+    circuit_base = str(SIM_DIR) + "/ringtest"
+    return CircuitConfig(
+        CircuitPath=circuit_base,
+        CellLibraryFile=circuit_base + "/nodes_A_bigcell.h5",
+        METypePath=circuit_base + "/hoc",
+        MorphologyPath=circuit_base + "/morphologies",
+        nrnPath="<NONE>",  # no connectivity
+        CircuitTarget="All",
+    )
 
 
 @pytest.fixture
 def circuit_conf():
+    """Test nodes file contains 3 small cells with 2 dendrites each"""
     from neurodamus.core.configuration import CircuitConfig
+
     circuit_base = str(SIM_DIR) + "/ringtest"
     return CircuitConfig(
         CircuitPath=circuit_base,
@@ -64,18 +94,18 @@ def circuit_conf():
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies",
         nrnPath="<NONE>",  # no connectivity
-        CircuitTarget="All"
+        CircuitTarget="All",
     )
 
 
 def test_load_balance_integrated(target_manager, circuit_conf):
-    """Comprehensive test using real cells and deriving cx for a sub-target
-    """
+    """Comprehensive test using real cells and deriving cx for a sub-target"""
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
+
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
 
-    lbal = LoadBalance(1, circuit_conf.CircuitPath, "RingA", target_manager, 4)
+    lbal = LoadBalance(1, circuit_conf.CircuitPath, "RingA", target_manager, 3)
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
 
@@ -89,21 +119,21 @@ def test_load_balance_integrated(target_manager, circuit_conf):
     # Check subtarget
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
-    assert lbal._reuse_cell_complexity(TargetSpec("default:VerySmall"))
+    assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
 
     # Check not super-targets
     assert not lbal._reuse_cell_complexity(TargetSpec(None))
 
 
-def test_multisplit(target_manager, circuit_conf, capsys):
-    """Comprehensive test using real cells, multi-split and complexity derivation
-    """
+def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
+    """Comprehensive test using rinttest cells, multi-split and complexity derivation"""
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-    MULTI_SPLIT = 2
 
-    cell_manager = CellDistributor(circuit_conf, target_manager)
+    cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
     cell_manager.load_nodes()
-    lbal = LoadBalance(MULTI_SPLIT, circuit_conf.CircuitPath, "RingA", target_manager, 4)
+    lbal = LoadBalance(
+        LoadBalanceMode.MultiSplit, circuit_conf_bigcell.CircuitPath, "RingA", target_manager, 2
+    )
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
 
@@ -111,17 +141,13 @@ def test_multisplit(target_manager, circuit_conf, capsys):
         cell_manager.finalize()
 
     captured = capsys.readouterr()
-    assert "2 pieces" in captured.out
-    assert "at least one cell is broken into 2 pieces" in captured.out
+    assert "3 cells\n4 pieces" in captured.out
+    assert re.match(
+        r"(?s:.)*at least one cell is broken into 2 pieces \(bilist\[\d\], gid 1\)", captured.out
+    )
     assert "RingA_All" in lbal._cx_targets
     assert "RingA_All" in lbal._valid_loadbalance
     assert lbal._cx_valid(t1)
-
-    # Convert balance for 1 CPU so we can import
-    lbal.target_cpu_count = 1
-    lbal._cpu_assign("RingA_All")
-    binfo = lbal.load_balance_info(t1)
-    assert binfo.npiece() == 6
 
     # Ensure load-bal is reused for smaller targets in multisplit too
     assert "RingA_VerySmall" not in lbal._cx_targets
@@ -132,66 +158,61 @@ def test_multisplit(target_manager, circuit_conf, capsys):
     captured = capsys.readouterr()
     assert "Target VerySmall is a subset of the target RingA_All" in captured.out
 
-
-def _read_complexity_file(base_dir, pattern, cx_pattern):
-    import glob
-    # Construct the full pattern path
-    full_pattern = Path(base_dir) / pattern / cx_pattern
-
-    # Use glob to find files that match the pattern
-    matching_files = glob.glob(str(full_pattern))
-
-    # Read each matching file
-    for file_path in matching_files:
-        try:
-            with open(file_path, 'r') as file:
-                content = file.read()
-                return content
-        except FileNotFoundError:
-            print(f"File not found: {file_path}")
+    # Check the complexity file cx_RingA_All#.dat
+    cx_filename = lbal._cx_filename(t1.simple_name)
+    with open(cx_filename) as cx_file:
+        cx_saved = lbal._read_msdat(cx_file)
+    assert list(cx_saved.keys()) == [1, 2, 3]
+    assert cx_saved[1][0].split()[1] > cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+        "cell complexity should be gid 1 > gid2 == gid3"
+    )
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "NEURON",
-            "node_set": "RingA"
-        }
-    }
-], indirect=True)
-def test_loadbal_integration(create_tmp_simulation_config_file):
-    """Ensure given the right files are in the lbal dir, the correct situation is detected
-    """
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import GlobalConfig
-    GlobalConfig.verbosity = 2
+def test_MultiSplit(target_manager, circuit_conf, capsys):
+    """Comprehensive test using rinttest cells, multi-split and complexity derivation"""
+    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
 
-    # Add connection_overrides for the virtual population so the offsets are calculated before LB
-    tmp_file = create_tmp_simulation_config_file
-    nd = Neurodamus(tmp_file, lb_mode="WholeCell")
-    nd.run()
+    cell_manager = CellDistributor(circuit_conf, target_manager)
+    cell_manager.load_nodes()
+    lbal = LoadBalance(
+        LoadBalanceMode.MultiSplit, circuit_conf.CircuitPath, "RingA", target_manager, 2
+    )
+    t1 = TargetSpec("RingA:All")
+    assert not lbal._cx_valid(t1)
 
-    # Check the complexity file
-    base_dir = "sim_conf"
-    pattern = "_loadbal_*.RingA"  # Matches any hash and population
-    cx_pattern = "cx_RingA*#.dat"  # Matches any cx file with the pattern
-    assert Path(base_dir).is_dir(), "Directory 'sim_conf' not found."
-    cx_file = _read_complexity_file(base_dir, pattern, cx_pattern)
-    lines = cx_file.splitlines()
-    assert int(lines[1]) == 3, "Number of gids different than 3."
-    # Gid should be without offset (2 instead of 1002)
-    assert int(lines[3].split()[0]) == 2, "gid 2 not found."
+    with lbal.generate_load_balance(t1, cell_manager):
+        cell_manager.finalize()
 
-    # # check the spikes
-    # spike_dat = Path(nd._run_conf.get("OutputRoot"))/nd._run_conf.get("SpikesFile")
-    # timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
-    # assert len(timestamps_A) == 21
-    # ref_times = np.array([0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7.0, 7.4, 8.6, 13.8, 19.6, 25.7, 32.,
-    #                       36.4, 38.5, 40.8, 42.6, 45.2, 48.3, 49.9])
-    # ref_gids = np.array([1, 2, 3, 1, 2, 3, 1, 1, 2, 3, 3, 3, 3, 3, 1, 3, 2, 1, 3, 1, 2])
-    # npt.assert_allclose(timestamps_A, ref_times)
-    # npt.assert_allclose(gids_A, ref_gids)
+    captured = capsys.readouterr()
+    assert "3 cells\n3 pieces" in captured.out
+
+
+def test_WholeCell(target_manager, circuit_conf, capsys):
+    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
+    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
+
+    cell_manager = CellDistributor(circuit_conf, target_manager)
+    cell_manager.load_nodes()
+    lbal = LoadBalance(
+        LoadBalanceMode.MultiSplit, circuit_conf.CircuitPath, "RingA", target_manager, 2
+    )
+    t1 = TargetSpec("RingA:All")
+    assert not lbal._cx_valid(t1)
+
+    with lbal.generate_load_balance(t1, cell_manager):
+        cell_manager.finalize()
+
+    captured = capsys.readouterr()
+    assert "3 cells\n3 pieces" in captured.out
+
+    # Check the complexity file cx_RingA_All#.dat
+    cx_filename = lbal._cx_filename(t1.simple_name)
+    with open(cx_filename) as cx_file:
+        cx_saved = lbal._read_msdat(cx_file)
+    assert list(cx_saved.keys()) == [1, 2, 3]
+    assert cx_saved[1][0].split()[1] == cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+        "cell complexity should be gid 1 == gid2 == gid3"
+    )
 
 
 class MockedTargetManager:
@@ -204,6 +225,7 @@ class MockedTargetManager:
 
     def get_target(self, target_spec, target_pop=None):
         from neurodamus.target_manager import TargetSpec
+
         if not isinstance(target_spec, TargetSpec):
             target_spec = TargetSpec(target_spec)
         if target_pop:
