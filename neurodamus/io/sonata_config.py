@@ -28,7 +28,7 @@ class SonataConfig:
         "circuits",
     )
 
-    _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
+    _config_entries = ("node_set", )
     _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
 
     _path_entries_without_suffix = ("network",)
@@ -40,20 +40,23 @@ class SonataConfig:
 
         with open(config_path) as config_fh:
             self._config_json: dict = json.load(config_fh)
+
         self._resolved_manifest = self._build_resolver(
             self._config_json.get("manifest") or {},
             os.path.abspath(os.path.dirname(config_path))
         )
+
         for entry_name in self._config_entries:
             value = getattr(self._sim_conf, entry_name)
             self._entries[entry_name] = value
+
         for section_name in self._config_sections:
             section_value = self._config_json.get(section_name, {})
             self._sections[section_name] = self._resolve_section(
                 section_value, self._resolved_manifest
             )
 
-        self.circuits = libsonata.CircuitConfig.from_file(self.network)
+        self.circuits = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
         self._bc_circuits = self._blueconfig_circuits()
 
@@ -208,7 +211,7 @@ class SonataConfig:
 
         def make_circuit(nodes_file, node_pop_name, population_info):
             if not os.path.isabs(nodes_file):
-                nodes_file = os.path.join(os.path.dirname(self.network), nodes_file)
+                nodes_file = os.path.join(os.path.dirname(self._sim_conf.network), nodes_file)
             circuit_conf = dict(
                 CircuitPath=os.path.dirname(nodes_file) or "",
                 CellLibraryFile=nodes_file,
@@ -256,7 +259,8 @@ class SonataConfig:
                     ):
                         edges_file = edge_config["edges_file"]
                         if not os.path.isabs(edges_file):
-                            edges_file = os.path.join(os.path.dirname(self.network), edges_file)
+                            edges_file = os.path.join(os.path.dirname(self._sim_conf.network),
+                                                      edges_file)
                         edge_pop_path = edges_file + ":" + edge_pop_name
                         circuit_conf["nrnPath"] = edge_pop_path
                         break
@@ -298,7 +302,7 @@ class SonataConfig:
 
                 edges_file = edge_config["edges_file"]
                 if not os.path.isabs(edges_file):
-                    edges_file = os.path.join(os.path.dirname(self.network), edges_file)
+                    edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
 
                 # skip inner connectivity populations
                 edge_pop_path = edges_file + ":" + edge_pop_name
