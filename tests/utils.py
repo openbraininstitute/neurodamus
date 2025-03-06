@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, savgol_filter
 from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
@@ -240,7 +240,7 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
 
 
-def check_signal_peaks(x, ref_peaks_pos, threshold=0.1):
+def check_signal_peaks(x, ref_peaks_pos, threshold=1):
     """
     Check the given signal peaks comparing with the given
     reference
@@ -249,15 +249,14 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=0.1):
         x: given signal, typically voltage.
         ref_peaks_pos: the position of the signal peaks
         taken as reference.
-        threshold: peak detection threshold with values
-        between 0 and 1, measured over the normalized
-        signal.
+        threshold: peak detection threshold measured with
+        respect of the surrounding baseline of the signal
 
     Raises:
         AssertionError: If any of the reference peak
         positions doesn't match with the obtained peaks
     """
-    x_norm = (x - x.min()) / (x.max() - x.min())
-    peaks_pos = find_peaks(x_norm, prominence=threshold)[0]
+    x = np.array(x)
+    peaks_pos = find_peaks(x, prominence=threshold)[0]
 
     np.testing.assert_equal(peaks_pos, ref_peaks_pos)
