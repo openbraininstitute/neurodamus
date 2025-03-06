@@ -296,6 +296,11 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
+        names = json.loads(self._sim_conf.expanded_json).get("inputs", {}).keys()
+        logging.warning("MGEVAERT")
+        logging.warning("%s", list(names))
+        logging.warning("%s", self._sim_conf.list_input_names)
+
         stimuli = {}
         for name in self._sim_conf.list_input_names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
@@ -312,7 +317,11 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sim_conf.list_input_names:
+        names = json.loads(self._sim_conf.expanded_json).get("inputs", {}).keys()
+        logging.warning("MGEVAERT")
+        logging.warning("%s", list(names))
+        logging.warning("%s", self._sim_conf.list_input_names)
+        for name in names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
