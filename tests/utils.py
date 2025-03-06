@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import find_peaks, savgol_filter
+from scipy.signal import find_peaks
 from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
@@ -256,7 +256,5 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1):
         AssertionError: If any of the reference peak
         positions doesn't match with the obtained peaks
     """
-    x = np.array(x)
     peaks_pos = find_peaks(x, prominence=threshold)[0]
-
     np.testing.assert_equal(peaks_pos, ref_peaks_pos)

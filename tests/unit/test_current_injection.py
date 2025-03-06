@@ -1,5 +1,4 @@
 import pytest
-import numpy
 from tests import utils
 
 
