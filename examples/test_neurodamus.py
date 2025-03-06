@@ -35,7 +35,6 @@ def test_node_run(trace=False):
     node.load_targets()
     node.compute_load_balance()
     node.create_cells()
-    node.execute_neuron_configures()
 
     logging.info("Create connections")
     node.create_synapses()

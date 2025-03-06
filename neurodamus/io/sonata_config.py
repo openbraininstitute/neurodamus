@@ -105,7 +105,6 @@ class SonataConfig:
         "Projection": None,
         "StimulusInject": "inputs",
         "Connection": "connection_overrides",
-        "parsedConfigures": False,
         # Section fields
         # --------------
         "run": {
@@ -442,12 +441,7 @@ class SonataConfig:
             return self._entries.get(item, None)
         if item in self._config_sections:
             return self._sections.get(item, {})
-        # Otherwise attempt translation
-        item_tr = self._translation.get(item)
-        if item_tr is None:
-            logging.warning("Non-native Property needs conversion: %s", item)
-            return {}
-        return self._entries.get(item_tr) or self._sections.get(item_tr) or {}
+        return {}
 
 
 def snake_to_camel(word):
