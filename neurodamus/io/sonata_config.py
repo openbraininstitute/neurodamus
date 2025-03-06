@@ -39,8 +39,7 @@ class SonataConfig:
             self._config_json: dict = json.load(config_fh)
 
         self._resolved_manifest = self._build_resolver(
-            self._config_json.get("manifest") or {},
-            os.path.abspath(os.path.dirname(config_path))
+            self._config_json.get("manifest") or {}, os.path.abspath(os.path.dirname(config_path))
         )
 
         for section_name in self._config_sections:
@@ -255,8 +254,9 @@ class SonataConfig:
                     ):
                         edges_file = edge_config["edges_file"]
                         if not os.path.isabs(edges_file):
-                            edges_file = os.path.join(os.path.dirname(self._sim_conf.network),
-                                                      edges_file)
+                            edges_file = os.path.join(
+                                os.path.dirname(self._sim_conf.network), edges_file
+                            )
                         edge_pop_path = edges_file + ":" + edge_pop_name
                         circuit_conf["nrnPath"] = edge_pop_path
                         break
