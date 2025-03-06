@@ -8,6 +8,8 @@ from neurodamus.core.configuration import LoadBalanceMode, ConfigurationError
 from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
+base_dir = Path("sim_conf")
+pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
 
 @pytest.fixture
@@ -126,7 +128,9 @@ def test_load_balance_integrated(target_manager, circuit_conf):
 
 
 def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
-    """Comprehensive test using rinttest cells, multi-split and complexity derivation"""
+    """Comprehensive test using ring circuit including one big cell,
+    multi-split and complexity derivation
+    """
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
 
     cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
@@ -149,7 +153,23 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     assert "RingA_All" in lbal._valid_loadbalance
     assert lbal._cx_valid(t1)
 
-    # Ensure load-bal is reused for smaller targets in multisplit too
+    # Check the complexity file
+    assert base_dir.exists()
+    cx_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))[0]
+    assert cx_filename.exists()
+    with open(cx_filename) as cx_file:
+        cx_saved = lbal._read_msdat(cx_file)
+    assert list(cx_saved.keys()) == [1, 2, 3]
+    assert cx_saved[1][0].split()[1] > cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+        "cell complexity should be gid 1 > gid2 == gid3"
+    )
+
+    # Check the cpu assign file, format: ihost ngid (index, gid, subtreeindex) ..
+    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    content = Path(cpu_assign_filename).open().read()
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  0 1 1\n1 2  1 2 0  2 3 0\n"
+
+    # Ensure load-bal is reused for smaller targets in multisplit
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
     assert lbal.valid_load_distribution(TargetSpec("RingA:VerySmall"))
@@ -158,18 +178,9 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     captured = capsys.readouterr()
     assert "Target VerySmall is a subset of the target RingA_All" in captured.out
 
-    # Check the complexity file cx_RingA_All#.dat
-    cx_filename = lbal._cx_filename(t1.simple_name)
-    with open(cx_filename) as cx_file:
-        cx_saved = lbal._read_msdat(cx_file)
-    assert list(cx_saved.keys()) == [1, 2, 3]
-    assert cx_saved[1][0].split()[1] > cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
-        "cell complexity should be gid 1 > gid2 == gid3"
-    )
-
 
 def test_MultiSplit(target_manager, circuit_conf, capsys):
-    """Comprehensive test using rinttest cells, multi-split and complexity derivation"""
+    """Comprehensive test using ringtest cells, multi-split and complexity derivation"""
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
 
     cell_manager = CellDistributor(circuit_conf, target_manager)
@@ -185,6 +196,22 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
 
     captured = capsys.readouterr()
     assert "3 cells\n3 pieces" in captured.out
+
+    # Check the complexity file cx_RingA_All#.dat
+    assert base_dir.exists()
+    cx_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))[0]
+    assert cx_filename.exists()
+    with open(cx_filename) as cx_file:
+        cx_saved = lbal._read_msdat(cx_file)
+    assert list(cx_saved.keys()) == [1, 2, 3]
+    assert cx_saved[1][0].split()[1] == cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+        "cell complexity should be gid 1 == gid2 == gid3"
+    )
+
+    # Check the cpu assign file
+    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    content = Path(cpu_assign_filename).open().read()
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
 
 
 def test_WholeCell(target_manager, circuit_conf, capsys):
@@ -194,7 +221,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
-        LoadBalanceMode.MultiSplit, circuit_conf.CircuitPath, "RingA", target_manager, 2
+        LoadBalanceMode.WholeCell, circuit_conf.CircuitPath, "RingA", target_manager, 2
     )
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
@@ -204,15 +231,6 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
 
     captured = capsys.readouterr()
     assert "3 cells\n3 pieces" in captured.out
-
-    # Check the complexity file cx_RingA_All#.dat
-    cx_filename = lbal._cx_filename(t1.simple_name)
-    with open(cx_filename) as cx_file:
-        cx_saved = lbal._read_msdat(cx_file)
-    assert list(cx_saved.keys()) == [1, 2, 3]
-    assert cx_saved[1][0].split()[1] == cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
-        "cell complexity should be gid 1 == gid2 == gid3"
-    )
 
 
 class MockedTargetManager:
