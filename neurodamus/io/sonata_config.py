@@ -21,21 +21,18 @@ class SonataConfig:
         "_bc_circuits",
         "_circuit_networks",
         "_config_json",
-        "_entries",
         "_resolved_manifest",
         "_sections",
         "_sim_conf",
         "circuits",
     )
 
-    _config_entries = ("node_set", )
     _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
 
     _path_entries_without_suffix = ("network",)
 
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
-        self._entries = {}
         self._sections = {}
 
         with open(config_path) as config_fh:
@@ -45,10 +42,6 @@ class SonataConfig:
             self._config_json.get("manifest") or {},
             os.path.abspath(os.path.dirname(config_path))
         )
-
-        for entry_name in self._config_entries:
-            value = getattr(self._sim_conf, entry_name)
-            self._entries[entry_name] = value
 
         for section_name in self._config_sections:
             section_value = self._config_json.get(section_name, {})
@@ -205,18 +198,21 @@ class SonataConfig:
         """Yield blue-config-style circuits"""
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
-        if "node_set" not in self._entries:
+        simulation_nodeset_name = self._sim_conf.node_set or ""
+        if not simulation_nodeset_name:
             logging.warning("Simulating all populations from all node files...")
+
         network = self._circuit_networks
 
         def make_circuit(nodes_file, node_pop_name, population_info):
             if not os.path.isabs(nodes_file):
                 nodes_file = os.path.join(os.path.dirname(self._sim_conf.network), nodes_file)
+
             circuit_conf = dict(
                 CircuitPath=os.path.dirname(nodes_file) or "",
                 CellLibraryFile=nodes_file,
                 # Use the extended ":" syntax to filter the nodeset by the related population
-                CircuitTarget=node_pop_name + ":" + (self._entries.get("node_set") or ""),
+                CircuitTarget=node_pop_name + ":" + simulation_nodeset_name,
                 **{
                     node_info_to_circuit.get(key, key): value
                     for key, value in population_info.items()
@@ -437,8 +433,6 @@ class SonataConfig:
 
     def __getattr__(self, item):
         # Immediately return native items
-        if item in self._config_entries:
-            return self._entries.get(item, None)
         if item in self._config_sections:
             return self._sections.get(item, {})
         return {}
