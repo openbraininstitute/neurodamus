@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.signal import find_peaks
 from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
@@ -237,3 +238,23 @@ def check_synapse(syn, edges, selection, **kwargs):
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
         assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
+
+
+def check_signal_peaks(x, ref_peaks_pos, threshold=1):
+    """
+    Check the given signal peaks comparing with the given
+    reference
+
+    Args:
+        x: given signal, typically voltage.
+        ref_peaks_pos: the position of the signal peaks
+        taken as reference.
+        threshold: peak detection threshold measured with
+        respect of the surrounding baseline of the signal
+
+    Raises:
+        AssertionError: If any of the reference peak
+        positions doesn't match with the obtained peaks
+    """
+    peaks_pos = find_peaks(x, prominence=threshold)[0]
+    np.testing.assert_equal(peaks_pos, ref_peaks_pos)
