@@ -30,10 +30,7 @@ class SonataConfig:
 
     _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
     _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
-    # New defaults in Sonata config
-    _defaults = {
-        "network": "circuit_config.json",
-    }
+
     _path_entries_without_suffix = ("network",)
 
     def __init__(self, config_path):
