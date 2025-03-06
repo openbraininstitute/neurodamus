@@ -39,5 +39,4 @@ def test_current_injection(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    expected_positions = numpy.array([89, 288, 488])
-    utils.check_signal_peaks(voltage_vec, expected_positions)
+    utils.check_signal_peaks(voltage_vec, [89, 288, 488])
