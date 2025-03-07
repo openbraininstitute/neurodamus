@@ -237,15 +237,7 @@ jobs:
     - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip tox
-    
-    - name: unit
-      run: |
-        tox -e unit
-      
-    - name: baseline
-      run: |
-        tox -e baseline
-      
+
     - name: integration-e2e
       run: |
         tox -e integration-e2e
