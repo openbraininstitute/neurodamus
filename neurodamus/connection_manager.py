@@ -343,7 +343,7 @@ class ConnectionManagerBase:
         if not src_pop_name:
             src_pop_name = self.src_node_population
         dst_pop_name = self.dst_node_population
-        src_pop_id, dst_pop_id = self._compute_pop_ids(src_pop_name, dst_pop_name, pop_id_override)
+        src_pop_id, tgt_pop_id = self._compute_pop_ids(src_pop_name, dst_pop_name, pop_id_override)
 
         if self._cur_population and src_pop_id == 0 and not src_pop_name:
             logging.warning(
@@ -351,7 +351,7 @@ class ConnectionManagerBase:
                 "Edges will be merged with base circuit"
             )
 
-        cur_pop = self.select_connection_set(src_pop_id, dst_pop_id)  # type: ConnectionSet
+        cur_pop = self.select_connection_set(src_pop_id, tgt_pop_id)  # type: ConnectionSet
         cur_pop.src_name = src_pop_name
         cur_pop.dst_name = dst_pop_name
         cur_pop.virtual_source = (
@@ -370,28 +370,28 @@ class ConnectionManagerBase:
             pop_hash = hashlib.md5(node_pop.encode()).digest()
             return ((pop_hash[1] & 0x0F) << 8) + pop_hash[0]  # id: 12bit hash
 
-        dst_pop_id = 0 if self._cell_manager.is_default else make_id(dst_pop)
+        tgt_pop_id = 0 if self._cell_manager.is_default else make_id(dst_pop)
         if src_pop_id is None:
             src_pop_id = 0 if self._src_cell_manager.is_default else make_id(src_pop)
-        return src_pop_id, dst_pop_id
+        return src_pop_id, tgt_pop_id
 
     # -
-    def select_connection_set(self, src_pop_id, dst_pop_id):
+    def select_connection_set(self, src_pop_id, tgt_pop_id):
         """Select the active population of connections given src and dst node pop ids.
         `connect_all()` and `connect_group()` will apply only to the active population.
 
         Returns: The selected ConnectionSet, eventually created
         """
-        self._cur_population = self.get_population(src_pop_id, dst_pop_id)
+        self._cur_population = self.get_population(src_pop_id, tgt_pop_id)
         return self._cur_population
 
     # -
-    def get_population(self, src_pop_id, dst_pop_id=0):
+    def get_population(self, src_pop_id, tgt_pop_id=0):
         """Retrieves a connection set given node src and dst pop ids"""
-        pop = self._populations.get((src_pop_id, dst_pop_id))
+        pop = self._populations.get((src_pop_id, tgt_pop_id))
         if not pop:
-            pop = self.ConnectionSet(src_pop_id, dst_pop_id, conn_factory=self.conn_factory)
-            self._populations[src_pop_id, dst_pop_id] = pop
+            pop = self.ConnectionSet(src_pop_id, tgt_pop_id, conn_factory=self.conn_factory)
+            self._populations[src_pop_id, tgt_pop_id] = pop
         return pop
 
     # NOTE: Several methods use a selector of the connectivity populations
