@@ -170,6 +170,7 @@ class SonataConfig:
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
         parsed_run["CircuitTarget"] = self._sim_conf.node_set
+        parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         conditions = self._sections.get("conditions")
         if conditions:
             parsed_run["Celsius"] = self._sim_conf.conditions.celsius
