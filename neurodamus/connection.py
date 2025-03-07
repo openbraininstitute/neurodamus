@@ -98,10 +98,21 @@ class ConnectionBase:
         self._delay_vec = Nd.Vector()
         self._delayweight_vec = Nd.Vector()
 
-    synapse_params = property(lambda self: self._synapse_params)
-    synapses = property(lambda self: self._synapses)
-    synapses_offset = property(lambda self: self._syn_offset)
-    population_id = property(lambda self: (self._src_pop_id, self._tgt_pop_id))
+    @property
+    def synapse_params(self):
+        return self._synapse_params
+
+    @property
+    def synapses(self):
+        return self._synapses
+
+    @property
+    def synapses_offset(self):
+        return self._syn_offset
+
+    @property
+    def population_id(self):
+        return self._src_pop_id, self._tgt_pop_id
 
     # Subclasses must implement instantiation of their connections in the simulator
     def finalize(self, cell, base_seed=0, *args, **kw):
