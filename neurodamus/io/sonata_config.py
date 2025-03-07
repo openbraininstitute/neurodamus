@@ -367,6 +367,7 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
+        logging.warning("stimuli: %s", stimuli)
         return stimuli
 
     @property
@@ -380,6 +381,7 @@ class SonataConfig:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
+        logging.warning("injects: %s", injects)
         return injects
 
     @property
