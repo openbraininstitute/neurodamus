@@ -84,27 +84,18 @@ def test_report_disabled(create_tmp_simulation_config_file):
                     "dt": 10,
                     "start_time": 0.0,
                     "end_time": 40.0
-                },
-                "summation_i": {
-                    "type": "summation",
-                    "cells": "Mosaic",
-                    "variable_name": "i_membrane, IClamp",
-                    "unit": "nA",
-                    "dt": 10,
-                    "start_time": 0.0,
-                    "end_time": 40.0
                 }
             }
         }
     }
 ], indirect=True)
-def test_neuorn_report(create_tmp_simulation_config_file):
+def test_neuorn_compartment_report(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
     from neurodamus.core import NeurodamusCore as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
-    assert len(n.reports) == 3
+    assert len(n.reports) == 2
 
     # For unit tests, we don't build libsonatareport to create the standard sonata reports,
     # instead we use custom functions to record and write report vectors in ASCII format,
@@ -133,3 +124,30 @@ def test_neuorn_report(create_tmp_simulation_config_file):
     assert compartment_report.exists()
     data = read_ascii_report(compartment_report)
     assert len(data) == 125  # 5 time steps * 5*5 compartments
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "reports": {
+                "summation": {
+                    "type": "summation",
+                    "cells": "Mosaic",
+                    "variable_name": "i_membrane, IClamp",
+                    "unit": "nA",
+                    "dt": 10,
+                    "start_time": 0.0,
+                    "end_time": 40.0
+                }
+            }
+        }
+    }
+], indirect=True)
+def test_enable_summation_report(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file)
+    assert len(n.reports) == 1
