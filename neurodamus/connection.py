@@ -48,12 +48,12 @@ class ConnectionBase:
         "_delay_vec",
         "_delayweight_vec",
         "_disabled",
-        "_dst_pop_id",
         "_netcons",
         "_src_pop_id",
         "_syn_offset",
         "_synapse_params",
         "_synapses",
+        "_tgt_pop_id",
         "locked",
         "sgid",
         "syndelay_override",
@@ -66,7 +66,7 @@ class ConnectionBase:
         sgid,
         tgid,
         src_pop_id=0,
-        dst_pop_id=0,
+        tgt_pop_id=0,
         weight_factor=1,
         syndelay_override=None,
         synapses_offset=0,
@@ -77,7 +77,7 @@ class ConnectionBase:
             sgid: presynaptic gid
             tgid: postsynaptic gid
             src_pop_id: The id of the source node population
-            dst_pop_id: The id of the target node population
+            tgt_pop_id: The id of the target node population
             weight_factor: the weight factor to be applied to the connection. Default: 1
             syndelay_override: The delay for this connection, overriding "delay" property
             synapses_offset: The offset within the edge file (metadata)
@@ -90,7 +90,7 @@ class ConnectionBase:
         self._disabled = False
         self._syn_offset = synapses_offset
         self._src_pop_id = src_pop_id
-        self._dst_pop_id = dst_pop_id
+        self._tgt_pop_id = tgt_pop_id
         self._synapse_params = None
         # Initialized in specific routines
         self._netcons = None
@@ -101,7 +101,7 @@ class ConnectionBase:
     synapse_params = property(lambda self: self._synapse_params)
     synapses = property(lambda self: self._synapses)
     synapses_offset = property(lambda self: self._syn_offset)
-    population_id = property(lambda self: (self._src_pop_id, self._dst_pop_id))
+    population_id = property(lambda self: (self._src_pop_id, self._tgt_pop_id))
 
     # Subclasses must implement instantiation of their connections in the simulator
     def finalize(self, cell, base_seed=0, *args, **kw):
@@ -224,7 +224,7 @@ class Connection(ConnectionBase):
         sgid,
         tgid,
         src_pop_id=0,
-        dst_pop_id=0,
+        tgt_pop_id=0,
         weight_factor=1.0,
         minis_spont_rate=None,
         configuration=None,
@@ -243,7 +243,7 @@ class Connection(ConnectionBase):
             mod_override: Alternative Synapse type. Default: None (use standard Inh/Exc)
         """
         self._init_hmod()
-        super().__init__(sgid, tgid, src_pop_id, dst_pop_id, weight_factor, **kwargs)
+        super().__init__(sgid, tgid, src_pop_id, tgt_pop_id, weight_factor, **kwargs)
         self.minis_spont_rate = minis_spont_rate
         self._mod_override = mod_override
         self._synapse_sections = []
@@ -533,10 +533,10 @@ class Connection(ConnectionBase):
             self._mod_overrides.add(self._mod_override)
             override_helper = self._mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)
-            add_params = (self._src_pop_id, self._dst_pop_id)
+            add_params = (self._src_pop_id, self._tgt_pop_id)
         else:
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
-            add_params = (self._src_pop_id, self._dst_pop_id)
+            add_params = (self._src_pop_id, self._tgt_pop_id)
 
         syn_helper = helper_cls(self.tgid, params_obj, x, syn_id, base_seed, *add_params)
 
@@ -790,11 +790,11 @@ class SpontMinis(ArtificialStim):
         conn.netcon_set_type(netcon, syn_obj, NetConType.NC_SPONTMINI)
         self._store(ips, netcon)
 
-        src_pop_id, dst_pop_id = conn.population_id
+        src_pop_id, tgt_pop_id = conn.population_id
         rng_seed = self._rng_info.getMinisSeed()
         tgid_seed = conn.tgid + 250
 
-        seed2 = src_pop_id * 65536 + dst_pop_id + rng_seed
+        seed2 = src_pop_id * 65536 + tgt_pop_id + rng_seed
         ips.setRNGs(
             syn_obj.synapseID + 200,
             tgid_seed,
