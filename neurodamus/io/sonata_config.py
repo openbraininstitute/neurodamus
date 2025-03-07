@@ -21,11 +21,21 @@ class SonataConfig:
         "_bc_circuits",
         "_circuit_networks",
         "_sim_conf",
+        "_stable_inputs_order",
         "circuits",
     )
 
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
+
+        # Currently, the `inputs` of a simulation_config is a json object,
+        # which is unordered; however, the order of stimuli matter, so try and
+        # recover the order defined in the json file: this assumes that `json.load`
+        # keeps it; which is not guaranteed
+        with open(config_path) as fd:
+            if inputs := json.load(fd).get("inputs", None):
+                self._stable_inputs_order = tuple(inputs.keys())
+                logging.warning("_stable_inputs_order: %s", self._stable_inputs_order)
 
         self.circuits = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
@@ -296,13 +306,8 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
-        names = json.loads(self._sim_conf.expanded_json).get("inputs", {}).keys()
-        logging.warning("MGEVAERT")
-        logging.warning("%s", list(names))
-        logging.warning("%s", self._sim_conf.list_input_names)
-
         stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        for name in self._stable_inputs_order:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
@@ -310,6 +315,8 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
+        logging.warning("stimuli: %s", stimuli)
+
         return stimuli
 
     @property
@@ -317,14 +324,12 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        names = json.loads(self._sim_conf.expanded_json).get("inputs", {}).keys()
-        logging.warning("MGEVAERT")
-        logging.warning("%s", list(names))
-        logging.warning("%s", self._sim_conf.list_input_names)
-        for name in names:
+        for name in self._stable_inputs_order:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
+        logging.warning("injects: %s", injects)
+
         return injects
 
     @property
