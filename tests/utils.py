@@ -2,41 +2,61 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.signal import find_peaks
 from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
 
 
-def find_peaks(trace, threshold=-0.05):
-    """
-    Identify peak indices in a signal by detecting strong negative second-order
-    derivatives after smoothing.
+def merge_dicts(parent: dict, child: dict):
+    """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
+    for ties. Values of matching keys must match or a TypeError is raised.
+
+    Imported from MultiscaleRun.
 
     Args:
-        trace (array-like): Input signal.
-        threshold (float, optional): Threshold for detecting strong reductions.
-                                     Defaults to -0.05.
+        parent: parent dict
+        child: child dict (priority)
 
     Returns:
-        np.ndarray: Indices of detected peaks.
+        dict: merged dict following the rules listed before
+
+    Example::
+
+        >>> parent = {"A":1, "B":{"a":1, "b":2}, "C": 2}
+        >>> child = {"A":2, "B":{"a":2, "c":3}, "D": 3}
+        >>> merge_dicts(parent, child)
+        {"A":2, "B":{"a":2, "b":2, "c":3}, "C": 2, "D": 3}
     """
-    # Calculate the second-order difference of the
-    # voltage vector (trace_second_derivative)
-    trace_second_derivative = np.diff(trace, 2)
-    # Convolve the trace_second_derivative with a smoothing kernel
-    # [1, 2, 4, 2, 1] to reduce noise
-    kernel = np.array([1, 2, 4, 2, 1]) / 10
-    window_sum = np.convolve(trace_second_derivative, kernel, 'valid')
-    # Find the positions where the window sum is below threshold,
-    # indicating the beginning of a peak
-    strong_reduction_pos = np.nonzero(window_sum < threshold)[0]
 
-    # Filter out consecutive positions, the negative second
-    # derivative may persist for a while
-    peaks_idxs = strong_reduction_pos[np.insert(
-        np.diff(strong_reduction_pos) > 1, 0, True)]
+    def merge_vals(k, parent: dict, child: dict):
+        """Merging logic.
 
-    return peaks_idxs
+        Args:
+            k (key type): the key can be in either parent, child or both.
+            parent: parent dict.
+            child: child dict (priority).
+
+        Raises:
+            TypeError: in case the key is present in both parent and child and the type missmatches.
+
+        Returns:
+            value type: merged version of the values possibly found in child and/or parent.
+        """
+        if k not in parent:
+            return child[k]
+        if k not in child:
+            return parent[k]
+        if type(parent[k]) is not type(child[k]):
+            raise TypeError(
+                f"Field type missmatch for the values of key {k}: "
+                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+            )
+        if isinstance(parent[k], dict):
+            return merge_dicts(parent[k], child[k])
+        return child[k]
+
+    return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
 
 
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
@@ -218,3 +238,23 @@ def check_synapse(syn, edges, selection, **kwargs):
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
         assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
+
+
+def check_signal_peaks(x, ref_peaks_pos, threshold=1):
+    """
+    Check the given signal peaks comparing with the given
+    reference
+
+    Args:
+        x: given signal, typically voltage.
+        ref_peaks_pos: the position of the signal peaks
+        taken as reference.
+        threshold: peak detection threshold measured with
+        respect of the surrounding baseline of the signal
+
+    Raises:
+        AssertionError: If any of the reference peak
+        positions doesn't match with the obtained peaks
+    """
+    peaks_pos = find_peaks(x, prominence=threshold)[0]
+    np.testing.assert_equal(peaks_pos, ref_peaks_pos)

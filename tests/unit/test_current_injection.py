@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from tests import utils
 
 
@@ -40,7 +39,4 @@ def test_current_injection(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    # extract the peak indexes
-    peaks_pos = utils.find_peaks(voltage_vec)
-
-    assert np.array_equal(peaks_pos, [82, 282, 482])
+    utils.check_signal_peaks(voltage_vec, [89, 288, 488])

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+import numpy as np
 from libsonata import EdgeStorage
 
 from neurodamus.core.configuration import SimConfig
@@ -114,3 +115,86 @@ def test_check_synapses(create_tmp_simulation_config_file):
     # wrong type
     with pytest.raises(TypeError):
         utils.check_synapses([0], edges, selection)
+
+
+def test_merge_dicts_simple():
+    parent = {"A": 1, "B": 2}
+    child = {"A": 2, "C": 3}
+    expected = {"A": 2, "B": 2, "C": 3}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+def test_merge_dicts_nested():
+    parent = {"A": {"x": 1, "y": 2}, "B": 3}
+    child = {"A": {"x": 2, "z": 3}, "C": 4}
+    expected = {"A": {"x": 2, "y": 2, "z": 3}, "B": 3, "C": 4}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+def test_merge_dicts_with_type_mismatch():
+    parent = {"A": 1}
+    child = {"A": "string"}
+    with pytest.raises(TypeError):
+        utils.merge_dicts(parent, child)
+
+
+def test_merge_dicts_with_empty_parent():
+    parent = {}
+    child = {"A": 1, "B": 2}
+    expected = {"A": 1, "B": 2}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+def test_merge_dicts_with_empty_child():
+    parent = {"A": 1, "B": 2}
+    child = {}
+    expected = {"A": 1, "B": 2}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+def test_merge_dicts_with_parent_and_child_empty():
+    parent = {}
+    child = {}
+    expected = {}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+def test_merge_dicts_deeply_nested():
+    parent = {"A": {"B": {"C": 1}}}
+    child = {"A": {"B": {"D": 2}}}
+    expected = {"A": {"B": {"C": 1, "D": 2}}}
+    assert utils.merge_dicts(parent, child) == expected
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(SIM_DIR / "circuit_config_RingB.json"),
+            "target_simulator": "NEURON",
+            "run": {
+                "tstop": 32
+            }
+        }
+    }
+], indirect=True)
+def test_merge_simulation_configs(create_tmp_simulation_config_file):
+    import json
+    with open(create_tmp_simulation_config_file, "r") as f:
+        config_data = json.load(f)
+        assert config_data["run"]["tstop"] == 32
+        assert np.isclose(config_data["run"]["dt"], 0.1)
+        assert config_data["run"]["random_seed"] == 1122
+        assert len(config_data["run"]) == 3
+
+
+def test_check_signal_peaks():
+    x = np.array([-60., -59., -20., -30., -50., -40., -55., -59., -10., -15., -30., -49., -60.])
+    ref_pos = [2, 5, 8]
+    utils.check_signal_peaks(x, ref_pos)
+
+    x_ramp = x + np.arange(len(x)) * 2
+    utils.check_signal_peaks(x_ramp, ref_pos)
+
+    x_ramp = x + np.arange(len(x)) * -2
+    utils.check_signal_peaks(x_ramp, ref_pos)
