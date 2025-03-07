@@ -10,7 +10,6 @@ pytestmark = pytest.mark.forked
 def test_parse_base():
     from neurodamus.io.sonata_config import SonataConfig
     raw_conf = SonataConfig(SONATA_CONF_FILE)
-    assert raw_conf.run["random_seed"] == 1122
     assert raw_conf.parsedRun["BaseSeed"] == 1122
 
 

@@ -20,82 +20,30 @@ class SonataConfig:
     __slots__ = (
         "_bc_circuits",
         "_circuit_networks",
-        "_config_dir",
-        "_config_json",
-        "_entries",
-        "_resolved_manifest",
-        "_sections",
         "_sim_conf",
+        "_stable_inputs_order",
         "circuits",
     )
 
-    _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
-    _config_sections = ("run", "conditions", "output", "inputs", "reports", "beta_features")
-    # New defaults in Sonata config
-    _defaults = {
-        "network": "circuit_config.json",
-    }
-    _path_entries_without_suffix = ("network",)
-
     def __init__(self, config_path):
-        self._config_dir = os.path.abspath(os.path.dirname(config_path))
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
-        self._entries = {}
-        self._sections = {}
 
-        with open(config_path) as config_fh:
-            self._config_json: dict = json.load(config_fh)
-        self._resolved_manifest = self._build_resolver(
-            self._config_json.get("manifest") or {}, self._config_dir
-        )
-        for entry_name in self._config_entries:
-            value = getattr(self._sim_conf, entry_name)
-            self._entries[entry_name] = value
-        for section_name in self._config_sections:
-            section_value = self._config_json.get(section_name, {})
-            self._sections[section_name] = self._resolve_section(
-                section_value, self._resolved_manifest
-            )
+        # Currently, the `inputs` of a simulation_config is a json object,
+        # which is unordered; however, the order of stimuli matter, so try and
+        # recover the order defined in the json file: this assumes that `json.load`
+        # keeps it; which is not guaranteed
+        with open(config_path) as fd:
+            if inputs := json.load(fd).get("inputs", None):
+                self._stable_inputs_order = tuple(inputs.keys())
+                logging.warning("_stable_inputs_order: %s", self._stable_inputs_order)
 
-        self.circuits = libsonata.CircuitConfig.from_file(self.network)
+        self.circuits = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
         self._bc_circuits = self._blueconfig_circuits()
 
-    @classmethod
-    def _resolve(cls, entry, name, manifest: dict):
-        if not isinstance(entry, str):
-            return entry  # ints, floats... no need to resolve
-        if (
-            not name.lower().endswith(("_file", "_dir"))
-            and name.lower() not in cls._path_entries_without_suffix
-        ):
-            return entry  # not a path
-        slash_p = entry.find("/")
-        if slash_p == 0:  # abs path
-            return entry
-        if not entry.startswith("$"):
-            return os.path.normpath(os.path.join(manifest["$__CONFIG_DIR"], entry))
-        # Handle variable substitution
-        if slash_p > -1:
-            var_name = entry[:slash_p]
-            remaining = entry[slash_p:]
-        else:
-            var_name = entry  # just alias
-            remaining = ""
-        if var_name not in manifest:
-            raise Exception(f"Cant decode path entry {entry}. Unknown var {var_name}")
-        return os.path.normpath(manifest[var_name] + remaining)
-
-    @classmethod
-    def _build_resolver(cls, manifest, config_dir):
-        resolved = {"$__CONFIG_DIR": config_dir}  # special entry to resolve rel paths
-        for key, value in manifest.items():
-            resolved[key] = cls._resolve(value, key, resolved)
-        return resolved
-
-    @classmethod
-    def _resolve_section(cls, section, manifest):
-        return {key: cls._resolve(val, key, manifest) for key, val in section.items()}
+    @property
+    def beta_features(self):
+        return self._sim_conf.beta_features
 
     _translation = {
         # Section Names
@@ -105,7 +53,6 @@ class SonataConfig:
         "Projection": None,
         "StimulusInject": "inputs",
         "Connection": "connection_overrides",
-        "parsedConfigures": False,
         # Section fields
         # --------------
         "run": {
@@ -170,15 +117,11 @@ class SonataConfig:
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
         parsed_run["CircuitTarget"] = self._sim_conf.node_set
-        conditions = self._sections.get("conditions")
-        if conditions:
-            parsed_run["Celsius"] = self._sim_conf.conditions.celsius
-            parsed_run["V_Init"] = self._sim_conf.conditions.v_init
-            parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
-            if hasattr(self._sim_conf.conditions, "spike_location"):
-                # read SpikeLocation from "conditions" with libsonata parser 0.1.17+
-                # before 0.1.17 read from "run" by calling _translate_dict
-                parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        parsed_run["Celsius"] = self._sim_conf.conditions.celsius
+        parsed_run["V_Init"] = self._sim_conf.conditions.v_init
+        parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
+        parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        logging.warning("parsedRun: %s", parsed_run)
         return parsed_run
 
     @property
@@ -201,24 +144,29 @@ class SonataConfig:
             else:
                 conditions[key] = value
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
+
+        logging.warning("Conditions: %s", conditions)
         return {"Conditions": conditions}
 
     def _blueconfig_circuits(self):
         """Yield blue-config-style circuits"""
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
-        if "node_set" not in self._entries:
+        simulation_nodeset_name = self._sim_conf.node_set or ""
+        if not simulation_nodeset_name:
             logging.warning("Simulating all populations from all node files...")
+
         network = self._circuit_networks
 
         def make_circuit(nodes_file, node_pop_name, population_info):
             if not os.path.isabs(nodes_file):
-                nodes_file = os.path.join(os.path.dirname(self.network), nodes_file)
+                nodes_file = os.path.join(os.path.dirname(self._sim_conf.network), nodes_file)
+
             circuit_conf = dict(
                 CircuitPath=os.path.dirname(nodes_file) or "",
                 CellLibraryFile=nodes_file,
                 # Use the extended ":" syntax to filter the nodeset by the related population
-                CircuitTarget=node_pop_name + ":" + (self._entries.get("node_set") or ""),
+                CircuitTarget=node_pop_name + ":" + simulation_nodeset_name,
                 **{
                     node_info_to_circuit.get(key, key): value
                     for key, value in population_info.items()
@@ -261,7 +209,9 @@ class SonataConfig:
                     ):
                         edges_file = edge_config["edges_file"]
                         if not os.path.isabs(edges_file):
-                            edges_file = os.path.join(os.path.dirname(self.network), edges_file)
+                            edges_file = os.path.join(
+                                os.path.dirname(self._sim_conf.network), edges_file
+                            )
                         edge_pop_path = edges_file + ":" + edge_pop_name
                         circuit_conf["nrnPath"] = edge_pop_path
                         break
@@ -278,7 +228,9 @@ class SonataConfig:
         }
 
     # Compat with BlueConfig circuit definitions
-    Circuit = property(lambda self: self._bc_circuits)
+    @property
+    def Circuit(self):
+        return self._bc_circuits
 
     @property
     def parsedProjections(self):
@@ -303,7 +255,7 @@ class SonataConfig:
 
                 edges_file = edge_config["edges_file"]
                 if not os.path.isabs(edges_file):
-                    edges_file = os.path.join(os.path.dirname(self.network), edges_file)
+                    edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
 
                 # skip inner connectivity populations
                 edge_pop_path = edges_file + ":" + edge_pop_name
@@ -333,6 +285,7 @@ class SonataConfig:
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
+        logging.warning("parsedProjections: %s", projections)
         return projections
 
     @property
@@ -341,10 +294,12 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        return {
+        connects = {
             libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
+        logging.warning("parsedConnects connects: %s", connects)
+        return connects
 
     @property
     def parsedStimuli(self):
@@ -358,7 +313,10 @@ class SonataConfig:
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
         stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        names1 = self._sim_conf.list_input_names
+        names = ("ThresholdInh", "ThresholdExc", "hypamp_mosaic")
+        logging.warning("old: %s, new: %s", names1, names)
+        for name in names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
@@ -366,6 +324,8 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
+
+        logging.warning("parsedStimuli stimuli: %s", stimuli)
         return stimuli
 
     @property
@@ -373,10 +333,16 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sections["inputs"]:
+
+        names1 = self._stable_inputs_order
+        names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
+        logging.warning("old: %s, new: %s", names1, names)
+        for name in names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
+
+        logging.warning("parsedInjects: injects: %s", injects)
         return injects
 
     @property
@@ -392,6 +358,8 @@ class SonataConfig:
             rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
+
+        logging.warning("parsedReports: %s", reports)
         return reports
 
     @property
@@ -401,6 +369,8 @@ class SonataConfig:
             setting = self._translate_dict("modifications", modification)
             self._adapt_libsonata_fields(setting)
             result[modification.name] = setting
+
+        logging.warning("parsedModifications: %s", result)
         return result
 
     def _dir(self, obj):
@@ -435,19 +405,6 @@ class SonataConfig:
             if parsed_value is not None:
                 result[key] = parsed_value
         return result
-
-    def __getattr__(self, item):
-        # Immediately return native items
-        if item in self._config_entries:
-            return self._entries.get(item, None)
-        if item in self._config_sections:
-            return self._sections.get(item, {})
-        # Otherwise attempt translation
-        item_tr = self._translation.get(item)
-        if item_tr is None:
-            logging.warning("Non-native Property needs conversion: %s", item)
-            return {}
-        return self._entries.get(item_tr) or self._sections.get(item_tr) or {}
 
 
 def snake_to_camel(word):
