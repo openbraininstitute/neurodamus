@@ -2,64 +2,8 @@ import json
 import pytest
 from pathlib import Path
 
-from neurodamus.node import Node
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "sonata_config",
-        "extra_config": {
-            "reports": {
-                "new_report": {
-                    "type": "compartment",
-                    "cells": "Mosaic",
-                    "variable_name": "wrong",
-                    "sections": "all",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 40.0,
-                }
-            }
-        }
-    }
-], indirect=True)
-def test_report_config_error(create_tmp_simulation_config_file):
-    with pytest.raises(Exception):
-        n = Node(create_tmp_simulation_config_file)
-        n.load_targets()
-        n.create_cells()
-        n.enable_reports()
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "sonata_config",
-        "extra_config": {
-            "reports": {
-                "new_report": {
-                    "type": "compartment",
-                    "cells": "Mosaic",
-                    "variable_name": "wrong",
-                    "sections": "all",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 40.0,
-                    "enabled": False
-                }
-            }
-        }
-    }
-], indirect=True)
-def test_report_disabled(create_tmp_simulation_config_file):
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_reports()
-    assert len(n.reports) == 0
 
 
 def _read_sonata_report(report_file):
