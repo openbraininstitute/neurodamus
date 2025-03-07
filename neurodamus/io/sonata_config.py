@@ -179,6 +179,7 @@ class SonataConfig:
                 # read SpikeLocation from "conditions" with libsonata parser 0.1.17+
                 # before 0.1.17 read from "run" by calling _translate_dict
                 parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        logging.warning("parsedRun: %s", parsed_run)
         return parsed_run
 
     @property
@@ -201,6 +202,7 @@ class SonataConfig:
             else:
                 conditions[key] = value
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
+        logging.warning("Conditions: %s", conditions)
         return {"Conditions": conditions}
 
     def _blueconfig_circuits(self):
@@ -405,6 +407,7 @@ class SonataConfig:
             rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
+        logging.warning("parsedReports: %s", reports)
         return reports
 
     @property
@@ -414,6 +417,7 @@ class SonataConfig:
             setting = self._translate_dict("modifications", modification)
             self._adapt_libsonata_fields(setting)
             result[modification.name] = setting
+        logging.warning("parsedModifications: %s", result)
         return result
 
     def _dir(self, obj):
