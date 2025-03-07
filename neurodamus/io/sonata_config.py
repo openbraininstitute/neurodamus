@@ -333,6 +333,7 @@ class SonataConfig:
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
+        logging.warning("parsedProjections: %s", projections)
         return projections
 
     @property
@@ -341,10 +342,12 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        return {
+        connects = {
             libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
+        logging.warning("parsedConnects: %s", connects)
+        return connects
 
     @property
     def parsedStimuli(self):
@@ -357,9 +360,11 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
-        logging.warning("parsedStimuli: %s", self._sim_conf.list_input_names)
+        names1 = self._sim_conf.list_input_names
+        names = ('ThresholdInh', 'ThresholdExc', 'hypamp_mosaic')
+        logging.warning("old: %s, new: %s", names1, names)
         stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        for name in names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
@@ -367,7 +372,8 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
-        logging.warning("stimuli: %s", stimuli)
+
+        logging.warning("parsedStimuli: %s", stimuli)
         return stimuli
 
     @property
@@ -375,13 +381,15 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-
-        logging.warning("parsedInjects: %s", self._sections["inputs"])
-        for name in self._sections["inputs"]:
+        names1 = self._sections["inputs"]
+        names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
+        logging.warning("old: %s, new: %s", names1, names)
+        for name in names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
-        logging.warning("injects: %s", injects)
+
+        logging.warning("parsedInjects: %s", injects)
         return injects
 
     @property

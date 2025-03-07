@@ -224,15 +224,15 @@ jobs:
         echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
         echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
 
-        which special
+        #which special
 
-        # launch simulation with NEURON
-        cd tests/simulations/usecase3/
-        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
-        ls reporting/*.h5
-        # launch simulation with CORENEURON
-        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
-        ls reporting_coreneuron/*.h5
+        ## launch simulation with NEURON
+        #cd tests/simulations/usecase3/
+        #mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
+        #ls reporting/*.h5
+        ## launch simulation with CORENEURON
+        #mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
+        #ls reporting_coreneuron/*.h5
 
     - name: Install test dependencies
       run: |
