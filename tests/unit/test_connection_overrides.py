@@ -176,6 +176,17 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
 
 
+def inspect(v):
+    print(v, type(v))
+    for i in dir(v):
+        if i.startswith('_'):
+            continue
+        try:
+            print(f"{i}: {getattr(v, i)}")
+        except BaseException:
+            print(f"{i}: ***")
+
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -187,8 +198,7 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
                     "name": "A2B",
                     "source": "RingA",
                     "target": "RingB",
-                    "spont_minis": 200,
-                    "synapse_configure": "%s.verboseLevel = 1"
+                    "spont_minis": 200
                 }
             ]
         }
@@ -198,16 +208,42 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     """Test that spont_mini fires with roughly """
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Ndc
+    from neurodamus.connection import NetConType, SpontMinis
 
-    cell_id = 1001
+    src_pop, src_gid, tgt_pop, tgt_gid = "RingA", 1, "RingB", 1001
 
     nd = Neurodamus(create_tmp_simulation_config_file)
-    manager = nd.circuits.get_node_manager("RingB")
-    cell_ringB = manager.get_cell(cell_id)
+    edges_a_b = nd.circuits.get_edge_manager(src_pop, tgt_pop)
+    # nd.connections not netcon
+    # this should retrieve still only 1 connection. The
+    # spont_minis attaches an orphan netcon directly to the
+    # synapse. Here we check that the old netcon is there
+    # and the spont_minis is placed
+    connections = list(edges_a_b.get_connections(tgt_gid))
+    assert len(connections) == 1
+    conn = next(iter(connections))
+    # old netcon is still up and active right?
+    assert conn.sgid == src_gid
+    assert conn.tgid == tgt_gid
+    # check that there is also a spont_minis attached
+    # to this synapse
+    assert conn.minis_spont_rate == 200
+    assert isinstance(conn._spont_minis, SpontMinis)
+    assert len(list(conn._spont_minis.netcons)) == 1
+    nc = next(iter(conn._spont_minis.netcons))
+    # check that the netcon associated to the spont_minis
+    # (because spont_minis create ad-hoc netcons when
+    # isntantiated) is aware that it is a spont_minis
+    # and serves that in the weight array
+    assert nc.weight[4] == int(NetConType.NC_SPONTMINI)
+
+    # check that the voltage trace has spikes. Since there
+    # are no other stimuli, they are produced by the spont_minis
     voltage_trace = Ndc.Vector()
+    cell_ringB = nd.circuits.get_node_manager(tgt_pop).get_cell(tgt_gid)
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
     # with threshold=1.0 it does not get the last peak
-    utils.check_signal_peaks(voltage_trace, [ 12,  55, 122, 164, 269, 303, 385], threshold=0.5)
+    utils.check_signal_peaks(voltage_trace, [12, 55, 122, 164, 269, 303, 385], threshold=0.5)
