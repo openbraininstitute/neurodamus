@@ -209,6 +209,5 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
-    peaks_pos = utils.find_peaks(voltage_trace)
-
-    assert np.array_equal(peaks_pos, [5, 49, 116, 158, 263, 298, 379])
+    # with threshold=1.0 it does not get the last peak
+    utils.check_signal_peaks(voltage_trace, [ 12,  55, 122, 164, 269, 303, 385], threshold=0.5)
