@@ -55,6 +55,7 @@ class _Neuron:
             return
         h = cls._h or cls._init()
         mod_filename = mod_name + ".hoc"
+        print("AAAAA      ", mod_filename)
         if not h.load_file(mod_filename):
             msg = (
                 f"Can't load HOC library {mod_filename}. "

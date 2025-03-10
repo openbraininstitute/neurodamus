@@ -266,6 +266,15 @@ class Connection(ConnectionBase):
         self._spont_minis = None
         self._replay = None
 
+    @property
+    def spont_minis(self):
+        return self._spont_minis
+
+    @spont_minis.setter
+    def spont_minis(self, value):
+        self._spont_minis = value
+    
+
     # -
     def add_synapse_configuration(self, configuration):
         """Add a synapse configuration command to the list.
