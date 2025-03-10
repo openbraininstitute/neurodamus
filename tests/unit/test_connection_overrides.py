@@ -194,42 +194,40 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_spont_minis_simple(create_tmp_simulation_config_file):
-    """Test that spont_mini fires with roughly """
+    """Test spont_minis standard behavior.
+
+    This test verifies that a spont_minis is correctly added to
+    the simulation, preserving essential properties from existing
+    netcons while enforcing expected modifications.
+
+    The test is divided in 2 parts:
+    - check that the spont_minis is added, neuron sees it
+    and the other netcons are unaffected
+    - run a simulation and see spikes at roughly the correct
+    firing rate
+    """
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Ndc
-    from neurodamus.connection import NetConType, SpontMinis
-
-    src_pop, src_gid, tgt_pop, tgt_gid = "RingA", 1, "RingB", 1001
+    from neurodamus.connection import NetConType
 
     nd = Neurodamus(create_tmp_simulation_config_file)
-    edges_a_b = nd.circuits.get_edge_manager(src_pop, tgt_pop)
-    # nd.connections not netcon
-    # this should retrieve still only 1 connection. The
-    # spont_minis attaches an orphan netcon directly to the
-    # synapse. Here we check that the old netcon is there
-    # and the spont_minis is placed
-    connections = list(edges_a_b.get_connections(tgt_gid))
-    assert len(connections) == 1
-    conn = next(iter(connections))
-    # old netcon is still up and active right?
-    assert conn.sgid == src_gid
-    assert conn.tgid == tgt_gid
-    # check that there is also a spont_minis attached
-    # to this synapse
-    assert conn.minis_spont_rate == 200
-    assert isinstance(conn._spont_minis, SpontMinis)
-    assert len(list(conn._spont_minis.netcons)) == 1
-    nc = next(iter(conn._spont_minis.netcons))
-    # check that the netcon associated to the spont_minis
-    # (because spont_minis create ad-hoc netcons when
-    # isntantiated) is aware that it is a spont_minis
-    # and serves that in the weight array
-    assert nc.weight[4] == int(NetConType.NC_SPONTMINI)
+    # get all the netcons targetting 1001 from neuron directly
+    cell = nd._pc.gid2cell(1001)
+    nclist = Ndc.cvode.netconlist("", cell, "")
+    assert len(nclist) == 3
+    # assert that the old netcons are still there
+    assert nclist[0].srcgid() == 1
+    assert nclist[1].srcgid() == 1002
+    # test the spont_minis netcon
+    assert nclist[2].srcgid() == -1
+    assert nclist[2].weight[4] == int(NetConType.NC_SPONTMINI)
+    # weight is set as the weight of the original netcon
+    assert nclist[2].weight[0] == nclist[0].weight[0]
+    # delay is always set to 0.1. Check connection.SpontMinis.create_on
+    assert nclist[2].delay == pytest.approx(0.1)
 
-    # check that the voltage trace has spikes. Since there
-    # are no other stimuli, they are produced by the spont_minis
     voltage_trace = Ndc.Vector()
-    cell_ringB = nd.circuits.get_node_manager(tgt_pop).get_cell(tgt_gid)
+    cell_ringB = nd.circuits.get_node_manager("RingB").get_cell(1001)
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
