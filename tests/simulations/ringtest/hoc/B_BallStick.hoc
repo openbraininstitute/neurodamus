@@ -1,6 +1,6 @@
 begintemplate B_BallStick
 public is_art
-public init, topol, basic_shape, subsets, geom, biophys, geom_nseg, biophys_inhomo
+public init, topol, basic_shape, subsets, geom, biophys, geom_nsec, biophys_inhomo
 public synlist, x, y, z, position, connect2target
 
 public soma, dend
@@ -8,11 +8,17 @@ public all, den
 
 create soma[1], dend[1]
 
-public gid, nSecAll, CellRef, synHelperList
+public gid, CellRef, synHelperList
+public nSecAll, nSecSoma, nSecApical, nSecBasal, nSecAxonalOrig, nSecAxonal
 
-objref synlist, secpar, segvec, synHelperList
+objref synlist, secpar, segvec, synHelperList, segCounts
+objref somatic, apical, axonal, basal
 
 proc init() {local i
+  apical = new SectionList()
+  axonal = new SectionList()
+  basal = new SectionList()
+  somatic = new SectionList()
   secpar = new Vector(2)
   segvec = new Vector(2)
   secpar.x[0] = secpar.x[1] = 0
@@ -31,7 +37,6 @@ proc init() {local i
 	
   // require to run neurodamus
   gid = -1
-  nSecAll = 3
   synHelperList = new List()                                                     
   
 }
@@ -59,12 +64,46 @@ proc subsets() { local i
     for i=0, nden-1 dend[i] { den.append() }
 
 }
-proc geom() { local i
-  forsec all {  }
+proc geom() { local i localobj sref
   soma {  /*area = 500 */ L = diam = 12.6157  }
-  dend[0] {  L = 200  diam = 1  }
-  for i=1, nden-1 dend[i] { L = 10 diam = 1 }
+  access soma
+  somatic.append()
+  dend[0] {  L = 200  diam = 1  basal.append()}
+  for i=1, nden-1 dend[i] { L = 10 diam = 1 basal.append()}
+  geom_nsec()
+
 }
+
+proc geom_nsec() { local nSec
+  nSec = 0
+  forsec all {
+      //nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1
+      nSec = nSec + 1
+      //print nseg, " ", L
+  }
+  nSecAll = nSec
+  nSec = 0
+  forsec somatic { nSec = nSec + 1}
+  nSecSoma	= 	nSec
+  nSec = 0
+  forsec apical { nSec = nSec + 1}
+  nSecApical= 	nSec
+  nSec = 0
+  forsec basal { nSec = nSec + 1}
+  nSecBasal	= 	nSec
+  nSec = 0
+  forsec axonal { nSec = nSec + 1}
+  nSecAxonalOrig = nSecAxonal = nSec
+
+  segCounts = new Vector()
+  segCounts.resize(nSecAll)
+  nSec=0
+  forsec all {
+      segCounts.x[nSec] = nseg
+      nSec = nSec+1
+  }
+}
+
 //external lambda_f
 proc biophys() {
   forsec all {
