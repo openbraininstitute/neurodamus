@@ -1,21 +1,23 @@
 """Tests load balance."""
 
 import logging
-import pytest
 import re
 import shutil
-from neurodamus.core.configuration import LoadBalanceMode, ConfigurationError
 from pathlib import Path
 
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
+import pytest
+
+from .conftest import RINGTEST_DIR
+from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
+
 base_dir = Path("sim_conf")
 pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
 
 @pytest.fixture
 def target_manager():
-    from neurodamus.target_manager import NodesetTarget
     from neurodamus.core.nodeset import NodeSet
+    from neurodamus.target_manager import NodesetTarget
 
     nodes_t1 = NodeSet([1, 2, 3]).register_global("RingA")
     nodes_t2 = NodeSet([1]).register_global("RingA")
@@ -29,7 +31,7 @@ def test_loadbalance_mode():
     assert LoadBalanceMode.parse("WholeCell") == LoadBalanceMode.WholeCell
     assert LoadBalanceMode.parse("MultiSplit") == LoadBalanceMode.MultiSplit
     assert LoadBalanceMode.parse("Memory") == LoadBalanceMode.Memory
-    with pytest.raises(ConfigurationError):
+    with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
         assert LoadBalanceMode.parse("Random")
 
 
@@ -50,7 +52,7 @@ def test_loadbal_subtarget(target_manager, caplog):
 
     nodes_file = "/gpfs/fake_node_path"
     lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "RingA")
-    shutil.copyfile(SIM_DIR / "ringtest" / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
+    shutil.copyfile(RINGTEST_DIR / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
 
     lbal = LoadBalance(1, nodes_file, "RingA", target_manager, 4)
     assert "RingA_All" in lbal._cx_targets
@@ -73,7 +75,7 @@ def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
     from neurodamus.core.configuration import CircuitConfig
 
-    circuit_base = str(SIM_DIR) + "/ringtest"
+    circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
         CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A_bigcell.h5",
@@ -89,7 +91,7 @@ def circuit_conf():
     """Test nodes file contains 3 small cells with 2 dendrites each"""
     from neurodamus.core.configuration import CircuitConfig
 
-    circuit_base = str(SIM_DIR) + "/ringtest"
+    circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
         CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A.h5",
@@ -155,7 +157,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
 
     # Check the complexity file
     assert base_dir.exists()
-    cx_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))[0]
+    cx_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))
     assert cx_filename.exists()
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
@@ -165,7 +167,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     )
 
     # Check the cpu assign file, format: ihost ngid (index, gid, subtreeindex) ..
-    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  0 1 1\n1 2  1 2 0  2 3 0\n"
 
@@ -199,7 +201,7 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
 
     # Check the complexity file cx_RingA_All#.dat
     assert base_dir.exists()
-    cx_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))[0]
+    cx_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.dat")))
     assert cx_filename.exists()
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
@@ -209,7 +211,7 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     )
 
     # Check the cpu assign file
-    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
 
@@ -233,7 +235,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     assert "3 cells\n3 pieces" in captured.out
 
     # Check the cpu assign file
-    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
 
@@ -255,7 +257,7 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     assert "3 cells\n3 pieces" in captured.out
 
     # Check the cpu assign file
-    cpu_assign_filename = list(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))[0]
+    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
 
