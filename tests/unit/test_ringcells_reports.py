@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from tests.utils import read_ascii_report, record_compartment_report, write_ascii_report
+from tests.utils import (
+    read_ascii_report,
+    record_compartment_report,
+    write_ascii_report,
+    check_signal_peaks,
+)
 
 from neurodamus.node import Node
 
@@ -78,22 +83,35 @@ def test_report_disabled(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "NEURON",
+                "inputs": {
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingA",
+                        "represents_physical_electrode": True,
+                        "amp_start": 10,
+                        "width": 1,
+                        "frequency": 50,
+                    }
+                },
                 "reports": {
                     "soma_v": {
                         "type": "compartment",
                         "cells": "Mosaic",
                         "variable_name": "v",
                         "sections": "soma",
-                        "dt": 10,
+                        "dt": 0.1,
                         "start_time": 0.0,
-                        "end_time": 40.0,
+                        "end_time": 50.0,
                     },
                     "compartment_i": {
                         "type": "compartment",
                         "cells": "Mosaic",
                         "variable_name": "i_membrane",
                         "sections": "all",
-                        "dt": 10,
+                        "dt": 1,
                         "start_time": 0.0,
                         "end_time": 40.0,
                     },
@@ -132,15 +150,19 @@ def test_neuorn_compartment_report(create_tmp_simulation_config_file):
     soma_report = Path(n._run_conf["OutputRoot"]) / ("soma_v.txt")
     assert soma_report.exists()
     data = read_ascii_report(soma_report)
-    assert len(data) == 25  # 5 time steps * 5 soma sections
+    assert len(data) == 2500  # 500 time steps * 5 soma sections
+    # check soma signal peak for cell 1001 as in test_current_injection.py
+    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
+    check_signal_peaks(cell_voltage_vec, [89, 288, 488])
 
     compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_report.exists()
     data = read_ascii_report(compartment_report)
-    assert len(data) == 125  # 5 time steps * 5*5 compartments
+    assert len(data) == 1025  # 45 time steps * 5*5 compartments
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    check_signal_peaks(cell_current_vec, [50, 70, 110], threshold=0.1)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -149,7 +171,7 @@ def test_neuorn_compartment_report(create_tmp_simulation_config_file):
             "extra_config": {
                 "target_simulator": "NEURON",
                 "reports": {
-                    "summation": {
+                    "summation_report": {
                         "type": "summation",
                         "cells": "Mosaic",
                         "variable_name": "i_membrane, IClamp",
@@ -165,7 +187,10 @@ def test_neuorn_compartment_report(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_enable_summation_report(create_tmp_simulation_config_file):
+    """ Check summartion report is enabled in neurodamus
+    """
     from neurodamus import Neurodamus
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
+    assert n.reports[0].variable_name == "i_membrane  IClamp"

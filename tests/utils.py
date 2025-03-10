@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import find_peaks
 from libsonata import EdgeStorage
+from scipy.signal import find_peaks
 
-from neurodamus.core.configuration import SimConfig
 from neurodamus.core import NeurodamusCore as Nd
+from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 
 
@@ -119,8 +119,8 @@ def compare_json_files(res_file: Path, ref_file: Path):
 
 def check_directory(dir_name: Path):
     """ Check if a directory exists and is not empty """
-    assert dir_name.is_dir(), f"{str(dir_name)} doesn't exist"
-    assert any(dir_name.iterdir()), f"{str(dir_name)} is empty"
+    assert dir_name.is_dir(), f"{dir_name} doesn't exist"
+    assert any(dir_name.iterdir()), f"{dir_name} is empty"
 
 
 def check_netcons(ref_srcgid, nclist, edges, selection, **kwargs):
@@ -308,14 +308,15 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
 def write_ascii_report(filename, recorder, tvec):
     """Write out the report in ASCII format"""
     with open(filename, "w") as f:
-        f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<10}{'data':<30}\n")
+        f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
         for gid, secname, data_vec in recorder:
-            for t, data in zip(tvec, data_vec):
-                f.write(f"{gid:<10}{secname:<20}{t:<10}{data:<30}\n")
+            f.writelines(f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
+                         for t, data in zip(tvec, data_vec))
 
 
 def read_ascii_report(filename):
-    """Read an ASCII report and return report data"""
+    """Read an ASCII report and return report data in format:(gid, seg_name, time, report_variable)
+    """
     data_vec = []
     with open(filename) as f:
         next(f)  # skip header
