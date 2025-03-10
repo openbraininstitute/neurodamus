@@ -176,17 +176,6 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
 
 
-def inspect(v):
-    print(v, type(v))
-    for i in dir(v):
-        if i.startswith('_'):
-            continue
-        try:
-            print(f"{i}: {getattr(v, i)}")
-        except BaseException:
-            print(f"{i}: ***")
-
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
