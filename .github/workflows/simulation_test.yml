@@ -147,6 +147,16 @@ jobs:
         else
           git clone --branch=${{ env.NEURON_BRANCH }} https://github.com/neuronsimulator/nrn.git --depth=1
         fi
+        if [[ -d ${PWD}/nrn/external/nmodl ]]; then
+          git -C ${PWD}/nrn submodule update --init --recursive --depth=1 external/nmodl
+          # apply temp workaround for https://github.com/openbraininstitute/neurodamus/issues/3
+          patch="${PWD}/ci/0001-Revert-Use-aligned_alloc-as-we-do-in-CoreNEURON-too-.patch"
+          if git -C ${PWD}/nrn/external/nmodl apply "${patch}" >& /dev/null; then
+            echo "Successfully applied patch ${patch}"
+          else
+            echo "Failed to apply patch ${patch}; CI will continue as-is"
+          fi
+        fi
         python -m pip install --upgrade pip -r nrn/nrn_requirements.txt
         cmake -B nrn/build -S nrn -G Ninja \
           -DPYTHON_EXECUTABLE=$(which python) \
