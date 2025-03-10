@@ -70,9 +70,9 @@ class ACellConnection(ConnectionBase):
     """
     ACellConnections: simple so we aggregate all sources
     """
-    def __init__(self, _, tgid, src_pop_id=0, dst_pop_id=0, weight_factor=1, sgids=None, **kw):
+    def __init__(self, _, tgid, src_pop_id=0, tgt_pop_id=0, weight_factor=1, sgids=None, **kw):
         """Init Connection. sgid as indexer is not used and set to None"""
-        super().__init__(None, tgid, src_pop_id, dst_pop_id, weight_factor)
+        super().__init__(None, tgid, src_pop_id, tgt_pop_id, weight_factor)
         self._src_gids = sgids or np.array([], dtype="uint32")
         self._synapse_params = ASynParameters.empty
 
