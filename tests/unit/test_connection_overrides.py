@@ -140,7 +140,8 @@ def test_synapse_without_weight(create_tmp_simulation_config_file):
                     "name": "A2B",
                     "source": "RingA",
                     "target": "RingB",
-                    "modoverride": "AMPANMDA"
+                    "modoverride": "AMPANMDA",
+                    "synapse_configure": "%s.NMDA_ratio = 10002.1",
                 }
             ]
         },
@@ -162,6 +163,7 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
 
     overrides = {("RingA", "RingB"): {
         "hname": "ProbAMPANMDA_EMS",
+        "NMDA_ratio": 10002.1
     }}
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
@@ -174,6 +176,8 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
         for nc_id, nc in enumerate(nclist):
             utils.check_netcon(src_gid, nc_id, nc, edges, selection, **kwargs)
             utils.check_synapse(nc.syn(), edges, selection, **kwargs)
+    
+    assert False
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
