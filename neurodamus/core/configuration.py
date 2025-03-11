@@ -949,7 +949,7 @@ def _check_restore(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _coreneuron_params(config: _SimConfig, run_conf):
+def _coreneuron_params(config: _SimConfig, _run_conf):
     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
     config.coreneuron_outputdir = config.output_root
     coreneuron_datadir = os.path.join(config.output_root, "coreneuron_input")
