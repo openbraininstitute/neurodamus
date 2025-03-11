@@ -306,7 +306,7 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
                         "type": "summation",
                         "cells": "Mosaic",
                         "sections": "soma",
-                        "comparments": "all",
+                        "comparments": "center",
                         "variable_name": "i_membrane, IClamp",
                         "unit": "nA",
                         "dt": 10,
