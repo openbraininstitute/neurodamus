@@ -147,6 +147,40 @@ def test_wrong_report_compartment(create_tmp_simulation_config_file):
         {
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
+                "target_simulator": "CORENEURON",
+                "reports": {
+                    "synapse_report": {
+                        "type": "synapse",
+                        "cells": "RingA",
+                        "comparments": "all",
+                        "variable_name": "ProbAMPANMDA_EMS.g",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
+    """ Syanpse report is not possible with the ringtest circuit , lack of synapses per cell.
+    """
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    with pytest.raises(Exception, match=r"1 reporting errors detected. Terminating"):
+        n.enable_reports()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
                 "reports": {
                     "new_report": {
                         "type": "compartment",
@@ -271,7 +305,7 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
                     "summation_report": {
                         "type": "summation",
                         "cells": "Mosaic",
-                        "section": "soma",
+                        "sections": "soma",
                         "comparments": "all",
                         "variable_name": "i_membrane, IClamp",
                         "unit": "nA",
