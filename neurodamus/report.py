@@ -158,12 +158,12 @@ class Report:
         if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
-            for synapse in synapse_list:
-                try:
+            try:
+                for synapse in synapse_list:
                     var_ref = getattr(synapse, "_ref_" + variable)
                     self.report.AddVar(var_ref, synapse.synapseID, gid, pop_name)
-                except AttributeError:
-                    raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
+            except AttributeError:
+                raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
 
     def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
         """Handle both intrinsic currents and point processes for summation report."""
