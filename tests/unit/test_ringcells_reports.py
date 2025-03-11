@@ -3,12 +3,13 @@ from pathlib import Path
 import pytest
 
 from tests.utils import (
+    check_signal_peaks,
     read_ascii_report,
     record_compartment_report,
     write_ascii_report,
-    check_signal_peaks,
 )
 
+from neurodamus.core.configuration import SimConfig
 from neurodamus.node import Node
 
 
@@ -20,7 +21,7 @@ from neurodamus.node import Node
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "reports": {
-                    "new_report": {
+                    "wrong_variable": {
                         "type": "compartment",
                         "cells": "Mosaic",
                         "variable_name": "wrong",
@@ -31,11 +32,48 @@ from neurodamus.node import Node
                     }
                 }
             },
+        },
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "reports": {
+                    "too_small_dt": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "wrong",
+                        "sections": "all",
+                        "dt": 0.01,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                }
+            },
+        },
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "reports": {
+                    "wrong_start_end_time": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "wrong",
+                        "sections": "all",
+                        "dt": 0.01,
+                        "start_time": 30.0,
+                        "end_time": 0.0,
+                    }
+                }
+            },
         }
     ],
     indirect=True,
 )
 def test_report_config_error(create_tmp_simulation_config_file):
+    """ test error handling:
+        1. wrong variable name
+        2. dt < simulation dt
+        3. start_time > end_time
+    """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
@@ -169,7 +207,7 @@ def test_neuorn_compartment_report(create_tmp_simulation_config_file):
         {
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
-                "target_simulator": "NEURON",
+                "target_simulator": "CORENEURON",
                 "reports": {
                     "summation_report": {
                         "type": "summation",
@@ -186,11 +224,13 @@ def test_neuorn_compartment_report(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_enable_summation_report(create_tmp_simulation_config_file):
-    """ Check summartion report is enabled in neurodamus
+def test_enable_summation_report_coreneuron(create_tmp_simulation_config_file):
+    """ Check summartion report is enabled in neurodamus for coreneuron
     """
     from neurodamus import Neurodamus
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
     assert n.reports[0].variable_name == "i_membrane  IClamp"
+
+    assert (Path(SimConfig.output_root) / "report.conf").exists()

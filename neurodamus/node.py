@@ -1048,10 +1048,6 @@ class Node:
             rep_dt,
         )
 
-        if rep_format != "SONATA" and MPI.rank == 0:
-            logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
-            return None
-
         if Nd.t > 0:
             start_time += Nd.t
             end_time += Nd.t
@@ -1135,9 +1131,6 @@ class Node:
     def _report_setup(self, report, rep_conf, target, rep_type):
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
-
-        if rep_type not in {"compartment", "Summation", "Synapse", "lfp"}:
-            raise ConfigurationError(f"Unsupported report type: {rep_type}")
 
         # Go through the target members, one cell at a time. We give a cell reference
         # For summation targets - check if we were given a Cell target because we really
