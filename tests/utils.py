@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import find_peaks
 from libsonata import EdgeStorage
+from scipy.signal import find_peaks
 
 from neurodamus.core.configuration import SimConfig
 
@@ -192,20 +192,6 @@ def check_synapses(nclist, edges, selection, **kwargs):
         check_synapse(nc.syn(), edges, selection, **kwargs)
 
 
-def inspect(v):
-    print("-----------")
-    print(v, type(v))
-    for i in dir(v):
-        if i.startswith('_'):
-            continue
-        try:
-            print(f"{i}: {getattr(v, i)}")
-        except:
-            print(f"{i}: ***")
-    print("-----------")
-
-
-
 def check_synapse(syn, edges, selection, **kwargs):
     """
     Check the state of a synapse from the NEURON model in comparison to the
@@ -245,26 +231,21 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert syn_type == exp_type, f"{syn_type}"
 
     decay_time = syn.tau_d_GABAA if syn_type == "ProbGABAAB_EMS" else syn.tau_d_AMPA
-    assert decay_time== _get_attr("decay_time", kwargs, edges, selection, syn_id)
-    assert syn.Use==_get_attr("u_syn", kwargs, edges, selection, syn_id)
-    assert syn.Dep== _get_attr("depression_time", kwargs, edges, selection, syn_id)
-    assert syn.Fac== _get_attr("facilitation_time", kwargs, edges, selection, syn_id)
+    assert np.isclose(decay_time,  _get_attr("decay_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Use, _get_attr("u_syn", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Dep,  _get_attr("depression_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Fac,  _get_attr("facilitation_time", kwargs, edges, selection, syn_id))
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
-        assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
+        assert np.isclose(syn.Nrrp ,  _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id))
     assert syn.Nrrp > 0
     assert int(syn.Nrrp) == syn.Nrrp
 
+    # bluecellulab additional tests
     if "NMDA_ratio" in kwargs:
-        assert syn.NMDA_ratio == kwargs["NMDA_ratio"]
-    
-    # tests from bluecellulab
-    # nrrp
-    
-    if syn_type == "ProbAMPANMDA_EMS":
-        print(kwargs)
-        inspect(syn)
-
+        assert np.isclose(syn.NMDA_ratio ,  kwargs["NMDA_ratio"])
+    if "tau_r_NMDA" in kwargs:
+        assert np.isclose(syn.tau_r_NMDA ,  kwargs["tau_r_NMDA"])
 
 
 def check_signal_peaks(x, ref_peaks_pos, threshold=1):
