@@ -950,12 +950,6 @@ def _check_restore(config: _SimConfig, run_conf):
 
 @SimConfig.validator
 def _coreneuron_params(config: _SimConfig, run_conf):
-    buffer_size = run_conf.get("ReportingBufferSize")
-    if buffer_size is not None:
-        assert buffer_size > 0
-        log_verbose("ReportingBufferSize = %g", buffer_size)
-        config.corenrn_buff_size = int(buffer_size)
-
     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
     config.coreneuron_outputdir = config.output_root
     coreneuron_datadir = os.path.join(config.output_root, "coreneuron_input")

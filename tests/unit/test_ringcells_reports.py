@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from libsonata import SonataError
 
 from tests.utils import (
     check_signal_peaks,
@@ -13,7 +14,6 @@ from neurodamus.core.configuration import SimConfig
 from neurodamus.node import Node
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -69,7 +69,7 @@ from neurodamus.node import Node
     indirect=True,
 )
 def test_report_config_error(create_tmp_simulation_config_file):
-    """ test error handling:
+    """ test error handling in enable_reports:
         1. wrong variable name
         2. dt < simulation dt
         3. start_time > end_time
@@ -81,7 +81,66 @@ def test_report_config_error(create_tmp_simulation_config_file):
         n.enable_reports()
 
 
-@pytest.mark.slow
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "target_simulator": "CORENEURON",
+            "extra_config": {
+                "reports": {
+                    "wrong_variable": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "abc",
+                        "dt": 0.1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                }
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_wrong_report_sections(create_tmp_simulation_config_file):
+    """Should be caught by libsonata parser"""
+    with pytest.raises(SonataError, match=r"Invalid value: \'\"abc\"\' for key \'sections\'"):
+        Node(create_tmp_simulation_config_file)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "target_simulator": "CORENEURON",
+            "extra_config": {
+                "reports": {
+                    "wrong_variable": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "compartments": "others",
+                        "dt": 0.1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                }
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_wrong_report_compartment(create_tmp_simulation_config_file):
+    """Should be caught by libsonata parser"""
+    with pytest.raises(SonataError,
+                       match=r"Invalid value: \'\"others\"\' for key \'compartments\'"):
+        Node(create_tmp_simulation_config_file)
+
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -212,6 +271,8 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
                     "summation_report": {
                         "type": "summation",
                         "cells": "Mosaic",
+                        "section": "soma",
+                        "comparments": "all",
                         "variable_name": "i_membrane, IClamp",
                         "unit": "nA",
                         "dt": 10,
