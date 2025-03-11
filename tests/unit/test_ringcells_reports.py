@@ -159,7 +159,7 @@ def test_report_disabled(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_neuorn_compartment_report(create_tmp_simulation_config_file):
+def test_neuron_compartment_report(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.core.configuration import SimConfig
