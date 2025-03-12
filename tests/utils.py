@@ -233,13 +233,19 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert syn_type == exp_type, f"{syn_type}"
 
     decay_time = syn.tau_d_GABAA if syn_type == "ProbGABAAB_EMS" else syn.tau_d_AMPA
-    assert decay_time == _get_attr("decay_time", kwargs, edges, selection, syn_id)
-    assert syn.Use == _get_attr("u_syn", kwargs, edges, selection, syn_id)
-    assert syn.Dep == _get_attr("depression_time", kwargs, edges, selection, syn_id)
-    assert syn.Fac == _get_attr("facilitation_time", kwargs, edges, selection, syn_id)
+    assert np.isclose(decay_time,  _get_attr("decay_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Use, _get_attr("u_syn", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Dep,  _get_attr("depression_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Fac,  _get_attr("facilitation_time", kwargs, edges, selection, syn_id))
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
-        assert syn.Nrrp == _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id)
+        assert np.isclose(syn.Nrrp ,  _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id))
+    assert syn.Nrrp > 0
+    assert int(syn.Nrrp) == syn.Nrrp
+
+    # check NMDA ratio if existing
+    if "NMDA_ratio" in kwargs and hasattr(syn, "NMDA_ratio"):
+        assert np.isclose(syn.NMDA_ratio,  kwargs["NMDA_ratio"])
 
 
 def check_signal_peaks(x, ref_peaks_pos, threshold=1):
