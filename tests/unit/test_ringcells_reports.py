@@ -69,10 +69,10 @@ from neurodamus.node import Node
     indirect=True,
 )
 def test_report_config_error(create_tmp_simulation_config_file):
-    """ test error handling in enable_reports:
-        1. wrong variable name
-        2. dt < simulation dt
-        3. start_time > end_time
+    """Test error handling in enable_reports:
+    1. wrong variable name
+    2. dt < simulation dt
+    3. start_time > end_time
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -136,8 +136,9 @@ def test_wrong_report_sections(create_tmp_simulation_config_file):
 )
 def test_wrong_report_compartment(create_tmp_simulation_config_file):
     """Should be caught by libsonata parser"""
-    with pytest.raises(SonataError,
-                       match=r"Invalid value: \'\"others\"\' for key \'compartments\'"):
+    with pytest.raises(
+        SonataError, match=r"Invalid value: \'\"others\"\' for key \'compartments\'"
+    ):
         Node(create_tmp_simulation_config_file)
 
 
@@ -152,7 +153,7 @@ def test_wrong_report_compartment(create_tmp_simulation_config_file):
                     "synapse_report": {
                         "type": "synapse",
                         "cells": "RingA",
-                        "comparments": "all",
+                        "sections": "all",
                         "variable_name": "ProbAMPANMDA_EMS.g",
                         "unit": "nA",
                         "dt": 10,
@@ -166,8 +167,7 @@ def test_wrong_report_compartment(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
-    """ Syanpse report is not possible with the ringtest circuit , lack of synapses per cell.
-    """
+    """Syanpse report is not possible with the ringtest circuit, lack of synapses in cell"""
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
@@ -252,7 +252,11 @@ def test_report_disabled(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_neuron_compartment_report(create_tmp_simulation_config_file):
+def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
+    """For unit tests, we don't build libsonatareport to create the standard sonata reports,
+    instead we use custom functions to record and write report vectors in ASCII format,
+    but currently only for compartment reports
+    """
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.core.configuration import SimConfig
@@ -260,9 +264,6 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 2
 
-    # For unit tests, we don't build libsonatareport to create the standard sonata reports,
-    # instead we use custom functions to record and write report vectors in ASCII format,
-    # but currently only for comparment reports
     reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
     ascii_recorders = {}
     for rep_name, rep_conf in reports_conf.items():
@@ -300,13 +301,32 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
         {
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
-                "target_simulator": "CORENEURON",
+                "target_simulator": "NEURON",
                 "reports": {
                     "summation_report": {
                         "type": "summation",
                         "cells": "Mosaic",
                         "sections": "soma",
-                        "comparments": "center",
+                        "compartments": "center",
+                        "variable_name": "i_membrane, IClamp",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        },
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "CORENEURON",
+                "reports": {
+                    "summation_report": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "sections": "all",
+                        "compartments": "all",
                         "variable_name": "i_membrane, IClamp",
                         "unit": "nA",
                         "dt": 10,
@@ -319,13 +339,13 @@ def test_neuron_compartment_report(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_enable_summation_report_coreneuron(create_tmp_simulation_config_file):
-    """ Check summartion report is enabled in neurodamus for coreneuron
-    """
+def test_enable_summation_report(create_tmp_simulation_config_file):
+    """Check summartion report is enabled for NEURON and CoreNEURON simulator"""
     from neurodamus import Neurodamus
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
     assert n.reports[0].variable_name == "i_membrane  IClamp"
 
-    assert (Path(SimConfig.output_root) / "report.conf").exists()
+    if SimConfig.use_coreneuron:
+        assert (Path(SimConfig.output_root) / "report.conf").exists()
