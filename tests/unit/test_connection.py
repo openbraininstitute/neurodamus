@@ -1,7 +1,9 @@
 """ Test the Connection object """
-
 import numpy as np
 import pytest
+
+from neurodamus.core.configuration import ConfigurationError
+from neurodamus.node import Node
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -52,3 +54,34 @@ def test_synapse_location(create_tmp_simulation_config_file):
 
     # Verify the synapse is in the expected dendritic compartment (compartment 0)
     assert tgt_cell.CCell.dend[0].same(seclist[0][1]), "Synapse not in expected dendrite section"
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {
+                    "name": "config_ERR",
+                    "source": "nodesPopB",
+                    "target": "nodesPopB",
+                    "synapse_configure": "%s.dummy=1"
+                }
+            ]
+        }
+    }
+], indirect=True)
+def test_config_error(create_tmp_simulation_config_file):
+
+    with pytest.raises(ConfigurationError):
+
+        n = Node(create_tmp_simulation_config_file)
+
+        n.load_targets()
+        n.create_cells()
+        n.create_synapses()
+        for syn_manager in n._circuits.all_synapse_managers():
+            syn_manager.finalize(0, False)
