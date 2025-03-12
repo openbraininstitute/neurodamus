@@ -31,10 +31,16 @@ from tests import utils
                     "name": "A2A_delayed",
                     "source": "RingA",
                     "target": "RingA",
-                    "weight": 1004.1,
+                    "weight": 1005.1,
                     "synapse_configure": "%s.Fac = 1005.1",
                     "delay": 1.0
-                }
+                },
+                {
+                    "name": "A2B",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "synapse_configure": "%s.NMDA_ratio = 1006.1",
+                },
             ]
         },
     },
@@ -59,6 +65,10 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
             "depression_time": 1003.1,
             "facilitation_time": 1002.1,
             "delay": 1004.1
+        },
+        ("RingA", "RingB"): {
+            "hname": "ProbAMPANMDA_EMS",
+            "NMDA_ratio": 1006.1
         }}
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
@@ -81,7 +91,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
 
     nd.solve(3.0)
 
-    overrides[("RingA", "RingA")]["weight"] = 1004.1
+    overrides[("RingA", "RingA")]["weight"] = 1005.1
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
             nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
@@ -241,3 +251,60 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
 
     # with threshold=1.0 it does not get the last peak
     utils.check_signal_peaks(voltage_trace, [12, 55, 122, 164, 269, 303, 385], threshold=0.5)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {
+                    "name": "A2B",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "modoverride": "GABAAB",
+                    "synapse_configure":
+                    "tau_d_NMDA_ProbAMPANMDA_EMS = 1001.1 tau_r_NMDA_ProbAMPANMDA_EMS = 1002.1",
+                },
+                {
+                    "name": "A2B_delayed",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "modoverride": "GABAAB",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1003.1",
+                },
+                {
+                    "name": "A2A",
+                    "source": "RingA",
+                    "target": "RingA",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1005.1",
+                },
+                {
+                    "name": "ZZZ",
+                    "source": "RingA",
+                    "target": "RingA",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1006.1",
+                },
+
+            ]
+        },
+    },
+], indirect=True)
+def test_override_globals(create_tmp_simulation_config_file):
+    """
+    Tests whether global synapse parameter overrides take effect as expected.
+
+    Key aspects being tested:
+    - The global override ignores synapse type, delay, and order.
+    - The order of application might depend on the order in the edges file.
+    If equal the order in the `connection_overrides` list.
+    """
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Ndc
+
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
+    assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)

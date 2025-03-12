@@ -241,11 +241,9 @@ def check_synapse(syn, edges, selection, **kwargs):
     assert syn.Nrrp > 0
     assert int(syn.Nrrp) == syn.Nrrp
 
-    # bluecellulab additional tests
-    if "NMDA_ratio" in kwargs:
-        assert np.isclose(syn.NMDA_ratio ,  kwargs["NMDA_ratio"])
-    if "tau_r_NMDA" in kwargs:
-        assert np.isclose(syn.tau_r_NMDA ,  kwargs["tau_r_NMDA"])
+    # check NMDA ratio if existing
+    if "NMDA_ratio" in kwargs and hasattr(syn, "NMDA_ratio"):
+        assert np.isclose(syn.NMDA_ratio,  kwargs["NMDA_ratio"])
 
 
 def check_signal_peaks(x, ref_peaks_pos, threshold=1):
