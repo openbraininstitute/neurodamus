@@ -259,6 +259,34 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
         "extra_config": {
             "target_simulator": "NEURON",
             "node_set": "Mosaic",
+            "conditions": {
+                "mechanisms": {
+                    "ProbAMPANMDA_EMS": {
+                        "tau_d_NMDA": 1001.1
+                    },
+                },
+            },
+        },
+    },
+], indirect=True)
+def test_override_globals_from_conditions(create_tmp_simulation_config_file):
+    """
+    Override global synapse variable from the conditions section
+    """
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Ndc
+
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1001.1)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
             "connection_overrides": [
                 {
                     "name": "A2B",
@@ -287,8 +315,14 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
                     "target": "RingA",
                     "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1006.1",
                 },
-
-            ]
+            ],
+            "conditions": {
+                "mechanisms": {
+                    "ProbAMPANMDA_EMS": {
+                        "tau_d_NMDA": 1007.1
+                    },
+                },
+            },
         },
     },
 ], indirect=True)
@@ -300,6 +334,7 @@ def test_override_globals(create_tmp_simulation_config_file):
     - The global override ignores synapse type, delay, and order.
     - The order of application might depend on the order in the edges file.
     If equal the order in the `connection_overrides` list.
+    - The override in the synapse overrides the one in conditions
     """
     from neurodamus import Neurodamus
     from neurodamus.core import NeurodamusCore as Ndc
