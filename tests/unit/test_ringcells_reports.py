@@ -320,7 +320,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
         {
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
-                "target_simulator": "CORENEURON",
+                "target_simulator": "NEURON",
                 "reports": {
                     "summation_report": {
                         "type": "summation",
@@ -340,7 +340,10 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_enable_summation_report(create_tmp_simulation_config_file):
-    """Check summartion report is enabled for NEURON and CoreNEURON simulator"""
+    """Check summartion report is enabled in different cases:
+    1. Neuron, sum_currents_into_soma = True(sections=soma, compartments=center)
+    2. Neuron, sum_currents_into_soma = False(sections=all, compartments=all)
+    """
     from neurodamus import Neurodamus
 
     n = Neurodamus(create_tmp_simulation_config_file)
@@ -349,3 +352,57 @@ def test_enable_summation_report(create_tmp_simulation_config_file):
 
     if SimConfig.use_coreneuron:
         assert (Path(SimConfig.output_root) / "report.conf").exists()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "CORENEURON",
+                "reports": {
+                    "soma": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "sections": "all",
+                        "variable_name": "v",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        },
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "CORENEURON",
+                "reports": {
+                    "summation": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "sections": "soma",
+                        "variable_name": "i_membrane, IClamp",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_enable_coreneuron_report(create_tmp_simulation_config_file):
+    """Check report is enabled for CoreNEURON and report.conf is created
+    1. compartment report, sections = soma
+    2. summation report, sections = all
+    """
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file)
+    assert len(n.reports) == 1
+    assert (Path(SimConfig.output_root) / "report.conf").exists()
