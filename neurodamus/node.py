@@ -981,13 +981,8 @@ class Node:
                 n_errors += 1
                 continue
 
-            if (
-                SimConfig.use_coreneuron
-                and MPI.rank == 0
-                and not self._report_write_coreneuron_config(rep_conf, target, rep_params)
-            ):
-                n_errors += 1
-                continue
+            if SimConfig.use_coreneuron and MPI.rank == 0:
+                self._report_write_coreneuron_config(rep_conf, target, rep_params)
 
             if SimConfig.restore_coreneuron:
                 continue  # we dont even need to initialize reports
@@ -1048,10 +1043,6 @@ class Node:
             rep_dt,
         )
 
-        if rep_format != "SONATA" and MPI.rank == 0:
-            logging.error("Unsupported report format: '%s'. Use 'SONATA' instead.", rep_format)
-            return None
-
         if Nd.t > 0:
             start_time += Nd.t
             end_time += Nd.t
@@ -1102,10 +1093,6 @@ class Node:
             def _compute_corenrn_target_type(section_type, compartment_type):
                 sections = ["all", "soma", "axon", "dend", "apic"]
                 compartments = ["center", "all"]
-                if section_type not in sections:
-                    raise ConfigurationError(f"Report: invalid section type '{section_type}'")
-                if compartment_type not in compartments:
-                    raise ConfigurationError(f"Report: invalid compartment type {compartment_type}")
                 if section_type == "all":  # for "all sections", support only target_type=0
                     return 0
                 # 0=Compartment, Section { 2=Soma, 3=Axon, 4=Dendrite, 5=Apical,
@@ -1135,9 +1122,6 @@ class Node:
     def _report_setup(self, report, rep_conf, target, rep_type):
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
-
-        if rep_type not in {"compartment", "Summation", "Synapse", "lfp"}:
-            raise ConfigurationError(f"Unsupported report type: {rep_type}")
 
         # Go through the target members, one cell at a time. We give a cell reference
         # For summation targets - check if we were given a Cell target because we really
@@ -1187,15 +1171,8 @@ class Node:
             if spike_path is not None:
                 # Get only the spike file name
                 file_name = spike_path.split("/")[-1]
-            else:
-                file_name = "out.h5"
             CoreConfig.write_spike_filename(file_name)
         else:
-            # Report Buffer Size hint in MB.
-            reporting_buffer_size = self._run_conf.get("ReportingBufferSize")
-            if reporting_buffer_size is not None:
-                self._sonatareport_helper.set_max_buffer_size_hint(reporting_buffer_size)
-
             # once all reports are created, we finalize the communicator for any reports
             self._sonatareport_helper.make_comm()
             self._sonatareport_helper.prepare_datasets()

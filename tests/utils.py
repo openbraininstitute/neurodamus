@@ -5,7 +5,9 @@ import numpy as np
 from libsonata import EdgeStorage
 from scipy.signal import find_peaks
 
+from neurodamus.core import NeurodamusCore as Nd
 from neurodamus.core.configuration import SimConfig
+from neurodamus.target_manager import TargetManager, TargetSpec
 
 
 def merge_dicts(parent: dict, child: dict):
@@ -117,8 +119,8 @@ def compare_json_files(res_file: Path, ref_file: Path):
 
 def check_directory(dir_name: Path):
     """ Check if a directory exists and is not empty """
-    assert dir_name.is_dir(), f"{str(dir_name)} doesn't exist"
-    assert any(dir_name.iterdir()), f"{str(dir_name)} is empty"
+    assert dir_name.is_dir(), f"{dir_name} doesn't exist"
+    assert any(dir_name.iterdir()), f"{dir_name} is empty"
 
 
 def check_netcons(ref_srcgid, nclist, edges, selection, **kwargs):
@@ -264,3 +266,67 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1):
     """
     peaks_pos = find_peaks(x, prominence=threshold)[0]
     np.testing.assert_equal(peaks_pos, ref_peaks_pos)
+
+
+def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
+    """For compartment report, retrieve segments, and record the pointer of reporting variable
+    More details in NEURON Vector.record()
+    """
+    rep_type = rep_conf["Type"]
+    assert rep_type == "compartment", "Report type is not supported"
+    sections = rep_conf.get("Sections")
+    compartments = rep_conf.get("Compartments")
+    variable_name = rep_conf["ReportOn"]
+    start_time = rep_conf["StartTime"]
+    stop_time = rep_conf["EndTime"]
+    dt = rep_conf["Dt"]
+
+    tvec = Nd.Vector()
+    tvec.indgen(start_time, stop_time, dt)
+
+    target_spec = TargetSpec(rep_conf["Target"])
+    target = target_manager.get_target(target_spec)
+    sum_currents_into_soma = sections == "soma" and compartments == "center"
+    # In case of summation in the soma, we need all points anyway
+    if sum_currents_into_soma and rep_type == "Summation":
+        sections = "all"
+        compartments = "all"
+    points = target_manager.getPointList(target, sections=sections, compartments=compartments)
+    recorder = []
+    for point in points:
+        gid = point.gid
+        for i, sc in enumerate(point.sclst):
+            section = sc.sec
+            x = point.x[i]
+            # Enable fast_imem calculation in Neuron
+            if variable_name == "i_membrane":
+                Nd.cvode.use_fast_imem(1)
+                variable_name = "i_membrane_"
+            var_ref = getattr(section(x), "_ref_" + variable_name)
+            voltage_vec = Nd.Vector()
+            voltage_vec.record(var_ref, tvec)
+            segname = str(section(x))
+            segname = segname[segname.find(".") + 1 :]
+            recorder.append((gid, segname, voltage_vec))
+    return recorder, tvec
+
+
+def write_ascii_report(filename, recorder, tvec):
+    """Write out the report in ASCII format"""
+    with open(filename, "w") as f:
+        f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
+        for gid, secname, data_vec in recorder:
+            f.writelines(f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
+                         for t, data in zip(tvec, data_vec))
+
+
+def read_ascii_report(filename):
+    """Read an ASCII report and return report data in format:(gid, seg_name, time, report_variable)
+    """
+    data_vec = []
+    with open(filename) as f:
+        next(f)  # skip header
+        for line in f:
+            gid, seg_name, time, data = line.split()
+            data_vec.append((int(gid), seg_name, float(time), float(data)))
+    return data_vec
