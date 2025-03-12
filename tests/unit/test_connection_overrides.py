@@ -216,7 +216,7 @@ def test_gluSynapse_modoverride(create_tmp_simulation_config_file):
     missing data in the edge file
     """
     from neurodamus import Neurodamus
-    with pytest.raises(AttributeError, match="Use_d_TM"):
+    with pytest.raises(AttributeError, match="Missing attribute Use_d_TM in the SONATA edge file"):
         Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
 
