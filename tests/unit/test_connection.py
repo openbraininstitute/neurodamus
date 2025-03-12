@@ -76,10 +76,8 @@ def test_synapse_location(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_config_error(create_tmp_simulation_config_file):
 
-    with pytest.raises(ConfigurationError):
-
+    with pytest.raises(ConfigurationError, match="nodesPopB can't be loaded"):
         n = Node(create_tmp_simulation_config_file)
-
         n.load_targets()
         n.create_cells()
         n.create_synapses()
