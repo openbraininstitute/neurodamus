@@ -204,6 +204,33 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
                     "name": "A2B",
                     "source": "RingA",
                     "target": "RingB",
+                    "modoverride": "GluSynapse",
+                }
+            ]
+        },
+    },
+], indirect=True)
+def test_gluSynapse_modoverride(create_tmp_simulation_config_file):
+    """
+    Test modoverride with gluSynapse. It raises an error because of
+    missing data in the edge file
+    """
+    from neurodamus import Neurodamus
+    with pytest.raises(AttributeError, match="Use_d_TM"):
+        Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {
+                    "name": "A2B",
+                    "source": "RingA",
+                    "target": "RingB",
                     "spont_minis": 200
                 }
             ]
