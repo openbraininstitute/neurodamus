@@ -36,10 +36,9 @@ def dump_cell(cell) -> dict:
         cell: NEURON cell object
     """
     res = _read_object_attrs(cell)
-    res.setdefault("nSecAll", 0)
     res["sections"] = []
     cell_name = cell.hname()
-    for nsec, sec in enumerate(cell.all):
+    for sec in cell.all:
         res_sec = {}
         sec_name = sec.hname()
         sec_name = sec_name.replace(cell_name + ".", "")
@@ -55,7 +54,6 @@ def dump_cell(cell) -> dict:
                     vals = _read_object_attrs(item)
                     attrs[key] = vals
             res_sec["segments"].append(attrs)
-        res["nSecAll"] = nsec + 1
         res["sections"].append(res_sec)
 
     res["n_synapses"] = cell.synlist.count()
