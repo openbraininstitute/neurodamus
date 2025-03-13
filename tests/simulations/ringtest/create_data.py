@@ -110,27 +110,27 @@ def make_edges(filename, edges, wanted_attributes):
 def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
-        "model_template": "hoc:B_BallStick",
+        "model_template": "hoc:TestCell",
         "mtype": "MTYPE",  # neurodamus/io/cell_readers.py:140: SonataError
         # neurodamus/io/cell_readers.py:162: SonataError
         "x": it.count(0),
         "y": it.count(1),
         "z": it.count(2),
         # Note: the morphology isn't used because it's encoded in the hoc file
-        "morphology": "NOT_USED",
+        "morphology": "cell_small",
     }
     make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
-        "model_template": "hoc:B_BallStick",
+        "model_template": "hoc:TestCell",
         "mtype": "MTYPE",  # neurodamus/io/cell_readers.py:140: SonataError
         # neurodamus/io/cell_readers.py:162: SonataError
         "x": it.count(3),
         "y": it.count(4),
         "z": it.count(5),
         # Note: the morphology isn't used because it's encoded in the hoc file
-        "morphology": "NOT_USED",
+        "morphology": "cell_small",
     }
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
