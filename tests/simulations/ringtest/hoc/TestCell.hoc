@@ -63,7 +63,7 @@ proc AddMorph(){ localobj morph, import, strobj, morphPath, extension
     morph.input($s1)
     import = new Import3d_GUI(morph, 0)
     import.instantiate(this)
-    indexSections(import)
+    indexSections()
     geom_nsec()
 }
 
@@ -131,22 +131,11 @@ proc geom_nsec() { local nSec
  *
  * @param $o1 Import3d_GUI object (optional)
  */
-proc indexSections() { local index  localobj tmpString, s
-    if(numarg() > 0) {
-        tmpString = new String()
-
-        s = $o1.swc.sections
-        for i=0, s.count()-1 {
-            $o1.name( s.object(i), tmpString.s )
-            sprint( tmpString.s, "%s.v(0.0001) = %d", tmpString.s, i )
-            execute( tmpString.s, this )
-        }
-    } else { // if not specified, we index with forsec, used for fasthoc loading
-        index = 0
-        forsec all {
-            v(0.0001) = index
-            index += 1
-        }
+proc indexSections() { local index
+    index = 0
+    forsec all {
+        v(0.0001) = index
+        index += 1
     }
 }
 
@@ -159,6 +148,14 @@ proc clear() { }
 proc connect2target() { //$o1 target point process, $o2 returned NetCon
   soma $o2 = new NetCon(&v(1), $o1)
   $o2.threshold = 10
+}
+objref syn_
+proc synapses() {
+  /* E0 */   dend[0] syn_ = new ExpSyn(0.8)  synlist.append(syn_)
+    syn_.tau = 2
+  /* I1 */   dend[0] syn_ = new ExpSyn(0.1)  synlist.append(syn_)
+    syn_.tau = 5
+    syn_.e = -80
 }
 
 func is_art() { return 0 }
