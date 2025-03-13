@@ -80,7 +80,7 @@ def circuit_conf_bigcell():
         CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A_bigcell.h5",
         METypePath=circuit_base + "/hoc",
-        MorphologyPath=circuit_base + "/morphologies",
+        MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath="<NONE>",  # no connectivity
         CircuitTarget="All",
     )
@@ -96,7 +96,7 @@ def circuit_conf():
         CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A.h5",
         METypePath=circuit_base + "/hoc",
-        MorphologyPath=circuit_base + "/morphologies",
+        MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath="<NONE>",  # no connectivity
         CircuitTarget="All",
     )
@@ -162,14 +162,15 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
     assert list(cx_saved.keys()) == [1, 2, 3]
-    assert cx_saved[1][0].split()[1] > cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+    assert float(cx_saved[1][0].split()[1]) > float(cx_saved[2][0].split()[1]) == float(
+        cx_saved[3][0].split()[1]), (
         "cell complexity should be gid 1 > gid2 == gid3"
     )
 
     # Check the cpu assign file, format: ihost ngid (index, gid, subtreeindex) ..
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  0 1 1\n1 2  1 2 0  2 3 0\n"
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 1  1 2 0\n1 2  0 1 0  2 3 0\n"
 
     # Ensure load-bal is reused for smaller targets in multisplit
     assert "RingA_VerySmall" not in lbal._cx_targets
@@ -206,7 +207,8 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
     assert list(cx_saved.keys()) == [1, 2, 3]
-    assert cx_saved[1][0].split()[1] == cx_saved[2][0].split()[1] == cx_saved[3][0].split()[1], (
+    assert float(cx_saved[1][0].split()[1]) == float(cx_saved[2][0].split()[1]) == float(
+        cx_saved[3][0].split()[1]), (
         "cell complexity should be gid 1 == gid2 == gid3"
     )
 

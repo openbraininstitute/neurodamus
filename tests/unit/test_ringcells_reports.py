@@ -285,7 +285,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert len(data) == 2500  # 500 time steps * 5 soma sections
     # check soma signal peak for cell 1001 as in test_current_injection.py
     cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
-    check_signal_peaks(cell_voltage_vec, [89, 288, 488])
+    check_signal_peaks(cell_voltage_vec, [89, 289, 488])
 
     compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_report.exists()
