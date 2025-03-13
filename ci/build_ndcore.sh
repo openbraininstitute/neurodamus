@@ -12,6 +12,9 @@ if [ $(uname) = "Darwin" ]; then EXT="dylib"; else EXT="so"; fi
 if [ -f "$LIBRARY_DIR/libnrnmech.$EXT" ]; then
     echo "export HOC_LIBRARY_PATH=$LIBRARY_DIR" > $BUILD_DIR/.envfile
     echo "export NRNMECH_LIB_PATH=$LIBRARY_DIR/libnrnmech.$EXT" >> $BUILD_DIR/.envfile
+    if [ -f "$LIBRARY_DIR/libcorenrnmech.$EXT" ]; then
+        echo "export CORENEURONLIB=$LIBRARY_DIR/libcorenrnmech.$EXT" >> $BUILD_DIR/.envfile
+    fi
     exit 0
 fi
 
@@ -38,6 +41,7 @@ fi
 
 mkdir -p $LIBRARY_DIR
 cp -f $ARCH/libnrnmech.$EXT $LIBRARY_DIR
+cp -f $ARCH/libcorenrnmech.$EXT $LIBRARY_DIR
 echo "export HOC_LIBRARY_PATH=$LIBRARY_DIR" > $BUILD_DIR/.envfile
 echo "export NRNMECH_LIB_PATH=$LIBRARY_DIR/libnrnmech.$EXT" >> $BUILD_DIR/.envfile
 echo "export CORENEURONLIB=$LIBRARY_DIR/libcorenrnmech.$EXT" >> $BUILD_DIR/.envfile

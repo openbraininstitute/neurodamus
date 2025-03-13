@@ -137,5 +137,10 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
 def test_coreneuron(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
 
-    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
+                   coreneuron_direct_mode=True, keep_build=True)
     n.run()
+    coreneuron_data = Path(SimConfig.coreneuron_datadir)
+    assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
+        f"{coreneuron_data} should be empty."
+    )
