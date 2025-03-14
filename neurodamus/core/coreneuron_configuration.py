@@ -219,7 +219,7 @@ class _CoreNEURONConfig:
                 fp.write("'model-stats'\n")
             if enable_reports:
                 fp.write(f"report-conf='{self.output_root}/{self.report_config_file}'\n")
-            fp.write("mpi=true\n")
+            fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):

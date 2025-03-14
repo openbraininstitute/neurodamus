@@ -12,6 +12,9 @@ if [ $(uname) = "Darwin" ]; then EXT="dylib"; else EXT="so"; fi
 if [ -f "$LIBRARY_DIR/libnrnmech.$EXT" ]; then
     echo "export HOC_LIBRARY_PATH=$LIBRARY_DIR" > $BUILD_DIR/.envfile
     echo "export NRNMECH_LIB_PATH=$LIBRARY_DIR/libnrnmech.$EXT" >> $BUILD_DIR/.envfile
+    if [ -f "$LIBRARY_DIR/libcorenrnmech.$EXT" ]; then
+        echo "export CORENEURONLIB=$LIBRARY_DIR/libcorenrnmech.$EXT" >> $BUILD_DIR/.envfile
+    fi
     exit 0
 fi
 
@@ -29,7 +32,7 @@ mkdir -p $MOD_DIR
 cp -f $CORE_DIR/mod/*.mod $MOD_DIR
 cp -f $NEURODAMUS_MODELS_DIR/common/mod/*.mod $MOD_DIR
 cd $BUILD_DIR
-nrnivmodl -incflags "-DDISABLE_REPORTINGLIB -DDISABLE_HDF5 -DDISABLE_MPI" $MOD_DIR
+nrnivmodl -coreneuron -incflags "-DENABLE_CORENEURON -DDISABLE_REPORTINGLIB -DDISABLE_HDF5 -DDISABLE_MPI" $MOD_DIR
 ARCH=$(uname -m)
 if [ ! -f $ARCH/special ]; then
     echo "Error running nrnivmodl"
@@ -38,8 +41,10 @@ fi
 
 mkdir -p $LIBRARY_DIR
 cp -f $ARCH/libnrnmech.$EXT $LIBRARY_DIR
+cp -f $ARCH/libcorenrnmech.$EXT $LIBRARY_DIR
 echo "export HOC_LIBRARY_PATH=$LIBRARY_DIR" > $BUILD_DIR/.envfile
 echo "export NRNMECH_LIB_PATH=$LIBRARY_DIR/libnrnmech.$EXT" >> $BUILD_DIR/.envfile
+echo "export CORENEURONLIB=$LIBRARY_DIR/libcorenrnmech.$EXT" >> $BUILD_DIR/.envfile
 
 cp -f $CORE_DIR/hoc/*.hoc $LIBRARY_DIR
 cp -f $NEURODAMUS_MODELS_DIR/common/hoc/*.hoc $LIBRARY_DIR

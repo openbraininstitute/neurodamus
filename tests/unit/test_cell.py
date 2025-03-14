@@ -91,6 +91,13 @@ def test_basic_system():
     from neurodamus.core import Neuron
     from neurodamus.core.cell import Cell
     from neurodamus.core.stimuli import CurrentSource
+
+    # CurrentSource invokes neuron.load_hoc("neurodamus") which loads "cell.hoc"
+    # with the same hoc template name as Cell.py.
+    # Neuron 9 throws error during loading "Cell :a template cannot be redefined".
+    # To avoid it, we load the cell.hoc file first
+    Neuron.load_hoc("neurodamus")
+
     c = Cell.Builder.add_soma(60).create()
     Cell.Mechanisms.HH(gkbar=0.0, gnabar=0.0, el=-70).apply(c.soma)
     CurrentSource.pulse(0.1, 50, delay=10).attach_to(c.soma)

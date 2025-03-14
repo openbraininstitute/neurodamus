@@ -123,3 +123,24 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
 
     if SimConfig.use_coreneuron:
         utils.check_directory(Path(SimConfig.coreneuron_datadir))
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "node_set": "Mosaic"
+        }
+    }
+], indirect=True)
+def test_coreneuron(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
+                   coreneuron_direct_mode=True, keep_build=True)
+    n.run()
+    coreneuron_data = Path(SimConfig.coreneuron_datadir)
+    assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
+        f"{coreneuron_data} should be empty."
+    )
