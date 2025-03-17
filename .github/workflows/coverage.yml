@@ -31,6 +31,7 @@ jobs:
         tox -e baseline
 
     - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
         flag-name: baseline
@@ -41,6 +42,7 @@ jobs:
         tox -e unit
 
     - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
