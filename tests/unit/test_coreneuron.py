@@ -9,6 +9,7 @@ import pytest
 from tests.utils import check_directory
 
 from neurodamus import Neurodamus
+from neurodamus.core import NeurodamusCore as Nd
 from neurodamus.core.configuration import SimConfig
 
 
@@ -17,16 +18,18 @@ from neurodamus.core.configuration import SimConfig
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "Stimulus": {
-                "module": "pulse",
-                "input_type": "current_clamp",
-                "delay": 5,
-                "duration": 50,
-                "node_set": "RingA",
-                "represents_physical_electrode": True,
-                "amp_start": 10,
-                "width": 1,
-                "frequency": 50
+            "inputs": {
+                "pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 5,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
             }
         }
     }
@@ -43,6 +46,16 @@ def test_coreneuron_filemode(create_tmp_simulation_config_file):
     assert (Path(SimConfig.output_root) / "sim.conf").exists()
     assert (Path(SimConfig.output_root) / "report.conf").exists()
     assert (Path(SimConfig.output_root) / "populations_offset.dat").exists()
+
+    # create a spike_id vector which stores the pairs for spikes and timings for
+    # every engine
+    for cell_manager in n._circuits.all_node_managers():
+        if cell_manager.population_name is not None:
+            n._spike_populations.append(
+                (cell_manager.population_name, cell_manager.local_nodes.offset)
+            )
+            n._spike_vecs.append(cell_manager.record_spikes() or (Nd.Vector(), Nd.Vector()))
+
     n.run()
     assert not coreneuron_data.exists()
     assert not (Path(SimConfig.output_root) / "sim.conf").exists()
