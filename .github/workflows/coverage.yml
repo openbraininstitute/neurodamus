@@ -8,7 +8,12 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-15]
+      fail-fast: false
+
     steps:
 
     - uses: actions/checkout@v4
@@ -26,6 +31,7 @@ jobs:
         tox -e baseline
 
     - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
         flag-name: baseline
@@ -36,6 +42,7 @@ jobs:
         tox -e unit
 
     - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
