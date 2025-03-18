@@ -339,58 +339,64 @@ class Node:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
-        if config_file:
-            if config_file.endswith("BlueConfig"):
-                raise ConfigurationError(
-                    "Legacy format BlueConfig is not supported, please migrate to SONATA config"
-                )
-            import libsonata
+        assert config_file, "bool(config_file) cannot be False"
 
-            conf = libsonata.SimulationConfig.from_file(config_file)
-            Nd.init(log_filename=conf.output.log_file)
-        else:
-            Nd.init()  # ensure/load neurodamus mods
-        self._run_conf: dict  # Multi-cycle runs preserve this
-
-        # The Recipe being None is allowed internally for e.g. setting up multi-cycle runs
-        # It shall not be used as Public API
-        if config_file is not None:
-            # This is global initialization, happening once, regardless of number of
-            # cycles
-            log_stage("Setting up Neurodamus configuration")
-            self._pc = Nd.pc
-            self._spike_vecs = []
-            self._spike_populations = []
-            Nd.execute("cvode = new CVode()")
-            SimConfig.init(config_file, options)
-            if SimConfig.use_coreneuron:
-                CoreConfig.output_root = SimConfig.output_root
-                CoreConfig.datadir = SimConfig.coreneuron_datadir
-                # Instantiate the CoreNEURON artificial cell object which is used to fill up
-                # the empty ranks. This need to be done before the circuit is
-                # finitialized
-                CoreConfig.instantiate_artificial_cell()
-                if SimConfig.restore_coreneuron:
-                    CoreConfig.restore_path = SimConfig.restore
-            self._run_conf = SimConfig.run_conf
-            self._target_manager = TargetManager(self._run_conf)
-            self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
-            if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
-                self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
-            self._base_circuit: CircuitConfig = SimConfig.base_circuit
-            self._extra_circuits = SimConfig.extra_circuits
-            self._pr_cell_gid = get_debug_cell_gid(options)
-            self._core_replay_file = ""
-            self._is_ngv_run = any(
-                c.Engine.__name__ == "NGVEngine" for c in self._extra_circuits.values() if c.Engine
+        if config_file.endswith("BlueConfig"):
+            raise ConfigurationError(
+                "Legacy format BlueConfig is not supported, please migrate to SONATA config"
             )
-            self._initial_rss = 0
-            self._cycle_i = 0
-            self._n_cycles = 1
-            self._shm_enabled = False
-            self._dry_run_stats = None
-        else:
-            assert self._run_conf, "this is defined (if not multicyle runs are not properly set)"
+        import libsonata
+
+        conf = libsonata.SimulationConfig.from_file(config_file)
+        Nd.init(log_filename=conf.output.log_file)
+
+        # This is global initialization, happening once, regardless of number of
+        # cycles
+        log_stage("Setting up Neurodamus configuration")
+        self._pc = Nd.pc
+        self._spike_vecs = []
+        self._spike_populations = []
+        Nd.execute("cvode = new CVode()")
+        SimConfig.init(config_file, options)
+        if SimConfig.use_coreneuron:
+            CoreConfig.output_root = SimConfig.output_root
+            CoreConfig.datadir = SimConfig.coreneuron_datadir
+            # Instantiate the CoreNEURON artificial cell object which is used to fill up
+            # the empty ranks. This need to be done before the circuit is
+            # finitialized
+            CoreConfig.instantiate_artificial_cell()
+            if SimConfig.restore_coreneuron:
+                CoreConfig.restore_path = SimConfig.restore
+        self._run_conf = SimConfig.run_conf
+        self._target_manager = TargetManager(self._run_conf)
+        self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
+        if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
+            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
+        self._base_circuit: CircuitConfig = SimConfig.base_circuit
+        self._extra_circuits = SimConfig.extra_circuits
+        self._pr_cell_gid = get_debug_cell_gid(options)
+        self._core_replay_file = ""
+        self._is_ngv_run = any(
+            c.Engine.__name__ == "NGVEngine" for c in self._extra_circuits.values() if c.Engine
+        )
+        self._initial_rss = 0
+        self._cycle_i = 0
+        self._n_cycles = 1
+        self._shm_enabled = False
+        self._dry_run_stats = None
+
+        self._reset()
+
+    def _reset(self):
+        """Resets internal state for a new simulation cycle.
+
+        Ensures `_run_conf` is a valid dictionary, initializes core attributes,
+        and registers global targets and cell managers.
+
+        Note: remember to call Nd.init(...) before to ensure/load neurodamus mods
+        """
+        if not self._run_conf or not isinstance(self._run_conf, dict):
+            raise ValueError("Invalid `_run_conf`: Must be a dictionary for multi-cycle runs.")
 
         # Init unconditionally
         self._circuits = CircuitManager()
@@ -406,7 +412,6 @@ class Node:
         self._target_manager.register_target(self._circuits.global_target)
         self._target_manager.register_cell_manager(self._circuits.global_manager)
 
-    #
     # public 'read-only' properties - object modification on user responsibility
     circuits = property(lambda self: self._circuits)
     target_manager = property(lambda self: self._target_manager)
@@ -1598,7 +1603,9 @@ class Node:
         if not avoid_creating_objs and SimConfig.use_neuron and self._sonatareport_helper:
             self._sonatareport_helper.clear()
 
-        Node.__init__(self, None, None)  # Reset vars  # noqa: PLC2801
+        # Reset vars
+        Nd.init()
+        Node._reset(self)
 
         # Clear BBSaveState
         self._bbss.ignore()
