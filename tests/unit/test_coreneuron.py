@@ -17,26 +17,29 @@ from neurodamus.core.configuration import SimConfig
 ref_gids = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3])  # 1-based
 ref_timestamps = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "CORENEURON",
-            "inputs": {
-                "pulse": {
-                    "module": "pulse",
-                    "input_type": "current_clamp",
-                    "delay": 5,
-                    "duration": 50,
-                    "node_set": "RingA",
-                    "represents_physical_electrode": True,
-                    "amp_start": 10,
-                    "width": 1,
-                    "frequency": 50
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "CORENEURON",
+                "inputs": {
+                    "pulse": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingA",
+                        "represents_physical_electrode": True,
+                        "amp_start": 10,
+                        "width": 1,
+                        "frequency": 50,
+                    }
                 }
             }
         }
-    }
     ],
     indirect=True,
 )
@@ -77,9 +80,8 @@ def test_coreneuron_filemode(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "CORENEURON",
-                "node_set": "Mosaic",
                 "inputs": {
-                    "Stimulus": {
+                    "pulse": {
                         "module": "pulse",
                         "input_type": "current_clamp",
                         "delay": 5,
@@ -90,7 +92,7 @@ def test_coreneuron_filemode(create_tmp_simulation_config_file):
                         "width": 1,
                         "frequency": 50,
                     }
-                },
+                }
             }
         }
     ],
@@ -139,7 +141,7 @@ def test_coreneuron_directmode(create_tmp_simulation_config_file):
                         "start_time": 0.0,
                         "end_time": 50.0,
                     }
-                },
+                }
             }
         }
     ],
@@ -172,7 +174,7 @@ def test_coreneuron_disable_report(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "CORENEURON",
-            },
+            }
         }
     ],
     indirect=True,
