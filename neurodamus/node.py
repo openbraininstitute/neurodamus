@@ -339,7 +339,8 @@ class Node:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
-        assert config_file, "bool(config_file) cannot be False"
+        assert isinstance(config_file, str), "`config_file` should be a string"
+        assert config_file, "`config_file` cannot be empty"
 
         if config_file.endswith("BlueConfig"):
             raise ConfigurationError(
@@ -404,7 +405,6 @@ class Node:
         self._report_list = None
         self._stim_manager = None
         self._sim_ready = False
-        self._jumpstarters = []
         self._cell_state_dump_t = None
         self._bbss = Nd.BBSaveState()
 
@@ -1605,7 +1605,7 @@ class Node:
 
         # Reset vars
         Nd.init()
-        Node._reset(self)
+        self._reset()
 
         # Clear BBSaveState
         self._bbss.ignore()
