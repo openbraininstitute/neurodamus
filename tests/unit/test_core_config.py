@@ -71,7 +71,6 @@ def test_write_sim_config(tmpdir):
     cell_permute = 0
     tstop = 100
     dt = 0.1
-    forwardskip = 0
     prcellgid = 0
     seed = 12345
     celsius = 34.0
@@ -83,7 +82,6 @@ def test_write_sim_config(tmpdir):
     CoreConfig.write_sim_config(
         tstop,
         dt,
-        forwardskip,
         prcellgid,
         celsius,
         v_init,
@@ -102,13 +100,12 @@ def test_write_sim_config(tmpdir):
         assert lines[1].strip() == f"datpath='{Path(CoreConfig.datadir).absolute()}'"
         assert lines[2].strip() == f"tstop={tstop}"
         assert lines[3].strip() == f"dt={dt}"
-        assert lines[4].strip() == f"forwardskip={forwardskip}"
-        assert lines[5].strip() == f"prcellgid={prcellgid}"
-        assert lines[6].strip() == f"celsius={celsius}"
-        assert lines[7].strip() == f"voltage={v_init}"
-        assert lines[8].strip() == f"cell-permute={cell_permute}"
-        assert lines[9].strip() == f"pattern='{pattern}'"
-        assert lines[10].strip() == f"seed={seed}"
-        assert lines[11].strip() == "'model-stats'"
-        assert lines[12].strip() == f"report-conf='{report_conf}'"
-        assert lines[13].strip() == f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}"
+        assert lines[4].strip() == f"prcellgid={prcellgid}"
+        assert lines[5].strip() == f"celsius={celsius}"
+        assert lines[6].strip() == f"voltage={v_init}"
+        assert lines[7].strip() == f"cell-permute={cell_permute}"
+        assert lines[8].strip() == f"pattern='{pattern}'"
+        assert lines[9].strip() == f"seed={seed}"
+        assert lines[10].strip() == "'model-stats'"
+        assert lines[11].strip() == f"report-conf='{report_conf}'"
+        assert lines[12].strip() == "mpi=true"

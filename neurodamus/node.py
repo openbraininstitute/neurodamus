@@ -1256,7 +1256,7 @@ class Node:
     def _finalize_model(self, spike_compress=3):
         """Set up simulation run parameters and initialization.
 
-        Handles setup_transfer, spike_compress, _record_spikes, stdinit, forward_skip, timeout
+        Handles setup_transfer, spike_compress, _record_spikes, stdinit, timeout
         Args:
             spike_compress: The spike_compress() parameters (tuple or int)
         """
@@ -1294,18 +1294,6 @@ class Node:
     def _sim_init_neuron(self):
         # === Neuron specific init ===
         restore_path = SimConfig.restore
-        fwd_skip = self._run_conf.get("ForwardSkip", 0)
-
-        if fwd_skip and not restore_path:
-            logging.info("Initializing with ForwardSkip %d ms", fwd_skip)
-            Nd.t = -1e9
-            prev_dt = Nd.dt
-            Nd.dt = fwd_skip * 0.1
-            for _flushIndex in range(10):
-                Nd.fadvance()
-            Nd.dt = prev_dt
-            Nd.t = 0
-            Nd.frecord_init()
 
         # create a spike_id vector which stores the pairs for spikes and timings for
         # every engine
@@ -1440,7 +1428,6 @@ class Node:
         CoreConfig.datadir = self._sim_corenrn_configure_datadir(
             corenrn_restore, SimConfig.coreneuron_direct_mode
         )
-        fwd_skip = self._run_conf.get("ForwardSkip", 0) if not corenrn_restore else 0
 
         if not corenrn_restore:
             CompartmentMapping(self._circuits.global_manager).register_mapping()
@@ -1452,7 +1439,6 @@ class Node:
         CoreConfig.write_sim_config(
             Nd.tstop,
             Nd.dt,
-            fwd_skip,
             self._pr_cell_gid or -1,
             getattr(SimConfig, "celsius", 34.0),
             getattr(SimConfig, "v_init", -65.0),
