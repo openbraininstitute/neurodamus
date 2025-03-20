@@ -1604,7 +1604,6 @@ class Node:
             self._sonatareport_helper.clear()
 
         # Reset vars
-        Nd.init()
         self._reset()
 
         # Clear BBSaveState
