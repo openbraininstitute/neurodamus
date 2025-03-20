@@ -258,7 +258,7 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert np.isclose(syn.NMDA_ratio,  kwargs["NMDA_ratio"])
 
 
-def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=1):
+def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     """
     Check the given signal peaks comparing with the given
     reference
