@@ -73,6 +73,10 @@ proc biophys(){
         cm = 1
     }
     soma {
+// Fake L and diam due to import difference between os
+        L = 23.0
+        diam = 21.0
+
         insert hh
         gnabar_hh = 0.12
         gkbar_hh = 0.036
