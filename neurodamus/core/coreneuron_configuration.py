@@ -189,7 +189,6 @@ class _CoreNEURONConfig:
         self,
         tstop,
         dt,
-        forwardskip,
         prcellgid,
         celsius,
         v_init,
@@ -206,7 +205,6 @@ class _CoreNEURONConfig:
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
             fp.write(f"tstop={tstop}\n")
             fp.write(f"dt={dt}\n")
-            fp.write(f"forwardskip={forwardskip}\n")
             fp.write(f"prcellgid={int(prcellgid)}\n")
             fp.write(f"celsius={celsius}\n")
             fp.write(f"voltage={v_init}\n")
