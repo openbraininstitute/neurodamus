@@ -36,6 +36,8 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+      fail-fast: false
+
     steps:
     - name: Setup Python
       uses: actions/setup-python@v5

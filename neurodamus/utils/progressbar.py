@@ -177,6 +177,16 @@ class ProgressBar(Progress):
         self._name = name
         super().__init__(end, start)
 
+    def _write(self, s):
+        """Safe write"""
+        if not self._stream.closed:
+            self._stream.write(s)
+
+    def _flush(self):
+        """Safe flush"""
+        if not self._stream.closed:
+            self._stream.flush()
+
     def _bar_len_progress(self):
         if self._end is not False:
             ratio = self.completion_ratio
@@ -193,20 +203,20 @@ class ProgressBar(Progress):
         if self._end == 0:
             return
         if self._tty_mode:
-            self._stream.write("\r" + str(self))
+            self._write("\r" + str(self))
         else:
             self._show_incremental_bar()
-        self._stream.flush()
+        self._flush()
 
     def _show_incremental_bar(self):
         bar_len, _ = self._bar_len_progress()
         if self._prev_bar_len is None or bar_len < self._prev_bar_len:
             # We need to produce a new bar.
-            self._stream.write(f"\r{self._name}|")
+            self._write(f"\r{self._name}|")
             self._prev_bar_len = 0
 
         if bar_len > self._prev_bar_len:
-            self._stream.write(self._no_tty_bar[self._prev_bar_len : bar_len])
+            self._write(self._no_tty_bar[self._prev_bar_len : bar_len])
             self._prev_bar_len = bar_len
 
     def __del__(self):
@@ -215,54 +225,13 @@ class ProgressBar(Progress):
             self._show_incremental_bar()
 
         if self._clear:
-            self._stream.write("\r{}\r".format(" " * (self._width + 8 + len(self._name))))
+            self._write("\r{}\r".format(" " * (self._width + 8 + len(self._name))))
         else:
             # Output a nice stat about time taken
-            self._stream.write(f"| [Time taken: {self.time_taken:.2f} s]\n")
+            self._write(f"| [Time taken: {self.time_taken:.2f} s]\n")
 
     def _set_progress(self, val):
         Progress._set_progress(self, val)
         self.show_progress()
 
     progress = property(lambda self: self._progress, _set_progress)
-
-
-# ------------------------
-# QUICK TESTING
-# ------------------------
-
-if __name__ == "__main__":
-    p = ProgressBar(100, width=80)
-
-    while p.progress < 100:
-        time.sleep(0.1)
-        p += 5
-
-    for i in range(80, -1, -20):
-        time.sleep(0.5)
-        p.progress = i
-
-    del p
-
-    # progressbars can also be used as a consumer-generators to monitor loop progress
-    l1 = range(0, 100, 10)
-
-    for _ in ProgressBar.iter(l1):
-        # Do something with j
-        time.sleep(0.2)
-
-    # Instances can also consume, be reused, and work with sub-selection
-    # It is the user responsability to initialize with the right number of iterations
-    bar = ProgressBar(15)
-    l2 = range(100, 200, 10)
-    for _ in bar(l1):
-        time.sleep(0.2)
-    l2 = list(bar(l2, 5))
-    assert l2 == [100, 110, 120, 130, 140]
-
-    # Alternativelly, if unknown, use False (creates a spinner)
-    bar = ProgressBar(False)
-    for _ in bar(l1):
-        time.sleep(0.2)
-    for _ in bar(range(60)):
-        time.sleep(0.04)
