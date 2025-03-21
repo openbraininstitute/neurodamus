@@ -50,15 +50,25 @@ def merge_dicts(parent: dict, child: dict):
         if k not in child:
             return parent[k]
         if type(parent[k]) is not type(child[k]):
-            raise TypeError(
-                f"Field type missmatch for the values of key {k}: "
-                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
-            )
+            if not isinstance(parent[k], (int, float)) or not isinstance(child[k], (int, float)):
+                raise TypeError(
+                    f"Field type missmatch for the values of key {k}: "
+                    f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+                )
         if isinstance(parent[k], dict):
             return merge_dicts(parent[k], child[k])
         return child[k]
 
     return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
+
+def check_is_subset(dic, subset):
+    """Checks if subset is a subset of the original dict"""
+    try:
+        merged = merge_dicts(dic, subset)
+    except TypeError:
+        assert False
+    assert dic == merged
 
 
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
