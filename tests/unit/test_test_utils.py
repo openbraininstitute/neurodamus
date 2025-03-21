@@ -119,13 +119,14 @@ def test_check_synapses(create_tmp_simulation_config_file):
 
 def test_merge_dicts_simple():
     parent = {"A": 1, "B": 2}
-    child = {"A": 2, "C": 3}
+    child = {"A": 2., "C": 3}
     expected = {"A": 2, "B": 2, "C": 3}
+
     assert utils.merge_dicts(parent, child) == expected
 
 
 def test_merge_dicts_nested():
-    parent = {"A": {"x": 1, "y": 2}, "B": 3}
+    parent = {"A": {"x": 1., "y": 2}, "B": 3}
     child = {"A": {"x": 2, "z": 3}, "C": 4}
     expected = {"A": {"x": 2, "y": 2, "z": 3}, "B": 3, "C": 4}
     assert utils.merge_dicts(parent, child) == expected
@@ -161,9 +162,32 @@ def test_merge_dicts_with_parent_and_child_empty():
 
 def test_merge_dicts_deeply_nested():
     parent = {"A": {"B": {"C": 1}}}
-    child = {"A": {"B": {"D": 2}}}
+    child = {"A": {"B": {"D": 2.}}}
     expected = {"A": {"B": {"C": 1, "D": 2}}}
     assert utils.merge_dicts(parent, child) == expected
+
+
+def test_check_is_subset():
+    dic = {'A': 1, 'B': {'C': 2., 'D': {'E': 3.}}, 'F': 4}
+    subset = {'A': 1}
+    utils.check_is_subset(dic, subset)
+    subset = {'A': 1., 'B': {'C': 2}}
+    utils.check_is_subset(dic, subset)
+    subset = {'A': 1, 'B': {'D': {'E': 3}}}
+    utils.check_is_subset(dic, subset)
+
+
+def test_check_is_subset_fail():
+    dic = {'A': 1, 'B': {'C': 2, 'D': {'E': 3}}, 'F': 4}
+    subset = {'A': 1, 'C': 2}
+    with pytest.raises(AssertionError):
+        utils.check_is_subset(dic, subset)
+    subset = {'A': 1, 'B': {'C': 2, 'D': 3}}
+    with pytest.raises(AssertionError):
+        utils.check_is_subset(dic, subset)
+    subset = {'A': 1, 'B': {'C': 3}}
+    with pytest.raises(AssertionError):
+        utils.check_is_subset(dic, subset)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

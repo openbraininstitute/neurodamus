@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 import logging
-from neurodamus.utils.pyutils import dict_is_subset
+from tests import utils
 
 from .conftest import RINGTEST_DIR
 
@@ -41,7 +41,7 @@ def test_parse_run(create_tmp_simulation_config_file):
         'ExtracellularCalcium': 1.2
     }
 
-    assert dict_is_subset(SimConfig.run_conf, expected_conf)
+    utils.check_is_subset(SimConfig.run_conf, expected_conf)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -96,7 +96,7 @@ def test_parse_conditions(create_tmp_simulation_config_file):
         'randomize_Gaba_risetime': 'False'
     }
 
-    assert dict_is_subset(list(SimConfig._simulation_config.Conditions.values())[0],
+    utils.check_is_subset(list(SimConfig._simulation_config.Conditions.values())[0],
                           expected_conditions)
     assert SimConfig.run_conf["SpikeLocation"] == "AIS"
 
@@ -193,7 +193,7 @@ def test_parse_connections(create_tmp_simulation_config_file):
         "NeuromodStrength": 0.75
     }
 
-    assert dict_is_subset(conn, expected_conn)
+    utils.check_is_subset(conn, expected_conn)
     assert conn.get("SpontMins") is None
     assert conn.get("Modoverride") is None
 
@@ -267,7 +267,7 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "Delay": 0.,
         "Duration": 10000.0
     }
-    assert dict_is_subset(SimConfig.stimuli["hypamp_mosaic"], expected_input_hp)
+    utils.check_is_subset(SimConfig.stimuli["hypamp_mosaic"], expected_input_hp)
 
     input_RSN = SimConfig.stimuli["RelativeShotNoise_L5E_inject"]
     expected_input_RSN = {
@@ -282,14 +282,14 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "SDPercent": 40.,
         "Dt": 0.25
     }
-    assert dict_is_subset(input_RSN, expected_input_RSN)
+    utils.check_is_subset(input_RSN, expected_input_RSN)
     assert input_RSN.get("Seed") is None
 
     expected_input_subthreshold = {
         "Pattern": "SubThreshold",
         "PercentLess": 50.0
     }
-    assert dict_is_subset(SimConfig.stimuli["subthreshould_mosaic"], expected_input_subthreshold)
+    utils.check_is_subset(SimConfig.stimuli["subthreshould_mosaic"], expected_input_subthreshold)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -337,7 +337,7 @@ def test_parse_reports(create_tmp_simulation_config_file):
         'Enabled': True,
         'FileName': str(Path(SimConfig.run_conf["OutputRoot"]) / "soma_report.h5")
     }
-    assert dict_is_subset(SimConfig.reports['soma_report'], expected_soma_report)
+    utils.check_is_subset(SimConfig.reports['soma_report'], expected_soma_report)
 
     expected_compartment_report = {
         'Target': 'l4pc',
@@ -354,4 +354,4 @@ def test_parse_reports(create_tmp_simulation_config_file):
             Path(SimConfig.run_conf["OutputRoot"]) / "my_compartment_report.h5"
         )
     }
-    assert dict_is_subset(SimConfig.reports['compartment_report'], expected_compartment_report)
+    utils.check_is_subset(SimConfig.reports['compartment_report'], expected_compartment_report)
