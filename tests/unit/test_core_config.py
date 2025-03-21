@@ -108,4 +108,4 @@ def test_write_sim_config(tmpdir):
         assert lines[9].strip() == f"seed={seed}"
         assert lines[10].strip() == "'model-stats'"
         assert lines[11].strip() == f"report-conf='{report_conf}'"
-        assert lines[12].strip() == "mpi=true"
+        assert lines[12].strip() == f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}"
