@@ -28,6 +28,11 @@ def dict_filter_map(dic, mapp):
     return {mapp[key]: val for key, val in dic.items() if key in mapp}
 
 
+def dict_is_subset(dic, subset):
+    """Checks if subset is a subset of the original dict"""
+    return all(not (key not in dic or dic[key] != value) for key, value in subset.items())
+
+
 def docopt_sanitize(docopt_opts):
     """Sanitizes docopt parsed key names"""
     opts = {}
