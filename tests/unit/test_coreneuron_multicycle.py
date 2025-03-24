@@ -24,6 +24,7 @@ ref_timestamps = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "CORENEURON",
+                "node_set": "Mosaic",
                 "inputs": {
                     "pulse": {
                         "module": "pulse",
@@ -42,11 +43,13 @@ ref_timestamps = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
     ],
     indirect=True,
 )
-def test_coreneuron_multicycle(create_tmp_simulation_config_file):
+@pytest.mark.parametrize(
+    # multicycle should limit the steps to in all cases and not throw errors
+    "modelbuilding_steps", [3, 10]
+)
+def test_coreneuron_multicycle(create_tmp_simulation_config_file, modelbuilding_steps):
     """Test that CoreNEURON runs a multi-cycle simulation and
     produces expected spike times and GIDs as in filemode."""
-
-    modelbuilding_steps = 3
 
     nd = Neurodamus(create_tmp_simulation_config_file, modelbuilding_steps=modelbuilding_steps)
 
@@ -54,8 +57,20 @@ def test_coreneuron_multicycle(create_tmp_simulation_config_file):
     coreneuron_data = Path(SimConfig.coreneuron_datadir)
     check_directory(coreneuron_data)
     assert (coreneuron_data / "files.dat").exists()
-    for i in range(modelbuilding_steps):
-        assert (coreneuron_data / f"files_{i}.dat").exists()
+
+    n_files = min(
+        nd._target_manager.get_target(
+            nd._target_spec).max_gid_count_per_population(),
+        modelbuilding_steps)
+    expected_files = [
+        f"files_{i}.dat" for i in range(n_files)
+    ]
+    files_in_directory = list(coreneuron_data.glob("files_*.dat"))
+    file_names = [file.name for file in files_in_directory]
+    assert sorted(file_names) == sorted(expected_files)
+
+    # check that there aren't additional files
+    assert not (coreneuron_data / f"files_{n_files}.dat").exists()
 
     # run simulation
     nd.run()
