@@ -1342,7 +1342,7 @@ class Node:
             return
 
         # create a fake node with a fake population "zzz" to get an unused gid.
-        # creneurons fails if this edge case is reached multiple times as we
+        # coreeuron fails if this edge case is reached multiple times as we
         # try to add twice the same gid. pop "zzz" is forbidden
         log_verbose("Creating fake gid for CoreNeuron")
         assert not PopulationNodes.get("zzz")
