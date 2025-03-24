@@ -190,6 +190,9 @@ def test_check_is_subset_fail():
     subset = {'A': 1, 'B': {'C': 3}}
     with pytest.raises(AssertionError):
         utils.check_is_subset(dic, subset)
+    subset = {'A': 1, 'B': {'C': 2.1}}
+    with pytest.raises(AssertionError):
+        utils.check_is_subset(dic, subset)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
