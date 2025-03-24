@@ -15,7 +15,7 @@ from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
 
 ref_gids = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3])  # 1-based
-ref_timestamps = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
+ref_timestamps = np.array([5.1,  5.1,  5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
 
 
 @pytest.mark.parametrize(

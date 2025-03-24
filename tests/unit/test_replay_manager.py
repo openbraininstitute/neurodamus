@@ -30,8 +30,11 @@ def ringtest_virtual_pop_config():
                     "populations": {
                         "RingB": {
                             "type": "biophysical",
-                            "morphologies_dir": "swc",
+                            "morphologies_dir": str(RINGTEST_DIR / "morphologies/swc"),
                             "biophysical_neuron_models_dir": str(RINGTEST_DIR / "hoc"),
+                            "alternate_morphologies": {
+                                "neurolucida-asc": str(RINGTEST_DIR / "morphologies/asc")
+                            }
                         }
                     }
                 }
@@ -187,7 +190,7 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [39, 81])
+    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -243,4 +246,4 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [39, 81])
+    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)

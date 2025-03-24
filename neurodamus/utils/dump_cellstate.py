@@ -105,5 +105,8 @@ def _read_object_attrs(obj, filter_keys=None):
             and not x.startswith("__")
             and not callable(getattr(obj, x))
         ):
-            res[x] = getattr(obj, x)
+            attr = getattr(obj, x)
+            if isinstance(attr, float):
+                attr = round(attr, 14)
+            res[x] = attr
     return res

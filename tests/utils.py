@@ -258,7 +258,7 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert np.isclose(syn.NMDA_ratio,  kwargs["NMDA_ratio"])
 
 
-def check_signal_peaks(x, ref_peaks_pos, threshold=1):
+def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     """
     Check the given signal peaks comparing with the given
     reference
@@ -269,13 +269,14 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1):
         taken as reference.
         threshold: peak detection threshold measured with
         respect of the surrounding baseline of the signal
+        tolerance: peak detection tolerance window per peak
 
     Raises:
         AssertionError: If any of the reference peak
         positions doesn't match with the obtained peaks
     """
     peaks_pos = find_peaks(x, prominence=threshold)[0]
-    np.testing.assert_equal(peaks_pos, ref_peaks_pos)
+    np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
 
 def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
