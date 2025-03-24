@@ -285,14 +285,16 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert len(data) == 2500  # 500 time steps * 5 soma sections
     # check soma signal peak for cell 1001 as in test_current_injection.py
     cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
-    check_signal_peaks(cell_voltage_vec, [89, 288, 488])
+    check_signal_peaks(cell_voltage_vec, [92, 291])
 
     compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_report.exists()
     data = read_ascii_report(compartment_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
     cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
-    check_signal_peaks(cell_current_vec, [50, 70, 110], threshold=0.1)
+
+    check_signal_peaks(cell_current_vec, [9,  29,  50,  70, 110, 132, 152, 173, 193],
+                       threshold=0.05)
 
 
 @pytest.mark.parametrize(

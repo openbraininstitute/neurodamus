@@ -50,15 +50,25 @@ def merge_dicts(parent: dict, child: dict):
         if k not in child:
             return parent[k]
         if type(parent[k]) is not type(child[k]):
-            raise TypeError(
-                f"Field type missmatch for the values of key {k}: "
-                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
-            )
+            if not isinstance(parent[k], (int, float)) or not isinstance(child[k], (int, float)):
+                raise TypeError(
+                    f"Field type missmatch for the values of key {k}: "
+                    f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+                )
         if isinstance(parent[k], dict):
             return merge_dicts(parent[k], child[k])
         return child[k]
 
     return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
+
+def check_is_subset(dic, subset):
+    """Checks if subset is a subset of the original dict"""
+    try:
+        merged = merge_dicts(dic, subset)
+    except TypeError:
+        assert False
+    assert dic == merged
 
 
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
@@ -248,7 +258,7 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert np.isclose(syn.NMDA_ratio, kwargs["NMDA_ratio"])
 
 
-def check_signal_peaks(x, ref_peaks_pos, threshold=1):
+def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     """
     Check the given signal peaks comparing with the given
     reference
@@ -259,13 +269,14 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1):
         taken as reference.
         threshold: peak detection threshold measured with
         respect of the surrounding baseline of the signal
+        tolerance: peak detection tolerance window per peak
 
     Raises:
         AssertionError: If any of the reference peak
         positions doesn't match with the obtained peaks
     """
     peaks_pos = find_peaks(x, prominence=threshold)[0]
-    np.testing.assert_equal(peaks_pos, ref_peaks_pos)
+    np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
 
 def record_compartment_report(rep_conf: dict, target_manager: TargetManager):

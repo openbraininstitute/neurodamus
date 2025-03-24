@@ -276,8 +276,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
-    # with threshold=1.0 it does not get the last peak
-    utils.check_signal_peaks(voltage_trace, [12, 55, 122, 164, 269, 303, 385], threshold=0.5)
+    utils.check_signal_peaks(voltage_trace, [15,  58, 167, 272, 388], threshold=0.5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

@@ -7,10 +7,10 @@
                 "populations": {
                     "RingA": {
                         "type": "biophysical",
-                        "morphologies_dir": "usecase_examples/components/Ringtest/morphologies/swc",
+                        "morphologies_dir": "morphologies/swc",
                         "biophysical_neuron_models_dir": "hoc",
                         "alternate_morphologies": {
-                            "neurolucida-asc": "usecase_examples/components/Ringtest/morphologies/asc"
+                            "neurolucida-asc": "morphologies/asc"
                         }
                     }
                 }
@@ -20,10 +20,10 @@
                 "populations": {
                     "RingB": {
                         "type": "biophysical",
-                        "morphologies_dir": "usecase_examples/components/Ringtest/morphologies/swc",
+                        "morphologies_dir": "morphologies/swc",
                         "biophysical_neuron_models_dir": "hoc",
                         "alternate_morphologies": {
-                            "neurolucida-asc": "usecase_examples/components/Ringtest/morphologies/asc"
+                            "neurolucida-asc": "morphologies/asc"
                         }
                     }
                 }
