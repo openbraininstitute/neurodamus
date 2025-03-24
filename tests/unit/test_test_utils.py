@@ -175,6 +175,8 @@ def test_check_is_subset():
     utils.check_is_subset(dic, subset)
     subset = {'A': 1, 'B': {'D': {'E': 3}}}
     utils.check_is_subset(dic, subset)
+    subset = {'A': 1, 'B': {'D': {'E': 3.0}}}
+    utils.check_is_subset(dic, subset)
 
 
 def test_check_is_subset_fail():
