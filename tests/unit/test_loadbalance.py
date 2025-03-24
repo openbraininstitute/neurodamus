@@ -32,7 +32,7 @@ def test_loadbalance_mode():
     assert LoadBalanceMode.parse("MultiSplit") == LoadBalanceMode.MultiSplit
     assert LoadBalanceMode.parse("Memory") == LoadBalanceMode.Memory
     with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
-        assert LoadBalanceMode.parse("Random")
+        assert LoadBalanceMode.parse("BlaBla")
 
 
 def test_loadbal_no_cx(target_manager, caplog):

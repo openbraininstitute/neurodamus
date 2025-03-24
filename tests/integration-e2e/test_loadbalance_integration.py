@@ -34,13 +34,13 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
             },
             "connection_overrides": [
                 {
-                    "name": "virtual_proj",
+                    "name": "disconnect_virtual_proj_l4pc",
                     "source": "virtual_target",
                     "target": "l4pc",
                     "weight": 0.0
                 },
                 {
-                    "name": "disconnect",
+                    "name": "disconnect_l4pc_virtual_proj",
                     "source": "l4pc",
                     "target": "virtual_target",
                     "delay": 0.025,
