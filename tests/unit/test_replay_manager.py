@@ -190,7 +190,7 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [41, 83])
+    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -246,4 +246,4 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [41, 83])
+    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)

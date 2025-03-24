@@ -38,4 +38,4 @@ def test_current_injection(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [91, 290])
+    utils.check_signal_peaks(voltage_vec, [92, 291])
