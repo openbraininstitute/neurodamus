@@ -53,6 +53,8 @@ EDGE_TYPES = [
     SonataAttribute("afferent_segment_offset", type=int, prefix=True),
     SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
     SonataAttribute("syn_type_id", type=int, prefix=True),
+    SonataAttribute("afferent_junction_id", type=int, prefix=True),
+    SonataAttribute("efferent_junction_id", type=int, prefix=True)
 ]
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
@@ -137,6 +139,7 @@ def make_ringtest_nodes():
     }
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
+    make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
 
 def make_ringtest_edges():
     edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
@@ -193,6 +196,17 @@ def make_ringtest_edges():
     }
     make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
+    edges = Edges("RingC", "RingC", "electrical", [(0, 1),(1,2), (2,0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": 100.0,
+        "afferent_section_id": 1,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "efferent_junction_id":[0, 1, 2],
+        "afferent_junction_id":[1, 2, 0]
+    }
+    make_edges(filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
 
 make_ringtest_nodes()
 make_ringtest_edges()

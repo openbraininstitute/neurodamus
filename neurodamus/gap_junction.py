@@ -16,7 +16,16 @@ from .utils.logging import log_verbose
 
 class GapJunctionConnParameters(SynapseParameters):
     # Attribute names of synapse parameters, consistent with the normal synapses
-    _synapse_fields = ("sgid", "isec", "offset", "weight", "D", "F", "ipt", "location")
+    _synapse_fields = (
+        "sgid",
+        "isec",
+        "offset",
+        "weight",
+        "efferent_junction_id",
+        "afferent_junction_id",
+        "ipt",
+        "location",
+    )
 
     @classmethod
     def create_array(cls, length):
@@ -29,8 +38,6 @@ class GapJunctionSynapseReader(SonataReader):
     Parameters = GapJunctionConnParameters
     parameter_mapping = {
         "weight": "conductance",
-        "D": "efferent_junction_id",
-        "F": "afferent_junction_id",
     }
     # "isec", "ipt", "offset" are custom parameters as in base class
 
