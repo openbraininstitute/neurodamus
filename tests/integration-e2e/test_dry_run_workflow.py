@@ -52,14 +52,6 @@ def neurodamus_instance(request: pytest.FixtureRequest, USECASE3: Path):
     nd = None
 
 
-def convert_to_standard_types(obj):
-    """Converts an object containing defaultdicts of Vectors to standard Python types."""
-    result = {}
-    for node, vectors in obj.items():
-        result[node] = {key: list(vector) for key, vector in vectors.items()}
-    return result
-
-
 @pytest.mark.parametrize("neurodamus_instance", [
     {
         'dry_run': True,
@@ -77,6 +69,7 @@ def test_dry_run_workflow(neurodamus_instance):
     isMacOS = platform.system() == "Darwin"
     from neurodamus.utils.memory import export_allocation_stats
     from neurodamus.utils.memory import export_metype_memory_usage
+    from tests.utils import defaultdict_to_standard_types
 
     GlobalConfig.verbosity = LogLevel.DEBUG
     nd = neurodamus_instance
@@ -110,7 +103,7 @@ def test_dry_run_workflow(neurodamus_instance):
     export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats("allocation_r2_c1.pkl.gz", 0)
-    rank_allocation_standard = convert_to_standard_types(rank_alloc)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
 
     expected_items = {
         'NodeA': {(0, 0): [1]},
@@ -123,7 +116,7 @@ def test_dry_run_workflow(neurodamus_instance):
     # and generate allocation file for 1 rank
     rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
     export_metype_memory_usage(cell_mem_use, "memory_per_metype.json")
-    rank_allocation_standard = convert_to_standard_types(rank_alloc)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
 
     expected_items = {
         'NodeA': {(0, 0): [1, 2, 3]},
@@ -151,11 +144,12 @@ def test_dynamic_distribute(neurodamus_instance):
     the memory_per_metype.json generated in the previous test to
     redistribute the cells. Then checks if the new allocation is correct.
     """
+    from tests.utils import defaultdict_to_standard_types
 
     nd = neurodamus_instance
 
     rank_allocation, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
-    rank_allocation_standard = convert_to_standard_types(rank_allocation)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_allocation)
 
     expected_items = {
         'NodeA': {
@@ -179,6 +173,7 @@ def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
     """
     Test that the distribute_cells_with_validation function works with multiple pops and cycles
     """
+    from tests.utils import defaultdict_to_standard_types
 
     stats = DryRunStats()
 
@@ -215,7 +210,7 @@ def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
         num_ranks=2,
         cycles=2
     )
-    rank_allocation_standard = convert_to_standard_types(bucket_allocation)
+    rank_allocation_standard = defaultdict_to_standard_types(bucket_allocation)
 
     expected_allocation = {
         'NodeA': {

@@ -31,6 +31,7 @@ NODE_TYPES = [
     SonataAttribute("node_type_id", type=int, prefix=False),
     SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
     SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
     SonataAttribute("x", type=np.float32, prefix=True),
     SonataAttribute("y", type=np.float32, prefix=True),
     SonataAttribute("z", type=np.float32, prefix=True),
@@ -111,8 +112,9 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": "MTYPE",  # neurodamus/io/cell_readers.py:140: SonataError
+        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],  # neurodamus/io/cell_readers.py:140: SonataError
         # neurodamus/io/cell_readers.py:162: SonataError
+        "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
         "x": it.count(0),
         "y": it.count(1),
         "z": it.count(2),
@@ -124,8 +126,9 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": "MTYPE",  # neurodamus/io/cell_readers.py:140: SonataError
+        "mtype": ["MTYPE0", "MTYPE1"],  # neurodamus/io/cell_readers.py:140: SonataError
         # neurodamus/io/cell_readers.py:162: SonataError
+        "etype": ["ETYPE1", "ETYPE1"],
         "x": it.count(3),
         "y": it.count(4),
         "z": it.count(5),
