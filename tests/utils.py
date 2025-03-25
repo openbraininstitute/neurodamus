@@ -62,6 +62,14 @@ def merge_dicts(parent: dict, child: dict):
     return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
 
 
+def defaultdict_to_standard_types(obj):
+    """Converts an object containing defaultdicts of Vectors to standard Python types."""
+    result = {}
+    for node, vectors in obj.items():
+        result[node] = {key: list(vector) for key, vector in vectors.items()}
+    return result
+
+
 def check_is_subset(dic, subset):
     """Checks if subset is a subset of the original dict"""
     try:

@@ -3,6 +3,98 @@ import numpy as np
 import numpy.testing as npt
 import unittest.mock
 
+from .conftest import RINGTEST_DIR
+
+
+@pytest.mark.forked
+def test_dry_run_memory_use():
+    from neurodamus import Neurodamus
+    import platform
+
+    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
+
+    nd.run()
+
+    isMacOS = platform.system() == "Darwin"
+    assert (45.0 if isMacOS else 80.0) <= nd._dry_run_stats.base_memory <= (
+        75.0 if isMacOS else 120.0)
+    assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0
+    assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
+    expected_metypes_count = {
+        'MTYPE1-ETYPE1': 2, 'MTYPE0-ETYPE0': 1,
+        'MTYPE2-ETYPE2': 1, 'MTYPE0-ETYPE1': 1
+    }
+    assert nd._dry_run_stats.metype_counts == expected_metypes_count
+    assert nd._dry_run_stats.suggested_nodes > 0
+
+
+@pytest.mark.forked
+def test_dry_run_distribute_cells():
+    from neurodamus import Neurodamus
+    from tests.utils import defaultdict_to_standard_types
+
+    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
+    nd.run()
+
+    # Test allocation
+    rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {
+            (0, 0): [1],
+            (1, 0): [2, 3]
+        },
+        'RingB': {
+            (0, 0): [1],
+            (1, 0): [2]
+        }
+    }
+    assert rank_allocation_standard == expected_allocation
+
+    # Test allocation import
+    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME +
+                                                           "_r2_c1.pkl.gz", 0)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {(0, 0): [1]},
+        'RingB': {(0, 0): [1]}
+    }
+    assert rank_allocation_standard == expected_allocation
+
+    # Test dynamic distribution
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {(0, 0): [1, 2, 3]},
+        'RingB': {(0, 0): [1, 2]}
+    }
+    assert rank_allocation_standard == expected_allocation
+
+    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME +
+                                                           "_r1_c1.pkl.gz", 0, True)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {(0, 0): [1, 2, 3]},
+        'RingB': {(0, 0): [1, 2]}
+    }
+    assert rank_allocation_standard == expected_allocation
+
+    # Test reuse of cell_memory_use file
+    rank_allocation, _, _ = nd._dry_run_stats.distribute_cells_with_validation(
+        2, 1, nd._dry_run_stats._MEMORY_USAGE_PER_METYPE_FILENAME)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_allocation)
+    expected_allocation = {
+        'RingA': {
+            (0, 0): [1],
+            (1, 0): [2, 3]
+        },
+        'RingB': {
+            (0, 0): [1],
+            (1, 0): [2]
+        }
+    }
+    assert rank_allocation_standard == expected_allocation
+
 
 @pytest.mark.forked
 def test_dry_run_distribution():
