@@ -372,11 +372,6 @@ class NodesetTarget:
     selected from one or more populations, and they are internally organized into `nodesets`
     based on their respective populations.
 
-    Attributes:
-        name (str): The name of the target.
-        nodesets (list[_NodeSetBase]): Groups of nodes organized by population.
-        local_nodes (optional): Additional local nodes if specified.
-
     Example:
     Given populations:
     ```python
