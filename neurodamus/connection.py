@@ -580,21 +580,28 @@ class Connection(ConnectionBase):
             if dbg_conn and dbg_conn in ([self.tgid], [self.sgid, self.tgid]):
                 log_all(
                     logging.DEBUG,
-                    "connect %f to %f [D: %f + %f], [F: %f + %f] (weight: %f)",
-                    self.tgid,
+                    (
+                        "connect %f to %f [efferent_junction_id: %f + %f], "
+                        "[afferent_junction_id: %f + %f] (weight: %f)"
+                    ),
                     self.sgid,
+                    self.tgid,
                     offset,
-                    active_params.D,
+                    active_params.efferent_junction_id,
                     end_offset,
-                    active_params.F,
+                    active_params.afferent_junction_id,
                     active_params.weight,
                 )
 
             with Nd.section_in_stack(sec):
                 self._pc.target_var(
-                    gap_junction, gap_junction._ref_vgap, (offset + active_params.D)
+                    gap_junction,
+                    gap_junction._ref_vgap,
+                    (offset + active_params.efferent_junction_id),
                 )
-                self._pc.source_var(sec(x)._ref_v, (end_offset + active_params.F))
+                self._pc.source_var(
+                    sec(x)._ref_v, (end_offset + active_params.afferent_junction_id)
+                )
             gap_junction.g = active_params.weight
             self._synapses.append(gap_junction)
             self._configure_cell(cell)
