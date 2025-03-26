@@ -559,14 +559,11 @@ class Connection(ConnectionBase):
         return syn_helper.synapse
 
     # -
-    def finalize_gap_junctions(self, cell, offset, end_offset):
+    def finalize_gap_junctions(self, cell):
         """When all parameters are set, create synapses and netcons
 
         Args:
             cell: The cell to create synapses and netcons on.
-            offset: offset for this cell's gap junctions
-            end_offset: offset for the other cell's gap junctions
-
         """
         self._synapses = compat.List()
         self._netcons = []
@@ -586,9 +583,7 @@ class Connection(ConnectionBase):
                     ),
                     self.sgid,
                     self.tgid,
-                    offset,
                     active_params.efferent_junction_id,
-                    end_offset,
                     active_params.afferent_junction_id,
                     active_params.weight,
                 )
@@ -597,11 +592,9 @@ class Connection(ConnectionBase):
                 self._pc.target_var(
                     gap_junction,
                     gap_junction._ref_vgap,
-                    (offset + active_params.efferent_junction_id),
+                    active_params.efferent_junction_id,
                 )
-                self._pc.source_var(
-                    sec(x)._ref_v, (end_offset + active_params.afferent_junction_id)
-                )
+                self._pc.source_var(sec(x)._ref_v, active_params.afferent_junction_id)
             gap_junction.g = active_params.weight
             self._synapses.append(gap_junction)
             self._configure_cell(cell)
