@@ -1,7 +1,6 @@
 """Main module for handling and instantiating synaptical connections"""
 
 import logging
-from os import path as ospath
 
 import numpy as np
 
@@ -10,8 +9,6 @@ from .core.configuration import ConfigurationError, SimConfig
 from .gj_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
-from .utils import compat
-from .utils.logging import log_verbose
 
 
 class GapJunctionConnParameters(SynapseParameters):
@@ -50,7 +47,6 @@ class GapJunctionManager(ConnectionManagerBase):
     """
 
     CONNECTIONS_TYPE = ConnectionTypes.GapJunction
-    _gj_offsets = None
     SynapseReader = GapJunctionSynapseReader
 
     def __init__(self, gj_conf, target_manager, cell_manager, src_cell_manager=None, **kw):
@@ -78,27 +74,6 @@ class GapJunctionManager(ConnectionManagerBase):
         self.holding_ic_per_gid = None
         self.seclamp_current_per_gid = None
 
-    def open_synapse_file(self, synapse_file, *args, **kw):
-        super().open_synapse_file(synapse_file, *args, **kw)
-        src_is_dir = ospath.isdir(synapse_file)
-        if src_is_dir or synapse_file.endswith("nrn_gj.h5"):
-            gj_dir = synapse_file if src_is_dir else ospath.dirname(synapse_file)
-            self._gj_offsets = self._compute_gj_offsets(gj_dir)
-
-    def _compute_gj_offsets(self, gj_dir):
-        log_verbose("Computing gap-junction offsets from gjinfo.txt")
-        gjfname = ospath.join(gj_dir, "gjinfo.txt")
-        assert ospath.isfile(gjfname), f"Nrn-format GapJunctions require gjinfo.txt: {gj_dir}"
-        gj_offsets = compat.Vector()
-        gj_sum = 0
-
-        for line in open(gjfname):
-            gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
-            _, offset = map(int, line.strip().split())
-            gj_sum += 2 * offset
-
-        return gj_offsets
-
     def create_connections(self, *_, **_kw):
         """Gap Junctions dont use connection blocks, connect all belonging to target"""
         self.connect_all()
@@ -117,14 +92,6 @@ class GapJunctionManager(ConnectionManagerBase):
     def _finalize_conns(self, final_tgid, conns, *_, **_kw):
         metype = self._cell_manager.get_cell(final_tgid)
 
-        if self._gj_offsets is None:
-            for conn in reversed(conns):
-                conn.finalize_gap_junctions(metype, 0, 0)
-        else:
-            raw_tgid_0base = final_tgid - self.target_pop_offset - 1
-            src_pop_offset = self.src_pop_offset
-            t_gj_offset = self._gj_offsets[raw_tgid_0base]  # Old nrn_gj uses offsets
-            for conn in reversed(conns):
-                raw_sgid_0base = conn.sgid - src_pop_offset - 1
-                conn.finalize_gap_junctions(metype, t_gj_offset, self._gj_offsets[raw_sgid_0base])
+        for conn in reversed(conns):
+            conn.finalize_gap_junctions(metype)
         return len(conns)
