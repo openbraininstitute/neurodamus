@@ -1852,7 +1852,7 @@ class Neurodamus(Node):
         self._sim_corenrn_write_config(corenrn_restore=True)
         self._sim_ready = True
 
-    def n_cycles(self):
+    def compute_n_cycles(self):
         """Determine the number of model-building cycles
 
         It is based on configuration and system constraints.
@@ -1882,7 +1882,7 @@ class Neurodamus(Node):
                     max_num_cycles,
                 )
                 n_cycles = max_num_cycles
-        return n_cycles
+        self._n_cycles = n_cycles
 
     def _multicycle_build_model(self):
         """Build the model iteratively over multiple cycles if required
@@ -1890,27 +1890,27 @@ class Neurodamus(Node):
         Note: only relevant for coreNeuron
         """
 
-        n_cycles = self.n_cycles()
+        self.compute_n_cycles()
 
         # Without multi-cycle, it's a trivial model build.
         # sub_targets is False
-        if n_cycles == 1:
+        if self._n_cycles == 1:
             self._build_model()
             return
 
-        logging.info(f"MULTI-CYCLE RUN: {n_cycles} Cycles")
+        logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
         target = self._target_manager.get_target(self._target_spec)
         TimerManager.archive(archive_name="Before Cycle Loop")
 
         PopulationNodes.freeze_offsets()
 
         if SimConfig.loadbal_mode != LoadBalanceMode.Memory:
-            sub_targets = target.generate_subtargets(n_cycles)
+            sub_targets = target.generate_subtargets(self._n_cycles)
 
-        for cycle_i in range(n_cycles):
+        for cycle_i in range(self._n_cycles):
             logging.info("")
             logging.info("-" * 60)
-            log_stage(f"==> CYCLE {cycle_i + 1} (OUT OF {n_cycles})")
+            log_stage(f"==> CYCLE {cycle_i + 1} (OUT OF {self._n_cycles})")
             logging.info("-" * 60)
 
             self.clear_model()
@@ -1938,7 +1938,7 @@ class Neurodamus(Node):
             TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
 
         if MPI.rank == 0:
-            self._merge_filesdat(n_cycles)
+            self._merge_filesdat(self._n_cycles)
 
     # -
     def _instantiate_simulation(self):
