@@ -1,6 +1,5 @@
-"""Test coreneuron simultion solver and direct mode
-In file emode, spikes dat file is created by CoreNEURON, check the file content
-In direct mode, spikes vectors are returned to NEURON, no dat file created, check the spikes vector
+"""Ensure that the multi-cycle simulation runs correctly,
+verifying file creation, simulation execution, and output integrity.
 """
 
 from pathlib import Path

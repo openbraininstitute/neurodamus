@@ -1342,7 +1342,7 @@ class Node:
             return
 
         # create a fake node with a fake population "zzz" to get an unused gid.
-        # coreeuron fails if this edge case is reached multiple times as we
+        # coreneuron fails if this edge case is reached multiple times as we
         # try to add twice the same gid. pop "zzz" is forbidden
         log_verbose("Creating fake gid for CoreNeuron")
         assert not PopulationNodes.get("zzz")
@@ -1866,7 +1866,6 @@ class Neurodamus(Node):
         self._sim_corenrn_write_config(corenrn_restore=True)
         self._sim_ready = True
 
-    @property
     def n_cycles(self):
         """Determine the number of model-building cycles
 
@@ -1904,7 +1903,7 @@ class Neurodamus(Node):
 
         Note: only relevant for coreNeuron
         """
-        n_cycles = self.n_cycles
+        n_cycles = self.n_cycles()
 
         # Without multi-cycle, it's a trivial model build.
         # sub_targets is False
