@@ -1331,9 +1331,12 @@ class Node:
 
         # create a fake node with a fake population "zzz" to get an unused gid.
         # coreneuron fails if this edge case is reached multiple times as we
-        # try to add twice the same gid. pop "zzz" is forbidden
+        # try to add twice the same gid. pop "zzz" is reserved to be used
+        # exclusively for handling cases where no real GIDs are assigned to
+        # a rank, ensuring that CoreNeuron does not crash due to missing GIDs.
         log_verbose("Creating fake gid for CoreNeuron")
-        assert not PopulationNodes.get("zzz")
+        assert not PopulationNodes.get("zzz"), "Population 'zzz' is reserved "
+        "for handling empty GID ranks and should not be used elsewhere."
         pop_group = PopulationNodes.get("zzz", create=True)
         fake_gid = pop_group.offset + 1 + MPI.rank
         # Add the fake cell to the base manager
@@ -1773,7 +1776,16 @@ class Neurodamus(Node):
         self._remove_file(self._success_file)
 
     # -
-    def _build_model(self):
+    def _build_single_model(self):
+        """Construct the model for a single cycle.
+
+        This process includes:
+        - Computing load balance across ranks.
+        - Building the circuit by creating cells and applying configurations.
+        - Establishing synaptic connections.
+        - Enabling replay mechanisms if applicable.
+        - Initializing the simulation if 'AutoInit' is enabled.
+        """
         log_stage("================ CALCULATING LOAD BALANCE ================")
         load_bal = self.compute_load_balance()
         print_mem_usage()
@@ -1874,6 +1886,11 @@ class Neurodamus(Node):
             # need to assign fake gids to artificial cells in empty threads
             # during module building fake gids start from max_gid + 1
             # currently not support engine plugin where target is loaded later
+            # We can always have only 1 cycle. coreneuron throws an error if a 
+            # rank does not have cells during a cycle. There is a way to prevent
+            # this for unbalanced multi-populations but if more than one cycle
+            # happens on a rank without instantiating cells another error raises.
+            # Thus, the number of cycles should be rounded down; on the safe side
             max_num_cycles = int(max_cell_count / MPI.size) or 1
             if n_cycles > max_num_cycles:
                 logging.warning(
@@ -1883,19 +1900,22 @@ class Neurodamus(Node):
                 )
                 n_cycles = max_num_cycles
         self._n_cycles = n_cycles
+        return None
 
-    def _multicycle_build_model(self):
-        """Build the model iteratively over multiple cycles if required
+    def _build_model(self):
+        """Build the model
+
+        Internally it calls _build_single_model, over multiple
+        cycles if necessary.
 
         Note: only relevant for coreNeuron
         """
-
         self.compute_n_cycles()
 
         # Without multi-cycle, it's a trivial model build.
         # sub_targets is False
         if self._n_cycles == 1:
-            self._build_model()
+            self._build_single_model()
             return
 
         logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
@@ -1928,7 +1948,7 @@ class Neurodamus(Node):
                             circuit.CircuitTarget = str(tmp_target_spec)
 
             self._cycle_i = cycle_i
-            self._build_model()
+            self._build_single_model()
 
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
@@ -1946,7 +1966,7 @@ class Neurodamus(Node):
 
         - load targets
         - check connections
-        - multicycle build model
+        - build the model
         """
         # Keep the initial RSS for the SHM file transfer calculations
         self._initial_rss = SHMUtil.get_node_rss()
@@ -1958,7 +1978,7 @@ class Neurodamus(Node):
         # parameters
         SimConfig.check_connections_configure(self._target_manager)
 
-        self._multicycle_build_model()
+        self._build_model()
 
     # -
     @timeit(name="finished Run")
