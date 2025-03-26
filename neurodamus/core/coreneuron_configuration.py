@@ -259,10 +259,25 @@ class _CoreNEURONConfig:
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
         coreneuron.sim_config = f"{self.output_root}/{self.sim_config_file}"
-        if save_path:
-            coreneuron.save_path = save_path
+        # if save_path:
+        #     coreneuron.save_path = save_path
         if restore_path:
             coreneuron.restore_path = restore_path
+
+                
+        def inspect(v):
+            print(v, type(v))
+            for i in dir(v):
+                if i.startswith('_'):
+                    continue
+                print(f"{i}: {getattr(v, i)}")
+        inspect(coreneuron)
+        print()
+        print(coreneuron.nrncore_arg())
+
+        assert False
+
+
         # Model is already written to disk by calling pc.nrncore_write()
         coreneuron.skip_write_model_to_disk = True
         coreneuron.model_path = f"{self.datadir}"

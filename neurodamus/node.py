@@ -1760,6 +1760,7 @@ class Neurodamus(Node):
                 3 - Debug messages
             user_opts: Options to Neurodamus overriding the simulation config file
         """
+
         enable_reports = not user_opts.pop("disable_reports", False)
 
         if logging_level is not None:

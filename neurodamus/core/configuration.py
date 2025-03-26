@@ -280,6 +280,7 @@ class _SimConfig:
         cls.modifications = cls._config_parser.parsedModifications or {}
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
+
         cls.dry_run = cls.cli_options.dry_run
         cls.crash_test_mode = cls.cli_options.crash_test
         cls.num_target_ranks = cls.cli_options.num_target_ranks
