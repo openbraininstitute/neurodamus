@@ -1886,7 +1886,7 @@ class Neurodamus(Node):
             # need to assign fake gids to artificial cells in empty threads
             # during module building fake gids start from max_gid + 1
             # currently not support engine plugin where target is loaded later
-            # We can always have only 1 cycle. coreneuron throws an error if a 
+            # We can always have only 1 cycle. coreneuron throws an error if a
             # rank does not have cells during a cycle. There is a way to prevent
             # this for unbalanced multi-populations but if more than one cycle
             # happens on a rank without instantiating cells another error raises.
