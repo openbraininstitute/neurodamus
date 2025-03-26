@@ -1903,7 +1903,7 @@ class Neurodamus(Node):
 
         Note: only relevant for coreNeuron
         """
-        
+
         n_cycles = self.n_cycles()
 
         # Without multi-cycle, it's a trivial model build.
