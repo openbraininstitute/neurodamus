@@ -1330,9 +1330,13 @@ class Node:
             return
 
         # create a fake node with a fake population "zzz" to get an unused gid.
-        # It only works with a single cycles without enough cells, but in
-        #  _instantiate_simulation we made sure we limit the number of cycles
+        # coreneuron fails if this edge case is reached multiple times as we
+        # try to add twice the same gid. pop "zzz" is reserved to be used
+        # exclusively for handling cases where no real GIDs are assigned to
+        # a rank, ensuring that CoreNeuron does not crash due to missing GIDs.
         log_verbose("Creating fake gid for CoreNeuron")
+        assert not PopulationNodes.get("zzz"), "Population 'zzz' is reserved "
+        "for handling empty GID ranks and should not be used elsewhere."
         pop_group = PopulationNodes.get("zzz", create=True)
         fake_gid = pop_group.offset + 1 + MPI.rank
         # Add the fake cell to the base manager
@@ -1349,7 +1353,7 @@ class Node:
             coredata_version = f_mapfile.readline().rstrip().decode("ascii")
 
         mapping_file = Path(corenrn_data, f"{fake_gid}_3.dat")
-        if not mapping_file.isfile():
+        if not mapping_file.is_file():
             mapping_file.write_text(f"{coredata_version}\n0\n")
 
     def _sim_corenrn_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
@@ -1772,7 +1776,16 @@ class Neurodamus(Node):
         self._remove_file(self._success_file)
 
     # -
-    def _build_model(self):
+    def _build_single_model(self):
+        """Construct the model for a single cycle.
+
+        This process includes:
+        - Computing load balance across ranks.
+        - Building the circuit by creating cells and applying configurations.
+        - Establishing synaptic connections.
+        - Enabling replay mechanisms if applicable.
+        - Initializing the simulation if 'AutoInit' is enabled.
+        """
         log_stage("================ CALCULATING LOAD BALANCE ================")
         load_bal = self.compute_load_balance()
         print_mem_usage()
@@ -1851,37 +1864,34 @@ class Neurodamus(Node):
         self._sim_corenrn_write_config(corenrn_restore=True)
         self._sim_ready = True
 
-    # -
-    def _instantiate_simulation(self):
-        # Keep the initial RSS for the SHM file transfer calculations
-        self._initial_rss = SHMUtil.get_node_rss()
-        print_mem_usage()
+    def compute_n_cycles(self):
+        """Determine the number of model-building cycles
 
-        self.load_targets()
-
-        # Check connection block configuration and raise warnings for overriding
-        # parameters
-        SimConfig.check_connections_configure(self._target_manager)
-
-        # Check if user wants to build the model in several steps (only for CoreNeuron)
+        It is based on configuration and system constraints.
+        """
         n_cycles = SimConfig.modelbuilding_steps
-
-        # Without multi-cycle, it's a trivial model build. sub_targets is False
+        # No multi-cycle. Trivial result, this is always possible
         if n_cycles == 1:
-            self._build_model()
-            return
+            return n_cycles
 
         target = self._target_manager.get_target(self._target_spec)
         target_name = self._target_spec.name
-        cell_count = target.gid_count()
-        logging.info("Simulation target: %s, Cell count: %d", target_name, cell_count)
+        max_cell_count = target.max_gid_count_per_population()
+        logging.info(
+            "Simulation target: %s, Max cell count per population: %d", target_name, max_cell_count
+        )
 
-        if SimConfig.use_coreneuron and cell_count / n_cycles < MPI.size and cell_count > 0:
+        if SimConfig.use_coreneuron and max_cell_count / n_cycles < MPI.size and max_cell_count > 0:
             # coreneuron with no. ranks >> no. cells
-            # need to assign fake gids to artificial cells in empty threads during module building
-            # fake gids start from max_gid + 1
+            # need to assign fake gids to artificial cells in empty threads
+            # during module building fake gids start from max_gid + 1
             # currently not support engine plugin where target is loaded later
-            max_num_cycles = int(cell_count / MPI.size) or 1
+            # We can always have only 1 cycle. coreneuron throws an error if a
+            # rank does not have cells during a cycle. There is a way to prevent
+            # this for unbalanced multi-populations but if more than one cycle
+            # happens on a rank without instantiating cells another error raises.
+            # Thus, the number of cycles should be rounded down; on the safe side
+            max_num_cycles = int(max_cell_count / MPI.size) or 1
             if n_cycles > max_num_cycles:
                 logging.warning(
                     "Your simulation is using multi-cycle without enough cells.\n"
@@ -1889,23 +1899,37 @@ class Neurodamus(Node):
                     max_num_cycles,
                 )
                 n_cycles = max_num_cycles
+        return n_cycles
 
-        if n_cycles == 1:
-            self._build_model()
+    def _build_model(self):
+        """Build the model
+
+        Internally it calls _build_single_model, over multiple
+        cycles if necessary.
+
+        Note: only relevant for coreNeuron
+        """
+        self._n_cycles = self.compute_n_cycles()
+
+        # Without multi-cycle, it's a trivial model build.
+        # sub_targets is False
+        if self._n_cycles == 1:
+            self._build_single_model()
             return
 
-        logging.info(f"MULTI-CYCLE RUN: {n_cycles} Cycles")
+        logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
+        target = self._target_manager.get_target(self._target_spec)
         TimerManager.archive(archive_name="Before Cycle Loop")
 
         PopulationNodes.freeze_offsets()
 
         if SimConfig.loadbal_mode != LoadBalanceMode.Memory:
-            sub_targets = target.generate_subtargets(n_cycles)
+            sub_targets = target.generate_subtargets(self._n_cycles)
 
-        for cycle_i in range(n_cycles):
+        for cycle_i in range(self._n_cycles):
             logging.info("")
             logging.info("-" * 60)
-            log_stage(f"==> CYCLE {cycle_i + 1} (OUT OF {n_cycles})")
+            log_stage(f"==> CYCLE {cycle_i + 1} (OUT OF {self._n_cycles})")
             logging.info("-" * 60)
 
             self.clear_model()
@@ -1923,7 +1947,7 @@ class Neurodamus(Node):
                             circuit.CircuitTarget = str(tmp_target_spec)
 
             self._cycle_i = cycle_i
-            self._build_model()
+            self._build_single_model()
 
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
@@ -1933,7 +1957,27 @@ class Neurodamus(Node):
             TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
 
         if MPI.rank == 0:
-            self._merge_filesdat(n_cycles)
+            self._merge_filesdat(self._n_cycles)
+
+    # -
+    def _instantiate_simulation(self):
+        """Initialize the simulation
+
+        - load targets
+        - check connections
+        - build the model
+        """
+        # Keep the initial RSS for the SHM file transfer calculations
+        self._initial_rss = SHMUtil.get_node_rss()
+        print_mem_usage()
+
+        self.load_targets()
+
+        # Check connection block configuration and raise warnings for overriding
+        # parameters
+        SimConfig.check_connections_configure(self._target_manager)
+
+        self._build_model()
 
     # -
     @timeit(name="finished Run")

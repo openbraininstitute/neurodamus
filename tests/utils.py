@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from libsonata import EdgeStorage
+from libsonata import EdgeStorage, SpikeReader
 from scipy.signal import find_peaks
 
 from neurodamus.core import NeurodamusCore as Nd
@@ -243,19 +243,19 @@ def check_synapse(syn, edges, selection, **kwargs):
         assert syn_type == exp_type, f"{syn_type}"
 
     decay_time = syn.tau_d_GABAA if syn_type == "ProbGABAAB_EMS" else syn.tau_d_AMPA
-    assert np.isclose(decay_time,  _get_attr("decay_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(decay_time, _get_attr("decay_time", kwargs, edges, selection, syn_id))
     assert np.isclose(syn.Use, _get_attr("u_syn", kwargs, edges, selection, syn_id))
-    assert np.isclose(syn.Dep,  _get_attr("depression_time", kwargs, edges, selection, syn_id))
-    assert np.isclose(syn.Fac,  _get_attr("facilitation_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Dep, _get_attr("depression_time", kwargs, edges, selection, syn_id))
+    assert np.isclose(syn.Fac, _get_attr("facilitation_time", kwargs, edges, selection, syn_id))
 
     if _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id) >= 0:
-        assert np.isclose(syn.Nrrp ,  _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id))
+        assert np.isclose(syn.Nrrp, _get_attr("n_rrp_vesicles", kwargs, edges, selection, syn_id))
     assert syn.Nrrp > 0
     assert int(syn.Nrrp) == syn.Nrrp
 
     # check NMDA ratio if existing
     if "NMDA_ratio" in kwargs and hasattr(syn, "NMDA_ratio"):
-        assert np.isclose(syn.NMDA_ratio,  kwargs["NMDA_ratio"])
+        assert np.isclose(syn.NMDA_ratio, kwargs["NMDA_ratio"])
 
 
 def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
@@ -317,7 +317,7 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
             voltage_vec = Nd.Vector()
             voltage_vec.record(var_ref, tvec)
             segname = str(section(x))
-            segname = segname[segname.find(".") + 1 :]
+            segname = segname[segname.find(".") + 1:]
             recorder.append((gid, segname, voltage_vec))
     return recorder, tvec
 
@@ -341,3 +341,13 @@ def read_ascii_report(filename):
             gid, seg_name, time, data = line.split()
             data_vec.append((int(gid), seg_name, float(time), float(data)))
     return data_vec
+
+
+def read_sonata_spike_file(spike_file):
+    """ Read a spike file and return the traces """
+    spikes = SpikeReader(spike_file)
+    pop_name = spikes.get_population_names()[0]
+    data = spikes[pop_name].get()
+    timestamps = np.array([x[1] for x in data])
+    spike_gids = np.array([x[0] for x in data])
+    return timestamps, spike_gids
