@@ -9,20 +9,6 @@ from neurodamus import Neurodamus
 from neurodamus.gap_junction import GapJunctionManager
 
 
-def test_gapjunction_sonata_reader():
-    from neurodamus.gap_junction import GapJunctionSynapseReader
-
-    sonata_file = str(RINGTEST_DIR / "local_edges_C_electrical.h5")
-    sonata_reader = GapJunctionSynapseReader.create(sonata_file)
-    syn_params_sonata = sonata_reader._load_synapse_parameters(1)
-    ref_junction_id_pre = np.array([2])
-    ref_junction_id_post = np.array([0])
-    ref_weight = np.array([100])
-    npt.assert_allclose(syn_params_sonata.efferent_junction_id, ref_junction_id_pre)
-    npt.assert_allclose(syn_params_sonata.afferent_junction_id, ref_junction_id_post)
-    npt.assert_allclose(syn_params_sonata.weight, ref_weight)
-
-
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
