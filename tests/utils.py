@@ -341,3 +341,17 @@ def read_ascii_report(filename):
             gid, seg_name, time, data = line.split()
             data_vec.append((int(gid), seg_name, float(time), float(data)))
     return data_vec
+
+def compare_outdat_files(file1, file2, start_time=None, end_time=None):
+    """Compare two event files within an optional time frame."""
+    start = start_time if start_time is not None else -np.inf
+    end = end_time if end_time is not None else np.inf
+    
+    def load_and_filter(file_path):
+        events = np.loadtxt(file_path)
+        return events[(events[:, 0] >= start) & (events[:, 0] <= end)]
+    
+    events1 = load_and_filter(file1)
+    events2 = load_and_filter(file2)
+    
+    return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))

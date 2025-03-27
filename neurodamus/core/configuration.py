@@ -65,7 +65,6 @@ class CliOptions(ConfigT):
     experimental_stims = False
     enable_coord_mapping = False
     save = False
-    save_time = None
     restore = None
     enable_shm = False
     model_stats = False
@@ -223,7 +222,6 @@ class _SimConfig:
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
-    save_time = None
     restore = None
     extracellular_calcium = None
     secondorder = None
@@ -907,11 +905,8 @@ def _output_root(config: _SimConfig, run_conf):
 def _check_save(config: _SimConfig, run_conf):
     cli_args = config.cli_options
     save_path = cli_args.save or run_conf.get("Save")
-    save_time = cli_args.save_time or run_conf.get("SaveTime")
 
     if not save_path:
-        if save_time:
-            logging.warning("SaveTime/--save-time IGNORED. Reason: no 'Save' config entry")
         return
 
     if not config.use_coreneuron:
@@ -919,17 +914,7 @@ def _check_save(config: _SimConfig, run_conf):
 
     # Handle save
     assert isinstance(save_path, str), "Save must be a string path"
-    if save_time:
-        save_time = float(save_time)
-        if save_time > config.tstop:
-            logging.warning(
-                "SaveTime specified beyond Simulation Duration. "
-                "Setting SaveTime to simulation end time."
-            )
-            save_time = None
-
     config.save = os.path.join(config.current_dir, save_path)
-    config.save_time = save_time
 
 
 @SimConfig.validator
@@ -963,7 +948,7 @@ def _coreneuron_params(config: _SimConfig, _run_conf):
                 "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
             )
             os.symlink(os.path.join(config.restore, "..", "coreneuron_input"), coreneuron_datadir)
-        assert os.path.isdir(coreneuron_datadir), "coreneuron_input dir not found"
+        assert os.path.isdir(coreneuron_datadir), f"coreneuron_input `{coreneuron_datadir}` dir not found"
 
     config.coreneuron_datadir = coreneuron_datadir
 

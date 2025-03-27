@@ -1509,33 +1509,30 @@ class Node:
         events = defaultdict(list)  # each key (time) points to a list of handlers
 
         if SimConfig.save:
-            tsave = SimConfig.save_time or SimConfig.tstop  # Consider 0 as the end too!
-            save_f = self._create_save_handler(tsave)
+            tsave = SimConfig.tstop  # Consider 0 as the end too!
+            save_f = self._create_save_handler()
             events[tsave].append(save_f)
 
         event_list = [(t, events[t]) for t in sorted(events)]
         return event_list
 
     # -
-    def _create_save_handler(self, tsave):
+    def _create_save_handler(self):
         @timeit(name="savetime")
         def save_f():
-            logging.info("Saving State... (t=%f)", tsave)
+            logging.info("Saving State... (t=%f)", SimConfig.tstop)
             MPI.barrier()
             self._stim_manager.saveStatePreparation(self._bbss)
             log_verbose("SaveState Initialization Done")
 
-            # If event at the end of the sim we can actually clearModel() before
-            # savestate()
-            if SimConfig.save_time is None:
-                log_verbose("Clearing model prior to final save")
-                self._sonatareport_helper.flush()
+            # If event at the end of the sim we can actually clearModel()
+            # before savestate()
+            log_verbose("Clearing model prior to final save")
+            self._sonatareport_helper.flush()
 
             self.dump_cell_config()
-            # Clear the model after saving state as the pointers are being recorded in
-            # reportinglib
-            if SimConfig.save_time is None:
-                self.clear_model()
+
+            self.clear_model()
             logging.info(" => Save done successfully")
 
         return save_f
@@ -1760,7 +1757,6 @@ class Neurodamus(Node):
                 3 - Debug messages
             user_opts: Options to Neurodamus overriding the simulation config file
         """
-
         enable_reports = not user_opts.pop("disable_reports", False)
 
         if logging_level is not None:
