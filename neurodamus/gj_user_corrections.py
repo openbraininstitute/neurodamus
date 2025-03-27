@@ -164,6 +164,9 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
         raise ConfigurationError(f"Error opening g_pas file {filename}")
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
+    if f"g_pas/{gjc}" not in g_pas_file:
+        logging.warning(f"Data for g_pas/{gjc} not found in {filename}")
+        return 0
     for agid in g_pas_file[f"g_pas/{gjc}/"]:
         gid = int(agid[1:])
         if gid in raw_cell_gids:  # if the node has a part of the cell
@@ -171,10 +174,14 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
             processed_cells += 1
             for sec in cell.all:
                 for seg in sec:
-                    seg.g_pas = g_pas_file[f"g_pas/{gjc}/{agid}"][
-                        str(seg)[str(seg).index(".") + 1 :]
-                    ][correction_iteration_load]
-    g_pas_file.close()
+                    try:
+                        seg.g_pas = g_pas_file[f"g_pas/{gjc}/{agid}"][
+                            str(seg)[str(seg).index(".") + 1 :]
+                        ][correction_iteration_load]
+                    except Exception as e:
+                        raise ConfigurationError(
+                            f"Failed to load data in g_pas file {filename}: {e}"
+                        ) from e
     return processed_cells
 
 
@@ -186,6 +193,9 @@ def _load_holding_ic(node_manager, filename, gjc):
         holding_per_gid = h5py.File(filename, "r")
     except OSError:
         raise ConfigurationError(f"Error opening MEComboInfo file {filename}")
+    if f"holding_per_gid/{gjc}" not in holding_per_gid:
+        logging.warning(f"Data for holding_per_gid/{gjc} not found in {holding_per_gid}")
+        return holding_ic_per_gid
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
     for agid in holding_per_gid["holding_per_gid"][str(gjc)]:
@@ -195,7 +205,12 @@ def _load_holding_ic(node_manager, filename, gjc):
                 0.5, sec=node_manager.getCell(gid + offset).soma[0]
             )
             holding_ic_per_gid[gid].dur = 9e9
-            holding_ic_per_gid[gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]
+            try:
+                holding_ic_per_gid[gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]
+            except Exception as e:
+                raise ConfigurationError(
+                    f"Failed to load data in g_pas file {filename}: {e}"
+                ) from e
     return holding_ic_per_gid
 
 
