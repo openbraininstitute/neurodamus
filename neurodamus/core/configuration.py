@@ -479,7 +479,7 @@ def _check_params(
 def _run_params(_config: _SimConfig, run_conf):
     required_fields = ("Duration",)
     numeric_fields = ("BaseSeed", "StimulusSeed", "Celsius", "V_Init")
-    non_negatives = ("Duration", "Dt", "ModelBuildingSteps", "ForwardSkip")
+    non_negatives = ("Duration", "Dt", "ModelBuildingSteps")
     _check_params("Run default", run_conf, required_fields, numeric_fields, non_negatives)
 
 
