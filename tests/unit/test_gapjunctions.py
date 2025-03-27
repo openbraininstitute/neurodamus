@@ -11,6 +11,7 @@ from neurodamus.gap_junction import GapJunctionManager
 
 def test_gapjunction_sonata_reader():
     from neurodamus.gap_junction import GapJunctionSynapseReader
+
     sonata_file = str(RINGTEST_DIR / "local_edges_C_electrical.h5")
     sonata_reader = GapJunctionSynapseReader.create(sonata_file)
     syn_params_sonata = sonata_reader._load_synapse_parameters(1)
@@ -22,28 +23,32 @@ def test_gapjunction_sonata_reader():
     npt.assert_allclose(syn_params_sonata.weight, ref_weight)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-            "node_set": "ABC",
-            "target_simulator": "NEURON",
-            "inputs": {
-                "Stimulus": {
-                    "module": "pulse",
-                    "input_type": "current_clamp",
-                    "delay": 5,
-                    "duration": 50,
-                    "node_set": "RingC",
-                    "amp_start": 10,
-                    "width": 1,
-                    "frequency": 50,
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
+                "node_set": "ABC",
+                "target_simulator": "NEURON",
+                "inputs": {
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingC",
+                        "amp_start": 10,
+                        "width": 1,
+                        "frequency": 50,
+                    }
                 }
-            },
+            }
         }
-    }
-], indirect=True)
+    ],
+    indirect=True,
+)
 def test_gapjunctions(create_tmp_simulation_config_file):
     nd = Neurodamus(create_tmp_simulation_config_file)
     cell_manager = nd.circuits.get_node_manager("RingC")
@@ -65,6 +70,7 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     # Assert simulation went well
     # Check voltages
     from neuron import h
+
     tgt_cell = cell_manager.get_cell(2001)
     src_cell = cell_manager.get_cell(2003)
     tgtvar_vec = srcvar_vec = h.Vector()
@@ -77,3 +83,53 @@ def test_gapjunctions(create_tmp_simulation_config_file):
 
     npt.assert_allclose(tgtvar_vec.as_numpy(), srcvar_vec.as_numpy)
     check_signal_peaks(tgtvar_vec, [52, 57, 252, 257, 452, 457])
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
+                "node_set": "ABC",
+                "beta_features": {
+                    "gapjunction_target_population": "RingC",
+                    "deterministic_stoch": True,
+                    "procedure_type": "validation_sim",
+                    "gjc": 0.2,
+                    "load_g_pas_file": str(
+                        RINGTEST_DIR / "gapjunctions" / "test_g_pas_passive.hdf5"
+                    ),
+                    "manual_MEComboInfo_file": str(
+                        RINGTEST_DIR / "gapjunctions" / "test_holding_per_gid.hdf5"
+                    ),
+                }
+            }
+        }
+    ],
+    indirect=True,
+)
+def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
+    from neurodamus.core.configuration import SimConfig
+
+    Neurodamus(create_tmp_simulation_config_file)
+
+    assert SimConfig.beta_features.get("gapjunction_target_population") == "RingC"
+    assert SimConfig.beta_features.get("deterministic_stoch")
+    assert SimConfig.beta_features.get("gjc") == 0.2
+    assert SimConfig.beta_features.get("load_g_pas_file")
+    assert SimConfig.beta_features.get("manual_MEComboInfo_file")
+
+    import re
+
+    captured = capsys.readouterr()
+
+    ref = re.compile(
+        r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
+        r".*Set deterministic = 1 for StochKv\n"
+        r".*Set GJc = 0.2 for 3 gap synapses\n"
+        r".*Update g_pas to fit 0.2 -.*for 1 cells\n"
+        r".*Load holding_ic from manual_MEComboInfoFile.*for 1 cells\n[\s\S]*"
+    )
+    assert ref.match(captured.out)

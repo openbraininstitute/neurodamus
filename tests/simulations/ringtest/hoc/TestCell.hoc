@@ -71,6 +71,9 @@ proc biophys(){
     forsec all {
         Ra = 100
         cm = 1
+        insert pas
+        g_pas = 0.001
+        e_pas = -65
     }
     soma {
         insert hh
@@ -80,15 +83,9 @@ proc biophys(){
         el_hh = -54.3
     }   
     forsec basal {
-        insert pas
-        g_pas = 0.001
-        e_pas = -65
         insert hh
     }
     forsec apical {
-        insert pas
-        g_pas = 0.001
-        e_pas = -65
         insert hh
     }
 }
