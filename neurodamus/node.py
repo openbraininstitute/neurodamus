@@ -1899,8 +1899,7 @@ class Neurodamus(Node):
                     max_num_cycles,
                 )
                 n_cycles = max_num_cycles
-        self._n_cycles = n_cycles
-        return None
+        return n_cycles
 
     def _build_model(self):
         """Build the model
@@ -1910,7 +1909,7 @@ class Neurodamus(Node):
 
         Note: only relevant for coreNeuron
         """
-        self.compute_n_cycles()
+        self._n_cycles = self.compute_n_cycles()
 
         # Without multi-cycle, it's a trivial model build.
         # sub_targets is False
