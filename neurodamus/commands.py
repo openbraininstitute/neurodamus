@@ -51,9 +51,10 @@ def neurodamus(args=None):
                                 - Memory: Load balance based on memory usage. By default, it uses
                                     the "allocation_r#_c#.pkl.gz" file to load a pre-computed load
                                     balance
-        --save=<PATH>           Path to create a save point to enable resume.
-        --save-time=<TIME>      The simulation time [ms] to save the state. (Default: At the end)
-        --restore=<PATH>        Restore and resume simulation from a save point on disk
+        --save=<PATH>           Path to create a save point (at tstop) to enable resume. Only
+                                available for CoreNEURON.
+        --restore=<PATH>        Restore and resume simulation from a save point on disk. Only
+                                available for CoreNEURON.
         --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
         --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input [default: ON]
         --model-stats           Show model stats in CoreNEURON simulations [default: False]

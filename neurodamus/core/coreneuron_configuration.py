@@ -261,6 +261,7 @@ class _CoreNEURONConfig:
             coreneuron.save_path = save_path
         if restore_path:
             coreneuron.restore_path = restore_path
+
         # Model is already written to disk by calling pc.nrncore_write()
         coreneuron.skip_write_model_to_disk = True
         coreneuron.model_path = f"{self.datadir}"

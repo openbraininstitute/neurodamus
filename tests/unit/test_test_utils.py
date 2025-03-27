@@ -227,3 +227,39 @@ def test_check_signal_peaks():
 
     x_ramp = x + np.arange(len(x)) * -2
     utils.check_signal_peaks(x_ramp, ref_pos)
+
+def test_compare_outdat_files_identical(tmp_path):
+    content = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3"""
+    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1.write_text(content)
+    file2.write_text(content)
+    
+    assert utils.compare_outdat_files(file1, file2)
+
+def test_compare_outdat_files_different(tmp_path):
+    content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3"""
+    content2 = """5.1 1\n5.1 2\n5.1 4\n25.1 1\n25.1 2\n25.1 3"""
+    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1.write_text(content1)
+    file2.write_text(content2)
+    
+    assert not utils.compare_outdat_files(file1, file2)
+
+def test_compare_outdat_files_time_filtered_match(tmp_path):
+    content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 4"""
+    content2 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n35.0 5"""
+    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1.write_text(content1)
+    file2.write_text(content2)
+    
+    assert utils.compare_outdat_files(file1, file2, start_time=5, end_time=25)
+
+def test_compare_outdat_files_time_filtered_mismatch(tmp_path):
+    content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 4"""
+    content2 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 5"""
+    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1.write_text(content1)
+    file2.write_text(content2)
+    
+    assert not utils.compare_outdat_files(file1, file2, start_time=30, end_time=35)
+
