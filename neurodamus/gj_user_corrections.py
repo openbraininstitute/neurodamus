@@ -7,8 +7,6 @@
 import logging
 import pickle  # noqa: S403
 
-import numpy as np
-
 from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
@@ -85,12 +83,8 @@ def load_user_modifications(gj_manager):
             logging.warning("Unknown GJ remove_channels setting: %s", remove_channels)
             rm_mechanisms = []
         if rm_mechanisms:
-            logging.info("Removing channels type = %s", remove_channels)
+            logging.info("Remove channels type = %s", remove_channels)
             _perform_remove_channels(node_manager, rm_mechanisms)
-
-    if "special_tag" in settings:
-        gjc = 0.1
-        logging.info("****\n**** special_tag ****\n****")
 
     # load g_pas
     if filename := settings.get("load_g_pas_file"):
@@ -106,7 +100,7 @@ def load_user_modifications(gj_manager):
         # Oren's note: If I manually injecting different holding current for each cell,
         # I will inject the current - the holding the emMEComboInfoFile
         if settings.get("procedure_type") == "find_holding_current":
-            raise ConfigurationError("not make any sense")
+            raise ConfigurationError("find_holding_current should not read manual_MEComboInfo_file")
         holding_ic_per_gid = _load_holding_ic(node_manager, filename, gjc=gjc)
         all_ranks_total = int(MPI.allreduce(len(holding_ic_per_gid), MPI.SUM))
         logging.info(
@@ -114,14 +108,12 @@ def load_user_modifications(gj_manager):
         )
 
     seclamp_current_per_gid = {}
-    if settings.get("procedure_type") == "find_holding_current" and isinstance(
-        settings.get("vc_amp"), str
-    ):
-        logging.info("Find_holding_current - voltage file - {settings['vc_amp']}")
-        if not settings.get("disable_holding"):
-            logging.warning("Doing V_clamp and not disable holding!")
-
+    if settings.get("procedure_type") == "find_holding_current":
         seclamp_current_per_gid = _find_holding_current(node_manager, settings.get("vc_amp"))
+        all_ranks_total = int(MPI.allreduce(len(seclamp_current_per_gid), MPI.SUM))
+        logging.info(
+            f"Inject holding voltage from file {settings['vc_amp']} for {all_ranks_total} cells"
+        )
         _save_seclamps(seclamp_current_per_gid, output_dir=SimConfig.output_root)
 
     return holding_ic_per_gid, seclamp_current_per_gid
@@ -164,6 +156,9 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
         raise ConfigurationError(f"Error opening g_pas file {filename}")
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
+    if f"g_pas/{gjc}" not in g_pas_file:
+        logging.warning(f"Data for g_pas/{gjc} not found in {filename}")
+        return 0
     for agid in g_pas_file[f"g_pas/{gjc}/"]:
         gid = int(agid[1:])
         if gid in raw_cell_gids:  # if the node has a part of the cell
@@ -171,10 +166,16 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
             processed_cells += 1
             for sec in cell.all:
                 for seg in sec:
-                    seg.g_pas = g_pas_file[f"g_pas/{gjc}/{agid}"][
-                        str(seg)[str(seg).index(".") + 1 :]
-                    ][correction_iteration_load]
-    g_pas_file.close()
+                    try:
+                        attr_name = str(seg)[str(seg).index(".") + 1 :]
+                        value = g_pas_file[f"g_pas/{gjc}/{agid}"][attr_name][
+                            correction_iteration_load
+                        ]
+                    except Exception as e:
+                        raise ConfigurationError(
+                            f"Failed to load data in g_pas file {filename}: {e}"
+                        ) from e
+                    seg.g_pas = value
     return processed_cells
 
 
@@ -186,6 +187,9 @@ def _load_holding_ic(node_manager, filename, gjc):
         holding_per_gid = h5py.File(filename, "r")
     except OSError:
         raise ConfigurationError(f"Error opening MEComboInfo file {filename}")
+    if f"holding_per_gid/{gjc}" not in holding_per_gid:
+        logging.warning(f"Data for holding_per_gid/{gjc} not found in {holding_per_gid}")
+        return holding_ic_per_gid
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
     for agid in holding_per_gid["holding_per_gid"][str(gjc)]:
@@ -195,7 +199,12 @@ def _load_holding_ic(node_manager, filename, gjc):
                 0.5, sec=node_manager.getCell(gid + offset).soma[0]
             )
             holding_ic_per_gid[gid].dur = 9e9
-            holding_ic_per_gid[gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]
+            try:
+                holding_ic_per_gid[gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]
+            except Exception as e:
+                raise ConfigurationError(
+                    f"Failed to load data in g_pas file {filename}: {e}"
+                ) from e
     return holding_ic_per_gid
 
 
@@ -206,6 +215,9 @@ def _find_holding_current(node_manager, filename):
         v_per_gid = h5py.File(filename, "r")
     except OSError:
         raise ConfigurationError(f"Error opening voltage file {filename}")
+
+    logging.info("Inject V_Clamp without disabling holding current!")
+
     seclamp_per_gid = {}
     seclamp_current_per_gid = {}
     raw_cell_gids = node_manager.local_nodes.raw_gids()
@@ -227,5 +239,5 @@ def _save_seclamps(seclamp_current_per_gid, output_dir):
     logging.info("Saving SEClamp Data")
     seclamp_current_per_gid_a = {}
     for gid in seclamp_current_per_gid:
-        seclamp_current_per_gid_a[gid] = np.array(seclamp_current_per_gid[gid])
+        seclamp_current_per_gid_a[gid] = seclamp_current_per_gid[gid].as_numpy()
     pickle.dump(seclamp_current_per_gid_a, open(f"{output_dir}/data_for_host_{MPI.rank}.p", "wb"))
