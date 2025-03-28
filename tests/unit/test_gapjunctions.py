@@ -97,15 +97,24 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
+    """ test for gap junction calibration, the steps tested are similar to the thalamus publication
+    """
     from neurodamus.core.configuration import SimConfig
 
     Neurodamus(create_tmp_simulation_config_file)
 
-    assert SimConfig.beta_features.get("gapjunction_target_population") == "RingC"
-    assert SimConfig.beta_features.get("deterministic_stoch")
-    assert SimConfig.beta_features.get("gjc") == 0.2
-    assert SimConfig.beta_features.get("load_g_pas_file")
-    assert SimConfig.beta_features.get("manual_MEComboInfo_file")
+    assert SimConfig.beta_features == {
+        "gapjunction_target_population": "RingC",
+        "deterministic_stoch": True,
+        "procedure_type": "validation_sim",
+        "gjc": 0.2,
+        "load_g_pas_file": str(
+            RINGTEST_DIR / "gapjunctions" / "test_g_pas_passive.hdf5"
+            ),
+        "manual_MEComboInfo_file": str(
+            RINGTEST_DIR / "gapjunctions" / "test_holding_per_gid.hdf5"
+            ),
+        }
 
     import re
 
@@ -117,5 +126,59 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
         r".*Set GJc = 0.2 for 3 gap synapses\n"
         r".*Update g_pas to fit 0.2 -.*for 1 cells\n"
         r".*Load holding_ic from manual_MEComboInfoFile.*for 1 cells\n[\s\S]*"
+    )
+    assert ref.match(captured.out)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
+                "node_set": "ABC",
+                "beta_features": {
+                    "gapjunction_target_population": "RingC",
+                    "remove_channels": "all",
+                    "procedure_type": "find_holding_current",
+                    "gjc": 0.2,
+                    "vc_amp": str(
+                        RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"
+                    )
+                }
+            }
+        }
+    ],
+    indirect=True,
+)
+def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_config_file):
+    """ test the other features for gap junction calibration
+    """
+    from neurodamus.core.configuration import SimConfig
+
+    Neurodamus(create_tmp_simulation_config_file)
+
+    assert SimConfig.beta_features == {
+        "gapjunction_target_population": "RingC",
+        "remove_channels": "all",
+        "procedure_type": "find_holding_current",
+        "gjc": 0.2,
+        "vc_amp": str(
+            RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"
+            )
+        }
+
+    import re
+
+    captured = capsys.readouterr()
+
+    ref = re.compile(
+        r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
+        r".*Set GJc = 0.2 for 3 gap synapses\n"
+        r".*Remove channels type = all\n"
+        r".*Inject V_Clamp without disabling holding current!\n"
+        r".*Inject holding voltage from file.*for 1 cells\n"
+        r".*Saving SEClamp Data\n[\s\S]*"
     )
     assert ref.match(captured.out)
