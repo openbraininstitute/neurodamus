@@ -1520,8 +1520,6 @@ class Node:
             log_verbose("Clearing model prior to final save")
             self._sonatareport_helper.flush()
 
-            self.dump_cell_config()
-
             self.clear_model()
             logging.info(" => Save done successfully")
 
@@ -1650,6 +1648,7 @@ class Node:
             self._sonatareport_helper.write_spikes(spikevec, idvec, output_root, *extra_args)
 
     def dump_cell_config(self):
+        """Dump the _pr_cell_gid cell state if not already done"""
         if not self._pr_cell_gid:
             return
         if self._cell_state_dump_t == Nd.t:  # avoid duplicating output

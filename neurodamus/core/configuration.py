@@ -948,7 +948,9 @@ def _coreneuron_params(config: _SimConfig, _run_conf):
                 "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
             )
             os.symlink(os.path.join(config.restore, "..", "coreneuron_input"), coreneuron_datadir)
-        assert os.path.isdir(coreneuron_datadir), f"coreneuron_input `{coreneuron_datadir}` dir not found"
+        assert os.path.isdir(coreneuron_datadir), (
+            f"coreneuron_input `{coreneuron_datadir}` dir not found"
+        )
 
     config.coreneuron_datadir = coreneuron_datadir
 

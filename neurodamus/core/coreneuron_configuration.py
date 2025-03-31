@@ -200,6 +200,7 @@ class _CoreNEURONConfig:
         simconf = Path(self.output_root) / self.sim_config_file
         logging.info(f"Writing sim config file: {simconf}")
         simconf.parent.mkdir(parents=True, exist_ok=True)
+
         with simconf.open("w") as fp:
             fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
