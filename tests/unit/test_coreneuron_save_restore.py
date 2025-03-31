@@ -85,6 +85,8 @@ def test_full_run(create_tmp_simulation_config_file):
     """
     nrn_t0, nrn_t2 = f"{0:.6f}", f"{t2:.6f}"
 
+    import difflib
+
     # check dump state
     for i in [0, 1, 2, 1000, 1001]:
         command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}"]
@@ -98,13 +100,25 @@ def test_full_run(create_tmp_simulation_config_file):
             filename,
             shallow=False)
         filename = f"{i+1}_cpu_t{nrn_t2}.corenrn"
-        assert filecmp.cmp(
-            filename,
-            RINGTEST /
-            "reference_save_restore" /
-            nrn_t2 /
-            filename,
-            shallow=False)
+
+        ref_file = RINGTEST / "reference_save_restore" / nrn_t2 / filename
+        if not filecmp.cmp(filename, ref_file, shallow=False):
+            with open(filename, 'r') as f1, open(ref_file, 'r') as f2:
+                diff = difflib.unified_diff(
+                    f1.readlines(),
+                    f2.readlines(),
+                    fromfile=str(filename),
+                    tofile=str(ref_file)
+                )
+            print("".join(diff))
+            assert False, f"Files {filename} and {ref_file} differ!"
+        # assert filecmp.cmp(
+        #     filename,
+        #     RINGTEST /
+        #     "reference_save_restore" /
+        #     nrn_t2 /
+        #     filename,
+        #     shallow=False)
 
     save_dir = Path(f"output/save_{nrn_t2}")
     command = ["neurodamus", "simulation_config.json", f"--save={save_dir}"]
