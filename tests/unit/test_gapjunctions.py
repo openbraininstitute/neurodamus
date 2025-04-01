@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -6,6 +8,7 @@ from tests.utils import check_signal_peaks
 
 from .conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
+from neurodamus.connection_manager import SynapseRuleManager
 from neurodamus.gap_junction import GapJunctionManager
 
 
@@ -41,33 +44,32 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     gids = cell_manager.get_final_gids()
     npt.assert_allclose(gids, np.array([2001, 2002, 2003]))
 
+    # chemical connections RingC -> RingC
+    chemical_manager = nd.circuits.get_edge_manager("RingC", "RingC", SynapseRuleManager)
+    assert len(list(chemical_manager.all_connections())) == 3
+
+    # gap junction connections
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
+    assert len(list(gj_manager.all_connections())) == 2
     # Ensure we got our GJ instantiated and bi-directional
     gjs_1 = list(gj_manager.get_connections(2001))
     assert len(gjs_1) == 1
     assert gjs_1[0].sgid == 2003
-    gjs_2 = list(gj_manager.get_connections(2002))
+    gjs_2 = list(gj_manager.get_connections(2003))
     assert len(gjs_2) == 1
     assert gjs_2[0].sgid == 2001
-    gjs_3 = list(gj_manager.get_connections(2003))
-    assert len(gjs_3) == 1
-    assert gjs_3[0].sgid == 2002
 
     # Assert simulation went well
     # Check voltages
     from neuron import h
 
     tgt_cell = cell_manager.get_cell(2001)
-    src_cell = cell_manager.get_cell(2003)
-    tgtvar_vec = srcvar_vec = h.Vector()
+    tgtvar_vec = h.Vector()
     tgtvar_vec.record(tgt_cell._cellref.soma[0](0.5)._ref_v)
-    srcvar_vec.record(src_cell._cellref.soma[0](0.5)._ref_v)
 
     h.finitialize()  # reinit for the recordings to be registered
-
     nd.run()
 
-    npt.assert_allclose(tgtvar_vec.as_numpy(), srcvar_vec.as_numpy)
     check_signal_peaks(tgtvar_vec, [52, 57, 252, 257, 452, 457])
 
 
@@ -123,7 +125,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     ref = re.compile(
         r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
         r".*Set deterministic = 1 for StochKv\n"
-        r".*Set GJc = 0.2 for 3 gap synapses\n"
+        r".*Set GJc = 0.2 for 2 gap synapses\n"
         r".*Update g_pas to fit 0.2 -.*for 1 cells\n"
         r".*Load holding_ic from manual_MEComboInfoFile.*for 1 cells\n[\s\S]*"
     )
@@ -175,10 +177,13 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
 
     ref = re.compile(
         r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
-        r".*Set GJc = 0.2 for 3 gap synapses\n"
+        r".*Set GJc = 0.2 for 2 gap synapses\n"
         r".*Remove channels type = all\n"
         r".*Inject V_Clamp without disabling holding current!\n"
         r".*Inject holding voltage from file.*for 1 cells\n"
         r".*Saving SEClamp Data\n[\s\S]*"
     )
     assert ref.match(captured.out)
+
+    saved_seclamp = Path(SimConfig.output_root) / "data_for_host_0.p"
+    assert saved_seclamp.exists()

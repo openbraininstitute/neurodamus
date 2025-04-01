@@ -89,9 +89,7 @@ class GapJunctionManager(ConnectionManagerBase):
             logging.info("Load user modification on %s", self)
             self.holding_ic_per_gid, self.seclamp_current_per_gid = load_user_modifications(self)
 
-    def _finalize_conns(self, final_tgid, conns, *_, **_kw):
-        metype = self._cell_manager.get_cell(final_tgid)
-
+    def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
         for conn in reversed(conns):
-            conn.finalize_gap_junctions(metype)
+            conn.finalize_gap_junctions()
         return len(conns)

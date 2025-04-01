@@ -559,7 +559,7 @@ class Connection(ConnectionBase):
         return syn_helper.synapse
 
     # -
-    def finalize_gap_junctions(self, cell):
+    def finalize_gap_junctions(self):
         """When all parameters are set, create synapses and netcons
 
         Args:
@@ -597,7 +597,6 @@ class Connection(ConnectionBase):
                 self._pc.source_var(sec(x)._ref_v, active_params.afferent_junction_id)
             gap_junction.g = active_params.weight
             self._synapses.append(gap_junction)
-            self._configure_cell(cell)
 
     # ------------------------------------------------------------------
     # Parameters Live update / Configuration
@@ -640,13 +639,6 @@ class Connection(ConnectionBase):
         res = self.ConnUtils.executeConfigure(synapses, configuration)
         if res > 0:
             raise ConfigurationError(f"Errors found in configuration: {configuration}")
-
-    def _configure_cell(self, cell):
-        """Internal helper to apply all the configuration statements on
-        a given cell synapses
-        """
-        for config in self._configurations:
-            self._configure(cell.CellRef.synlist, config)
 
     def _configure_synapses(self):
         """Internal helper to apply all the configuration statements to

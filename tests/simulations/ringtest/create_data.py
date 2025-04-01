@@ -105,8 +105,8 @@ def make_edges(filename, edges, wanted_attributes):
     libsonata.EdgePopulation.write_indices(
         filename,
         name,
-        source_node_count=count,
-        target_node_count=count,
+        source_node_count=max(src_ids) + 1,
+        target_node_count=max(tgt_ids) + 1,
     )
 
 
@@ -140,6 +140,7 @@ def make_ringtest_nodes():
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
     make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
+
 
 def make_ringtest_edges():
     edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
@@ -196,17 +197,36 @@ def make_ringtest_edges():
     }
     make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    edges = Edges("RingC", "RingC", "electrical", [(0, 1),(1,2), (2,0)])
+    edges = Edges("RingC", "RingC", "electrical", [(0, 2), (2, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
         "conductance": 100.0,
         "afferent_section_id": 1,
         "afferent_segment_id": 1,
         "afferent_segment_offset": 0,
-        "efferent_junction_id":[0, 1, 2],
-        "afferent_junction_id":[1, 2, 0]
+        "efferent_junction_id": [0, 2],
+        "afferent_junction_id": [2, 0]
     }
     make_edges(filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
+
+    edges = Edges("RingC", "RingC", "chemical", [(0, 1), (1, 2), (2, 0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": it.count(31.0),
+        "decay_time": it.count(32.0),
+        "delay": it.count(33.0),
+        "depression_time": it.count(34.0),
+        "facilitation_time": it.count(35.0),
+        "u_syn": it.count(36.0),
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.75,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": [60, 104, 77],
+    }
+    make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
+
 
 make_ringtest_nodes()
 make_ringtest_edges()

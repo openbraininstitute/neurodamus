@@ -68,6 +68,14 @@
                 }
             },
             {
+                "edges_file": "local_edges_C.h5",
+                "populations": {
+                    "RingC__RingC__chemical": {
+                        "type": "chemical"
+                    }
+                }
+            },
+            {
                 "edges_file": "local_edges_C_electrical.h5",
                 "populations": {
                     "RingC__RingC__electrical": {
