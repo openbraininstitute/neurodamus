@@ -578,8 +578,8 @@ class Connection(ConnectionBase):
                 log_all(
                     logging.DEBUG,
                     (
-                        "connect %f to %f [efferent_junction_id: %f + %f], "
-                        "[afferent_junction_id: %f + %f] (weight: %f)"
+                        "connect %f to %f [efferent_junction_id: %f], "
+                        "[afferent_junction_id: %f] (weight: %f)"
                     ),
                     self.sgid,
                     self.tgid,
