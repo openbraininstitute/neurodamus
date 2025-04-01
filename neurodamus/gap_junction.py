@@ -72,7 +72,7 @@ class GapJunctionManager(ConnectionManagerBase):
             cell_manager.circuit_target, src_cell_manager.population_name
         )
         self.holding_ic_per_gid = None
-        self.seclamp_current_per_gid = None
+        self.seclamp_per_gid = None
 
     def create_connections(self, *_, **_kw):
         """Gap Junctions dont use connection blocks, connect all belonging to target"""
@@ -87,7 +87,7 @@ class GapJunctionManager(ConnectionManagerBase):
             gj_target_pop := SimConfig.beta_features.get("gapjunction_target_population")
         ) and self.cell_manager.population_name == gj_target_pop:
             logging.info("Load user modification on %s", self)
-            self.holding_ic_per_gid, self.seclamp_current_per_gid = load_user_modifications(self)
+            self.holding_ic_per_gid, self.seclamp_per_gid = load_user_modifications(self)
 
     def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
         for conn in reversed(conns):

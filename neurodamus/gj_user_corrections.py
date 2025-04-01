@@ -107,16 +107,18 @@ def load_user_modifications(gj_manager):
             f"Load holding_ic from manual_MEComboInfoFile {filename} for {all_ranks_total} cells"
         )
 
-    seclamp_current_per_gid = {}
+    seclamp_per_gid = {}
     if settings.get("procedure_type") == "find_holding_current":
-        seclamp_current_per_gid = _find_holding_current(node_manager, settings.get("vc_amp"))
+        seclamp_per_gid, seclamp_current_per_gid = _find_holding_current(
+            node_manager, settings.get("vc_amp")
+        )
         all_ranks_total = int(MPI.allreduce(len(seclamp_current_per_gid), MPI.SUM))
         logging.info(
             f"Inject holding voltage from file {settings['vc_amp']} for {all_ranks_total} cells"
         )
         _save_seclamps(seclamp_current_per_gid, output_dir=SimConfig.output_root)
 
-    return holding_ic_per_gid, seclamp_current_per_gid
+    return holding_ic_per_gid, seclamp_per_gid
 
 
 def _update_conductance(gjc, gj_manager):
@@ -195,12 +197,12 @@ def _load_holding_ic(node_manager, filename, gjc):
     for agid in holding_per_gid["holding_per_gid"][str(gjc)]:
         gid = int(agid[1:])
         if gid in raw_cell_gids:
-            holding_ic_per_gid[gid] = Nd.h.IClamp(
+            holding_ic_per_gid[gid + offset] = Nd.h.IClamp(
                 0.5, sec=node_manager.getCell(gid + offset).soma[0]
             )
-            holding_ic_per_gid[gid].dur = 9e9
+            holding_ic_per_gid[gid + offset].dur = 9e9
             try:
-                holding_ic_per_gid[gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]
+                holding_ic_per_gid[gid + offset].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]  # noqa: E501 #fmt: skip
             except Exception as e:
                 raise ConfigurationError(
                     f"Failed to load data in g_pas file {filename}: {e}"
@@ -225,14 +227,15 @@ def _find_holding_current(node_manager, filename):
     for agid in v_per_gid["v_per_gid"]:
         gid = int(agid[1:])
         if gid in raw_cell_gids:
-            seclamp_per_gid[gid] = Nd.h.SEClamp(0.5, sec=node_manager.getCell(gid + offset).soma[0])
-            seclamp_per_gid[gid].dur1 = 9e9
-            seclamp_per_gid[gid].amp1 = float(v_per_gid["v_per_gid"][agid][()])
-            seclamp_per_gid[gid].rs = 0.0000001
-            seclamp_current_per_gid[gid] = Nd.h.Vector()
-            seclamp_current_per_gid[gid].record(seclamp_per_gid[gid]._ref_i)
-    v_per_gid.close()
-    return seclamp_current_per_gid
+            seclamp_per_gid[gid + offset] = Nd.h.SEClamp(
+                0.5, sec=node_manager.getCell(gid + offset).soma[0]
+            )
+            seclamp_per_gid[gid + offset].dur1 = 9e9
+            seclamp_per_gid[gid + offset].amp1 = float(v_per_gid["v_per_gid"][agid][()])
+            seclamp_per_gid[gid + offset].rs = 0.0000001
+            seclamp_current_per_gid[gid + offset] = Nd.h.Vector()
+            seclamp_current_per_gid[gid + offset].record(seclamp_per_gid[gid + offset]._ref_i)
+    return seclamp_per_gid, seclamp_current_per_gid
 
 
 def _save_seclamps(seclamp_current_per_gid, output_dir):

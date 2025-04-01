@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +10,7 @@ from tests.utils import check_signal_peaks
 from .conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
 from neurodamus.connection_manager import SynapseRuleManager
+from neurodamus.core.configuration import SimConfig
 from neurodamus.gap_junction import GapJunctionManager
 
 
@@ -41,6 +43,8 @@ from neurodamus.gap_junction import GapJunctionManager
 def test_gapjunctions(create_tmp_simulation_config_file):
     nd = Neurodamus(create_tmp_simulation_config_file)
     cell_manager = nd.circuits.get_node_manager("RingC")
+    offset = cell_manager.local_nodes.offset
+    assert offset == 2000
     gids = cell_manager.get_final_gids()
     npt.assert_allclose(gids, np.array([2001, 2002, 2003]))
 
@@ -52,24 +56,27 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
     assert len(list(gj_manager.all_connections())) == 2
     # Ensure we got our GJ instantiated and bi-directional
-    gjs_1 = list(gj_manager.get_connections(2001))
+    gjs_1 = list(gj_manager.get_connections(post_gids=2001, pre_gids=2003))
     assert len(gjs_1) == 1
-    assert gjs_1[0].sgid == 2003
-    gjs_2 = list(gj_manager.get_connections(2003))
+    gjs_2 = list(gj_manager.get_connections(post_gids=2003, pre_gids=2001))
     assert len(gjs_2) == 1
-    assert gjs_2[0].sgid == 2001
+
+    # check gap junction parameters values without user correction
+    tgt_cellref = cell_manager.getCell(2001)
+    connection = next(gj_manager.get_connections(post_gids=[2003], pre_gids=[2001]))
+    assert connection.synapses[0].g == 100
+    assert tgt_cellref.soma[0](0.5).pas.g == 0
+    assert gj_manager.holding_ic_per_gid is None
+    assert gj_manager.seclamp_per_gid is None
 
     # Assert simulation went well
     # Check voltages
     from neuron import h
 
-    tgt_cell = cell_manager.get_cell(2001)
     tgtvar_vec = h.Vector()
-    tgtvar_vec.record(tgt_cell._cellref.soma[0](0.5)._ref_v)
-
+    tgtvar_vec.record(tgt_cellref.soma[0](0.5)._ref_v)
     h.finitialize()  # reinit for the recordings to be registered
     nd.run()
-
     check_signal_peaks(tgtvar_vec, [52, 57, 252, 257, 452, 457])
 
 
@@ -91,7 +98,7 @@ def test_gapjunctions(create_tmp_simulation_config_file):
                     ),
                     "manual_MEComboInfo_file": str(
                         RINGTEST_DIR / "gapjunctions" / "test_holding_per_gid.hdf5"
-                    ),
+                    )
                 }
             }
         }
@@ -99,29 +106,22 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
-    """ test for gap junction calibration, the steps tested are similar to the thalamus publication
+    """test for gap junction calibration, the steps tested are similar to the thalamus publication
     """
-    from neurodamus.core.configuration import SimConfig
 
-    Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file)
 
     assert SimConfig.beta_features == {
         "gapjunction_target_population": "RingC",
         "deterministic_stoch": True,
         "procedure_type": "validation_sim",
         "gjc": 0.2,
-        "load_g_pas_file": str(
-            RINGTEST_DIR / "gapjunctions" / "test_g_pas_passive.hdf5"
-            ),
-        "manual_MEComboInfo_file": str(
-            RINGTEST_DIR / "gapjunctions" / "test_holding_per_gid.hdf5"
-            ),
-        }
+        "load_g_pas_file": str(RINGTEST_DIR / "gapjunctions" / "test_g_pas_passive.hdf5"),
+        "manual_MEComboInfo_file": str(RINGTEST_DIR / "gapjunctions" / "test_holding_per_gid.hdf5"),
+    }
 
-    import re
-
+    # check log
     captured = capsys.readouterr()
-
     ref = re.compile(
         r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
         r".*Set deterministic = 1 for StochKv\n"
@@ -130,6 +130,23 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
         r".*Load holding_ic from manual_MEComboInfoFile.*for 1 cells\n[\s\S]*"
     )
     assert ref.match(captured.out)
+
+    # check gap junction parameters after user correction
+    cell_manager = nd.circuits.get_node_manager("RingC")
+    tgt_cellref = cell_manager.get_cellref(2001)
+    gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
+    connection = next(gj_manager.get_connections(post_gids=[2003], pre_gids=[2001]))
+    assert connection.synapses[0].g == 0.2
+    assert tgt_cellref.soma[0](0.5).pas.g == 0.033
+    assert len(gj_manager.holding_ic_per_gid) == 1
+    iclamp = gj_manager.holding_ic_per_gid[2001]
+    assert "IClamp" in iclamp.hname()
+    npt.assert_allclose(iclamp.dur, 9e9)
+    npt.assert_allclose(iclamp.amp, -0.00108486, rtol=1e-5)
+    assert gj_manager.seclamp_per_gid == {}
+
+    # Assert simulation went well
+    nd.run()
 
 
 @pytest.mark.parametrize(
@@ -145,9 +162,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
                     "remove_channels": "all",
                     "procedure_type": "find_holding_current",
                     "gjc": 0.2,
-                    "vc_amp": str(
-                        RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"
-                    )
+                    "vc_amp": str(RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"),
                 }
             }
         }
@@ -155,26 +170,20 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_config_file):
-    """ test the other features for gap junction calibration
-    """
-    from neurodamus.core.configuration import SimConfig
+    """test the other features for gap junction calibration"""
 
-    Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file)
 
     assert SimConfig.beta_features == {
         "gapjunction_target_population": "RingC",
         "remove_channels": "all",
         "procedure_type": "find_holding_current",
         "gjc": 0.2,
-        "vc_amp": str(
-            RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"
-            )
-        }
+        "vc_amp": str(RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"),
+    }
 
-    import re
-
+    # check log
     captured = capsys.readouterr()
-
     ref = re.compile(
         r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
         r".*Set GJc = 0.2 for 2 gap synapses\n"
@@ -185,5 +194,18 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
     )
     assert ref.match(captured.out)
 
+    # check holding current
+    gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
+    assert gj_manager.holding_ic_per_gid == {}
+    assert len(gj_manager.seclamp_per_gid) == 1
+    assert "SEClamp" in gj_manager.seclamp_per_gid[2001].hname()
+    seclamp = gj_manager.seclamp_per_gid[2001]
+    npt.assert_allclose(seclamp.dur1, 9e9)
+    npt.assert_allclose(seclamp.amp1, 0.1)
+    npt.assert_allclose(seclamp.rs, 0.0000001)
+    # check saved seclamp file
     saved_seclamp = Path(SimConfig.output_root) / "data_for_host_0.p"
     assert saved_seclamp.exists()
+
+    # Assert simulation went well
+    nd.run()
