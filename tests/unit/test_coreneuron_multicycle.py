@@ -53,7 +53,7 @@ def test_coreneuron_multicycle(create_tmp_simulation_config_file, modelbuilding_
     nd = Neurodamus(create_tmp_simulation_config_file, modelbuilding_steps=modelbuilding_steps)
 
     # check that there is 1 file per cycle + a merged file in the directory
-    coreneuron_data = Path(SimConfig.coreneuron_datadir)
+    coreneuron_data = Path(SimConfig.coreneuron_input_save_dir)
     check_directory(coreneuron_data)
     assert (coreneuron_data / "files.dat").exists()
 

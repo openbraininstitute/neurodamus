@@ -1,10 +1,12 @@
 import logging
 import os
 from pathlib import Path
+import subprocess
+import shutil
 
 from . import NeurodamusCore as Nd
 from ._utils import run_only_rank0
-from .configuration import ConfigurationError
+from .configuration import ConfigurationError, SimConfig
 from neurodamus.report import get_section_index
 
 
@@ -80,13 +82,76 @@ class _CoreNEURONConfig:
     Note: this creates the `CoreConfig` singleton
     """
 
-    sim_config_file = "sim.conf"
-    report_config_file = "report.conf"
-    restore_path = None
-    output_root = "output"
-    datadir = f"{output_root}/coreneuron_input"
+    _datadir = None
     default_cell_permute = 0
     artificial_cell_object = None
+
+    @property 
+    def sim_config_file(self):
+        """ Get sim config file path to be saved """
+        return str(Path(self.save_path) / "sim.conf")
+    
+    @property
+    def report_config_file_save(self):
+        """ Get report config file path to be saved 
+        """
+        return str(Path(self.save_path) / "report.conf")
+    
+    @property
+    def report_config_file_restore(self):
+        """ Get report config file path to be restored
+         
+        We need this file and path for restoring because we cannot recreate it
+        from scratch. Only usable when restore exists and is a dir
+        """
+        return str(Path(SimConfig.restore) / "report.conf")
+    
+    @property 
+    def output_root(self):
+        """ Get output root from SimConfig """
+        return SimConfig.output_root
+    
+    @property
+    def datadir(self):
+        """ Get datadir from SimConfig if not set explicitly """
+        return self._datadir or SimConfig.coreneuron_input_restore_dir
+    
+    @property
+    def save_path(self):
+        """ Save root folder
+        """
+        return str(Path(SimConfig.save or SimConfig.output_root))
+    
+    def copy_report_file(self):
+        """ Copy report file from restore to save """
+        if self.report_config_file_restore == self.report_config_file_save:
+            return
+        shutil.copy(self.report_config_file_restore, self.report_config_file_save)
+    
+    @property
+    def restore_path(self):
+        """ restore root folder
+        
+        Differently from save, this must always be specified
+        """
+        return SimConfig.restore
+    
+    @datadir.setter
+    def datadir(self, value):
+        """ Set the datadir explicitly """
+        self._datadir = value
+
+    @run_only_rank0
+    def cleanup(self):
+        """ Clean coreneuron save files after running """
+
+        data_folder = Path(self.datadir)
+        logging.info("Deleting intermediate data in %s", data_folder)
+
+        if data_folder.exists() and data_folder.is_dir():
+            subprocess.call(["/bin/rm", "-rf", data_folder])
+        Path(self.sim_config_file).unlink()
+        Path(self.report_config_file_save).unlink()
 
     # Instantiates the artificial cell object for CoreNEURON
     # This needs to happen only when CoreNEURON simulation is enabled
@@ -95,18 +160,7 @@ class _CoreNEURONConfig:
 
     @run_only_rank0
     def update_tstop(self, report_name, nodeset_name, tstop):
-        # Try current directory first
-        report_conf = Path(self.output_root) / self.report_config_file
-        if not report_conf.exists():
-            # Try one level up from restore_path
-            parent_report_conf = Path(self.restore_path) / ".." / self.report_config_file
-            if parent_report_conf.exists():
-                # Copy the file to current location
-                report_conf.write_bytes(parent_report_conf.read_bytes())
-            else:
-                raise ConfigurationError(
-                    f"Report config file not found in {report_conf} or {parent_report_conf}"
-                )
+        report_conf = Path(self.report_config_file_restore)
 
         # Read all content
         with report_conf.open("rb") as f:
@@ -133,7 +187,8 @@ class _CoreNEURONConfig:
                 "not matching any report in the 'save' execution"
             )
 
-        # Write back
+        # write in the save position now
+        report_conf = Path(self.report_config_file_save)
         with report_conf.open("wb") as f:
             f.writelines(lines)
 
@@ -157,7 +212,7 @@ class _CoreNEURONConfig:
 
         num_gids = len(gids)
         logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
-        report_conf = Path(self.output_root) / self.report_config_file
+        report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
         with report_conf.open("ab") as fp:
             # Write the formatted string to the file
@@ -197,7 +252,7 @@ class _CoreNEURONConfig:
         model_stats=False,
         enable_reports=True,
     ):
-        simconf = Path(self.output_root) / self.sim_config_file
+        simconf = Path(self.sim_config_file)
         logging.info(f"Writing sim config file: {simconf}")
         simconf.parent.mkdir(parents=True, exist_ok=True)
 
@@ -217,12 +272,12 @@ class _CoreNEURONConfig:
             if model_stats:
                 fp.write("'model-stats'\n")
             if enable_reports:
-                fp.write(f"report-conf='{self.output_root}/{self.report_config_file}'\n")
+                fp.write(f"report-conf='{self.report_config_file_save}'\n")
             fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open(mode) as fp:
             fp.write(f"{count}\n")
@@ -233,7 +288,7 @@ class _CoreNEURONConfig:
 
     @run_only_rank0
     def write_spike_population(self, population_name, population_offset=None):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open("a") as fp:
             fp.write(population_name)
@@ -243,13 +298,15 @@ class _CoreNEURONConfig:
 
     @run_only_rank0
     def write_spike_filename(self, filename):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open("a") as fp:
             fp.write(filename)
             fp.write("\n")
 
-    def psolve_core(self, save_path=None, restore_path=None, coreneuron_direct_mode=False):
+    def psolve_core(self, coreneuron_direct_mode=False):
+        save_path, restore_path = self.save_path, self.restore_path
+
         from neuron import coreneuron
 
         from . import NeurodamusCore as Nd
@@ -257,7 +314,7 @@ class _CoreNEURONConfig:
         Nd.cvode.cache_efficient(1)
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
-        coreneuron.sim_config = f"{self.output_root}/{self.sim_config_file}"
+        coreneuron.sim_config = f"{self.sim_config_file}"
         if save_path:
             coreneuron.save_path = save_path
         if restore_path:

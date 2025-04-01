@@ -204,7 +204,7 @@ class CircuitManager:
         format population name::gid offset::population alias
         The virtual population offset is also written for synapse replay in restore.
         """
-        with open(self._pop_offset_file(create=True), "w") as f:
+        with open(self._pop_offset_file_save(create=True), "w") as f:
             pop_offsets, alias_pop = self.get_population_offsets()
             virtual_pop_offsets = self.get_virtual_population_offsets()
             f.writelines(
@@ -239,15 +239,7 @@ class CircuitManager:
         """
         pop_offsets = {}
         alias_pop = {}
-        pop_offset_file = cls._pop_offset_file()
-        if SimConfig.restore_coreneuron:
-            if MPI.rank == 0 and not os.path.exists(pop_offset_file):
-                # RESTORE: link to populations_offset.dat besides save directory
-                os.symlink(
-                    os.path.join(SimConfig.restore, "../populations_offset.dat"),
-                    pop_offset_file,
-                )
-            MPI.barrier()
+        pop_offset_file = cls._pop_offset_file_restore()
         with open(pop_offset_file) as f:
             offsets = [line.strip().split("::") for line in f]
             for entry in offsets:
@@ -258,10 +250,21 @@ class CircuitManager:
         return pop_offsets, alias_pop
 
     @classmethod
-    def _pop_offset_file(self, create=False):
-        outdir = ospath.join(SimConfig.output_root)
-        create and os.makedirs(outdir, exist_ok=True)
-        return ospath.join(outdir, "populations_offset.dat")
+    def _pop_offset_file_save(cls, create=False):
+        """ Get populations_offset.dat file path to be saved
+
+        Create the folder path if required and needed
+        """
+        outdir = Path(SimConfig.save or SimConfig.output_root)
+        if create:
+            outdir.mkdir(parents=True, exist_ok=True)
+        return str(outdir / "populations_offset.dat")
+    
+    @classmethod
+    def _pop_offset_file_restore(cls):
+        """ Get populations_offset.dat file path to be restored
+        """
+        return str(Path(SimConfig.restore)/ "populations_offset.dat")
 
     def __del__(self):
         """De-init. Edge managers must be destructed first"""
@@ -360,14 +363,11 @@ class Node:
         Nd.execute("cvode = new CVode()")
         SimConfig.init(config_file, options)
         if SimConfig.use_coreneuron:
-            CoreConfig.output_root = SimConfig.output_root
-            CoreConfig.datadir = SimConfig.coreneuron_datadir
             # Instantiate the CoreNEURON artificial cell object which is used to fill up
             # the empty ranks. This need to be done before the circuit is
             # finitialized
             CoreConfig.instantiate_artificial_cell()
-            if SimConfig.restore_coreneuron:
-                CoreConfig.restore_path = SimConfig.restore
+
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
         self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
@@ -976,6 +976,7 @@ class Node:
         if SimConfig.use_coreneuron and not SimConfig.restore_coreneuron:
             CoreConfig.write_report_count(len(reports_conf))
 
+
         for rep_name, rep_conf in reports_conf.items():
             target_spec = TargetSpec(rep_conf["Target"])
             target = self._target_manager.get_target(target_spec)
@@ -986,7 +987,9 @@ class Node:
                 n_errors += 1
                 continue
 
+
             if SimConfig.use_coreneuron and MPI.rank == 0:
+
                 self._report_write_coreneuron_config(rep_conf, target, rep_params)
 
             if SimConfig.restore_coreneuron:
@@ -1357,7 +1360,7 @@ class Node:
             mapping_file.write_text(f"{coredata_version}\n0\n")
 
     def _sim_corenrn_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
-        corenrn_datadir = SimConfig.coreneuron_datadir
+        corenrn_datadir = SimConfig.coreneuron_input_save_dir
         os.makedirs(corenrn_datadir, exist_ok=True)
         if coreneuron_direct_mode:
             return corenrn_datadir
@@ -1459,6 +1462,7 @@ class Node:
     # -
     def run_all(self):
         """Run the whole simulation according to the simulation config file"""
+        
         if not self._sim_ready:
             self.sim_init()
 
@@ -1487,8 +1491,6 @@ class Node:
     def _run_coreneuron(self):
         logging.info("Launching simulation with CoreNEURON")
         CoreConfig.psolve_core(
-            getattr(SimConfig, "save", None),
-            getattr(SimConfig, "restore", None),
             SimConfig.coreneuron_direct_mode,
         )
 
@@ -1698,28 +1700,8 @@ class Node:
 
         if SimConfig.delete_corenrn_data and not SimConfig.dry_run:
             with timeit(name="Delete corenrn data"):
-                self._delete_corenrn_data()
+                CoreConfig.cleanup()
                 MPI.barrier()
-
-    @run_only_rank0
-    def _delete_corenrn_data(self):
-        data_folder = SimConfig.coreneuron_datadir
-        logging.info("Deleting intermediate data in %s", data_folder)
-
-        if ospath.islink(data_folder):
-            # in restore, coreneuron data is a symbolic link
-            os.unlink(data_folder)
-        else:
-            subprocess.call(["/bin/rm", "-rf", data_folder])
-        os.remove(ospath.join(SimConfig.output_root, "sim.conf"))
-        if self._run_conf["EnableReports"]:
-            os.remove(ospath.join(SimConfig.output_root, "report.conf"))
-
-        # Delete the SHM folder if it was used
-        if self._shm_enabled:
-            data_folder_shm = SHMUtil.get_datadir_shm(data_folder)
-            logging.info("Deleting intermediate SHM data in %s", data_folder_shm)
-            subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
 
 # Helper class
@@ -1830,7 +1812,7 @@ class Neurodamus(Node):
     # -
     def _merge_filesdat(self, ncycles):
         log_stage("Generating merged CoreNeuron files.dat")
-        coreneuron_datadir = SimConfig.coreneuron_datadir
+        coreneuron_datadir = SimConfig.coreneuron_input_save_dir
         cn_entries = []
         for i in range(ncycles):
             log_verbose(f"files_{i}.dat")
@@ -1858,6 +1840,7 @@ class Neurodamus(Node):
         if self._run_conf["EnableReports"]:
             self.enable_reports()
         self._sim_corenrn_write_config(corenrn_restore=True)
+        CoreConfig.copy_report_file()
         self._sim_ready = True
 
     def compute_n_cycles(self):
@@ -1947,7 +1930,7 @@ class Neurodamus(Node):
 
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
-                base_filesdat = ospath.join(SimConfig.coreneuron_datadir, "files")
+                base_filesdat = ospath.join(SimConfig.coreneuron_input_save_dir, "files")
                 os.rename(base_filesdat + ".dat", base_filesdat + f"_{cycle_i}.dat")
             # Archive timers for this cycle
             TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
@@ -1999,11 +1982,14 @@ class Neurodamus(Node):
             except RuntimeError:
                 logging.exception("Dry run failed")
             return
+
+
         if not SimConfig.simulate_model:
             self.sim_init()
             log_stage("======== [SKIPPED] SIMULATION (MODEL BUILD ONLY) ========")
         elif not SimConfig.build_model:
             log_stage("============= SIMULATION (SKIP MODEL BUILD) =============")
+            # coreneuron needs the report file created
             self._run_coreneuron()
         else:
             log_stage("======================= SIMULATION =======================")

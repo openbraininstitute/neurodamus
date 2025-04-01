@@ -58,7 +58,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         utils.check_netcons(sgid, nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        utils.check_directory(Path(SimConfig.coreneuron_datadir))
+        utils.check_directory(Path(SimConfig.coreneuron_input_save_dir))
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -120,7 +120,7 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         utils.check_synapses(nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        utils.check_directory(Path(SimConfig.coreneuron_datadir))
+        utils.check_directory(Path(SimConfig.coreneuron_input_save_dir))
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -138,7 +138,7 @@ def test_coreneuron(create_tmp_simulation_config_file):
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
                    coreneuron_direct_mode=True, keep_build=True)
     n.run()
-    coreneuron_data = Path(SimConfig.coreneuron_datadir)
+    coreneuron_data = Path(SimConfig.coreneuron_input_save_dir)
     assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
         f"{coreneuron_data} should be empty."
     )

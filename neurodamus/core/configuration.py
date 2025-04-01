@@ -11,7 +11,7 @@ from pathlib import Path
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
-from neurodamus.utils.pyutils import ConfigT
+from neurodamus.utils.pyutils import ConfigT, check_dir
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
 """A file which controls which rank shows exception"""
@@ -222,13 +222,13 @@ class _SimConfig:
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
+    coreneuron_input_save_dir = None
     restore = None
+    coreneuron_input_restore_dir = None
     extracellular_calcium = None
     secondorder = None
     use_coreneuron = False
     use_neuron = True
-    coreneuron_datadir = None
-    coreneuron_outputdir = None
     corenrn_buff_size = 8
     delete_corenrn_data = False
     modelbuilding_steps = 1
@@ -859,46 +859,32 @@ def _current_dir(config: _SimConfig, run_conf):
 
 @SimConfig.validator
 def _output_root(config: _SimConfig, run_conf):
-    def check_oputput_directory(output_dir):
-        """Checks if output directory exists and is a directory.
-        If it doesn't exists create it.
-        This logic is based in old utility.mod.
-        """
-        if os.path.exists(output_dir):
-            if not os.path.isdir(output_dir):
-                raise Exception(f"{output_dir} does not name a directory.")
-        else:
-            try:
-                os.makedirs(output_dir)
-            except Exception as e:
-                raise Exception(f"Failed to create OutputRoot directory {output_dir} with {e}")
-            log_verbose(f"Directory {output_dir} does not exist.  Creating...")
-
     """confirm output_path exists and is usable"""
-    output_path = run_conf.get("OutputRoot")
+    output_path = Path(run_conf.get("OutputRoot"))
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
     if not os.path.isabs(output_path):
-        output_path = os.path.join(config.current_dir, output_path)
+        output_path = Path(config.current_dir) / output_path
 
-    from ._neurodamus import MPI
+    # TODO remove
+    # from ._neurodamus import MPI
 
-    if MPI.rank == 0:
-        check_oputput_directory(output_path)
-        # Delete coreneuron_input link since it may conflict with restore
-        corenrn_input = output_path + "/coreneuron_input"
-        if os.path.islink(corenrn_input):
-            os.remove(corenrn_input)
+    # if MPI.rank == 0:
+    #     check_dir(output_path)
+    #     # Delete coreneuron_input link since it may conflict with restore
+    #     corenrn_input = output_path + "/coreneuron_input"
+    #     if os.path.islink(corenrn_input):
+    #         os.remove(corenrn_input)
 
-    # Barrier to make sure that the output_path is created in case it doesn't exist
-    MPI.barrier()
+    # # Barrier to make sure that the output_path is created in case it doesn't exist
+    # MPI.barrier()
 
     log_verbose("OutputRoot = %s", output_path)
-    run_conf["OutputRoot"] = output_path
-    config.output_root = output_path
+    run_conf["OutputRoot"] = str(output_path)
+    config.output_root = str(output_path)
 
 
 @SimConfig.validator
@@ -914,7 +900,7 @@ def _check_save(config: _SimConfig, run_conf):
 
     # Handle save
     assert isinstance(save_path, str), "Save must be a string path"
-    config.save = os.path.join(config.current_dir, save_path)
+    config.save = str(Path(config.current_dir) / save_path)
 
 
 @SimConfig.validator
@@ -929,30 +915,30 @@ def _check_restore(config: _SimConfig, run_conf):
     # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
     run_conf["Restore"] = restore
 
-    restore_path = os.path.join(config.current_dir, restore)
-    assert os.path.isdir(os.path.dirname(restore_path))
-    config.restore = restore_path
+    restore_path = Path(config.current_dir) / restore
+    assert restore_path.is_dir()
+    config.restore = str(restore_path)
 
 
 @SimConfig.validator
 def _coreneuron_params(config: _SimConfig, _run_conf):
+    """ Validate coreneuron_input folders
+    
+    Note: keep this function after `_output_root` and `_check_save`.
+    """
+
     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
-    config.coreneuron_outputdir = config.output_root
-    coreneuron_datadir = os.path.join(config.output_root, "coreneuron_input")
+    output_root = config.save or config.output_root
+    coreneuron_input_save_dir = Path(output_root) / "coreneuron_input"
 
-    if config.use_coreneuron and config.restore:
-        # Most likely we will need to reuse coreneuron_input from the save part
-        # A symlink is created for the scenario of multiple save/restore processes in one simulation
-        if not os.path.isdir(coreneuron_datadir):
-            logging.info(
-                "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
-            )
-            os.symlink(os.path.join(config.restore, "..", "coreneuron_input"), coreneuron_datadir)
-        assert os.path.isdir(coreneuron_datadir), (
-            f"coreneuron_input `{coreneuron_datadir}` dir not found"
-        )
+    input_root = config.restore or config.output_root
+    coreneuron_input_restore_dir = Path(input_root) / "coreneuron_input"
 
-    config.coreneuron_datadir = coreneuron_datadir
+    if config.restore:
+        assert coreneuron_input_restore_dir.is_dir(), f"{coreneuron_input_restore_dir} dir not found"
+
+    config.coreneuron_input_save_dir = str(coreneuron_input_save_dir)
+    config.coreneuron_input_restore_dir = str(coreneuron_input_restore_dir)
 
 
 @SimConfig.validator
@@ -976,7 +962,7 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
         return
 
     # It's a CoreNeuron run. We have to check if build_model is AUTO or OFF
-    core_data_location = config.coreneuron_datadir
+    core_data_location = config.coreneuron_input_restore_dir
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
