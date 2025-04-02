@@ -1167,17 +1167,15 @@ class ConnectionManagerBase:
 # ##############
 
 
-def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_name=None):
-    """Find the node populations names from several edge configurations
+def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_name=None) -> tuple:
+    """Find the node populations names.
 
     Args:
         edge_file: The edge file to extract the population names from
         edge_pop_name: The name of the edge population
-    Returns: tuple of the src-dst population names. Any can be None if not available
+    Returns: tuple of the src-dst population names.
     """
-    src_dst_pop_names = _edge_meta_get_node_populations(
-        edge_file, edge_pop_name
-    ) or _edge_to_node_population_names(edge_pop_name)
+    src_dst_pop_names = _edge_meta_get_node_populations(edge_file, edge_pop_name)
     if src_dst_pop_names:
         if src_pop_name is None:
             src_pop_name = src_dst_pop_names[0]
@@ -1187,37 +1185,18 @@ def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_nam
 
 
 @run_only_rank0
-def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple | None:
-    import h5py
+def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple:
+    import libsonata
 
-    f = h5py.File(edge_file, "r")
-    if "edges" not in f:
-        return None
-    edge_group = f["edges"]
+    edge_storage = libsonata.EdgeStorage(edge_file)
     if not edge_pop_name:
-        assert len(edge_group) == 1, "multi-population edges require manual selection"
-        edge_pop_name = next(iter(edge_group.keys()))
-    edge_pop = edge_group[edge_pop_name]
-
-    try:
-        return (
-            edge_pop["source_node_id"].attrs["node_population"],
-            edge_pop["target_node_id"].attrs["node_population"],
+        assert len(edge_storage.population_names) == 1, (
+            "multi-population edges require manual selection"
         )
-    except KeyError:
-        logging.warning("Edges don't have 'node_population' attribute")
-    return None
+        edge_pop_name = next(iter(edge_storage.population_names))
 
-
-def _edge_to_node_population_names(edge_pop_name):
-    """Obtain the node source and destination population names from an edge population name"""
-    if edge_pop_name is None or "__" not in edge_pop_name:
-        return None
-    logging.info("(Compat) Using edge population name to know intervening nodes")
-    pop_infos = edge_pop_name.split("__")
-    src_pop = pop_infos[0]
-    dst_pop = pop_infos[1] if len(pop_infos) > 2 else src_pop
-    return src_pop, dst_pop
+    edge_pop = edge_storage.open_population(edge_pop_name)
+    return (edge_pop.source, edge_pop.target)
 
 
 # ######################################################################
