@@ -2,14 +2,15 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
+import platform
 
+from tests.utils import defaultdict_to_standard_types
 from .conftest import RINGTEST_DIR
 
 
 @pytest.mark.forked
 def test_dry_run_memory_use():
     from neurodamus import Neurodamus
-    import platform
 
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
 
@@ -31,7 +32,6 @@ def test_dry_run_memory_use():
 @pytest.mark.forked
 def test_dry_run_distribute_cells():
     from neurodamus import Neurodamus
-    from tests.utils import defaultdict_to_standard_types
 
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
     nd.run()

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -165,6 +166,19 @@ def test_merge_dicts_deeply_nested():
     child = {"A": {"B": {"D": 2.}}}
     expected = {"A": {"B": {"C": 1, "D": 2}}}
     assert utils.merge_dicts(parent, child) == expected
+
+
+def test_defaultdict_to_standard_types():
+    dic = defaultdict(lambda: defaultdict(list))
+    dic["A"]["B"].append(1)
+    dic["A"]["C"] = [2, 3]
+    dic["D"] = [4]
+    dic["E"]["F"] = 5
+    dic["E"]["G"] = "6"
+
+    expected = {"A": {"B": [1], "C": [2, 3]}, "D": [4], "E": {"F": 5, "G": "6"}}
+
+    assert utils.defaultdict_to_standard_types(dic) == expected
 
 
 def test_check_is_subset():

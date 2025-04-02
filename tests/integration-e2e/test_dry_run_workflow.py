@@ -4,6 +4,8 @@ import pytest
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+
+from tests.utils import defaultdict_to_standard_types
 from neurodamus.utils.memory import DryRunStats
 from neurodamus.core.configuration import GlobalConfig, LogLevel
 
@@ -69,7 +71,6 @@ def test_dry_run_workflow(neurodamus_instance):
     isMacOS = platform.system() == "Darwin"
     from neurodamus.utils.memory import export_allocation_stats
     from neurodamus.utils.memory import export_metype_memory_usage
-    from tests.utils import defaultdict_to_standard_types
 
     GlobalConfig.verbosity = LogLevel.DEBUG
     nd = neurodamus_instance
@@ -144,8 +145,6 @@ def test_dynamic_distribute(neurodamus_instance):
     the memory_per_metype.json generated in the previous test to
     redistribute the cells. Then checks if the new allocation is correct.
     """
-    from tests.utils import defaultdict_to_standard_types
-
     nd = neurodamus_instance
 
     rank_allocation, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
@@ -173,8 +172,6 @@ def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
     """
     Test that the distribute_cells_with_validation function works with multiple pops and cycles
     """
-    from tests.utils import defaultdict_to_standard_types
-
     stats = DryRunStats()
 
     # Mock data for testing
