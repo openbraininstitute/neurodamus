@@ -62,12 +62,16 @@ def merge_dicts(parent: dict, child: dict):
     return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
 
 
+from collections import defaultdict
+from collections.abc import Iterable
+
 def defaultdict_to_standard_types(obj):
-    """Converts an object containing defaultdicts of Vectors to standard Python types."""
-    result = {}
-    for node, vectors in obj.items():
-        result[node] = {key: list(vector) for key, vector in vectors.items()}
-    return result
+    """Recursively converts defaultdicts with iterable values to standard Python types."""
+    if isinstance(obj, defaultdict) or isinstance(obj, dict):
+        return {key: defaultdict_to_standard_types(value) for key, value in obj.items()}
+    elif isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+        return list(obj)  # Convert iterables (except strings) to lists
+    return obj  # Return non-iterables unchanged
 
 
 def check_is_subset(dic, subset):
