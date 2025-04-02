@@ -12,6 +12,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from os import path as ospath
 from pathlib import Path
+import shutil
 
 # Internal Plugins
 from . import ngv as _ngv
@@ -199,14 +200,12 @@ class CircuitManager:
         return self.get_node_manager(None)
 
     @run_only_rank0
-    def write_population_offsets(self):
-        """Write infor in <output_dir>/populations_offset.dat
+    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
+        """Write info for in <output_dir>/populations_offset.dat
         format population name::gid offset::population alias
         The virtual population offset is also written for synapse replay in restore.
         """
-        with open(self._pop_offset_file_save(create=True), "w") as f:
-            pop_offsets, alias_pop = self.get_population_offsets()
-            virtual_pop_offsets = self.get_virtual_population_offsets()
+        with open(SimConfig.populations_offset_save_path(create=True), "w") as f:
             f.writelines(
                 "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
                 for alias, pop in alias_pop.items()
@@ -231,40 +230,49 @@ class CircuitManager:
         }
         return pop_offsets
 
+    @run_only_rank0
+    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
+        """Write info for in <output_dir>/populations_offset.dat
+        format population name::gid offset::population alias
+        The virtual population offset is also written for synapse replay in restore.
+        """
+        with open(SimConfig.populations_offset_save_path(create=True), "w") as f:
+            f.writelines(
+                "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
+                for alias, pop in alias_pop.items()
+            )
+            f.writelines(
+                "{}::{}::{}\n".format(pop, offset, "virtual")
+                for pop, offset in virtual_pop_offsets.items()
+            )
+
     @classmethod
-    def read_population_offsets(cls, read_virtual_pop=False):
+    def read_population_offsets(cls, file_path=None):
         """Read population offsets from populations_offset.dat
-        Args:
-            read_virtual_pop: read virtual population info (for replay), no need for reporting
         """
         pop_offsets = {}
         alias_pop = {}
-        pop_offset_file = cls._pop_offset_file_restore()
-        with open(pop_offset_file) as f:
-            offsets = [line.strip().split("::") for line in f]
-            for entry in offsets:
-                if not read_virtual_pop and entry[2] == "virtual":
-                    continue
-                pop_offsets[entry[0] or None] = int(entry[1])
-                alias_pop[entry[2] or None] = entry[0] or None
-        return pop_offsets, alias_pop
+        virtual_pop_offsets = {}
+        with open(file_path or SimConfig.populations_offset_restore_path()) as f:
+            for line in f:
+                pop, offset, alias = line.strip().split("::")
+                pop = pop if pop else None
+                alias = alias if alias else None
+                if alias == "virtual":
+                    virtual_pop_offsets[pop] = int(offset)
+                else:
+                    pop_offsets[pop] = int(offset)
+                    alias_pop[alias] = pop
 
-    @classmethod
-    def _pop_offset_file_save(cls, create=False):
-        """ Get populations_offset.dat file path to be saved
-
-        Create the folder path if required and needed
-        """
-        outdir = Path(SimConfig.save or SimConfig.output_root)
-        if create:
-            outdir.mkdir(parents=True, exist_ok=True)
-        return str(outdir / "populations_offset.dat")
-    
-    @classmethod
-    def _pop_offset_file_restore(cls):
-        """ Get populations_offset.dat file path to be restored
-        """
-        return str(Path(SimConfig.restore)/ "populations_offset.dat")
+        return pop_offsets, alias_pop, virtual_pop_offsets
+        # with open(SimConfig.populations_offset_restore_path()) as f:
+        #     offsets = [line.strip().split("::") for line in f]
+        #     for entry in offsets:
+        #         if not read_virtual_pop and entry[2] == "virtual":
+        #             continue
+        #         pop_offsets[entry[0] or None] = int(entry[1])
+        #         alias_pop[entry[2] or None] = entry[0] or None
+        # return pop_offsets, alias_pop
 
     def __del__(self):
         """De-init. Edge managers must be destructed first"""
@@ -362,6 +370,7 @@ class Node:
         self._spike_populations = []
         Nd.execute("cvode = new CVode()")
         SimConfig.init(config_file, options)
+        
         if SimConfig.use_coreneuron:
             # Instantiate the CoreNEURON artificial cell object which is used to fill up
             # the empty ranks. This need to be done before the circuit is
@@ -374,6 +383,7 @@ class Node:
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
         self._base_circuit: CircuitConfig = SimConfig.base_circuit
+        
         self._extra_circuits = SimConfig.extra_circuits
         self._pr_cell_gid = get_debug_cell_gid(options)
         self._core_replay_file = ""
@@ -893,7 +903,7 @@ class Node:
         dst_target = self.target_manager.get_target(target)
 
         if SimConfig.restore_coreneuron:
-            pop_offsets, alias_pop = CircuitManager.read_population_offsets(read_virtual_pop=True)
+            pop_offsets, alias_pop, _virtual_pop_offsets = CircuitManager.read_population_offsets()
 
         for src_pop in src_target.population_names:
             try:
@@ -958,23 +968,46 @@ class Node:
         output_dir: str
         scaling: str
 
+    def write_and_get_population_offsets(self) -> tuple[dict, dict, dict]:
+        """Retrieve population offsets from the circuit or restore them,  
+        write the offsets, and return them.  
+
+        Returns:  
+            tuple[dict, dict, dict]:  
+                - pop_offsets: Mapping of population names to GID offsets.  
+                - alias_pop: Mapping of population aliases to population names.  
+                - virtual_pop_offsets: Mapping of virtual population names to offsets.  
+        """ 
+        
+        if self._circuits.initialized():
+            pop_offsets, alias_pop = self._circuits.get_population_offsets()
+            virtual_pop_offsets = self._circuits.get_virtual_population_offsets()
+        else:
+            # restore way
+            pop_offsets, alias_pop, virtual_pop_offsets = CircuitManager.read_population_offsets()
+
+        self._circuits.write_population_offsets(pop_offsets, alias_pop, virtual_pop_offsets=virtual_pop_offsets)
+        return pop_offsets, alias_pop, virtual_pop_offsets
+        
+
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
     def enable_reports(self):
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
+
+
         n_errors = 0
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
         self._report_list = []
 
-        # Create a map of offsets so that it can be used even on coreneuron save-restore
-        if self._circuits.initialized():
-            self._circuits.write_population_offsets()
-            pop_offsets_alias = self._circuits.get_population_offsets()
-        else:
-            pop_offsets_alias = CircuitManager.read_population_offsets()
+
+        pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
+        pop_offsets_alias = pop_offsets, alias_pop
+
         if SimConfig.use_coreneuron and not SimConfig.restore_coreneuron:
             CoreConfig.write_report_count(len(reports_conf))
+
 
 
         for rep_name, rep_conf in reports_conf.items():
@@ -982,15 +1015,14 @@ class Node:
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
-            rep_params = self._report_build_params(rep_name, rep_conf, target, pop_offsets_alias)
+            rep_params = self._report_build_params(rep_name, rep_conf)
             if rep_params is None:
                 n_errors += 1
                 continue
 
 
-            if SimConfig.use_coreneuron and MPI.rank == 0:
-
-                self._report_write_coreneuron_config(rep_conf, target, rep_params)
+            if SimConfig.use_coreneuron:
+                self._coreneuron_write_report_config(rep_conf, target, rep_params)
 
             if SimConfig.restore_coreneuron:
                 continue  # we dont even need to initialize reports
@@ -1028,7 +1060,7 @@ class Node:
 
         self._reports_init(pop_offsets_alias)
 
-    def _report_build_params(self, rep_name, rep_conf, target, pop_offsets_alias_pop):
+    def _report_build_params(self, rep_name, rep_conf):
         sim_end = self._run_conf["Duration"]
         rep_type = rep_conf["Type"]
         start_time = rep_conf["StartTime"]
@@ -1085,15 +1117,27 @@ class Node:
             rep_conf.get("Scaling"),
         )
 
-    def _report_write_coreneuron_config(self, rep_conf, target, rep_params):
+    @run_only_rank0
+    def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
+        """
+        Configures CoreNEURON reporting based on provided configuration and parameters.
+
+        If restoring, updates the stop time without changes. Otherwise, computes the target type
+        and writes the report configuration to CoreConfig.
+
+        Args:
+            rep_conf (dict): Report configuration with sections, compartments, and settings.
+            target (Target): Target object with name and GIDs.
+            rep_params (ReportParams): Report parameters including name, type, and report items.
+        """
         target_spec = TargetSpec(rep_conf["Target"])
 
         # For restore case with no change in reporting, we can directly update the end time.
         # Note: If different reports are needed during restore, this workflow
         # needs to be adapted.
         if SimConfig.restore_coreneuron:
-            CoreConfig.update_tstop(rep_params.name, target_spec.name, rep_params.end)
-            return True
+            CoreConfig.update_and_copy_report_config(rep_params.name, target_spec.name, rep_params.end)
+            return
 
         # for sonata config, compute target_type from user inputs
         if "Sections" in rep_conf and "Compartments" in rep_conf:
@@ -1125,7 +1169,6 @@ class Node:
             + (target.get_gids(), SimConfig.corenrn_buff_size)
         )
         CoreConfig.write_report_config(*core_report_params)
-        return True
 
     def _report_setup(self, report, rep_conf, target, rep_type):
         # TODO: Move to Cell Distributor and avoid inner loop conditions
@@ -1240,7 +1283,10 @@ class Node:
         if corenrn_gen is None:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
-            self._sim_corenrn_write_config()
+            self._coreneuron_configure_datadir(
+                False, SimConfig.coreneuron_direct_mode
+            )
+            self._coreneuron_write_sim_config()
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sim_init_neuron()
@@ -1359,11 +1405,25 @@ class Node:
         if not mapping_file.is_file():
             mapping_file.write_text(f"{coredata_version}\n0\n")
 
-    def _sim_corenrn_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
-        corenrn_datadir = SimConfig.coreneuron_input_save_dir
+    def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
+        """
+        Configures the CoreNEURON data directory and handles shared memory (SHM) setup.
+
+        - Creates the data directory if it doesn't exist.
+        - If in direct mode, sets the directory and returns.
+        - If restoring, skips the setup.
+        - If not restoring, checks if SHM should be enabled based on available memory,
+          and sets up symlinks for CoreNEURON's necessary files in SHM.
+
+        Args:
+            corenrn_restore (bool): Flag indicating if CoreNEURON is in restore mode.
+            coreneuron_direct_mode (bool): Flag indicating if direct mode is enabled.
+        """
+        corenrn_datadir = SimConfig.coreneuron_datadir
         os.makedirs(corenrn_datadir, exist_ok=True)
         if coreneuron_direct_mode:
-            return corenrn_datadir
+            SimConfig.coreneuron_datadir = corenrn_datadir
+            return
         corenrn_datadir_shm = SHMUtil.get_datadir_shm(corenrn_datadir)
 
         # Clean-up any previous simulations in the same output directory
@@ -1426,21 +1486,19 @@ class Node:
                     (shm_avail >> 20),
                     (mem_avail >> 20),
                 )
-        return corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
+        SimConfig.coreneuron_datadir = corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm 
 
     # -
     @timeit(name="corewrite")
-    def _sim_corenrn_write_config(self, corenrn_restore=False):
+    def _coreneuron_write_sim_config(self, corenrn_restore=False):
         log_stage("Dataset generation for CoreNEURON")
-        CoreConfig.datadir = self._sim_corenrn_configure_datadir(
-            corenrn_restore, SimConfig.coreneuron_direct_mode
-        )
+
 
         if not corenrn_restore:
             CompartmentMapping(self._circuits.global_manager).register_mapping()
             if not SimConfig.coreneuron_direct_mode:
-                with self._coreneuron_ensure_all_ranks_have_gids(CoreConfig.datadir):
-                    self._pc.nrnbbcore_write(CoreConfig.datadir)
+                with self._coreneuron_ensure_all_ranks_have_gids(SimConfig.coreneuron_datadir):
+                    self._pc.nrnbbcore_write(SimConfig.coreneuron_datadir)
                     MPI.barrier()  # wait for all ranks to finish corenrn data generation
 
         CoreConfig.write_sim_config(
@@ -1457,7 +1515,7 @@ class Node:
         # Wait for rank0 to write the sim config file
         MPI.barrier()
 
-        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
+        
 
     # -
     def run_all(self):
@@ -1689,6 +1747,19 @@ class Node:
         for gid in gids:
             self._pc.prcellstate(gid, suffix)
 
+    @run_only_rank0
+    def coreneuron_cleanup(self):
+        """ Clean coreneuron save files after running """
+
+        data_folder = Path(CoreConfig.datadir)
+        logging.info("Deleting intermediate data in %s", data_folder)
+
+        if data_folder.exists() and data_folder.is_dir():
+            # faster than shutil
+            subprocess.call(["/bin/rm", "-rf", data_folder])
+        Path(CoreConfig.sim_config_file).unlink()
+        Path(CoreConfig.report_config_file_save).unlink()
+
     def cleanup(self):
         """Have the compute nodes wrap up tasks before exiting."""
         # MemUsage constructor will do MPI communications
@@ -1700,7 +1771,7 @@ class Node:
 
         if SimConfig.delete_corenrn_data and not SimConfig.dry_run:
             with timeit(name="Delete corenrn data"):
-                CoreConfig.cleanup()
+                self.coreneuron_cleanup()
                 MPI.barrier()
 
 
@@ -1728,6 +1799,7 @@ class Neurodamus(Node):
                 3 - Debug messages
             user_opts: Options to Neurodamus overriding the simulation config file
         """
+        
         enable_reports = not user_opts.pop("disable_reports", False)
 
         if logging_level is not None:
@@ -1797,7 +1869,7 @@ class Neurodamus(Node):
         for syn_manager in self._circuits.all_synapse_managers():
             syn_manager.finalize(base_seed, SimConfig.use_coreneuron)
         print_mem_usage()
-
+        
         self.enable_stimulus()
         print_mem_usage()
         self.enable_modifications()
@@ -1805,7 +1877,7 @@ class Neurodamus(Node):
         if self._run_conf["EnableReports"]:
             self.enable_reports()
         print_mem_usage()
-
+  
         self.sim_init()
         assert self._sim_ready, "sim_init should have set this"
 
@@ -1834,14 +1906,76 @@ class Neurodamus(Node):
 
     # -
     def _coreneuron_restore(self):
+        """ TODO """
         log_stage(" =============== CORENEURON RESTORE ===============")
         self.load_targets()
         self.enable_replay()
         if self._run_conf["EnableReports"]:
             self.enable_reports()
-        self._sim_corenrn_write_config(corenrn_restore=True)
-        CoreConfig.copy_report_file()
+        
+        self._setup_coreneuron_restore_environment()
+
+
+
         self._sim_ready = True
+
+    def _setup_coreneuron_restore_environment(self):
+        """ TODO """
+        self._coreneuron_configure_datadir(
+            True, SimConfig.coreneuron_direct_mode
+        )
+        self._coreneuron_write_sim_config(corenrn_restore=True)
+        # coreneuron needs the report.conf file in restore mode
+        shutil.copy(CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save)
+
+        print(Path(CoreConfig.datadir).exists())
+        exit()
+
+
+    # from ._neurodamus import MPI
+
+    # if MPI.rank == 0:
+    #     check_dir(output_path)
+    #     # Delete coreneuron_input link since it may conflict with restore
+    #     corenrn_input = output_path + "/coreneuron_input"
+    #     if os.path.islink(corenrn_input):
+    #         os.remove(corenrn_input)
+
+    # # Barrier to make sure that the output_path is created in case it doesn't exist
+    # MPI.barrier()
+
+# def _coreneuron_params(config: _SimConfig, _run_conf):
+#     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
+#     config.coreneuron_outputdir = str(Path(config.save or config.output_root) / "coreneuron_input"
+#     coreneuron_datadir = Path(config.output_root) / "coreneuron_input"
+
+#     # if config.use_coreneuron and config.restore:
+#     #     # Most likely we will need to reuse coreneuron_input from the save part
+#     #     # A symlink is created for the scenario of multiple save/restore processes in one simulation
+#     #     if not os.path.isdir(coreneuron_datadir):
+#     #         logging.info(
+#     #             "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
+#     #         )
+#     #         (Path(config.restore) / "coreneuron_input").symlink_to(coreneuron_datadir)
+#     #     assert os.path.isdir(coreneuron_datadir), "coreneuron_input dir not found"
+
+#     config.coreneuron_datadir = coreneuron_datadir
+    # def copy_report_file(self):
+    #     """ Copy report file from restore to save """
+    #     if self.report_config_file_restore == self.report_config_file_save:
+    #         return
+    #     shutil.copy(self.report_config_file_restore, self.report_config_file_save)
+
+    # def link_input_if_necessary(self):
+    #     """ Link coreneuron input if necessary
+        
+    #     coreneuron does not really work with different
+    #     datpaths for save and restore. Link restore to save
+    #     if not present and use just save
+    #     """
+    #     print("TODO miao bau123")
+    #     exit()
+
 
     def compute_n_cycles(self):
         """Determine the number of model-building cycles

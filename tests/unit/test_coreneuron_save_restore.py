@@ -76,6 +76,26 @@ def restore_coreneuron_files():
             "run": {
                 "tstop": t2,
             },
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 50.0,
+                },
+                "compartment_i": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "i_membrane",
+                    "sections": "all",
+                    "dt": 1,
+                    "start_time": 0.0,
+                    "end_time": 40.0,
+                },
+            },
         }
     }
 ], indirect=True)

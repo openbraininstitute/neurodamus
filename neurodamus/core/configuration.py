@@ -192,7 +192,6 @@ class LoadBalanceMode(Enum):
 class _SimConfig:
     """A class initializing several HOC config objects and proxying to simConfig"""
 
-    __slots__ = ()
     config_file = None
     cli_options = None
     run_conf = None
@@ -222,9 +221,9 @@ class _SimConfig:
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
-    coreneuron_input_save_dir = None
     restore = None
-    coreneuron_input_restore_dir = None
+    coreneuron_outputdir = None
+    coreneuron_datadir = None
     extracellular_calcium = None
     secondorder = None
     use_coreneuron = False
@@ -296,6 +295,37 @@ class _SimConfig:
 
         logging.info("Initializing hoc config objects")
         cls._init_hoc_config_objs()
+
+    @classmethod
+    def save_path(cls):
+        """ default to output_root if none is provided """
+        return cls.save or cls.output_root
+    
+    @classmethod
+    def populations_offset_restore_path(cls):
+        return str(Path(cls.restore) / "populations_offset.dat")
+    
+    @classmethod
+    def _pop_offset_file_save(cls, create=False):
+        """ Get populations_offset.dat file path to be saved
+
+        Create the folder path if required and needed
+        """
+        outdir = Path(SimConfig.save or SimConfig.output_root)
+        if create:
+            outdir.mkdir(parents=True, exist_ok=True)
+        return str(outdir / "populations_offset.dat")
+
+    @classmethod
+    def populations_offset_save_path(cls, create=False):
+        """ get polulations_offset path. 
+        
+        Optional: create pathing folders if necessary
+        """
+        ans = Path(cls.save_path()) / "populations_offset.dat"
+        if create:
+            ans.parent.mkdir(parents=True, exist_ok=True)
+        return str(ans)
 
     @classmethod
     def _init_config_parser(cls, config_file):
@@ -869,19 +899,6 @@ def _output_root(config: _SimConfig, run_conf):
     if not os.path.isabs(output_path):
         output_path = Path(config.current_dir) / output_path
 
-    # TODO remove
-    # from ._neurodamus import MPI
-
-    # if MPI.rank == 0:
-    #     check_dir(output_path)
-    #     # Delete coreneuron_input link since it may conflict with restore
-    #     corenrn_input = output_path + "/coreneuron_input"
-    #     if os.path.islink(corenrn_input):
-    #         os.remove(corenrn_input)
-
-    # # Barrier to make sure that the output_path is created in case it doesn't exist
-    # MPI.barrier()
-
     log_verbose("OutputRoot = %s", output_path)
     run_conf["OutputRoot"] = str(output_path)
     config.output_root = str(output_path)
@@ -919,27 +936,12 @@ def _check_restore(config: _SimConfig, run_conf):
     assert restore_path.is_dir()
     config.restore = str(restore_path)
 
-
 @SimConfig.validator
 def _coreneuron_params(config: _SimConfig, _run_conf):
-    """ Validate coreneuron_input folders
-    
-    Note: keep this function after `_output_root` and `_check_save`.
-    """
-
     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
-    output_root = config.save or config.output_root
-    coreneuron_input_save_dir = Path(output_root) / "coreneuron_input"
 
-    input_root = config.restore or config.output_root
-    coreneuron_input_restore_dir = Path(input_root) / "coreneuron_input"
-
-    if config.restore:
-        assert coreneuron_input_restore_dir.is_dir(), f"{coreneuron_input_restore_dir} dir not found"
-
-    config.coreneuron_input_save_dir = str(coreneuron_input_save_dir)
-    config.coreneuron_input_restore_dir = str(coreneuron_input_restore_dir)
-
+    config.coreneuron_outputdir = config.save_path()
+    config.coreneuron_datadir = str(Path(config.save_path()) / "coreneuron_input")
 
 @SimConfig.validator
 def _check_model_build_mode(config: _SimConfig, _run_conf):
@@ -962,7 +964,7 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
         return
 
     # It's a CoreNeuron run. We have to check if build_model is AUTO or OFF
-    core_data_location = config.coreneuron_input_restore_dir
+    core_data_location = config.coreneuron_datadir
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used

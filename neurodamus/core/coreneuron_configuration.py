@@ -82,7 +82,6 @@ class _CoreNEURONConfig:
     Note: this creates the `CoreConfig` singleton
     """
 
-    _datadir = None
     default_cell_permute = 0
     artificial_cell_object = None
 
@@ -114,44 +113,19 @@ class _CoreNEURONConfig:
     @property
     def datadir(self):
         """ Get datadir from SimConfig if not set explicitly """
-        return self._datadir or SimConfig.coreneuron_input_restore_dir
+        return SimConfig.coreneuron_datadir
     
     @property
     def save_path(self):
         """ Save root folder
         """
-        return str(Path(SimConfig.save or SimConfig.output_root))
-    
-    def copy_report_file(self):
-        """ Copy report file from restore to save """
-        if self.report_config_file_restore == self.report_config_file_save:
-            return
-        shutil.copy(self.report_config_file_restore, self.report_config_file_save)
-    
+        return SimConfig.save_path()
+
     @property
     def restore_path(self):
-        """ restore root folder
-        
-        Differently from save, this must always be specified
+        """ Restore root folder
         """
         return SimConfig.restore
-    
-    @datadir.setter
-    def datadir(self, value):
-        """ Set the datadir explicitly """
-        self._datadir = value
-
-    @run_only_rank0
-    def cleanup(self):
-        """ Clean coreneuron save files after running """
-
-        data_folder = Path(self.datadir)
-        logging.info("Deleting intermediate data in %s", data_folder)
-
-        if data_folder.exists() and data_folder.is_dir():
-            subprocess.call(["/bin/rm", "-rf", data_folder])
-        Path(self.sim_config_file).unlink()
-        Path(self.report_config_file_save).unlink()
 
     # Instantiates the artificial cell object for CoreNEURON
     # This needs to happen only when CoreNEURON simulation is enabled
@@ -159,7 +133,18 @@ class _CoreNEURONConfig:
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
 
     @run_only_rank0
-    def update_tstop(self, report_name, nodeset_name, tstop):
+    def update_and_copy_report_config(self, report_name, nodeset_name, tstop):
+        """
+        Updates a report configuration (e.g., stop time) and saves the modified config.
+
+        Searches for the specified report and nodeset, updates the relevant parameters
+        (currently only `tstop`), and writes the updated configuration to a new file.
+
+        Args:
+            report_name (str): The report to update.
+            nodeset_name (str): The nodeset associated with the report.
+            tstop (float): The new stop time for the report.
+        """
         report_conf = Path(self.report_config_file_restore)
 
         # Read all content
@@ -274,6 +259,8 @@ class _CoreNEURONConfig:
             if enable_reports:
                 fp.write(f"report-conf='{self.report_config_file_save}'\n")
             fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
+
+        logging.info(f" => Dataset written to '{simconf}'")
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):
