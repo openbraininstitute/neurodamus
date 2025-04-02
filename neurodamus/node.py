@@ -265,14 +265,6 @@ class CircuitManager:
                     alias_pop[alias] = pop
 
         return pop_offsets, alias_pop, virtual_pop_offsets
-        # with open(SimConfig.populations_offset_restore_path()) as f:
-        #     offsets = [line.strip().split("::") for line in f]
-        #     for entry in offsets:
-        #         if not read_virtual_pop and entry[2] == "virtual":
-        #             continue
-        #         pop_offsets[entry[0] or None] = int(entry[1])
-        #         alias_pop[entry[2] or None] = entry[0] or None
-        # return pop_offsets, alias_pop
 
     def __del__(self):
         """De-init. Edge managers must be destructed first"""
@@ -998,6 +990,7 @@ class Node:
 
 
         n_errors = 0
+        # filter: only the enabled ones
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
         self._report_list = []
 
@@ -1005,8 +998,13 @@ class Node:
         pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
         pop_offsets_alias = pop_offsets, alias_pop
 
-        if SimConfig.use_coreneuron and not SimConfig.restore_coreneuron:
-            CoreConfig.write_report_count(len(reports_conf))
+        if SimConfig.use_coreneuron:
+            if SimConfig.restore_coreneuron:
+                # we copy it first. We will proceed to modify
+                # it in _coreneuron_write_report_config later
+                shutil.copy(CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save)
+            else:
+                CoreConfig.write_report_count(len(reports_conf))
 
 
 
@@ -1058,7 +1056,8 @@ class Node:
 
         MPI.check_no_errors()
 
-        self._reports_init(pop_offsets_alias)
+        if not SimConfig.restore_coreneuron:
+            self._reports_init(pop_offsets_alias)
 
     def _report_build_params(self, rep_name, rep_conf):
         sim_end = self._run_conf["Duration"]
@@ -1136,7 +1135,7 @@ class Node:
         # Note: If different reports are needed during restore, this workflow
         # needs to be adapted.
         if SimConfig.restore_coreneuron:
-            CoreConfig.update_and_copy_report_config(rep_params.name, target_spec.name, rep_params.end)
+            CoreConfig.update_report_config(rep_params.name, target_spec.name, rep_params.end)
             return
 
         # for sonata config, compute target_type from user inputs
@@ -1205,8 +1204,6 @@ class Node:
                 report.add_synapse_report(cell, point, spgid, pop_name, pop_offset)
 
     def _reports_init(self, pop_offsets_alias):
-        if SimConfig.restore_coreneuron:
-            return
 
         pop_offsets = pop_offsets_alias[0]
         if SimConfig.use_coreneuron:
@@ -1419,7 +1416,7 @@ class Node:
             corenrn_restore (bool): Flag indicating if CoreNEURON is in restore mode.
             coreneuron_direct_mode (bool): Flag indicating if direct mode is enabled.
         """
-        corenrn_datadir = SimConfig.coreneuron_datadir
+        corenrn_datadir = SimConfig.coreneuron_datadir_save()
         os.makedirs(corenrn_datadir, exist_ok=True)
         if coreneuron_direct_mode:
             SimConfig.coreneuron_datadir = corenrn_datadir
@@ -1925,57 +1922,25 @@ class Neurodamus(Node):
             True, SimConfig.coreneuron_direct_mode
         )
         self._coreneuron_write_sim_config(corenrn_restore=True)
-        # coreneuron needs the report.conf file in restore mode
-        shutil.copy(CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save)
 
-        print(Path(CoreConfig.datadir).exists())
-        exit()
+        # handle coreneuron_input movements
+        src_datadir = Path(SimConfig.coreneuron_datadir_restore())
+        dst_datadir = Path(SimConfig.coreneuron_datadir_save())
+        # Check if source directory exists
+        if not src_datadir.exists():
+            raise FileNotFoundError(f"Coreneuron input directory in `{src_datadir}` does not exist!")
 
+        # If the source exists, 
+        # remove the destination directory or symlink (if it exists)
+        if dst_datadir.exists():
+            if dst_datadir.is_symlink():
+                # Remove the symlink
+                dst_datadir.unlink()  
+            else:
+                # Remove the folder if it's not a symlink
+                shutil.rmtree(dst_datadir)  
 
-    # from ._neurodamus import MPI
-
-    # if MPI.rank == 0:
-    #     check_dir(output_path)
-    #     # Delete coreneuron_input link since it may conflict with restore
-    #     corenrn_input = output_path + "/coreneuron_input"
-    #     if os.path.islink(corenrn_input):
-    #         os.remove(corenrn_input)
-
-    # # Barrier to make sure that the output_path is created in case it doesn't exist
-    # MPI.barrier()
-
-# def _coreneuron_params(config: _SimConfig, _run_conf):
-#     # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
-#     config.coreneuron_outputdir = str(Path(config.save or config.output_root) / "coreneuron_input"
-#     coreneuron_datadir = Path(config.output_root) / "coreneuron_input"
-
-#     # if config.use_coreneuron and config.restore:
-#     #     # Most likely we will need to reuse coreneuron_input from the save part
-#     #     # A symlink is created for the scenario of multiple save/restore processes in one simulation
-#     #     if not os.path.isdir(coreneuron_datadir):
-#     #         logging.info(
-#     #             "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
-#     #         )
-#     #         (Path(config.restore) / "coreneuron_input").symlink_to(coreneuron_datadir)
-#     #     assert os.path.isdir(coreneuron_datadir), "coreneuron_input dir not found"
-
-#     config.coreneuron_datadir = coreneuron_datadir
-    # def copy_report_file(self):
-    #     """ Copy report file from restore to save """
-    #     if self.report_config_file_restore == self.report_config_file_save:
-    #         return
-    #     shutil.copy(self.report_config_file_restore, self.report_config_file_save)
-
-    # def link_input_if_necessary(self):
-    #     """ Link coreneuron input if necessary
-        
-    #     coreneuron does not really work with different
-    #     datpaths for save and restore. Link restore to save
-    #     if not present and use just save
-    #     """
-    #     print("TODO miao bau123")
-    #     exit()
-
+        dst_datadir.symlink_to(src_datadir)
 
     def compute_n_cycles(self):
         """Determine the number of model-building cycles

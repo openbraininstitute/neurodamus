@@ -91,10 +91,13 @@ class _CoreNEURONConfig:
         return str(Path(self.save_path) / "sim.conf")
     
     @property
-    def report_config_file_save(self):
+    def report_config_file_save(self, create=False):
         """ Get report config file path to be saved 
         """
-        return str(Path(self.save_path) / "report.conf")
+        ans = Path(self.save_path) / "report.conf"
+        if create:
+            ans.parent.mkdir(parents=True, exist_ok=True)
+        return str(ans)
     
     @property
     def report_config_file_restore(self):
@@ -109,11 +112,11 @@ class _CoreNEURONConfig:
     def output_root(self):
         """ Get output root from SimConfig """
         return SimConfig.output_root
-    
+
     @property
     def datadir(self):
         """ Get datadir from SimConfig if not set explicitly """
-        return SimConfig.coreneuron_datadir
+        return SimConfig.coreneuron_datadir_save()
     
     @property
     def save_path(self):
@@ -133,19 +136,16 @@ class _CoreNEURONConfig:
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
 
     @run_only_rank0
-    def update_and_copy_report_config(self, report_name, nodeset_name, tstop):
+    def update_report_config(self, report_name, nodeset_name, tstop):
         """
-        Updates a report configuration (e.g., stop time) and saves the modified config.
+        Updates a report configuration (e.g., stop time)
 
         Searches for the specified report and nodeset, updates the relevant parameters
         (currently only `tstop`), and writes the updated configuration to a new file.
 
-        Args:
-            report_name (str): The report to update.
-            nodeset_name (str): The nodeset associated with the report.
-            tstop (float): The new stop time for the report.
+        Note: we already need the report.conf in place
         """
-        report_conf = Path(self.report_config_file_restore)
+        report_conf = Path(self.report_config_file_save)
 
         # Read all content
         with report_conf.open("rb") as f:
@@ -172,57 +172,8 @@ class _CoreNEURONConfig:
                 "not matching any report in the 'save' execution"
             )
 
-        # write in the save position now
-        report_conf = Path(self.report_config_file_save)
         with report_conf.open("wb") as f:
             f.writelines(lines)
-
-    @run_only_rank0
-    def write_report_config(
-        self,
-        report_name,
-        target_name,
-        report_type,
-        report_variable,
-        unit,
-        report_format,
-        target_type,
-        dt,
-        start_time,
-        end_time,
-        gids,
-        buffer_size=8,
-    ):
-        import struct
-
-        num_gids = len(gids)
-        logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
-        report_conf = Path(self.report_config_file_save)
-        report_conf.parent.mkdir(parents=True, exist_ok=True)
-        with report_conf.open("ab") as fp:
-            # Write the formatted string to the file
-            fp.write(
-                (
-                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"  # noqa: UP031
-                    % (
-                        report_name,
-                        target_name,
-                        report_type,
-                        report_variable,
-                        unit,
-                        report_format,
-                        target_type,
-                        dt,
-                        start_time,
-                        end_time,
-                        num_gids,
-                        buffer_size,
-                    )
-                ).encode()
-            )
-            # Write the array of integers to the file in binary format
-            fp.write(struct.pack(f"{num_gids}i", *gids))
-            fp.write(b"\n")
 
     @run_only_rank0
     def write_sim_config(
@@ -261,6 +212,55 @@ class _CoreNEURONConfig:
             fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
 
         logging.info(f" => Dataset written to '{simconf}'")
+
+    @run_only_rank0
+    def write_report_config(
+        self,
+        report_name,
+        target_name,
+        report_type,
+        report_variable,
+        unit,
+        report_format,
+        target_type,
+        dt,
+        start_time,
+        end_time,
+        gids,
+        buffer_size=8,
+    ):
+        """ Here we append just one report entry to report.conf. We are not writing the full file as 
+        this is done incrementally in Node.enable_reports"""
+        import struct
+
+        num_gids = len(gids)
+        logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
+        report_conf = Path(self.report_config_file_save)
+        report_conf.parent.mkdir(parents=True, exist_ok=True)
+        with report_conf.open("ab") as fp:
+            # Write the formatted string to the file
+            fp.write(
+                (
+                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"  # noqa: UP031
+                    % (
+                        report_name,
+                        target_name,
+                        report_type,
+                        report_variable,
+                        unit,
+                        report_format,
+                        target_type,
+                        dt,
+                        start_time,
+                        end_time,
+                        num_gids,
+                        buffer_size,
+                    )
+                ).encode()
+            )
+            # Write the array of integers to the file in binary format
+            fp.write(struct.pack(f"{num_gids}i", *gids))
+            fp.write(b"\n")
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):
