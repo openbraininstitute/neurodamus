@@ -127,8 +127,9 @@ def compare_json_files(res_file: Path, ref_file: Path):
     assert result == reference
 
 
-def check_directory(dir_name: Path):
+def check_directory(dir_name: "Path | str"):
     """ Check if a directory exists and is not empty """
+    dir_name = Path(dir_name)
     assert dir_name.is_dir(), f"{dir_name} doesn't exist"
     assert any(dir_name.iterdir()), f"{dir_name} is empty"
 

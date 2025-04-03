@@ -11,7 +11,7 @@ from pathlib import Path
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
-from neurodamus.utils.pyutils import ConfigT, check_dir
+from neurodamus.utils.pyutils import ConfigT
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
 """A file which controls which rank shows exception"""
@@ -298,26 +298,27 @@ class _SimConfig:
 
     @classmethod
     def save_path(cls):
-        """ default to output_root if none is provided """
+        """Default to output_root if none is provided"""
+        print(cls.save, cls.output_root)
         return cls.save or cls.output_root
-    
+
     @classmethod
     def coreneuron_datadir_save(cls):
-        """ default to output_root if none is provided """
+        """Default to output_root if none is provided"""
         return cls.coreneuron_datadir or str(Path(cls.save_path()) / "coreneuron_input")
-    
+
     @classmethod
     def coreneuron_datadir_restore(cls):
-        """ default to output_root if none is provided """
+        """Default to output_root if none is provided"""
         return str(Path(cls.restore) / "coreneuron_input")
-    
+
     @classmethod
     def populations_offset_restore_path(cls):
         return str(Path(cls.restore) / "populations_offset.dat")
-    
+
     @classmethod
     def _pop_offset_file_save(cls, create=False):
-        """ Get populations_offset.dat file path to be saved
+        """Get populations_offset.dat file path to be saved
 
         Create the folder path if required and needed
         """
@@ -328,11 +329,22 @@ class _SimConfig:
 
     @classmethod
     def populations_offset_save_path(cls, create=False):
-        """ get polulations_offset path. 
-        
+        """Get polulations_offset path.
+
         Optional: create pathing folders if necessary
         """
         ans = Path(cls.save_path()) / "populations_offset.dat"
+        if create:
+            ans.parent.mkdir(parents=True, exist_ok=True)
+        return str(ans)
+
+    @classmethod
+    def populations_offset_output_path(cls, create=False):
+        """Get polulations_offset path.
+
+        Optional: create pathing folders if necessary
+        """
+        ans = Path(cls.output_root) / "populations_offset.dat"
         if create:
             ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
@@ -899,7 +911,7 @@ def _current_dir(config: _SimConfig, run_conf):
 
 @SimConfig.validator
 def _output_root(config: _SimConfig, run_conf):
-    """confirm output_path exists and is usable"""
+    """Confirm output_path exists and is usable"""
     output_path = Path(run_conf.get("OutputRoot"))
 
     if config.cli_options.output_path not in {None, output_path}:
@@ -945,6 +957,7 @@ def _check_restore(config: _SimConfig, run_conf):
     restore_path = Path(config.current_dir) / restore
     assert restore_path.is_dir()
     config.restore = str(restore_path)
+
 
 @SimConfig.validator
 def _check_model_build_mode(config: _SimConfig, _run_conf):

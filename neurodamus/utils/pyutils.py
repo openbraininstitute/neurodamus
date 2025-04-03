@@ -3,9 +3,9 @@
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
 
 
 class classproperty:
@@ -210,6 +210,7 @@ def gen_ranges(limit, blocklen, low=0, block_increase_rate=1):
         yield low, high
         low = high
         blocklen = int(blocklen * block_increase_rate)
+
 
 def check_dir(d):
     """Checks if directory exists and is a directory.

@@ -1,8 +1,6 @@
 import logging
 import os
 from pathlib import Path
-import subprocess
-import shutil
 
 from . import NeurodamusCore as Nd
 from ._utils import run_only_rank0
@@ -85,49 +83,46 @@ class _CoreNEURONConfig:
     default_cell_permute = 0
     artificial_cell_object = None
 
-    @property 
+    @property
     def sim_config_file(self):
-        """ Get sim config file path to be saved """
+        """Get sim config file path to be saved"""
         return str(Path(self.save_path) / "sim.conf")
-    
+
     @property
     def report_config_file_save(self, create=False):
-        """ Get report config file path to be saved 
-        """
+        """Get report config file path to be saved"""
         ans = Path(self.save_path) / "report.conf"
         if create:
             ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
-    
+
     @property
     def report_config_file_restore(self):
-        """ Get report config file path to be restored
-         
+        """Get report config file path to be restored
+
         We need this file and path for restoring because we cannot recreate it
         from scratch. Only usable when restore exists and is a dir
         """
         return str(Path(SimConfig.restore) / "report.conf")
-    
-    @property 
+
+    @property
     def output_root(self):
-        """ Get output root from SimConfig """
+        """Get output root from SimConfig"""
         return SimConfig.output_root
 
     @property
     def datadir(self):
-        """ Get datadir from SimConfig if not set explicitly """
+        """Get datadir from SimConfig if not set explicitly"""
         return SimConfig.coreneuron_datadir_save()
-    
+
     @property
     def save_path(self):
-        """ Save root folder
-        """
+        """Save root folder"""
         return SimConfig.save_path()
 
     @property
     def restore_path(self):
-        """ Restore root folder
-        """
+        """Restore root folder"""
         return SimConfig.restore
 
     # Instantiates the artificial cell object for CoreNEURON
@@ -136,14 +131,13 @@ class _CoreNEURONConfig:
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
 
     @run_only_rank0
-    def update_report_config(self, report_name, nodeset_name, tstop):
-        """
-        Updates a report configuration (e.g., stop time)
+    def update_report_config(self, substitutions):
+        """Updates a report configuration (e.g., stop time).
 
         Searches for the specified report and nodeset, updates the relevant parameters
         (currently only `tstop`), and writes the updated configuration to a new file.
 
-        Note: we already need the report.conf in place
+        Note: `report.conf` must already exist.
         """
         report_conf = Path(self.report_config_file_save)
 
@@ -151,25 +145,30 @@ class _CoreNEURONConfig:
         with report_conf.open("rb") as f:
             lines = f.readlines()
 
+        # Track performed substitutions
+        applied_subs = set()
+
         # Find and update the matching line
-        found = False
         for i, line in enumerate(lines):
             try:
                 parts = line.decode().split()
-                # Report name and target name must match in order to update the tstop
-                if parts[0:2] == [report_name, nodeset_name]:
-                    parts[9] = f"{tstop:.6f}"
+                key = tuple(parts[0:2])  # Report name and target name
+
+                if key in substitutions:
+                    newTend = substitutions[key]
+                    parts[9] = f"{newTend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
-                    found = True
-                    break
+                    applied_subs.add(key)
             except (UnicodeDecodeError, IndexError):
                 # Ignore lines that cannot be decoded (binary data)
                 continue
 
-        if not found:
+        # Find substitutions that were not applied
+        missing_subs = set(substitutions.keys()) - applied_subs
+
+        if missing_subs:
             raise ConfigurationError(
-                f"Report '{report_name}' with target '{nodeset_name}' "
-                "not matching any report in the 'save' execution"
+                f"Some substitutions could not be applied for the following (report, target) pairs: {missing_subs}"
             )
 
         with report_conf.open("wb") as f:
@@ -229,8 +228,9 @@ class _CoreNEURONConfig:
         gids,
         buffer_size=8,
     ):
-        """ Here we append just one report entry to report.conf. We are not writing the full file as 
-        this is done incrementally in Node.enable_reports"""
+        """Here we append just one report entry to report.conf. We are not writing the full file as
+        this is done incrementally in Node.enable_reports
+        """
         import struct
 
         num_gids = len(gids)

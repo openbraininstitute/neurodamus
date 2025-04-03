@@ -16,13 +16,14 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 def test_coreneuron_no_write_model(create_tmp_simulation_config_file):
     from libsonata import SpikeReader, ElementReportReader
     from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
     from neurodamus.core.configuration import SimConfig
 
     tmp_file = create_tmp_simulation_config_file
 
     nd = Neurodamus(tmp_file, keep_build=True, coreneuron_direct_mode=True)
     nd.run()
-    coreneuron_data = Path(SimConfig.coreneuron_input_save_dir)
+    coreneuron_data = Path(CoreConfig.datadir)
     assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
         f"{coreneuron_data} should be empty."
     )

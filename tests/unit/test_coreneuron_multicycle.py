@@ -9,6 +9,7 @@ import numpy.testing as npt
 import pytest
 
 from neurodamus import Neurodamus
+from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
 from tests.utils import check_directory
 
@@ -53,7 +54,7 @@ def test_coreneuron_multicycle(create_tmp_simulation_config_file, modelbuilding_
     nd = Neurodamus(create_tmp_simulation_config_file, modelbuilding_steps=modelbuilding_steps)
 
     # check that there is 1 file per cycle + a merged file in the directory
-    coreneuron_data = Path(SimConfig.coreneuron_input_save_dir)
+    coreneuron_data = Path(CoreConfig.datadir)
     check_directory(coreneuron_data)
     assert (coreneuron_data / "files.dat").exists()
 
