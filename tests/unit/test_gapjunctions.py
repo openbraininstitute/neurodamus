@@ -1,5 +1,4 @@
 import re
-from pathlib import Path
 
 import numpy as np
 import numpy.testing as npt
@@ -189,8 +188,7 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
         r".*Set GJc = 0.2 for 2 gap synapses\n"
         r".*Remove channels type = all\n"
         r".*Inject V_Clamp without disabling holding current!\n"
-        r".*Inject holding voltage from file.*for 1 cells\n"
-        r".*Saving SEClamp Data\n[\s\S]*"
+        r".*Inject holding voltage from file.*for 1 cells\n[\s\S]*"
     )
     assert ref.match(captured.out)
 
@@ -203,9 +201,6 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
     npt.assert_allclose(seclamp.dur1, 9e9)
     npt.assert_allclose(seclamp.amp1, 0.1)
     npt.assert_allclose(seclamp.rs, 0.0000001)
-    # check saved seclamp file
-    saved_seclamp = Path(SimConfig.output_root) / "data_for_host_0.p"
-    assert saved_seclamp.exists()
 
     # Assert simulation went well
     nd.run()

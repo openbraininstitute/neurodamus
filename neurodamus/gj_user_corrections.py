@@ -5,7 +5,6 @@
 
 
 import logging
-import pickle  # noqa: S403
 
 from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
@@ -55,6 +54,10 @@ stochastic_mechs = ["StochKv", "StochKv2", "StochKv3"]
 
 
 def load_user_modifications(gj_manager):
+    """Apply user modifications on gap junction connections, designed by @Oren Amsalem
+    The modification parameters should be in the "beta_features" section of
+    the simulation config file.
+    """
     node_manager = gj_manager.cell_manager
     settings = SimConfig.beta_features
     gjc = settings.get("gjc")
@@ -67,8 +70,8 @@ def load_user_modifications(gj_manager):
     # update gap conductance
     if settings.get("procedure_type") in {"validation_sim", "find_holding_current"}:
         process_gap_conns = _update_conductance(gjc, gj_manager)
-        all_ranks_total = MPI.allreduce(process_gap_conns, MPI.SUM)
-        logging.info(f"Set GJc = {gjc} for {int(all_ranks_total)} gap synapses")
+        all_ranks_total = int(MPI.py_sum(process_gap_conns, 0))
+        logging.info(f"Set GJc = {gjc} for {all_ranks_total} gap synapses")
 
     # remove active channels
     remove_channels = settings.get("remove_channels")
@@ -91,7 +94,7 @@ def load_user_modifications(gj_manager):
         processed_cells = _update_gpas(
             node_manager, filename, gjc, settings.get("correction_iteration_load", -1)
         )
-        all_ranks_total = int(MPI.allreduce(processed_cells, MPI.SUM))
+        all_ranks_total = int(MPI.py_sum(processed_cells, 0))
         logging.info(f"Update g_pas to fit {gjc} - file {filename} for {all_ranks_total} cells")
 
     # load current clamps
@@ -102,26 +105,24 @@ def load_user_modifications(gj_manager):
         if settings.get("procedure_type") == "find_holding_current":
             raise ConfigurationError("find_holding_current should not read manual_MEComboInfo_file")
         holding_ic_per_gid = _load_holding_ic(node_manager, filename, gjc=gjc)
-        all_ranks_total = int(MPI.allreduce(len(holding_ic_per_gid), MPI.SUM))
+        all_ranks_total = int(MPI.py_sum(len(holding_ic_per_gid), 0))
         logging.info(
             f"Load holding_ic from manual_MEComboInfoFile {filename} for {all_ranks_total} cells"
         )
 
     seclamp_per_gid = {}
     if settings.get("procedure_type") == "find_holding_current":
-        seclamp_per_gid, seclamp_current_per_gid = _find_holding_current(
-            node_manager, settings.get("vc_amp")
-        )
-        all_ranks_total = int(MPI.allreduce(len(seclamp_current_per_gid), MPI.SUM))
+        seclamp_per_gid = _find_holding_current(node_manager, settings.get("vc_amp"))
+        all_ranks_total = int(MPI.py_sum(len(seclamp_per_gid), 0))
         logging.info(
             f"Inject holding voltage from file {settings['vc_amp']} for {all_ranks_total} cells"
         )
-        _save_seclamps(seclamp_current_per_gid, output_dir=SimConfig.output_root)
 
     return holding_ic_per_gid, seclamp_per_gid
 
 
 def _update_conductance(gjc, gj_manager):
+    """Update gap junction connection conductance"""
     n_conn = 0
     for conn in gj_manager.all_connections():
         conn.update_conductance(gjc)
@@ -130,6 +131,7 @@ def _update_conductance(gjc, gj_manager):
 
 
 def _deterministic_stoch(node_manager):
+    """Enable deterministic_StochKV in cell"""
     for cell in node_manager.cells:
         for sec in cell._cellref.all:
             if "StochKv3" in dir(sec(0.5)):
@@ -141,6 +143,7 @@ def _deterministic_stoch(node_manager):
 
 
 def _perform_remove_channels(node_manager, Mechanisms: list):
+    """Remove certain mechanisms from the cell"""
     for cell in node_manager.cells:
         for sec in cell._cellref.all:
             for mec in Mechanisms:
@@ -149,6 +152,9 @@ def _perform_remove_channels(node_manager, Mechanisms: list):
 
 
 def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
+    """Update the g_pas attribute of certain cells
+    Cell ids, segment names and new g_pas values are provided in the input file
+    """
     import h5py
 
     processed_cells = 0
@@ -182,6 +188,9 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
 
 
 def _load_holding_ic(node_manager, filename, gjc):
+    """Add IClamps to certain cells for holding the membrane voltage
+    Cell ids, current amplitudes are provided in the input file
+    """
     import h5py
 
     holding_ic_per_gid = {}
@@ -211,6 +220,9 @@ def _load_holding_ic(node_manager, filename, gjc):
 
 
 def _find_holding_current(node_manager, filename):
+    """Add SEClamps to certain cells for holding the membrane voltage
+    Cell ids, voltage amplitude are provided in the input file
+    """
     import h5py
 
     try:
@@ -221,7 +233,6 @@ def _find_holding_current(node_manager, filename):
     logging.info("Inject V_Clamp without disabling holding current!")
 
     seclamp_per_gid = {}
-    seclamp_current_per_gid = {}
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
     for agid in v_per_gid["v_per_gid"]:
@@ -233,14 +244,4 @@ def _find_holding_current(node_manager, filename):
             seclamp_per_gid[gid + offset].dur1 = 9e9
             seclamp_per_gid[gid + offset].amp1 = float(v_per_gid["v_per_gid"][agid][()])
             seclamp_per_gid[gid + offset].rs = 0.0000001
-            seclamp_current_per_gid[gid + offset] = Nd.h.Vector()
-            seclamp_current_per_gid[gid + offset].record(seclamp_per_gid[gid + offset]._ref_i)
-    return seclamp_per_gid, seclamp_current_per_gid
-
-
-def _save_seclamps(seclamp_current_per_gid, output_dir):
-    logging.info("Saving SEClamp Data")
-    seclamp_current_per_gid_a = {}
-    for gid in seclamp_current_per_gid:
-        seclamp_current_per_gid_a[gid] = seclamp_current_per_gid[gid].as_numpy()
-    pickle.dump(seclamp_current_per_gid_a, open(f"{output_dir}/data_for_host_{MPI.rank}.p", "wb"))
+    return seclamp_per_gid
