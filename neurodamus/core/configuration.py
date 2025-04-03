@@ -299,7 +299,6 @@ class _SimConfig:
     @classmethod
     def save_path(cls):
         """Default to output_root if none is provided"""
-        print(cls.save, cls.output_root)
         return cls.save or cls.output_root
 
     @classmethod
@@ -348,6 +347,17 @@ class _SimConfig:
         if create:
             ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
+
+    @classmethod
+    def output_root_path(cls, create=False):
+        """Get populations_offset.dat file path to be saved
+
+        Create the folder path if required and needed
+        """
+        outdir = Path(SimConfig.output_root)
+        if create:
+            outdir.mkdir(parents=True, exist_ok=True)
+        return str(outdir)
 
     @classmethod
     def _init_config_parser(cls, config_file):

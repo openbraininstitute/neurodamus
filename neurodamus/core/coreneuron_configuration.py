@@ -89,12 +89,9 @@ class _CoreNEURONConfig:
         return str(Path(self.save_path) / "sim.conf")
 
     @property
-    def report_config_file_save(self, create=False):
+    def report_config_file_save(self):
         """Get report config file path to be saved"""
-        ans = Path(self.save_path) / "report.conf"
-        if create:
-            ans.parent.mkdir(parents=True, exist_ok=True)
-        return str(ans)
+        return str(Path(self.save_path) / "report.conf")
 
     @property
     def report_config_file_restore(self):
@@ -168,7 +165,8 @@ class _CoreNEURONConfig:
 
         if missing_subs:
             raise ConfigurationError(
-                f"Some substitutions could not be applied for the following (report, target) pairs: {missing_subs}"
+                f"Some substitutions could not be applied for the following "
+                f"(report, target) pairs: {missing_subs}"
             )
 
         with report_conf.open("wb") as f:

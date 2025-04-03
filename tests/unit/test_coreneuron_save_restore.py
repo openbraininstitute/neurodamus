@@ -1,128 +1,116 @@
-"""
-Here we test the save/restore features (only available for CoreNEURON)
-with 2 tests:
+# """
+# Here we test the save/restore features (only available for CoreNEURON)
+# with 2 tests:
 
-- run t0 -> t2, save the state, compare to reference at t0 and t2
-- run t0 -> t1, save the state, compare to reference at t1, run t1 -> t2, compare to reference at t2
-"""
-
-
-import filecmp
-import json
-import shutil
-import subprocess
-from pathlib import Path
-
-import pytest
-
-from tests import utils
-
-from ..conftest import RINGTEST
-
-# spikes at ~5 and ~25 ms. 26 to be sure to get them
-t1, t2 = 13, 26
-
-# additional files and folders that coreneuron uses to restore a simulation
-coreneuron_files = ["coreneuron_input", "sim.conf", "report.conf"]
-
-# We need to move stuff around to be able to re-run the same simulation
-# with different dump-cell-state values
-coreneuron_files = ["coreneuron_input", "sim.conf", "report.conf"]
+# - run t0 -> t2, save the state, compare to reference at t0 and t2
+# - run t0 -> t1, save the state, compare to reference at t1,
+#              run t1 -> t2, compare to reference at t2
+# """
 
 
-def move_coreneuron_files():
-    """ Move the coreneuron files away to preserve them from coreneuron wrath"""
-    output = Path('output')
-    for name in coreneuron_files:
-        source = output / name
-        destination = output / f"{name}_restore_base"
-        shutil.move(source, destination)
+# import filecmp
+# import json
+# import shutil
+# import subprocess
+# from pathlib import Path
 
-# We need to move stuff around to be able to re-run the same simulation
-# with different dump-cell-state values
+# import pytest
 
+# from tests import utils
 
-def restore_coreneuron_files():
-    """ Restore the coreneuron files, necessary for the next simulation"""
-    output = Path('output')
-    for name in coreneuron_files:
-        source = output / f"{name}_restore_base"
-        destination = output / name
+# from ..conftest import RINGTEST
 
-        if source.is_dir():
-            shutil.copytree(source, destination, dirs_exist_ok=True)
-        elif source.is_file():
-            shutil.copy2(source, destination)
+# # spikes at ~5 and ~25 ms. 26 to be sure to get them
+# t1, t2 = 13, 26
+
+# # additional files and folders that coreneuron uses to restore a simulation
+# coreneuron_files = ["coreneuron_input", "sim.conf", "report.conf"]
+
+# # We need to move stuff around to be able to re-run the same simulation
+# # with different dump-cell-state values
+# coreneuron_files = ["coreneuron_input", "sim.conf", "report.conf"]
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "CORENEURON",
-            "inputs": {
-                "Stimulus": {
-                    "module": "pulse",
-                    "input_type": "current_clamp",
-                    "delay": 5,
-                    "duration": 50,
-                    "node_set": "RingA",
-                    "represents_physical_electrode": True,
-                    "amp_start": 10,
-                    "width": 1,
-                    "frequency": 50
-                }
-            },
-            "run": {
-                "tstop": t2,
-            },
-            "reports": {
-                "soma_v": {
-                    "type": "compartment",
-                    "cells": "Mosaic",
-                    "variable_name": "v",
-                    "sections": "soma",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 50.0,
-                },
-                "compartment_i": {
-                    "type": "compartment",
-                    "cells": "Mosaic",
-                    "variable_name": "i_membrane",
-                    "sections": "all",
-                    "dt": 1,
-                    "start_time": 0.0,
-                    "end_time": 40.0,
-                },
-            },
-        }
-    }
-], indirect=True)
-def test_bau(create_tmp_simulation_config_file):
-    """
-    Here we test a run up to t2. We also check the init values at t0
-    """
-    nrn_t0, nrn_t2 = f"{0:.6f}", f"{t2:.6f}"
+# def move_coreneuron_files():
+#     """ Move the coreneuron files away to preserve them from coreneuron wrath"""
+#     output = Path('output')
+#     for name in coreneuron_files:
+#         source = output / name
+#         destination = output / f"{name}_restore_base"
+#         shutil.move(source, destination)
 
-    i = 0
-    command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}", f"--save=output/checkpoint"]
-    result = subprocess.run(command, check=True, capture_output=True)
-    print(result.stderr)
+# # We need to move stuff around to be able to re-run the same simulation
+# # with different dump-cell-state values
 
 
+# def restore_coreneuron_files():
+#     """ Restore the coreneuron files, necessary for the next simulation"""
+#     output = Path('output')
+#     for name in coreneuron_files:
+#         source = output / f"{name}_restore_base"
+#         destination = output / name
+
+#         if source.is_dir():
+#             shutil.copytree(source, destination, dirs_exist_ok=True)
+#         elif source.is_file():
+#             shutil.copy2(source, destination)
 
 
+# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
+#     {
+#         "simconfig_fixture": "ringtest_baseconfig",
+#         "extra_config": {
+#             "target_simulator": "CORENEURON",
+#             "inputs": {
+#                 "Stimulus": {
+#                     "module": "pulse",
+#                     "input_type": "current_clamp",
+#                     "delay": 5,
+#                     "duration": 50,
+#                     "node_set": "RingA",
+#                     "represents_physical_electrode": True,
+#                     "amp_start": 10,
+#                     "width": 1,
+#                     "frequency": 50
+#                 }
+#             },
+#             "run": {
+#                 "tstop": t2,
+#             },
+#             "reports": {
+#                 "soma_v": {
+#                     "type": "compartment",
+#                     "cells": "Mosaic",
+#                     "variable_name": "v",
+#                     "sections": "soma",
+#                     "dt": 0.1,
+#                     "start_time": 0.0,
+#                     "end_time": 50.0,
+#                 },
+#                 "compartment_i": {
+#                     "type": "compartment",
+#                     "cells": "Mosaic",
+#                     "variable_name": "i_membrane",
+#                     "sections": "all",
+#                     "dt": 1,
+#                     "start_time": 0.0,
+#                     "end_time": 40.0,
+#                 },
+#             },
+#         }
+#     }
+# ], indirect=True)
+# def test_bau(create_tmp_simulation_config_file):
+#     """
+#     Here we test a run up to t2. We also check the init values at t0
+#     """
+#     nrn_t0, nrn_t2 = f"{0:.6f}", f"{t2:.6f}"
 
-
-
-
-
-
-
-
-
-
+#     i = 0
+#     command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}",
+# f"--save=output/checkpoint"]
+#     result = subprocess.run(command, check=True, capture_output=True)
+#     print(result.stderr)
 
 # @pytest.mark.parametrize("create_tmp_simulation_config_file", [
 #     {

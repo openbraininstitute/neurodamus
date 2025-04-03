@@ -241,22 +241,6 @@ class CircuitManager:
         }
         return pop_offsets
 
-    @run_only_rank0
-    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
-        """Write info for in <output_dir>/populations_offset.dat
-        format population name::gid offset::population alias
-        The virtual population offset is also written for synapse replay in restore.
-        """
-        with open(SimConfig.populations_offset_save_path(create=True), "w") as f:
-            f.writelines(
-                "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
-                for alias, pop in alias_pop.items()
-            )
-            f.writelines(
-                "{}::{}::{}\n".format(pop, offset, "virtual")
-                for pop, offset in virtual_pop_offsets.items()
-            )
-
     @classmethod
     def read_population_offsets(cls, file_path=None):
         """Read population offsets from populations_offset.dat"""
@@ -1675,7 +1659,7 @@ class Node:
 
     def sonata_spikes(self):
         """Write the spike events that occured on each node into a single output SONATA file."""
-        output_root = SimConfig.output_root
+        output_root = SimConfig.output_root_path(create=True)
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
             spike_path = self._run_conf.get("SpikesFile")
