@@ -105,7 +105,7 @@ def make_edges(filename, edges, wanted_attributes):
     libsonata.EdgePopulation.write_indices(
         filename,
         name,
-        source_node_count=max(src_ids) + 1,
+        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
         target_node_count=max(tgt_ids) + 1,
     )
 

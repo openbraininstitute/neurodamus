@@ -39,8 +39,11 @@ from neurodamus.gap_junction import GapJunctionManager
     ],
     indirect=True,
 )
-def test_gapjunctions(create_tmp_simulation_config_file):
+def test_gapjunctions_default(create_tmp_simulation_config_file):
+    """Test general simulation flow including gap junctions, without any user correction"""
+
     nd = Neurodamus(create_tmp_simulation_config_file)
+
     cell_manager = nd.circuits.get_node_manager("RingC")
     offset = cell_manager.local_nodes.offset
     assert offset == 2000
@@ -105,8 +108,8 @@ def test_gapjunctions(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
-    """test for gap junction calibration, the steps tested are similar to the thalamus publication
-    """
+    """Test gap junction calibration designed by Oren,
+    the steps are similar to the thalamus publication"""
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
@@ -169,7 +172,8 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_config_file):
-    """test the other features for gap junction calibration"""
+    """Test the other steps for the gap junction calibration designed by Oren,
+    but not used in the publication"""
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
