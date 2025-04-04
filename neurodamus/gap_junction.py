@@ -6,7 +6,7 @@ import numpy as np
 
 from .connection_manager import ConnectionManagerBase
 from .core.configuration import ConfigurationError, SimConfig
-from .gj_user_corrections import load_user_modifications
+from .gap_junction_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 

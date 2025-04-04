@@ -1,4 +1,4 @@
-# @file gj_user_corrections.py
+# @file gap_junction_user_corrections.py
 # @brief Script for loading user corrections on gap junction connectivity
 # @author Oren Amsalem, Weina Ji
 # @date 2024-09-09
