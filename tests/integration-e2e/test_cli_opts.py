@@ -1,10 +1,8 @@
 import json
 import os
-from pathlib import Path
-import pytest
 import subprocess
 import tempfile
-
+from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
 CONFIG_FILE_MINI = "simulation_config_mini.json"
