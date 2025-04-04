@@ -1761,6 +1761,20 @@ class Node:
                 self.coreneuron_cleanup()
                 MPI.barrier()
 
+    @run_only_rank0
+    def move_dumpcellstates_to_output_root(self):
+        """Check for .corenrn or .nrn files in the current directory
+        and move them to CoreConfig.output_root_path(create=True).
+        """
+        current_dir = Path(".")
+        output_root = Path(SimConfig.output_root_path(create=True))
+
+        # Iterate through files in the current directory
+        for file in current_dir.iterdir():
+            if file.suffix in {".corenrn", ".nrn", ".nrndat"}:
+                shutil.move(str(file), output_root / file.name)
+                logging.info(f"Moved {file.name} to {output_root}")
+
 
 # Helper class
 # ------------
@@ -1787,7 +1801,6 @@ class Neurodamus(Node):
             user_opts: Options to Neurodamus overriding the simulation config file
         """
         enable_reports = not user_opts.pop("disable_reports", False)
-
         if logging_level is not None:
             GlobalConfig.verbosity = logging_level
 
@@ -2086,6 +2099,8 @@ class Neurodamus(Node):
 
         if cleanup:
             self.cleanup()
+
+        self.move_dumpcellstates_to_output_root()
 
     @run_only_rank0
     def _remove_file(self, file_name):
