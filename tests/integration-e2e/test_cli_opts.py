@@ -18,13 +18,13 @@ def test_cli_prcellgid():
         sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
         with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
             json.dump(sim_config_data, f, indent=2)
-
+    
     os.chdir(test_folder_path)
-    nd = Neurodamus(CONFIG_FILE_MINI, dump_cell_state=1)
+    nd = Neurodamus(CONFIG_FILE_MINI, dump_cell_state=1, keep_build=True
+                    )
     nd.run()
-    assert (test_folder_path / "2_py_Neuron_t0.0.nrndat").is_file()
-    assert (test_folder_path / "2_py_Neuron_t100.0.nrndat").is_file()
-
+    assert (test_folder_path / "output_sonata2" / "2_py_Neuron_t0.0.nrndat").is_file()
+    assert (test_folder_path / "output_sonata2"  / "2_py_Neuron_t100.0.nrndat").is_file()
 
 def test_cli_disable_reports():
     test_folder = tempfile.TemporaryDirectory("cli-test-disable-reports")  # auto removed
