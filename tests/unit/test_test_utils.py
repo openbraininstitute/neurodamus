@@ -169,14 +169,26 @@ def test_merge_dicts_deeply_nested():
 
 
 def test_defaultdict_to_standard_types():
-    dic = defaultdict(lambda: defaultdict(list))
-    dic["A"]["B"].append(1)
-    dic["A"]["C"] = [2, 3]
-    dic["D"] = [4]
-    dic["E"]["F"] = 5
-    dic["E"]["G"] = "6"
 
-    expected = {"A": {"B": [1], "C": [2, 3]}, "D": [4], "E": {"F": 5, "G": "6"}}
+    class CustomList:
+        def __init__(self, items):
+            self._items = items
+
+        def __iter__(self):
+            return iter(self._items)
+
+        def __eq__(self, other):
+            return list(self) == other
+
+        def __repr__(self):
+            return repr(self._items)
+
+    dic = defaultdict(lambda: defaultdict(list))
+    dic["A"]["B"] = CustomList([1, 2])
+    dic["C"] = CustomList(["x", "y"])
+    dic["D"]["E"] = 3
+
+    expected = {"A": {"B": [1, 2]}, "C": ["x", "y"], "D": {"E": 3}}
 
     assert utils.defaultdict_to_standard_types(dic) == expected
 
