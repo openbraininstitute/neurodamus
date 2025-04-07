@@ -1154,11 +1154,10 @@ class Node:
             target_spec.name,
             rep_params.rep_type,
             reporton_comma_separated,
-            *rep_params[3:5],  # Unpack slice
-            target_type,
-            *rep_params[5:8],  # Unpack slice
-            target.get_gids(),
-            SimConfig.corenrn_buff_size,
+            *rep_params[3:5],
+            *(target_type,),
+            *rep_params[5:8],
+            *(target.get_gids(), SimConfig.corenrn_buff_size),
         )
         CoreConfig.write_report_config(*core_report_params)
 
