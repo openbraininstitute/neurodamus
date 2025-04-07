@@ -382,7 +382,7 @@ class ConnectionManagerBase:
         return self._cur_population
 
     # -
-    def get_population(self, src_pop_id, dst_pop_id):
+    def get_population(self, src_pop_id, dst_pop_id=0):
         """Retrieves a connection set given node src and dst pop ids"""
         pop = self._populations.get((src_pop_id, dst_pop_id))
         if not pop:
