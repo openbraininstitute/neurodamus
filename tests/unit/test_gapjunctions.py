@@ -3,6 +3,7 @@ import re
 import numpy as np
 import numpy.testing as npt
 import pytest
+import pickle
 
 from tests.utils import check_signal_peaks
 
@@ -11,6 +12,7 @@ from neurodamus import Neurodamus
 from neurodamus.connection_manager import SynapseRuleManager
 from neurodamus.core.configuration import SimConfig
 from neurodamus.gap_junction import GapJunctionManager
+from pathlib import Path
 
 
 @pytest.mark.parametrize(
@@ -147,8 +149,9 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     npt.assert_allclose(iclamp.amp, -0.00108486, rtol=1e-5)
     assert gj_manager.seclamp_per_gid == {}
 
-    # Assert simulation went well
+    # Assert simulation went well, no need to save holding currents for validation_sim
     nd.run()
+    assert not (Path(SimConfig.output_root) / "gap_junction_seclamps").exists()
 
 
 @pytest.mark.parametrize(
@@ -171,12 +174,13 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_config_file):
-    """Test the other steps for the gap junction calibration designed by Oren,
-    but not used in the publication"""
+def test_gap_junction_corrections_find_holding_current(capsys, create_tmp_simulation_config_file):
+    """Test the step of find_holding_current for the gap junction calibration designed by Oren,
+    but not used in the publication
+    The holding current data is expected to be saved to a file after the simulation run
+    """
 
     nd = Neurodamus(create_tmp_simulation_config_file)
-
     assert SimConfig.beta_features == {
         "gapjunction_target_population": "RingC",
         "remove_channels": "all",
@@ -185,21 +189,10 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
         "vc_amp": str(RINGTEST_DIR / "gapjunctions" / "test_holding_voltage.hdf5"),
     }
 
-    # check log
-    captured = capsys.readouterr()
-    ref = re.compile(
-        r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
-        r".*Set GJc = 0.2 for 2 gap synapses\n"
-        r".*Remove channels type = all\n"
-        r".*Inject V_Clamp without disabling holding current!\n"
-        r".*Inject holding voltage from file.*for 1 cells\n[\s\S]*"
-    )
-    assert ref.match(captured.out)
-
-    # check holding current
+    # check holding current seclamp
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
     assert gj_manager.holding_ic_per_gid == {}
-    assert len(gj_manager.seclamp_per_gid) == 1
+    assert len(gj_manager.seclamp_per_gid) == 2
     assert "SEClamp" in gj_manager.seclamp_per_gid[2001].hname()
     seclamp = gj_manager.seclamp_per_gid[2001]
     npt.assert_allclose(seclamp.dur1, 9e9)
@@ -208,3 +201,23 @@ def test_gap_junction_corrections_otherfeatures(capsys, create_tmp_simulation_co
 
     # Assert simulation went well
     nd.run()
+
+    # check log
+    captured = capsys.readouterr()
+    ref = re.compile(
+        r"[\s\S]*Load user modification.*(CellDistributor: RingC).*\n"
+        r".*Set GJc = 0.2 for 2 gap synapses\n"
+        r".*Remove channels type = all\n"
+        r".*Inject voltage clamps without disabling holding current!\n"
+        r".*Inject holding voltages from file.*for 2 cells\n[\s\S]*"
+        r".*Save SEClamp currents for gap junction user corrections\n[\s\S]*"
+    )
+    assert ref.match(captured.out)
+
+    # checked saved holding current data
+    outfile = Path(SimConfig.output_root) / "gap_junction_seclamps/data_for_host_0.p"
+    assert outfile.exists()
+    with open(outfile, "rb") as f:
+        data = pickle.load(f)
+    assert list(data.keys()) == [2001, 2002]
+    assert len(data[2001]) == 501

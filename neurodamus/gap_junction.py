@@ -1,10 +1,13 @@
 """Main module for handling and instantiating synaptical connections"""
 
 import logging
+import pickle  # noqa: S403
+from pathlib import Path
 
 import numpy as np
 
 from .connection_manager import ConnectionManagerBase
+from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
 from .gap_junction_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
@@ -73,6 +76,7 @@ class GapJunctionManager(ConnectionManagerBase):
         )
         self.holding_ic_per_gid = None
         self.seclamp_per_gid = None
+        self.seclamp_current_per_gid_recorder = None
 
     def create_connections(self, *_, **_kw):
         """Gap Junctions dont use connection blocks, connect all belonging to target"""
@@ -88,8 +92,27 @@ class GapJunctionManager(ConnectionManagerBase):
         ) and self.cell_manager.population_name == gj_target_pop:
             logging.info("Load user modification on %s", self)
             self.holding_ic_per_gid, self.seclamp_per_gid = load_user_modifications(self)
+            if self.seclamp_per_gid:
+                # Record seclamp currents for saving to a file at the end
+                self.seclamp_current_per_gid_recorder = {}
+                for gid, seclamp in self.seclamp_per_gid.items():
+                    self.seclamp_current_per_gid_recorder[gid] = Nd.h.Vector()
+                    self.seclamp_current_per_gid_recorder[gid].record(seclamp._ref_i)
 
     def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
         for conn in reversed(conns):
             conn.finalize_gap_junctions()
         return len(conns)
+
+    def save_seclamp(self):
+        """Save seclamps to a file"""
+        if self.seclamp_current_per_gid_recorder:
+            logging.info("Save SEClamp currents for gap junction user corrections")
+            vals = {
+                gid: hoc_vec.as_numpy()
+                for gid, hoc_vec in self.seclamp_current_per_gid_recorder.items()
+            }
+            output_dir = Path(SimConfig.output_root) / "gap_junction_seclamps"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with open(output_dir / f"data_for_host_{MPI.rank}.p", "wb") as f:
+                pickle.dump(vals, f)

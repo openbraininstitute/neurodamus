@@ -115,7 +115,7 @@ def load_user_modifications(gj_manager):
         seclamp_per_gid = _find_holding_current(node_manager, settings.get("vc_amp"))
         all_ranks_total = int(MPI.py_sum(len(seclamp_per_gid), 0))
         logging.info(
-            f"Inject holding voltage from file {settings['vc_amp']} for {all_ranks_total} cells"
+            f"Inject holding voltages from file {settings['vc_amp']} for {all_ranks_total} cells"
         )
 
     return holding_ic_per_gid, seclamp_per_gid
@@ -231,7 +231,7 @@ def _find_holding_current(node_manager, filename):
     except OSError:
         raise ConfigurationError(f"Error opening voltage file {filename}")
 
-    logging.info("Inject V_Clamp without disabling holding current!")
+    logging.info("Inject voltage clamps without disabling holding current!")
 
     seclamp_per_gid = {}
     raw_cell_gids = node_manager.local_nodes.raw_gids()
