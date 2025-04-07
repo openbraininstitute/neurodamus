@@ -3,9 +3,12 @@ import numpy as np
 import numpy.testing as npt
 import unittest.mock
 import platform
+from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from .conftest import RINGTEST_DIR
+
+NGV_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ngv"
 
 
 @pytest.mark.forked
@@ -37,21 +40,6 @@ def test_dry_run_distribute_cells():
     nd.run()
 
     # Test allocation
-    rank_alloc, _, cell_mem_use = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
-    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
-    expected_allocation = {
-        'RingA': {
-            (0, 0): [1],
-            (1, 0): [2, 3]
-        },
-        'RingB': {
-            (0, 0): [1],
-            (1, 0): [2]
-        }
-    }
-    assert rank_allocation_standard == expected_allocation
-
-    # Test allocation import
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME +
                                                            "_r2_c1.pkl.gz", 0)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
@@ -61,7 +49,7 @@ def test_dry_run_distribute_cells():
     }
     assert rank_allocation_standard == expected_allocation
 
-    # Test dynamic distribution
+    # Test redistribution
     rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
@@ -94,6 +82,46 @@ def test_dry_run_distribute_cells():
         }
     }
     assert rank_allocation_standard == expected_allocation
+
+
+@pytest.mark.forked
+def test_dry_run_dynamic_distribute():
+    from neurodamus import Neurodamus
+
+    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, lb_mode="Memory",
+                     num_target_ranks=1)
+    nd.run()
+
+    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME +
+                                                           "_r1_c1.pkl.gz", 0)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {(0, 0): [1, 2, 3]},
+        'RingB': {(0, 0): [1, 2]}
+    }
+    assert rank_allocation_standard == expected_allocation
+
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {
+            (0, 0): [1],
+            (1, 0): [2, 3]
+        },
+        'RingB': {
+            (0, 0): [1],
+            (1, 0): [2]
+        }
+    }
+    assert rank_allocation_standard == expected_allocation
+
+
+@pytest.mark.forked
+def test_dry_run_ngv_fail():
+    from neurodamus import Neurodamus
+
+    with pytest.raises(Exception, match="Dry run not available for ngv circuit"):
+        Neurodamus(str(NGV_DIR / "simulation_config.json"),  dry_run=True)
 
 
 @pytest.mark.forked
@@ -158,3 +186,87 @@ class DummyNodeReader:
             return ["mtype1", "mtype2", "mtype1", "mtype2", "mtype1"]
         else:
             pytest.fail(f"Unsupported attribute: {attr}")
+
+
+@pytest.fixture
+def fixed_memory_measurements():
+    with unittest.mock.patch('neurodamus.utils.memory.get_mem_usage_kb', return_value=100):
+        with unittest.mock.patch('neurodamus.utils.memory.SynapseMemoryUsage.get_memory_usage',
+                                 return_value=10):
+            yield
+
+
+def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
+    from neurodamus.utils.memory import DryRunStats
+    """
+    Test that the distribute_cells_with_validation function works with multiple pops and cycles
+    """
+    stats = DryRunStats()
+
+    # Mock data for testing
+    stats.metype_memory = {
+        'L4_PC-dSTUT': 50,
+        'L4_MC-dSTUT': 30,
+        'L4_MC-dNAC': 20,
+        'L5_PC-dSTUT': 40
+    }
+    stats.metype_cell_syn_average = {
+        'L4_PC-dSTUT': 5,
+        'L4_MC-dSTUT': 3,
+        'L4_MC-dNAC': 2,
+        'L5_PC-dSTUT': 4
+    }
+    stats.pop_metype_gids = {
+        'NodeA': {
+            'L4_PC-dSTUT': [1, 2, 3],
+            'L4_MC-dSTUT': [4, 5],
+            'L4_MC-dNAC': [6],
+            'L5_PC-dSTUT': [7, 8]
+        },
+        'NodeB': {
+            'L4_PC-dSTUT': [9],
+            'L4_MC-dSTUT': [10, 11],
+            'L4_MC-dNAC': [12, 13],
+            'L5_PC-dSTUT': [14]
+        }
+    }
+
+    # Run the distribute_cells_with_validation function
+    bucket_allocation, bucket_memory, metype_memory_usage = stats.distribute_cells_with_validation(
+        num_ranks=2,
+        cycles=2
+    )
+    rank_allocation_standard = defaultdict_to_standard_types(bucket_allocation)
+
+    expected_allocation = {
+        'NodeA': {
+            (0, 0): [1, 6],
+            (1, 0): [3, 8],
+            (0, 1): [2, 7],
+            (1, 1): [4, 5]
+        },
+        'NodeB': {
+            (0, 0): [9],
+            (1, 0): [11],
+            (0, 1): [10, 14],
+            (1, 1): [12, 13]
+        }
+    }
+    expected_memory = {
+        'NodeA': {
+            (0, 0): 90,
+            (1, 0): 110,
+            (0, 1): 110,
+            (1, 1): 80
+        },
+        'NodeB': {
+            (0, 0): 60,
+            (1, 0): 40,
+            (0, 1): 90,
+            (1, 1): 60
+        }
+    }
+
+    # Assert that the results match the expected values
+    assert rank_allocation_standard == expected_allocation
+    assert bucket_memory == expected_memory
