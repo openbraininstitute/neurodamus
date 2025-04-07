@@ -1759,6 +1759,8 @@ class Neurodamus(Node):
         self._run_conf["AutoInit"] = auto_init
 
         if SimConfig.dry_run:
+            if self._is_ngv_run:
+                raise Exception("Dry run not available for ngv circuit")
             self.load_targets()
             self.create_cells()
             self.create_synapses()
