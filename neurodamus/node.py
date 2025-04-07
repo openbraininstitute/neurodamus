@@ -1110,16 +1110,14 @@ class Node:
 
         reporton_comma_separated = ",".join(rep_params.report_on.split())
         core_report_params = (
-            (
-                rep_params.name,
-                target_spec.name,
-                rep_params.rep_type,
-                reporton_comma_separated,
-            )
-            + rep_params[3:5]
-            + (target_type,)
-            + rep_params[5:8]
-            + (target.get_gids(), SimConfig.corenrn_buff_size)
+            rep_params.name,
+            target_spec.name,
+            rep_params.rep_type,
+            reporton_comma_separated,
+            *rep_params[3:5],
+            *(target_type,),
+            *rep_params[5:8],
+            *(target.get_gids(), SimConfig.corenrn_buff_size),
         )
         CoreConfig.write_report_config(*core_report_params)
         return True
