@@ -3,12 +3,10 @@ import numpy as np
 import numpy.testing as npt
 import unittest.mock
 import platform
-from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from .conftest import RINGTEST_DIR
-
-NGV_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ngv"
+from .conftest import NGV_DIR
 
 
 @pytest.mark.forked
