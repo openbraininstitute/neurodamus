@@ -104,7 +104,7 @@ def test_dry_run_dynamic_distribute():
 
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
-    
+
     rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
