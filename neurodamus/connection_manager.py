@@ -219,12 +219,7 @@ class ConnectionSet:
             expr_dst is None or expr_dst == self.dst_pop_id
         )
 
-    def is_default(self):
-        return self.src_pop_id == 0 and self.dst_pop_id == 0
-
     def __str__(self):
-        if self.is_default():
-            return "<ConnectionSet: Default>"
         return (
             f"<ConnectionSet: {self.src_pop_id}-{self.dst_pop_id} "
             f"({self.src_pop_name}->{self.dst_pop_name})>"
@@ -359,17 +354,13 @@ class ConnectionManagerBase:
         logging.info("Loading connections to population: %s", cur_pop)
 
     def _compute_pop_ids(self, src_pop_name, dst_pop_name):
-        """Compute pop id automatically. pop src 0 is base population.
-        if src_pop_id is provided, it will be used instead.
-        """
+        """Compute pop id automatically base on population name."""
 
         def make_id(node_pop_name):
             pop_hash = hashlib.md5(node_pop_name.encode()).digest()
             return ((pop_hash[1] & 0x0F) << 8) + pop_hash[0]  # id: 12bit hash
 
-        dst_pop_id = 0 if self._cell_manager.is_default else make_id(dst_pop_name)
-        src_pop_id = 0 if self._src_cell_manager.is_default else make_id(src_pop_name)
-        return src_pop_id, dst_pop_id
+        return make_id(src_pop_name), make_id(dst_pop_name)
 
     # -
     def select_connection_set(self, src_pop_id, dst_pop_id):
@@ -382,7 +373,7 @@ class ConnectionManagerBase:
         return self._cur_population
 
     # -
-    def get_population(self, src_pop_id, dst_pop_id=0):
+    def get_population(self, src_pop_id, dst_pop_id):
         """Retrieves a connection set given node src and dst pop ids"""
         pop = self._populations.get((src_pop_id, dst_pop_id))
         if not pop:

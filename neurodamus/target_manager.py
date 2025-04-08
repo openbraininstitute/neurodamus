@@ -64,7 +64,6 @@ class TargetSpec:
     def disjoint_populations(self, other):
         # When a population is None we cannot draw conclusions
         #  - In Sonata there's no filtering and target may have multiple
-        #  - In BCs it's the base population, but the specified one may be the same
         if self.population is None or other.population is None:
             return False
         # We are only sure if both are specified and different

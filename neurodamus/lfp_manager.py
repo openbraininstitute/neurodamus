@@ -55,7 +55,7 @@ class LFPManager:
         subset_data = electrodes_dataset[index_low:index_high, :]
         return subset_data
 
-    def read_lfp_factors(self, gid, population_info=("default", 0)):
+    def read_lfp_factors(self, gid, population_info):
         """Reads the local field potential (LFP) factors for a specific gid
         from an HDF5 file and returns the factors as a Nd.Vector.
 
@@ -81,7 +81,7 @@ class LFPManager:
                 logging.warning(msg)
         return scalar_factors
 
-    def get_number_electrodes(self, gid, population_info=("default", 0)):
+    def get_number_electrodes(self, gid, population_info):
         """Get number of electrodes of a certain gid"""
         num_electrodes = 0
         if self._lfp_file:
