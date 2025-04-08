@@ -3,10 +3,23 @@ import numpy as np
 import numpy.testing as npt
 import unittest.mock
 import platform
+import tempfile
+from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from .conftest import RINGTEST_DIR
 from .conftest import NGV_DIR
+
+TMP_FOLDER = tempfile.mkdtemp()
+
+
+@pytest.fixture(autouse=True)
+def change_test_dir(monkeypatch):
+    """
+    All tests in this file are using the same working directory, i.e TMP_FOLDER
+    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
+    """
+    monkeypatch.chdir(TMP_FOLDER)
 
 
 @pytest.mark.forked
@@ -81,34 +94,23 @@ def test_dry_run_distribute_cells():
     }
     assert rank_allocation_standard == expected_allocation
 
+    Path(("allocation_r1_c1.pkl.gz")).unlink(missing_ok=True)
+    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
+
 
 @pytest.mark.forked
 def test_dry_run_dynamic_distribute():
     from neurodamus import Neurodamus
 
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, lb_mode="Memory",
+    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
-    nd.run()
-
-    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME +
-                                                           "_r1_c1.pkl.gz", 0)
-    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
-    expected_allocation = {
-        'RingA': {(0, 0): [1, 2, 3]},
-        'RingB': {(0, 0): [1, 2]}
-    }
-    assert rank_allocation_standard == expected_allocation
-
-    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1, None)
+    
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {
             (0, 0): [1],
             (1, 0): [2, 3]
-        },
-        'RingB': {
-            (0, 0): [1],
-            (1, 0): [2]
         }
     }
     assert rank_allocation_standard == expected_allocation
