@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 from libsonata import EdgeStorage, SpikeReader
 from scipy.signal import find_peaks
+from collections import defaultdict
+from collections.abc import Iterable
 
 from neurodamus.core import NeurodamusCore as Nd
 from neurodamus.core.configuration import SimConfig
@@ -60,6 +62,15 @@ def merge_dicts(parent: dict, child: dict):
         return child[k]
 
     return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
+
+def defaultdict_to_standard_types(obj):
+    """Recursively converts defaultdicts with iterable values to standard Python types."""
+    if isinstance(obj, defaultdict) or isinstance(obj, dict):
+        return {key: defaultdict_to_standard_types(value) for key, value in obj.items()}
+    elif isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+        return list(obj)
+    return obj
 
 
 def check_is_subset(dic, subset):
