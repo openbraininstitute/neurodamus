@@ -90,8 +90,6 @@ state by digging the hierarchy.
 managers since they are now handled by the Circuits class.*
 
 *Technical note:* These properties are read-only objects for internal attributes `_`prefixed.
-Besides them, many other internal attributes exist, but at least two are worth being mentioned:
-`self._base_circuit` and `self._extra_circuits`. The first
 
 Cells
 -----

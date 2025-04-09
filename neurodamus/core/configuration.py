@@ -195,8 +195,6 @@ class _SimConfig:
     cli_options = None
     run_conf = None
     output_root = None
-    base_circuit = None
-    extra_circuits = None
     sonata_circuits = None
     projections = None
     connections = None
@@ -262,7 +260,6 @@ class _SimConfig:
         cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.sonata_circuits = cls._config_parser.circuits
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
 
         cls.projections = cls._config_parser.parsedProjections
@@ -689,47 +686,28 @@ def _validate_file_extension(path):
 
 
 @SimConfig.validator
-def _base_circuit(config: _SimConfig, run_conf):
-    log_verbose("CIRCUIT (default): %s", run_conf.get("CircuitPath", "<DISABLED>"))
-    config.base_circuit = _make_circuit_config(run_conf)
-
-
-@SimConfig.validator
-def _extra_circuits(config: _SimConfig, _run_conf):
+def _circuits(config: _SimConfig, _run_conf):
     from . import EngineBase
 
-    extra_circuits = {}
+    _circuits = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
         log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
-        if "Engine" in circuit_info:
-            # Replace name by actual engine
-            circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
-        else:
-            # Without custom engine, inherit base circuit infos
-            for field in (
-                "CircuitPath",
-                "MorphologyPath",
-                "MorphologyType",
-                "METypePath",
-                "CellLibraryFile",
-            ):
-                if field in config.base_circuit and field not in circuit_info:
-                    log_verbose(" > Inheriting '%s' from base circuit", field)
-                    circuit_info[field] = config.base_circuit[field]
+        # Replace name by actual engine class
+        circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
 
         circuit_info.setdefault("nrnPath", False)
         if config.cli_options.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
-        extra_circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        extra_circuits[name].name = name
+        _circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
+        _circuits[name].name = name
 
     # Sort so that iteration is deterministic
-    config.extra_circuits = dict(
+    config.sonata_circuits = dict(
         sorted(
-            extra_circuits.items(),
+            _circuits.items(),
             key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0]),
         )
     )

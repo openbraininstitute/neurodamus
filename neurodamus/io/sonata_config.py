@@ -18,7 +18,7 @@ class ConnectionTypes(str, Enum):
 
 class SonataConfig:
     __slots__ = (
-        "_bc_circuits",
+        "_circuits",
         "_circuit_networks",
         "_config_dir",
         "_config_json",
@@ -26,7 +26,7 @@ class SonataConfig:
         "_resolved_manifest",
         "_sections",
         "_sim_conf",
-        "circuits",
+        "circuit_conf",
     )
 
     _config_entries = ("network", "target_simulator", "node_sets_file", "node_set")
@@ -57,9 +57,9 @@ class SonataConfig:
                 section_value, self._resolved_manifest
             )
 
-        self.circuits = libsonata.CircuitConfig.from_file(self.network)
-        self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
-        self._bc_circuits = self._blueconfig_circuits()
+        self.circuit_conf = libsonata.CircuitConfig.from_file(self.network)
+        self._circuit_networks = json.loads(self.circuit_conf.expanded_json)["networks"]
+        self._circuits = self._blueconfig_style_circuits()
 
     @classmethod
     def _resolve(cls, entry, name, manifest: dict):
@@ -162,8 +162,8 @@ class SonataConfig:
         # "OutputRoot" and "SpikesFile" will be read from self._sim_conf.output
         # once libsonata resolves the manifest info
         parsed_run["OutputRoot"] = self._sim_conf.output.output_dir
-        parsed_run["config_node_sets_file"] = self.circuits.node_sets_path
-        parsed_run["TargetFile"] = self.circuits.node_sets_path
+        parsed_run["config_node_sets_file"] = self.circuit_conf.node_sets_path
+        parsed_run["TargetFile"] = self.circuit_conf.node_sets_path
         parsed_run["SpikesFile"] = self._sim_conf.output.spikes_file
         parsed_run["SpikesSortOrder"] = self._sim_conf.output.spikes_sort_order.name
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
@@ -202,7 +202,7 @@ class SonataConfig:
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
         return {"Conditions": conditions}
 
-    def _blueconfig_circuits(self):
+    def _blueconfig_style_circuits(self):
         """Yield blue-config-style circuits"""
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
@@ -223,7 +223,7 @@ class SonataConfig:
                     for key, value in population_info.items()
                 },
             )
-            node_prop = self.circuits.node_population_properties(node_pop_name)
+            node_prop = self.circuit_conf.node_population_properties(node_pop_name)
             circuit_conf["MorphologyPath"] = node_prop.morphologies_dir
             circuit_conf["MorphologyType"] = "h5" if node_prop.type == "astrocyte" else "swc"
             circuit_conf["METypePath"] = node_prop.biophysical_neuron_models_dir
@@ -250,8 +250,8 @@ class SonataConfig:
                     break  # Already found
 
                 for edge_pop_name in edge_config["populations"]:
-                    edge_storage = self.circuits.edge_population(edge_pop_name)
-                    edge_type = self.circuits.edge_population_properties(edge_pop_name).type
+                    edge_storage = self.circuit_conf.edge_population(edge_pop_name)
+                    edge_type = self.circuit_conf.edge_population_properties(edge_pop_name).type
                     inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
                     if edge_pop_name == inner_pop_name or (
                         edge_storage.source == edge_storage.target == node_pop_name
@@ -277,7 +277,7 @@ class SonataConfig:
         }
 
     # Compat with BlueConfig circuit definitions
-    Circuit = property(lambda self: self._bc_circuits)
+    Circuit = property(lambda self: self._circuits)
 
     @property
     def parsedProjections(self):
@@ -288,12 +288,12 @@ class SonataConfig:
             "endfoot": ConnectionTypes.GlioVascular,
             "neuromodulatory": ConnectionTypes.NeuroModulation,
         }
-        internal_edge_pops = {c_conf["nrnPath"] for c_conf in self._bc_circuits.values()}
+        internal_edge_pops = {c_conf["nrnPath"] for c_conf in self._circuits.values()}
         projections = {}
 
         for edge_config in self._circuit_networks.get("edges") or []:
             for edge_pop_name, edge_pop_config in edge_config["populations"].items():
-                edge_pop = self.circuits.edge_population(edge_pop_name)
+                edge_pop = self.circuit_conf.edge_population(edge_pop_name)
                 pop_type = edge_pop_config.get("type", "chemical")
                 # skip unhandled synapse type
                 if pop_type not in projection_type_convert:
@@ -326,7 +326,7 @@ class SonataConfig:
                         for pop_name, pop_info in node_file_info["populations"].items():
                             if pop_info.get("type") == "vasculature":
                                 projection["VasculaturePath"] = (
-                                    self.circuits.node_population_properties(pop_name).elements_path
+                                    self.circuit_conf.node_population_properties(pop_name).elements_path
                                 )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"

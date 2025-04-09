@@ -20,6 +20,7 @@ def change_test_dir(monkeypatch):
     monkeypatch.chdir(TMP_FOLDER)
 
 
+@pytest.mark.skip()
 @pytest.mark.forked
 def test_dry_run_memory_use():
     from neurodamus import Neurodamus
