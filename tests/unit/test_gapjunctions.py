@@ -48,9 +48,9 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
 
     cell_manager = nd.circuits.get_node_manager("RingC")
     offset = cell_manager.local_nodes.offset
-    assert offset == 2000
+    assert offset == 0
     gids = cell_manager.get_final_gids()
-    npt.assert_allclose(gids, np.array([2001, 2002, 2003]))
+    npt.assert_allclose(gids, np.array([1, 2, 3]))
 
     # chemical connections RingC -> RingC
     chemical_manager = nd.circuits.get_edge_manager("RingC", "RingC", SynapseRuleManager)
@@ -60,14 +60,14 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
     assert len(list(gj_manager.all_connections())) == 2
     # Ensure we got our GJ instantiated and bi-directional
-    gjs_1 = list(gj_manager.get_connections(post_gids=2001, pre_gids=2003))
+    gjs_1 = list(gj_manager.get_connections(post_gids=1, pre_gids=3))
     assert len(gjs_1) == 1
-    gjs_2 = list(gj_manager.get_connections(post_gids=2003, pre_gids=2001))
+    gjs_2 = list(gj_manager.get_connections(post_gids=3, pre_gids=1))
     assert len(gjs_2) == 1
 
     # check gap junction parameters values without user correction
-    tgt_cellref = cell_manager.getCell(2001)
-    connection = next(gj_manager.get_connections(post_gids=[2003], pre_gids=[2001]))
+    tgt_cellref = cell_manager.getCell(1)
+    connection = next(gj_manager.get_connections(post_gids=[3], pre_gids=[1]))
     assert connection.synapses[0].g == 100
     assert tgt_cellref.soma[0](0.5).pas.g == 0
     assert gj_manager.holding_ic_per_gid is None
@@ -137,13 +137,13 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
 
     # check gap junction parameters after user correction
     cell_manager = nd.circuits.get_node_manager("RingC")
-    tgt_cellref = cell_manager.get_cellref(2001)
+    tgt_cellref = cell_manager.get_cellref(1)
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
-    connection = next(gj_manager.get_connections(post_gids=[2003], pre_gids=[2001]))
+    connection = next(gj_manager.get_connections(post_gids=[3], pre_gids=[1]))
     assert connection.synapses[0].g == 0.2
     assert tgt_cellref.soma[0](0.5).pas.g == 0.033
     assert len(gj_manager.holding_ic_per_gid) == 1
-    iclamp = gj_manager.holding_ic_per_gid[2001]
+    iclamp = gj_manager.holding_ic_per_gid[1]
     assert "IClamp" in iclamp.hname()
     npt.assert_allclose(iclamp.dur, 9e9)
     npt.assert_allclose(iclamp.amp, -0.00108486, rtol=1e-5)
@@ -193,8 +193,8 @@ def test_gap_junction_corrections_find_holding_current(capsys, create_tmp_simula
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
     assert gj_manager.holding_ic_per_gid == {}
     assert len(gj_manager.seclamp_per_gid) == 2
-    assert "SEClamp" in gj_manager.seclamp_per_gid[2001].hname()
-    seclamp = gj_manager.seclamp_per_gid[2001]
+    assert "SEClamp" in gj_manager.seclamp_per_gid[1].hname()
+    seclamp = gj_manager.seclamp_per_gid[1]
     npt.assert_allclose(seclamp.dur1, 9e9)
     npt.assert_allclose(seclamp.amp1, 0.1)
     npt.assert_allclose(seclamp.rs, 0.0000001)
@@ -219,5 +219,5 @@ def test_gap_junction_corrections_find_holding_current(capsys, create_tmp_simula
     assert outfile.exists()
     with open(outfile, "rb") as f:
         data = pickle.load(f)
-    assert list(data.keys()) == [2001, 2002]
-    assert len(data[2001]) == 501
+    assert list(data.keys()) == [1, 2]
+    assert len(data[1]) == 501
