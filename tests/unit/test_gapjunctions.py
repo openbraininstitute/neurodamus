@@ -22,7 +22,7 @@ from pathlib import Path
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "ABC",
+                "node_set": "RingC",
                 "target_simulator": "NEURON",
                 "inputs": {
                     "Stimulus": {
@@ -91,7 +91,7 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "ABC",
+                "node_set": "RingC",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "deterministic_stoch": True,
@@ -161,7 +161,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "ABC",
+                "node_set": "RingC",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "remove_channels": "all",
