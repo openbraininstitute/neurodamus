@@ -302,12 +302,12 @@ class _SimConfig:
         return cls.save or cls.output_root
 
     @classmethod
-    def coreneuron_datadir_save(cls):
+    def coreneuron_datadir_save_path(cls):
         """Default to output_root if none is provided"""
         return cls.coreneuron_datadir or str(Path(cls.save_path()) / "coreneuron_input")
 
     @classmethod
-    def coreneuron_datadir_restore(cls):
+    def coreneuron_datadir_restore_path(cls):
         """Default to output_root if none is provided"""
         return str(Path(cls.restore) / "coreneuron_input")
 
@@ -979,7 +979,7 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
         return
 
     # It's a CoreNeuron run. We have to check if build_model is AUTO or OFF
-    core_data_location = config.coreneuron_datadir_save()
+    core_data_location = config.coreneuron_datadir_save_path()
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
