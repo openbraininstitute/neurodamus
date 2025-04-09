@@ -78,6 +78,8 @@ proc biophys(){
         gkbar_hh = 0.036
         gl_hh = 0.0003
         el_hh = -54.3
+        insert pas
+        g_pas = 0
     }   
     forsec basal {
         insert pas
