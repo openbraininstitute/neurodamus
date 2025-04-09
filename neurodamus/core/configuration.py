@@ -316,17 +316,6 @@ class _SimConfig:
         return str(Path(cls.restore) / "populations_offset.dat")
 
     @classmethod
-    def _pop_offset_file_save(cls, create=False):
-        """Get populations_offset.dat file path to be saved
-
-        Create the folder path if required and needed
-        """
-        outdir = Path(SimConfig.save or SimConfig.output_root)
-        if create:
-            outdir.mkdir(parents=True, exist_ok=True)
-        return str(outdir / "populations_offset.dat")
-
-    @classmethod
     def populations_offset_save_path(cls, create=False):
         """Get polulations_offset path.
 

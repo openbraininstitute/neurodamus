@@ -3,7 +3,6 @@
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta
-from pathlib import Path
 
 import numpy as np
 
@@ -210,19 +209,3 @@ def gen_ranges(limit, blocklen, low=0, block_increase_rate=1):
         yield low, high
         low = high
         blocklen = int(blocklen * block_increase_rate)
-
-
-def check_dir(d):
-    """Checks if directory exists and is a directory.
-    If it doesn't exist, create it.
-    """
-    d = Path(d)
-
-    if d.exists():
-        if not d.is_dir():
-            raise Exception(f"{d} does not name a directory.")
-    else:
-        try:
-            d.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            raise Exception(f"Failed to create OutputRoot directory {d} with {e}")

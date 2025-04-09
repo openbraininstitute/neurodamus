@@ -173,44 +173,6 @@ class _CoreNEURONConfig:
             f.writelines(lines)
 
     @run_only_rank0
-    def write_sim_config(
-        self,
-        tstop,
-        dt,
-        prcellgid,
-        celsius,
-        v_init,
-        pattern=None,
-        seed=None,
-        model_stats=False,
-        enable_reports=True,
-    ):
-        simconf = Path(self.sim_config_file)
-        logging.info(f"Writing sim config file: {simconf}")
-        simconf.parent.mkdir(parents=True, exist_ok=True)
-
-        with simconf.open("w") as fp:
-            fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
-            fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
-            fp.write(f"tstop={tstop}\n")
-            fp.write(f"dt={dt}\n")
-            fp.write(f"prcellgid={int(prcellgid)}\n")
-            fp.write(f"celsius={celsius}\n")
-            fp.write(f"voltage={v_init}\n")
-            fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
-            if pattern:
-                fp.write(f"pattern='{pattern}'\n")
-            if seed:
-                fp.write(f"seed={int(seed)}\n")
-            if model_stats:
-                fp.write("'model-stats'\n")
-            if enable_reports:
-                fp.write(f"report-conf='{self.report_config_file_save}'\n")
-            fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
-
-        logging.info(f" => Dataset written to '{simconf}'")
-
-    @run_only_rank0
     def write_report_config(
         self,
         report_name,
@@ -261,6 +223,44 @@ class _CoreNEURONConfig:
             fp.write(b"\n")
 
     @run_only_rank0
+    def write_sim_config(
+        self,
+        tstop,
+        dt,
+        prcellgid,
+        celsius,
+        v_init,
+        pattern=None,
+        seed=None,
+        model_stats=False,
+        enable_reports=True,
+    ):
+        simconf = Path(self.sim_config_file)
+        logging.info(f"Writing sim config file: {simconf}")
+        simconf.parent.mkdir(parents=True, exist_ok=True)
+
+        with simconf.open("w") as fp:
+            fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
+            fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
+            fp.write(f"tstop={tstop}\n")
+            fp.write(f"dt={dt}\n")
+            fp.write(f"prcellgid={int(prcellgid)}\n")
+            fp.write(f"celsius={celsius}\n")
+            fp.write(f"voltage={v_init}\n")
+            fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
+            if pattern:
+                fp.write(f"pattern='{pattern}'\n")
+            if seed:
+                fp.write(f"seed={int(seed)}\n")
+            if model_stats:
+                fp.write("'model-stats'\n")
+            if enable_reports:
+                fp.write(f"report-conf='{self.report_config_file_save}'\n")
+            fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
+
+        logging.info(f" => Dataset written to '{simconf}'")
+
+    @run_only_rank0
     def write_report_count(self, count, mode="w"):
         report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
@@ -290,8 +290,6 @@ class _CoreNEURONConfig:
             fp.write("\n")
 
     def psolve_core(self, coreneuron_direct_mode=False):
-        save_path, restore_path = self.save_path, self.restore_path
-
         from neuron import coreneuron
 
         from . import NeurodamusCore as Nd
@@ -300,10 +298,10 @@ class _CoreNEURONConfig:
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
         coreneuron.sim_config = f"{self.sim_config_file}"
-        if save_path:
-            coreneuron.save_path = save_path
-        if restore_path:
-            coreneuron.restore_path = restore_path
+        if self.save_path:
+            coreneuron.save_path = self.save_path
+        if self.restore_path:
+            coreneuron.restore_path = self.restore_path
 
         # Model is already written to disk by calling pc.nrncore_write()
         coreneuron.skip_write_model_to_disk = True

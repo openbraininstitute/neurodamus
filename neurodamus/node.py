@@ -203,8 +203,9 @@ class CircuitManager:
     def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
 
-        It is needed as output and in save/restore replay
-        format population name::gid offset::population alias
+        It is needed for retrieving population offsets for reporting and replay at restore time.
+
+        Format population name::gid offset::population alias
         The virtual population offset is also written for synapse replay in restore.
         The data comes from outside because pop_offsets are not initialized
         in a restore scenario.
@@ -224,7 +225,10 @@ class CircuitManager:
         # add a file in output too as it may be needed as simple output
         output_path = SimConfig.populations_offset_output_path(create=True)
         if output_path != save_path:
-            shutil.copy(save_path, output_path)
+            output_path = Path(output_path)
+            if output_path.exists():
+                output_path.unlink()  # Remove the existing file or symlink
+            output_path.symlink_to(save_path)
 
     def get_population_offsets(self):
         pop_offsets = {
