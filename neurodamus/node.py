@@ -225,10 +225,7 @@ class CircuitManager:
         # add a file in output too as it may be needed as simple output
         output_path = SimConfig.populations_offset_output_path(create=True)
         if output_path != save_path:
-            output_path = Path(output_path)
-            if output_path.exists():
-                output_path.unlink()  # Remove the existing file or symlink
-            output_path.symlink_to(save_path)
+            shutil.copy(save_path, output_path)
 
     def get_population_offsets(self):
         pop_offsets = {
