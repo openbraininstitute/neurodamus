@@ -159,7 +159,7 @@ class CircuitManager:
 
         if not self.has_population(destination):
             raise ConfigurationError("Can't find projection Node population: " + destination)
-                
+
         src_manager = self.node_managers.get(source) or self.virtual_node_managers.get(source)
         if src_manager is None:  # src manager may not exist -> virtual
             log_verbose("No known population %s. Creating Virtual src for projection", source)
