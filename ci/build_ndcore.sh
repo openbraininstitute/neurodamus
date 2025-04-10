@@ -32,7 +32,7 @@ mkdir -p $MOD_DIR
 cp -f $CORE_DIR/mod/*.mod $MOD_DIR
 cp -f $NEURODAMUS_MODELS_DIR/common/mod/*.mod $MOD_DIR
 cd $BUILD_DIR
-nrnivmodl -coreneuron -incflags "-DENABLE_CORENEURON -DDISABLE_REPORTINGLIB -DDISABLE_HDF5" $MOD_DIR
+nrnivmodl -coreneuron -incflags "-DENABLE_CORENEURON -DDISABLE_REPORTINGLIB -DDISABLE_HDF5 -DDISABLE_MPI" $MOD_DIR
 ARCH=$(uname -m)
 if [ ! -f $ARCH/special ]; then
     echo "Error running nrnivmodl"
