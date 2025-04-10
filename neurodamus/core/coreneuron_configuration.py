@@ -302,7 +302,9 @@ class _CoreNEURONConfig:
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
         coreneuron.sim_config = f"{self.sim_config_file}"
-        if self.save_path:
+        # set save_path only if the user explicitly asked with --save
+        # in this way we do not create 1_2.dat and time.dat if not needed
+        if SimConfig.save:
             coreneuron.save_path = self.save_path
         if self.restore_path:
             coreneuron.restore_path = self.restore_path

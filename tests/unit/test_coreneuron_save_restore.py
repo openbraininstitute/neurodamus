@@ -112,7 +112,7 @@ def test_file_placement_base(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content | checkpoint_content)
+    check_dir_content("output", output_content)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -142,7 +142,7 @@ def test_file_placement_keep_build(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content | checkpoint_content | removable_checkpoint_content)
+    check_dir_content("output", output_content | removable_checkpoint_content)
     check_dir_content("output/coreneuron_input", coreneuron_input_content)
 
 
