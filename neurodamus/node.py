@@ -1906,21 +1906,36 @@ class Neurodamus(Node):
 
     # -
     def _coreneuron_restore(self):
-        """TODO"""
+        """Restore CoreNEURON simulation state.
+
+        This method sets up the CoreNEURON environment for restoring a simulation:
+        - load targets
+        - enable replay
+        - enable reports (this writes also report.conf)
+        - write sim.conf
+        - set and link coreneuron_datadir to the old restore one
+        """
         log_stage(" =============== CORENEURON RESTORE ===============")
         self.load_targets()
         self.enable_replay()
         if self._run_conf["EnableReports"]:
             self.enable_reports()
 
-        self._setup_coreneuron_restore_environment()
+        self._coreneuron_write_sim_config(corenrn_restore=True)
+        self._setup_coreneuron_datadir_from_restore()
 
         self._sim_ready = True
 
-    def _setup_coreneuron_restore_environment(self):
-        """TODO"""
+    def _setup_coreneuron_datadir_from_restore(self):
+        """Configure the environment for restoring CoreNEURON.
+
+        This involves:
+        - setting the coreneuron_datadir
+        - writing the sim.conf
+        - linking the old coreneuron_datadir to the new one
+        (in save_path or output_root)
+        """
         self._coreneuron_configure_datadir(True, SimConfig.coreneuron_direct_mode)
-        self._coreneuron_write_sim_config(corenrn_restore=True)
 
         # handle coreneuron_input movements
         src_datadir = Path(SimConfig.coreneuron_datadir_restore_path())
