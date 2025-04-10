@@ -96,6 +96,7 @@ def test_basic_system():
     # with the same hoc template name as Cell.py.
     # Neuron 9 throws error during loading "Cell :a template cannot be redefined".
     # To avoid it, we load the cell.hoc file first
+
     Neuron.load_hoc("neurodamus")
 
     c = Cell.Builder.add_soma(60).create()
