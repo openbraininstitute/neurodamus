@@ -1,5 +1,5 @@
 matplotlib
 pytest==7.4
-pytest-forked==1.6
+# pytest-forked==1.6
 scipy~=1.10
 pytest-isolate-mpi==0.2
