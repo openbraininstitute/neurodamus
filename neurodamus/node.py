@@ -994,7 +994,7 @@ class Node:
         if SimConfig.use_coreneuron:
             if SimConfig.restore_coreneuron:
                 # we copy it first. We will proceed to modify
-                # it in _coreneuron_write_report_config later
+                # it in update_report_config later in one go
                 shutil.copy(
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
@@ -1117,15 +1117,16 @@ class Node:
 
     @run_only_rank0
     def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
-        """Configures CoreNEURON reporting based on provided configuration and parameters.
+        """
+        Configure CoreNEURON reporting based on the provided configuration.
 
-        If restoring, updates the stop time without changes. Otherwise, computes the target type
+        Computes the target type (if "Sections" and "Compartments" are specified) 
         and writes the report configuration to CoreConfig.
 
         Args:
-            rep_conf (dict): Report configuration with sections, compartments, and settings.
+            rep_conf (dict): Report configuration with target, sections, and compartments.
             target (Target): Target object with name and GIDs.
-            rep_params (ReportParams): Report parameters including name, type, and report items.
+            rep_params (ReportParams): Report parameters including name, type, and variables.
         """
         target_spec = TargetSpec(rep_conf["Target"])
 

@@ -152,6 +152,10 @@ class _CoreNEURONConfig:
                 key = tuple(parts[0:2])  # Report name and target name
 
                 if key in substitutions:
+                    # This is often but not always tstop:
+                    # newTend = min(tstop, tend) where tend is the ending
+                    # of the report and tstop is the tstop of this simulation
+                    # (potentially between a restore and a save)
                     newTend = substitutions[key]
                     parts[9] = f"{newTend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
