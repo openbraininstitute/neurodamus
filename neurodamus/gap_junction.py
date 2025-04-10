@@ -1,22 +1,31 @@
 """Main module for handling and instantiating synaptical connections"""
 
 import logging
-from os import path as ospath
+import pickle  # noqa: S403
+from pathlib import Path
 
 import numpy as np
 
 from .connection_manager import ConnectionManagerBase
+from .core import MPI, NeurodamusCore as Nd
 from .core.configuration import ConfigurationError, SimConfig
-from .gj_user_corrections import load_user_modifications
+from .gap_junction_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
-from .utils import compat
-from .utils.logging import log_verbose
 
 
 class GapJunctionConnParameters(SynapseParameters):
     # Attribute names of synapse parameters, consistent with the normal synapses
-    _synapse_fields = ("sgid", "isec", "offset", "weight", "D", "F", "ipt", "location")
+    _synapse_fields = (
+        "sgid",
+        "isec",
+        "offset",
+        "weight",
+        "efferent_junction_id",
+        "afferent_junction_id",
+        "ipt",
+        "location",
+    )
 
     @classmethod
     def create_array(cls, length):
@@ -29,8 +38,6 @@ class GapJunctionSynapseReader(SonataReader):
     Parameters = GapJunctionConnParameters
     parameter_mapping = {
         "weight": "conductance",
-        "D": "efferent_junction_id",
-        "F": "afferent_junction_id",
     }
     # "isec", "ipt", "offset" are custom parameters as in base class
 
@@ -43,7 +50,6 @@ class GapJunctionManager(ConnectionManagerBase):
     """
 
     CONNECTIONS_TYPE = ConnectionTypes.GapJunction
-    _gj_offsets = None
     SynapseReader = GapJunctionSynapseReader
 
     def __init__(self, gj_conf, target_manager, cell_manager, src_cell_manager=None, **kw):
@@ -69,28 +75,8 @@ class GapJunctionManager(ConnectionManagerBase):
             cell_manager.circuit_target, src_cell_manager.population_name
         )
         self.holding_ic_per_gid = None
-        self.seclamp_current_per_gid = None
-
-    def open_synapse_file(self, synapse_file, *args, **kw):
-        super().open_synapse_file(synapse_file, *args, **kw)
-        src_is_dir = ospath.isdir(synapse_file)
-        if src_is_dir or synapse_file.endswith("nrn_gj.h5"):
-            gj_dir = synapse_file if src_is_dir else ospath.dirname(synapse_file)
-            self._gj_offsets = self._compute_gj_offsets(gj_dir)
-
-    def _compute_gj_offsets(self, gj_dir):
-        log_verbose("Computing gap-junction offsets from gjinfo.txt")
-        gjfname = ospath.join(gj_dir, "gjinfo.txt")
-        assert ospath.isfile(gjfname), f"Nrn-format GapJunctions require gjinfo.txt: {gj_dir}"
-        gj_offsets = compat.Vector()
-        gj_sum = 0
-
-        for line in open(gjfname):
-            gj_offsets.append(gj_sum)  # fist gid has no offset. the final total is not used
-            _, offset = map(int, line.strip().split())
-            gj_sum += 2 * offset
-
-        return gj_offsets
+        self.seclamp_per_gid = None
+        self.seclamp_current_per_gid_recorder = None
 
     def create_connections(self, *_, **_kw):
         """Gap Junctions dont use connection blocks, connect all belonging to target"""
@@ -105,19 +91,28 @@ class GapJunctionManager(ConnectionManagerBase):
             gj_target_pop := SimConfig.beta_features.get("gapjunction_target_population")
         ) and self.cell_manager.population_name == gj_target_pop:
             logging.info("Load user modification on %s", self)
-            self.holding_ic_per_gid, self.seclamp_current_per_gid = load_user_modifications(self)
+            self.holding_ic_per_gid, self.seclamp_per_gid = load_user_modifications(self)
+            if self.seclamp_per_gid:
+                # Record seclamp currents for saving to a file at the end
+                self.seclamp_current_per_gid_recorder = {}
+                for gid, seclamp in self.seclamp_per_gid.items():
+                    self.seclamp_current_per_gid_recorder[gid] = Nd.h.Vector()
+                    self.seclamp_current_per_gid_recorder[gid].record(seclamp._ref_i)
 
-    def _finalize_conns(self, final_tgid, conns, *_, **_kw):
-        metype = self._cell_manager.get_cell(final_tgid)
-
-        if self._gj_offsets is None:
-            for conn in reversed(conns):
-                conn.finalize_gap_junctions(metype, 0, 0)
-        else:
-            raw_tgid_0base = final_tgid - self.target_pop_offset - 1
-            src_pop_offset = self.src_pop_offset
-            t_gj_offset = self._gj_offsets[raw_tgid_0base]  # Old nrn_gj uses offsets
-            for conn in reversed(conns):
-                raw_sgid_0base = conn.sgid - src_pop_offset - 1
-                conn.finalize_gap_junctions(metype, t_gj_offset, self._gj_offsets[raw_sgid_0base])
+    def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
+        for conn in reversed(conns):
+            conn.finalize_gap_junctions()
         return len(conns)
+
+    def save_seclamp(self):
+        """Save seclamps to a file"""
+        if self.seclamp_current_per_gid_recorder:
+            logging.info("Save SEClamp currents for gap junction user corrections")
+            vals = {
+                gid: hoc_vec.as_numpy()
+                for gid, hoc_vec in self.seclamp_current_per_gid_recorder.items()
+            }
+            output_dir = Path(SimConfig.output_root) / "gap_junction_seclamps"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with open(output_dir / f"data_for_host_{MPI.rank}.p", "wb") as f:
+                pickle.dump(vals, f)

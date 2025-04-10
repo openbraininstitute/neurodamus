@@ -2099,6 +2099,15 @@ class Neurodamus(Node):
         self._touch_file(self._success_file)
         logging.info("Finished! Creating .SUCCESS file: '%s'", self._success_file)
 
+        # Save seclamp holding currents for gap junction user corrections
+        if (
+            gj_target_pop := SimConfig.beta_features.get("gapjunction_target_population")
+        ) and SimConfig.beta_features.get("procedure_type") == "find_holding_current":
+            gj_manager = self._circuits.get_edge_manager(
+                gj_target_pop, gj_target_pop, GapJunctionManager
+            )
+            gj_manager.save_seclamp()
+
         if cleanup:
             self.cleanup()
 
