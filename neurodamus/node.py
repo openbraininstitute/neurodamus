@@ -1117,10 +1117,9 @@ class Node:
 
     @run_only_rank0
     def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
-        """
-        Configure CoreNEURON reporting based on the provided configuration.
+        """Configure CoreNEURON reporting based on the provided configuration.
 
-        Computes the target type (if "Sections" and "Compartments" are specified) 
+        Computes the target type (if "Sections" and "Compartments" are specified)
         and writes the report configuration to CoreConfig.
 
         Args:
