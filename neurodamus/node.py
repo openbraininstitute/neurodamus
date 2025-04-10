@@ -1405,8 +1405,7 @@ class Node:
             corenrn_restore (bool): Flag indicating if CoreNEURON is in restore mode.
             coreneuron_direct_mode (bool): Flag indicating if direct mode is enabled.
         """
-        corenrn_datadir = SimConfig.coreneuron_datadir_save_path()
-        os.makedirs(corenrn_datadir, exist_ok=True)
+        corenrn_datadir = SimConfig.coreneuron_datadir_path(create=True)
         if coreneuron_direct_mode:
             SimConfig.coreneuron_datadir = corenrn_datadir
             return
@@ -1925,7 +1924,7 @@ class Neurodamus(Node):
 
         # handle coreneuron_input movements
         src_datadir = Path(SimConfig.coreneuron_datadir_restore_path())
-        dst_datadir = Path(SimConfig.coreneuron_datadir_save_path())
+        dst_datadir = Path(SimConfig.coreneuron_datadir_path())
         # Check if source directory exists
         if not src_datadir.exists():
             raise FileNotFoundError(
