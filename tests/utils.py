@@ -138,8 +138,9 @@ def compare_json_files(res_file: Path, ref_file: Path):
     assert result == reference
 
 
-def check_directory(dir_name: Path):
+def check_directory(dir_name: "Path | str"):
     """ Check if a directory exists and is not empty """
+    dir_name = Path(dir_name)
     assert dir_name.is_dir(), f"{dir_name} doesn't exist"
     assert any(dir_name.iterdir()), f"{dir_name} is empty"
 
@@ -362,3 +363,18 @@ def read_sonata_spike_file(spike_file):
     timestamps = np.array([x[1] for x in data])
     spike_gids = np.array([x[0] for x in data])
     return timestamps, spike_gids
+
+
+def compare_outdat_files(file1, file2, start_time=None, end_time=None):
+    """Compare two event files within an optional time frame."""
+    start = start_time if start_time is not None else -np.inf
+    end = end_time if end_time is not None else np.inf
+
+    def load_and_filter(file_path):
+        events = np.loadtxt(file_path)
+        return events[(events[:, 0] >= start) & (events[:, 0] <= end)]
+
+    events1 = load_and_filter(file1)
+    events2 = load_and_filter(file2)
+
+    return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
