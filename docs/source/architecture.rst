@@ -193,7 +193,6 @@ considered a cell manager, but by far lighter than a full cell manager.
     provide a population name, have this property as an empty string.
   * circuit_target: The name of the original target/sonata nodeset selecting the cells.
   * circuit_name: The unique name of the circuit (set in BlueConfigs or automatic (Sonata))
-  * is_default: Whether this manager handles the main/base node population (not offset)
   * is_virtual: Whether the population is virtual, i.e. cells are not instantiated, typically for
     the source of projections.
   * connection_managers: A dict of connection managers whose source population is us.

@@ -406,7 +406,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
 
         super().finalize(
             base_Seed,
-            base_connections=base_manager.get_population(0),
+            base_connections=None,
             conn_type="NeuronGlia connections",
         )
 
