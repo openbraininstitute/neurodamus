@@ -43,6 +43,7 @@ from .core.configuration import (
     _SimConfig,
     find_input_file,
     get_debug_cell_gid,
+    _make_circuit_config,
 )
 from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
 from .core.nodeset import PopulationNodes
@@ -528,8 +529,9 @@ class Node:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
         # Always create a cell_distributor even if engine is disabled.
         # Fake CoreNeuron cells are created in it
-        cell_distributor = CellDistributor(self._base_circuit, self._target_manager, self._run_conf)
-        cell_distributor.load_nodes(load_balance, loader_opts=loader_opts)  # no-op if disabled
+        cell_distributor = CellDistributor(
+            circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
+        )
         self._circuits.register_node_manager(cell_distributor)
 
         for name, circuit in self._sonata_circuits.items():
@@ -1013,10 +1015,10 @@ class Node:
                     n_errors += 1
                     continue
 
-            # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
-            target_population = target_spec.population or self._target_spec.population
-            cell_manager = self._circuits.get_node_manager(target_population)
-            cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
+            # # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
+            # target_population = target_spec.population or self._target_spec.population
+            # cell_manager = self._circuits.get_node_manager(target_population)
+            # cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
 
             self._report_list.append(report)
 

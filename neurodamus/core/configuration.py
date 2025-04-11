@@ -644,11 +644,11 @@ def _modification_params(config: _SimConfig, _run_conf):
 
 
 def _make_circuit_config(config_dict, req_morphology=True):
-    if config_dict.get("CircuitPath") == "<NONE>":
+    if config_dict.get("CircuitPath", "<NONE>") == "<NONE>":
         config_dict["CircuitPath"] = False
         config_dict["nrnPath"] = False
         config_dict["MorphologyPath"] = False
-    elif config_dict.get("nrnPath") == "<NONE>":
+    elif config_dict.get("nrnPath", "<NONE>") == "<NONE>":
         config_dict["nrnPath"] = False
     _validate_circuit_morphology(config_dict, req_morphology)
     _validate_file_extension(config_dict.get("CellLibraryFile"))

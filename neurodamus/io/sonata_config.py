@@ -326,7 +326,9 @@ class SonataConfig:
                         for pop_name, pop_info in node_file_info["populations"].items():
                             if pop_info.get("type") == "vasculature":
                                 projection["VasculaturePath"] = (
-                                    self.circuit_conf.node_population_properties(pop_name).elements_path
+                                    self.circuit_conf.node_population_properties(
+                                        pop_name
+                                    ).elements_path
                                 )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
