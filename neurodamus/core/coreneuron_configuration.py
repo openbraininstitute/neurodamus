@@ -153,11 +153,11 @@ class _CoreNEURONConfig:
 
                 if key in substitutions:
                     # This is often but not always tstop:
-                    # newTend = min(tstop, tend) where tend is the ending
+                    # new_tend = min(tstop, tend) where tend is the ending
                     # of the report and tstop is the tstop of this simulation
                     # (potentially between a restore and a save)
-                    newTend = substitutions[key]
-                    parts[9] = f"{newTend:.6f}"
+                    new_tend = substitutions[key]
+                    parts[9] = f"{new_tend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
                     applied_subs.add(key)
             except (UnicodeDecodeError, IndexError):
@@ -306,7 +306,7 @@ class _CoreNEURONConfig:
         # in this way we do not create 1_2.dat and time.dat if not needed
         if SimConfig.save:
             coreneuron.save_path = self.save_path
-        if self.restore_path:
+        if SimConfig.restore:
             coreneuron.restore_path = self.restore_path
 
         # Model is already written to disk by calling pc.nrncore_write()

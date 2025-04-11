@@ -222,7 +222,8 @@ class CircuitManager:
                 for pop, offset in virtual_pop_offsets.items()
             )
 
-        # add a file in output too as it may be needed as simple output
+        # Add a file in output too as it may be needed as simple output
+        # For example, it is needed by the viz team
         output_path = SimConfig.populations_offset_output_path(create=True)
         if output_path != save_path:
             shutil.copy(save_path, output_path)
