@@ -1,7 +1,8 @@
 """
 Tests for using POSIX shared memory /dev/shm for coreneuron_input,
 controlled by CLI option --enable-shm=[ON, OFF], default: OFF
-Prerequisite: an enviroment variable "SHMDIR" points to /dev/shm directory (only for linux)
+Prerequisites: an enviroment variable "SHMDIR" points to /dev/shm directory,
+    /dev/shm is only available in Linux.
 """
 
 
