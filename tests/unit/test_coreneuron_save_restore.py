@@ -137,7 +137,6 @@ def test_file_placement_base(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_file_placement_keep_build(create_tmp_simulation_config_file):
-
     command = ["neurodamus", "simulation_config.json", "--keep-build"]
     subprocess.run(command, check=True, capture_output=True)
 
