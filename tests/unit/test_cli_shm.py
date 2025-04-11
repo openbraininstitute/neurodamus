@@ -5,19 +5,20 @@ Prerequisites: an enviroment variable "SHMDIR" points to /dev/shm directory,
     /dev/shm is only available in Linux.
 """
 
-
 import os
+from pathlib import Path
 
 import pytest
 
 from tests.conftest import PLATFORM_SYSTEM
 
 from neurodamus import Neurodamus
+from neurodamus.core.coreneuron_configuration import CoreConfig
 
 is_linux = PLATFORM_SYSTEM == "Linux"
 # if $SHMDIR not avaible, create one for this test
 if is_linux and "SHMDIR" not in os.environ:
-    os.environ["SHMDIR"] = "/dev/shm"
+    os.environ["SHMDIR"] = "/dev/shm"  # noqa: S108
 
 
 @pytest.mark.parametrize(
@@ -36,11 +37,15 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
 
     shm_transfer_message_warning = "Unknown SHM directory for model file transfer in CoreNEURON."
     shm_transfer_message_enabled = "SHM file transfer mode for CoreNEURON enabled"
+    shm_deletion_message = "Deleting intermediate SHM data in"
 
     if is_linux:
+        assert Path(CoreConfig.datadir).is_relative_to(os.environ["SHMDIR"])
         assert shm_transfer_message_enabled in captured.out
+        assert f"{shm_deletion_message} {CoreConfig.datadir}" in captured.out
     else:
         assert shm_transfer_message_warning in captured.out
+        assert shm_deletion_message not in captured.out
 
 
 @pytest.mark.parametrize(
@@ -54,6 +59,7 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
     indirect=True,
 )
 def test_cli_disableshm(create_tmp_simulation_config_file, capsys):
+    """By defaut, enable_shm=False"""
     Neurodamus(create_tmp_simulation_config_file).run()
     captured = capsys.readouterr()
 
