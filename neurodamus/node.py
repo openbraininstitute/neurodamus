@@ -39,9 +39,9 @@ from .core.configuration import (
     Feature,
     GlobalConfig,
     SimConfig,
+    _make_circuit_config,
     find_input_file,
     get_debug_cell_gid,
-    _make_circuit_config,
 )
 from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
 from .core.nodeset import PopulationNodes

@@ -18,8 +18,8 @@ class ConnectionTypes(str, Enum):
 
 class SonataConfig:
     __slots__ = (
-        "_circuits",
         "_circuit_networks",
+        "_circuits",
         "_config_dir",
         "_config_json",
         "_entries",
