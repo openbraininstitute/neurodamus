@@ -346,6 +346,7 @@ class _SimConfig:
 
         Create the folder path if required and needed
         """
+
         outdir = Path(SimConfig.output_root)
         if create:
             outdir.mkdir(parents=True, exist_ok=True)
