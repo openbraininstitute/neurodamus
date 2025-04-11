@@ -1,6 +1,7 @@
 import json
 import pytest
 from pathlib import Path
+import platform
 
 # utils needs to be registered to let pytest rewrite
 # properly the assert errors. Either import it or use:
@@ -15,6 +16,7 @@ pytest.register_assert_rewrite("tests.utils")
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
+PLATFORM_SYSTEM = platform.system()
 
 
 @pytest.fixture(scope="session")
