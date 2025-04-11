@@ -1484,8 +1484,8 @@ class Node:
         if not corenrn_restore:
             CompartmentMapping(self._circuits.global_manager).register_mapping()
             if not SimConfig.coreneuron_direct_mode:
-                with self._coreneuron_ensure_all_ranks_have_gids(SimConfig.coreneuron_datadir):
-                    self._pc.nrnbbcore_write(SimConfig.coreneuron_datadir)
+                with self._coreneuron_ensure_all_ranks_have_gids(CoreConfig.datadir):
+                    self._pc.nrnbbcore_write(CoreConfig.datadir)
                     MPI.barrier()  # wait for all ranks to finish corenrn data generation
 
         CoreConfig.write_sim_config(
