@@ -98,11 +98,16 @@ def test_dry_run_distribute_cells():
     Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_dry_run_dynamic_distribute():
+def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
 
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=False, lb_mode="Memory",
+    nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
     rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
