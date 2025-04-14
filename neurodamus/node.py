@@ -1737,6 +1737,8 @@ class Node:
         """Clean coreneuron save files after running"""
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
+        assert data_folder.is_dir(), "Data folder must be a directory"
+        assert data_folder.exists(), "Data folder must exist"
 
         if data_folder.is_symlink():
             # in restore, coreneuron data is a symbolic link
@@ -1751,13 +1753,6 @@ class Node:
         report_file = Path(CoreConfig.report_config_file_save)
         if report_file.exists():
             Path(CoreConfig.report_config_file_save).unlink()
-
-        # Delete the SHM folder if it was used
-        if self._shm_enabled:
-            data_folder_shm = SHMUtil.get_datadir_shm(data_folder)
-            logging.info("Deleting intermediate SHM data in %s", data_folder_shm)
-            assert Path(data_folder_shm).is_dir() and Path(data_folder_shm).exists()
-            subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
     def cleanup(self):
         """Have the compute nodes wrap up tasks before exiting."""
