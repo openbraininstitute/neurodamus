@@ -235,7 +235,6 @@ class _SimConfig:
     build_model = True
     simulate_model = True
     loadbal_mode = None
-    synapse_options = {}
     spike_location = "soma"
     spike_threshold = -30
     dry_run = False

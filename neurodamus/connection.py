@@ -458,14 +458,6 @@ class Connection(ConnectionBase):
 
                 syn_obj.setup_delay_vecs(self._delay_vec, self._delayweight_vec)
 
-        # Apply configurations to the synapses
-        # Set global options in mod overrides
-        for mod_override in self._mod_overrides:
-            for syn_option, value in SimConfig.synapse_options.items():
-                syn_opt_name = f"{syn_option}_{mod_override}"
-                if hasattr(Nd.h, syn_opt_name):
-                    setattr(Nd.h, syn_opt_name, value)
-
         self._configure_synapses()
         return n_syns
 
