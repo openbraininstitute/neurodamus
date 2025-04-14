@@ -919,7 +919,7 @@ def _output_root(config: _SimConfig, run_conf):
         output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
-    if not os.path.isabs(output_path):
+    if not output_path.is_absolute():
         output_path = Path(config.current_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)

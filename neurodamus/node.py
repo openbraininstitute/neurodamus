@@ -1271,7 +1271,6 @@ class Node:
 
         self._finalize_model(**sim_opts)
 
-        print(f"DEBUG: corenrn_gen: {corenrn_gen}")
         if corenrn_gen is None:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
