@@ -1760,8 +1760,10 @@ class Node:
             subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
         print("AAAAAAAAA")
+        exit()
 
     def cleanup(self):
+        print("cleanup AAAAAAAAA")
         """Have the compute nodes wrap up tasks before exiting."""
         # MemUsage constructor will do MPI communications
         print_mem_usage()
@@ -1769,6 +1771,8 @@ class Node:
         # Coreneuron runs clear the model before starting
         if not SimConfig.use_coreneuron or SimConfig.simulate_model is False:
             self.clear_model(avoid_creating_objs=True)
+
+        print("bau: ", SimConfig.delete_corenrn_data, SimConfig.dry_run)
 
         if SimConfig.delete_corenrn_data and not SimConfig.dry_run:
             with timeit(name="Delete corenrn data"):
