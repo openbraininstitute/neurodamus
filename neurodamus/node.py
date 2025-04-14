@@ -1753,17 +1753,12 @@ class Node:
             Path(CoreConfig.report_config_file_save).unlink()
 
         # Delete the SHM folder if it was used
-        print("AAAAAAAAA")
         if self._shm_enabled:
             data_folder_shm = SHMUtil.get_datadir_shm(data_folder)
             logging.info("Deleting intermediate SHM data in %s", data_folder_shm)
             subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
-        print("AAAAAAAAA")
-        exit()
-
     def cleanup(self):
-        print("cleanup AAAAAAAAA")
         """Have the compute nodes wrap up tasks before exiting."""
         # MemUsage constructor will do MPI communications
         print_mem_usage()
