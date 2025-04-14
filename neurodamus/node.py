@@ -1738,15 +1738,25 @@ class Node:
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
 
-        if data_folder.exists() and data_folder.is_dir():
-            # faster than shutil
-            subprocess.call(["/bin/rm", "-rf", data_folder])
-        sim_file = Path(CoreConfig.sim_config_file)
-        if sim_file.exists():
-            sim_file.unlink()
+        if data_folder.is_symlink():
+            # in restore, coreneuron data is a symbolic link
+            data_folder.unlink()
+        else:
+            subprocess.call(["/bin/rm", "-rf", str(data_folder)])
+
+        sim_conf = Path(CoreConfig.sim_config_file)
+        if sim_conf.exists():
+            sim_conf.unlink()
+
         report_file = Path(CoreConfig.report_config_file_save)
         if report_file.exists():
             Path(CoreConfig.report_config_file_save).unlink()
+
+        # Delete the SHM folder if it was used
+        if self._shm_enabled:
+            data_folder_shm = SHMUtil.get_datadir_shm(data_folder)
+            logging.info("Deleting intermediate SHM data in %s", data_folder_shm)
+            subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
     def cleanup(self):
         """Have the compute nodes wrap up tasks before exiting."""
