@@ -115,7 +115,7 @@ class _CoreNEURONConfig:
     @property
     def save_path(self):
         """Save root folder"""
-        return SimConfig.save_path()
+        return SimConfig.generated_ouput_path()
 
     @property
     def restore_path(self):

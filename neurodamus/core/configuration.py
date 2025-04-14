@@ -297,14 +297,14 @@ class _SimConfig:
         cls._init_hoc_config_objs()
 
     @classmethod
-    def save_path(cls):
+    def generated_ouput_path(cls):
         """Default to output_root if none is provided"""
         return cls.save or cls.output_root
 
     @classmethod
     def coreneuron_datadir_path(cls, create=False):
         """Default to output_root if none is provided"""
-        ans = cls.coreneuron_datadir or str(Path(cls.save_path()) / "coreneuron_input")
+        ans = cls.coreneuron_datadir or str(Path(cls.generated_ouput_path()) / "coreneuron_input")
         if create:
             Path(ans).mkdir(parents=True, exist_ok=True)
         return ans
@@ -324,7 +324,7 @@ class _SimConfig:
 
         Optional: create pathing folders if necessary
         """
-        ans = Path(cls.save_path()) / "populations_offset.dat"
+        ans = Path(cls.generated_ouput_path()) / "populations_offset.dat"
         if create:
             ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
