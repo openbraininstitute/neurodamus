@@ -35,12 +35,12 @@ from .core import (
 from .core._engine import EngineBase
 from .core._shmutils import SHMUtil
 from .core.configuration import (
-    _SimConfig,
     CircuitConfig,
     ConfigurationError,
     Feature,
     GlobalConfig,
     SimConfig,
+    _SimConfig,
     find_input_file,
     get_debug_cell_gid,
 )
