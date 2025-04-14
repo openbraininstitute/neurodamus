@@ -304,7 +304,8 @@ class _SimConfig:
     def coreneuron_datadir_path(cls, create=False):
         """Default to output_root if none is provided"""
         print(f"a: {cls.coreneuron_datadir}")
-        print(f"b: {str(Path(cls.generated_ouput_path()) / "coreneuron_input")}")
+        b = str(Path(cls.generated_ouput_path()) / "coreneuron_input")
+        print(f"b: {b}")
         ans = cls.coreneuron_datadir or str(Path(cls.generated_ouput_path()) / "coreneuron_input")
         if create:
             Path(ans).mkdir(parents=True, exist_ok=True)
