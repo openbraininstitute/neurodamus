@@ -1473,7 +1473,7 @@ class Node:
                     (shm_avail >> 20),
                     (mem_avail >> 20),
                 )
-        SimConfig.coreneuron_datadir = (
+        _SimConfig.coreneuron_datadir = (
             corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
         )
 
