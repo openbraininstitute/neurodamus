@@ -1393,88 +1393,160 @@ class Node:
         if not mapping_file.is_file():
             mapping_file.write_text(f"{coredata_version}\n0\n")
 
-    def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
-        """Configures the CoreNEURON data directory and handles shared memory (SHM) setup.
+def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
+    print("\n=== DEBUG: START _coreneuron_configure_datadir ===")
+    print(f"corenrn_restore = {corenrn_restore}")
+    print(f"coreneuron_direct_mode = {coreneuron_direct_mode}")
 
-        - Creates the data directory if it doesn't exist.
-        - If in direct mode, sets the directory and returns.
-        - If restoring, skips the setup.
-        - If not restoring, checks if SHM should be enabled based on available memory,
-          and sets up symlinks for CoreNEURON's necessary files in SHM.
+    corenrn_datadir = SimConfig.coreneuron_datadir_path(create=True)
+    print(f"corenrn_datadir = {corenrn_datadir}")
 
-        Args:
-            corenrn_restore (bool): Flag indicating if CoreNEURON is in restore mode.
-            coreneuron_direct_mode (bool): Flag indicating if direct mode is enabled.
-        """
-        corenrn_datadir = SimConfig.coreneuron_datadir_path(create=True)
-        if coreneuron_direct_mode:
-            SimConfig.coreneuron_datadir = corenrn_datadir
-            return
-        corenrn_datadir_shm = SHMUtil.get_datadir_shm(corenrn_datadir)
+    if coreneuron_direct_mode:
+        print("Direct mode enabled, skipping SHM setup.")
+        print("=== DEBUG: END _coreneuron_configure_datadir ===\n")
+        return
 
-        # Clean-up any previous simulations in the same output directory
-        if self._cycle_i == 0 and corenrn_datadir_shm:
-            subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
+    corenrn_datadir_shm = SHMUtil.get_datadir_shm(corenrn_datadir)
+    print(f"corenrn_datadir_shm = {corenrn_datadir_shm}")
 
-        # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
-        if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
-            logging.warning("Unknown SHM directory for model file transfer in CoreNEURON.")
-        # Try to configure the /dev/shm folder as the output directory for the files
-        elif (
-            self._cycle_i == 0
-            and not corenrn_restore
-            and (SimConfig.cli_options.enable_shm and SimConfig.delete_corenrn_data)
-        ):
-            # Check for the available memory in /dev/shm and estimate the RSS by multiplying
-            # the number of cycles in the multi-step model build with an approximate
-            # factor
-            mem_avail = SHMUtil.get_mem_avail()
-            shm_avail = SHMUtil.get_shm_avail()
-            initial_rss = self._initial_rss
-            current_rss = SHMUtil.get_node_rss()
-            factor = SHMUtil.get_shm_factor()
-            rss_diff = (current_rss - initial_rss) if initial_rss < current_rss else current_rss
-            # 'rss_diff' prevents <0 estimates
-            rss_req = int(rss_diff * self._n_cycles * factor)
+    if self._cycle_i == 0 and corenrn_datadir_shm:
+        print("Cleaning existing SHM datadir...")
+        subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
 
-            # Sync condition value with all ranks to ensure that all of them can use
-            # /dev/shm
-            shm_possible = (rss_req < shm_avail) and (rss_req < mem_avail)
-            if MPI.allreduce(int(shm_possible), MPI.SUM) == MPI.size:
-                logging.info("SHM file transfer mode for CoreNEURON enabled")
+    if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
+        print("WARNING: SHM enabled but datadir_shm is None")
+    elif (
+        self._cycle_i == 0
+        and not corenrn_restore
+        and (SimConfig.cli_options.enable_shm and SimConfig.delete_corenrn_data)
+    ):
+        mem_avail = SHMUtil.get_mem_avail()
+        shm_avail = SHMUtil.get_shm_avail()
+        initial_rss = self._initial_rss
+        current_rss = SHMUtil.get_node_rss()
+        factor = SHMUtil.get_shm_factor()
+        rss_diff = (current_rss - initial_rss) if initial_rss < current_rss else current_rss
+        rss_req = int(rss_diff * self._n_cycles * factor)
 
-                # Create SHM folder and links to GPFS for the global data structures
-                os.makedirs(corenrn_datadir_shm, exist_ok=True)
+        print(f"mem_avail = {mem_avail}")
+        print(f"shm_avail = {shm_avail}")
+        print(f"initial_rss = {initial_rss}")
+        print(f"current_rss = {current_rss}")
+        print(f"rss_diff = {rss_diff}")
+        print(f"rss_req = {rss_req}")
+        print(f"n_cycles = {self._n_cycles}")
+        print(f"shm_factor = {factor}")
 
-                # Important: These three files must be available on every node, as they are shared
-                #            across all of the processes. The trick here is to fool NEURON into
-                #            thinking that the files are written in /dev/shm, but they are actually
-                #            written on GPFS. The workflow is identical, meaning that rank 0 writes
-                #            the content and every other rank reads it afterwards in CoreNEURON.
-                for filename in ("bbcore_mech.dat", "files.dat", "globals.dat"):
-                    path = os.path.join(corenrn_datadir, filename)
-                    path_shm = os.path.join(corenrn_datadir_shm, filename)
+        shm_possible = (rss_req < shm_avail) and (rss_req < mem_avail)
+        all_can_use_shm = MPI.allreduce(int(shm_possible), MPI.SUM) == MPI.size
+        print(f"shm_possible = {shm_possible}, all_can_use_shm = {all_can_use_shm}")
 
-                    try:
-                        os.close(os.open(path, os.O_CREAT))
-                        os.symlink(path, path_shm)
-                    except FileExistsError:
-                        pass  # Ignore if other process has already created it
+        if all_can_use_shm:
+            print("Creating SHM directory and symlinks...")
+            os.makedirs(corenrn_datadir_shm, exist_ok=True)
+            for filename in ("bbcore_mech.dat", "files.dat", "globals.dat"):
+                path = os.path.join(corenrn_datadir, filename)
+                path_shm = os.path.join(corenrn_datadir_shm, filename)
+                print(f"Linking {path} -> {path_shm}")
+                try:
+                    os.close(os.open(path, os.O_CREAT))
+                    os.symlink(path, path_shm)
+                except FileExistsError:
+                    print(f"File {path_shm} already exists, skipping")
+            self._shm_enabled = True
+        else:
+            print(
+                f"WARNING: SHM not possible (rss_req={rss_req >> 20} MB, shm_avail={shm_avail >> 20} MB, mem_avail={mem_avail >> 20} MB)"
+            )
 
-                # Update the flag to confirm the configuration
-                self._shm_enabled = True
-            else:
-                logging.warning(
-                    "Unable to utilize SHM for model file transfer in CoreNEURON. "
-                    "Increase the number of nodes to reduce the memory footprint "
-                    "(Current use node: %d MB / SHM Limit: %d MB / Mem. Limit: %d MB)",
-                    (rss_req >> 20),
-                    (shm_avail >> 20),
-                    (mem_avail >> 20),
-                )
-        SimConfig.coreneuron_datadir = (
-            corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
-        )
+    final_datadir = corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
+    print(f"Final coreneuron_datadir = {final_datadir}")
+    SimConfig.coreneuron_datadir = final_datadir
+
+    print("=== DEBUG: END _coreneuron_configure_datadir ===\n")
+
+
+    # def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
+    #     """Configures the CoreNEURON data directory and handles shared memory (SHM) setup.
+
+    #     - Creates the data directory if it doesn't exist.
+    #     - If in direct mode, returns immediately since the default behavior is fine.
+    #     - If restoring, skips the setup.
+    #     - If not restoring, checks if SHM should be enabled based on available memory,
+    #       and sets up symlinks for CoreNEURON's necessary files in SHM.
+
+    #     Args:
+    #         corenrn_restore (bool): Flag indicating if CoreNEURON is in restore mode.
+    #         coreneuron_direct_mode (bool): Flag indicating if direct mode is enabled.
+    #     """
+    #     corenrn_datadir = SimConfig.coreneuron_datadir_path(create=True)
+    #     if coreneuron_direct_mode:
+    #         return
+    #     corenrn_datadir_shm = SHMUtil.get_datadir_shm(corenrn_datadir)
+
+    #     # Clean-up any previous simulations in the same output directory
+    #     if self._cycle_i == 0 and corenrn_datadir_shm:
+    #         subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
+
+    #     # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
+    #     if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
+    #         logging.warning("Unknown SHM directory for model file transfer in CoreNEURON.")
+    #     # Try to configure the /dev/shm folder as the output directory for the files
+    #     elif (
+    #         self._cycle_i == 0
+    #         and not corenrn_restore
+    #         and (SimConfig.cli_options.enable_shm and SimConfig.delete_corenrn_data)
+    #     ):
+    #         # Check for the available memory in /dev/shm and estimate the RSS by multiplying
+    #         # the number of cycles in the multi-step model build with an approximate
+    #         # factor
+    #         mem_avail = SHMUtil.get_mem_avail()
+    #         shm_avail = SHMUtil.get_shm_avail()
+    #         initial_rss = self._initial_rss
+    #         current_rss = SHMUtil.get_node_rss()
+    #         factor = SHMUtil.get_shm_factor()
+    #         rss_diff = (current_rss - initial_rss) if initial_rss < current_rss else current_rss
+    #         # 'rss_diff' prevents <0 estimates
+    #         rss_req = int(rss_diff * self._n_cycles * factor)
+
+    #         # Sync condition value with all ranks to ensure that all of them can use
+    #         # /dev/shm
+    #         shm_possible = (rss_req < shm_avail) and (rss_req < mem_avail)
+    #         if MPI.allreduce(int(shm_possible), MPI.SUM) == MPI.size:
+    #             logging.info("SHM file transfer mode for CoreNEURON enabled")
+
+    #             # Create SHM folder and links to GPFS for the global data structures
+    #             os.makedirs(corenrn_datadir_shm, exist_ok=True)
+
+    #             # Important: These three files must be available on every node, as they are shared
+    #             #            across all of the processes. The trick here is to fool NEURON into
+    #             #            thinking that the files are written in /dev/shm, but they are actually
+    #             #            written on GPFS. The workflow is identical, meaning that rank 0 writes
+    #             #            the content and every other rank reads it afterwards in CoreNEURON.
+    #             for filename in ("bbcore_mech.dat", "files.dat", "globals.dat"):
+    #                 path = os.path.join(corenrn_datadir, filename)
+    #                 path_shm = os.path.join(corenrn_datadir_shm, filename)
+
+    #                 try:
+    #                     os.close(os.open(path, os.O_CREAT))
+    #                     os.symlink(path, path_shm)
+    #                 except FileExistsError:
+    #                     pass  # Ignore if other process has already created it
+
+    #             # Update the flag to confirm the configuration
+    #             self._shm_enabled = True
+    #         else:
+    #             logging.warning(
+    #                 "Unable to utilize SHM for model file transfer in CoreNEURON. "
+    #                 "Increase the number of nodes to reduce the memory footprint "
+    #                 "(Current use node: %d MB / SHM Limit: %d MB / Mem. Limit: %d MB)",
+    #                 (rss_req >> 20),
+    #                 (shm_avail >> 20),
+    #                 (mem_avail >> 20),
+    #             )
+    #     SimConfig.coreneuron_datadir = (
+    #         corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
+    #     )
 
     # -
     @timeit(name="corewrite")
