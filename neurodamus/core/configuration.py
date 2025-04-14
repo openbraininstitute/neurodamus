@@ -205,7 +205,6 @@ class _SimConfig:
     stimuli = None
     injects = None
     reports = None
-    configures = None
     modifications = None
     beta_features = None
 
@@ -275,7 +274,6 @@ class _SimConfig:
         cls.stimuli = cls._config_parser.parsedStimuli
         cls.injects = cls._config_parser.parsedInjects
         cls.reports = cls._config_parser.parsedReports
-        cls.configures = cls._config_parser.parsedConfigures or {}
         cls.modifications = cls._config_parser.parsedModifications or {}
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
