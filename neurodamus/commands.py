@@ -56,7 +56,7 @@ def neurodamus(args=None):
         --restore=<PATH>        Restore and resume simulation from a save point on disk. Only
                                 available for CoreNEURON.
         --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
-        --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input [default: ON]
+        --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input [default: OFF]
         --model-stats           Show model stats in CoreNEURON simulations [default: False]
         --dry-run               Dry-run simulation to estimate memory usage [default: False]
         --crash-test            Run the simulation with single section cells and single synapses
