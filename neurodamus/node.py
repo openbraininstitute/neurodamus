@@ -1756,6 +1756,7 @@ class Node:
         if self._shm_enabled:
             data_folder_shm = SHMUtil.get_datadir_shm(data_folder)
             logging.info("Deleting intermediate SHM data in %s", data_folder_shm)
+            assert Path(data_folder_shm).is_dir() and Path(data_folder_shm).exists()
             subprocess.call(["/bin/rm", "-rf", data_folder_shm])
 
     def cleanup(self):
