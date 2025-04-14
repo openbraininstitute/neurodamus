@@ -47,6 +47,7 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
             f"Expected: '{shm_deletion_message} {CoreConfig.datadir}'\n"
             f"Captured output:\n{captured.out!r}"
         )
+
     else:
         assert shm_transfer_message_warning in captured.out
         assert shm_deletion_message not in captured.out
