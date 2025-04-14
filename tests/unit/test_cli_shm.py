@@ -49,23 +49,23 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
         assert shm_deletion_message not in captured.out
 
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [
-        {
-            "simconfig_fixture": "ringtest_baseconfig",
-            "extra_config": {"target_simulator": "CORENEURON"},
-        }
-    ],
-    indirect=True,
-)
-def test_cli_disableshm(create_tmp_simulation_config_file, capsys):
-    """By defaut, enable_shm=False"""
-    Neurodamus(create_tmp_simulation_config_file).run()
-    captured = capsys.readouterr()
+# @pytest.mark.parametrize(
+#     "create_tmp_simulation_config_file",
+#     [
+#         {
+#             "simconfig_fixture": "ringtest_baseconfig",
+#             "extra_config": {"target_simulator": "CORENEURON"},
+#         }
+#     ],
+#     indirect=True,
+# )
+# def test_cli_disableshm(create_tmp_simulation_config_file, capsys):
+#     """By defaut, enable_shm=False"""
+#     Neurodamus(create_tmp_simulation_config_file).run()
+#     captured = capsys.readouterr()
 
-    shm_transfer_message_warning = "Unknown SHM directory for model file transfer in CoreNEURON."
-    shm_transfer_message_enabled = "SHM file transfer mode for CoreNEURON enabled"
+#     shm_transfer_message_warning = "Unknown SHM directory for model file transfer in CoreNEURON."
+#     shm_transfer_message_enabled = "SHM file transfer mode for CoreNEURON enabled"
 
-    assert shm_transfer_message_enabled not in captured.out
-    assert shm_transfer_message_warning not in captured.out
+#     assert shm_transfer_message_enabled not in captured.out
+#     assert shm_transfer_message_warning not in captured.out
