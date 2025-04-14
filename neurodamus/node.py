@@ -1270,6 +1270,7 @@ class Node:
 
         self._finalize_model(**sim_opts)
 
+        print(f"DEBUG: corenrn_gen: {corenrn_gen}")
         if corenrn_gen is None:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
@@ -1464,6 +1465,7 @@ class Node:
         SimConfig.coreneuron_datadir = final_datadir
 
         print("=== DEBUG: END _coreneuron_configure_datadir ===\n")
+        exit()
 
 
     # def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
