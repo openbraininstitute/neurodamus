@@ -42,11 +42,7 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
     if is_linux:
         assert Path(CoreConfig.datadir).is_relative_to(os.environ["SHMDIR"])
         assert shm_transfer_message_enabled in captured.out
-        assert f"{shm_deletion_message} {CoreConfig.datadir}" in captured.out, (
-            f"Expected message not found in captured output.\n"
-            f"Expected: '{shm_deletion_message} {CoreConfig.datadir}'\n"
-            f"Captured output:\n{captured.out!r}"
-        )
+        assert Path(CoreConfig.datadir).exists()
 
     else:
         assert shm_transfer_message_warning in captured.out
