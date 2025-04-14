@@ -97,7 +97,6 @@ class CircuitConfig(ConfigT):
     CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
     CellLibraryFile = None
-    MEComboInfoFile = None
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
