@@ -35,6 +35,7 @@ from .core import (
 from .core._engine import EngineBase
 from .core._shmutils import SHMUtil
 from .core.configuration import (
+    _SimConfig,
     CircuitConfig,
     ConfigurationError,
     Feature,
@@ -1467,7 +1468,7 @@ class Node:
 
         final_datadir = corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
         print(f"Final coreneuron_datadir = {final_datadir}")
-        SimConfig.coreneuron_datadir = final_datadir
+        _SimConfig.coreneuron_datadir = final_datadir # set the class value, not the instance one
 
         print("=== DEBUG: END _coreneuron_configure_datadir ===\n")
 
