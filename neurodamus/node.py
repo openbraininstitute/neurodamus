@@ -1275,6 +1275,10 @@ class Node:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
             self._coreneuron_configure_datadir(False, SimConfig.coreneuron_direct_mode)
+            print("----")
+            print(f"SimConfig.coreneuron_datadir = {SimConfig.coreneuron_datadir}")
+            print(f"CoreConfig.datadir = {CoreConfig.datadir}")
+            exit()
             self._coreneuron_write_sim_config()
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
@@ -1464,8 +1468,10 @@ class Node:
         print(f"Final coreneuron_datadir = {final_datadir}")
         SimConfig.coreneuron_datadir = final_datadir
 
+        print(f"SimConfig.coreneuron_datadir = {SimConfig.coreneuron_datadir}")
+        print(f"CoreConfig.datadir = {CoreConfig.datadir}")
+
         print("=== DEBUG: END _coreneuron_configure_datadir ===\n")
-        exit()
 
 
     # def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
