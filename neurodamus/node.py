@@ -1276,11 +1276,6 @@ class Node:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
             self._coreneuron_configure_datadir(False, SimConfig.coreneuron_direct_mode)
-            print("----")
-            print(f"SimConfig.coreneuron_datadir = {SimConfig.coreneuron_datadir}")
-            print(f"SimConfig.coreneuron_datadir_path() = {SimConfig.coreneuron_datadir_path()}")
-            print(f"CoreConfig.datadir = {CoreConfig.datadir}")
-            exit()
             self._coreneuron_write_sim_config()
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
