@@ -55,23 +55,26 @@ def change_test_dir(monkeypatch, tmp_path):
 
 @pytest.fixture
 def create_tmp_simulation_config_file(request, tmp_path):
-    """create simulation config file in tmp_path from
+    """create simulation config file in mpi_tmp_path from
         1. simconfig_fixture in request: fixture's name (str)
         2. or simconfig_data in request: dict
         3. or copy of simconfig_file in request, and attach relative paths to src_dir
     Updates the config file with extra_config
     Returns the tmp file path
     """
+
     # import locally to register it in the pytests.
     # check the explanation about
     # pytest.register_assert_rewrite("tests.utils")
     # at the beginning of the file
     from tests import utils
+    # tmp_path = mpi_tmp_path
 
     params = request.param
     src_dir = Path(params.get("src_dir", ""))
     config_file = Path(params.get("simconfig_file", "simulation_config.json"))
     sim_config_data = params.get("simconfig_data")
+    # if comm.rank == 0:
 
     if "simconfig_fixture" in params:
         sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
@@ -97,6 +100,8 @@ def create_tmp_simulation_config_file(request, tmp_path):
 
     with open(tmp_path / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
+
+    # comm.barrier()
     return str(tmp_path / config_file)
 
 
