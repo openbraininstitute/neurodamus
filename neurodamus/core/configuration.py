@@ -913,13 +913,13 @@ def _current_dir(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _output_root(config: _SimConfig, run_conf):
     """Confirm output_path exists and is usable"""
-    output_path = Path(run_conf.get("OutputRoot"))
+    output_path = run_conf.get("OutputRoot")
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
-    if not output_path.is_absolute():
+    if not Path(output_path).is_absolute():
         output_path = Path(config.current_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
