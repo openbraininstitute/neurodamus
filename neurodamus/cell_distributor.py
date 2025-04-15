@@ -177,8 +177,6 @@ class CellManagerBase(_CellManager):
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
         self._population_name = pop
-        if not pop:
-            raise Exception("Could not discover population name.")
         self._local_nodes = NodeSet().register_global(pop)
 
     @classmethod
@@ -186,7 +184,10 @@ class CellManagerBase(_CellManager):
         import libsonata  # only for SONATA
 
         pop_names = libsonata.NodeStorage(node_file).population_names
-        assert len(pop_names) == 1
+        if len(pop_names) != 1:
+            raise ConfigurationError(
+                "Could not determine population name from sonata file circuit."
+            )
         return next(iter(pop_names), None)
 
     def load_nodes(self, load_balancer=None, *, _loader=None, loader_opts=None):
