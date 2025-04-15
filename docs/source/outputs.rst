@@ -30,6 +30,9 @@ Contents:
   - ``out.dat``: Plain text file listing spike events (only present when using CoreNEURON)
   - ``out.h5``: HDF5 version of the same data for efficient access
 
+More info here: `SONATA Developer Guide – Spike File <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#spike-file>`_
+
+
   Both contain a table with two columns:
   
   1. **gid** - the global identifier of the neuron that spiked  
