@@ -9,7 +9,7 @@ from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
 from tests import utils
 
-from ..conftest import RINGTEST
+from .conftest import RINGTEST_DIR
 
 
 def check_cell(cell):
@@ -22,7 +22,7 @@ def check_cell(cell):
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
-            "network": str(RINGTEST / "circuit_config_RingB.json"),
+            "network": str(RINGTEST_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "NEURON"
         }
@@ -30,7 +30,7 @@ def check_cell(cell):
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
-            "network": str(RINGTEST / "circuit_config_RingB.json"),
+            "network": str(RINGTEST_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "CORENEURON"
         }
@@ -100,7 +100,7 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         # dump cell/synapses/netcons states to a json and compare with ref
         outputfile = "cellstate_" + str(tgid) + ".json"
         dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
-        reference = RINGTEST / "reference" / outputfile
+        reference = RINGTEST_DIR / "reference" / outputfile
         utils.compare_json_files(Path(outputfile), reference)
 
         cell = n._pc.gid2cell(tgid)

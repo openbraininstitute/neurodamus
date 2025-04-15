@@ -16,7 +16,6 @@ pytest.register_assert_rewrite("tests.utils")
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
-RINGTEST = SIM_DIR / "ringtest"
 PLATFORM_SYSTEM = platform.system()
 
 

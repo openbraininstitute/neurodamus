@@ -319,7 +319,9 @@ class _SimConfig:
 
     @classmethod
     def populations_offset_save_path(cls, create=False):
-        """Get polulations_offset path.
+        """Get polulations_offset path for the save folder.
+
+        Used internally for a save/restore cycle.
 
         Optional: create pathing folders if necessary
         """
@@ -330,7 +332,9 @@ class _SimConfig:
 
     @classmethod
     def populations_offset_output_path(cls, create=False):
-        """Get polulations_offset path.
+        """Get polulations_offset path for the output folder.
+
+        Used for visualization.
 
         Optional: create pathing folders if necessary
         """
@@ -341,7 +345,7 @@ class _SimConfig:
 
     @classmethod
     def output_root_path(cls, create=False):
-        """Get populations_offset.dat file path to be saved
+        """Get the output_root path
 
         Create the folder path if required and needed
         """
@@ -940,7 +944,11 @@ def _check_save(config: _SimConfig, run_conf):
 
     # Handle save
     assert isinstance(save_path, str), "Save must be a string path"
-    config.save = str(Path(config.current_dir) / save_path)
+    path_obj = Path(save_path)
+    if not path_obj.is_absolute():
+        path_obj = Path(config.current_dir) / path_obj
+
+    config.save = str(path_obj)
 
 
 @SimConfig.validator
@@ -955,9 +963,12 @@ def _check_restore(config: _SimConfig, run_conf):
     # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
     run_conf["Restore"] = restore
 
-    restore_path = Path(config.current_dir) / restore
-    assert restore_path.is_dir()
-    config.restore = str(restore_path)
+    assert isinstance(restore, str), "Restore must be a string path"
+    path_obj = Path(restore)
+    if not path_obj.is_absolute():
+        path_obj = Path(config.current_dir) / path_obj
+
+    config.restore = str(path_obj)
 
 
 @SimConfig.validator

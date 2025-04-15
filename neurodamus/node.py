@@ -1737,7 +1737,6 @@ class Node:
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
         assert data_folder.is_dir(), "Data folder must be a directory"
-        assert data_folder.exists(), "Data folder must exist"
 
         if data_folder.is_symlink():
             # in restore, coreneuron data is a symbolic link
