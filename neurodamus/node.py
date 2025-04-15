@@ -1182,38 +1182,6 @@ class Node:
 
     # -
     @mpi_no_errors
-    def execute_neuron_configures(self):
-        """Iterate over any NeuronConfigure blocks from the config file.
-        These are simple hoc statements that can be executed with minimal substitutions
-        """
-        printed_warning = False
-
-        for config in SimConfig.configures.values():
-            if not printed_warning:
-                logging.warning("NeuronConfigure block is deprecated")
-                printed_warning = True
-
-            target_name = config.get("Target").s
-            configure_str = config.get("Configure").s
-            log_verbose(
-                'Apply configuration "%s" on target %s',
-                config.get("Configure").s,
-                target_name,
-            )
-
-            points = self._target_manager.getPointList(target_name)
-            # iterate the pointlist and execute the command on the section
-            for tpoint_list in points:
-                for sec_i, sc in enumerate(tpoint_list.sclst):
-                    if not sc.exists():
-                        continue
-                    x = tpoint_list.x[sec_i]
-                    tstr = configure_str.replace("%s", Nd.secname(sec=sc.sec))
-                    tstr = tstr.replace("%g", f"{x:g}")
-                    Nd.execute1(tstr, sec=sc.sec)
-
-    # -
-    @mpi_no_errors
     def sim_init(self, corenrn_gen=None, **sim_opts):
         """Finalize the model and prepare to run simulation.
 
@@ -1792,7 +1760,6 @@ class Neurodamus(Node):
 
         log_stage("==================== BUILDING CIRCUIT ====================")
         self.create_cells(load_bal)
-        self.execute_neuron_configures()
         print_mem_usage()
 
         # Create connections
