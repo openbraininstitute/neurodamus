@@ -72,8 +72,7 @@ class METypeEngine(EngineBase):
 class CircuitManager:
     """Holds and manages populations and associated nodes and edges
 
-    For backward compat, base population doesnt have a population name (it is '')
-    All other nodes must have a name or read from sonata pop name
+    All nodes must have a name or read from sonata pop name
     As so, Sonata is preferred when using multiple node files
     """
 
@@ -159,20 +158,7 @@ class CircuitManager:
             return manager
 
         if not self.has_population(destination):
-            # This is likely an error, except...
-            if not src_target.population and self.has_population(""):
-                logging.warning(
-                    "Sonata Edges target population %s was not found. "
-                    "Since base population is unknown, assuming that's the target.\n"
-                    "To silence this warning please switch to Sonata nodes or specify "
-                    "the base population by prefixing CircuitTarget with pop_name:",
-                    destination,
-                )
-                self.alias[destination] = ""
-                destination = ""
-                source = self.alias.get(source)  # refresh unaliasing
-            else:
-                raise ConfigurationError("Can't find projection Node population: " + destination)
+            raise ConfigurationError("Can't find projection Node population: " + destination)
 
         src_manager = self.node_managers.get(source) or self.virtual_node_managers.get(source)
         if src_manager is None:  # src manager may not exist -> virtual
@@ -427,13 +413,6 @@ class Node:
     # -
     def load_targets(self):
         """Initialize targets. Nodesets are loaded on demand."""
-        # If a base population is specified register it before targets to create
-        # on demand
-        base_population = self._run_conf.get("BasePopulation")
-        if base_population:
-            logging.info("Default population selected: %s", base_population)
-            PopulationNodes.create_pop(base_population, is_base_pop=True)
-
         for circuit in self.all_circuits():
             log_verbose("Loading targets for circuit %s", circuit.name or "(default)")
             self._target_manager.load_targets(circuit)
