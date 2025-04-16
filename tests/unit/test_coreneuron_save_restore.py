@@ -113,6 +113,7 @@ def test_file_placement_base(create_tmp_simulation_config_file):
 
     # Check the output directory: output + save files
     check_dir_content("output", output_content)
+    assert not Path("build").exists()
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

@@ -8,99 +8,97 @@ Base Directory
 
 After a successful run, the base directory (i.e., where the simulation was launched) will contain the following files:
 
-- **Simulation log file**:  
+- **Simulation log file**  
   A file named ``pydamus_<date>_<time>.log`` is created during the simulation. It contains runtime information, including progress updates, warnings, and error messages (if any). This log is essential for debugging and performance diagnostics.
 
-- **Completion flag**:  
+- **Completion flag**  
   If the simulation completes successfully, an empty file named ``simulation_config.json.SUCCESS`` is written. This is used by the Blue Brain Project (BBP) workflow system to detect successful execution. The presence of this file indicates the run ended without errors.
 
-output/
--------
+``output/``
+-----------
 
 This folder contains the simulation results, including all reports requested in ``simulation_config.json``. The exact location of the ``output`` folder is specified within the configuration file.
 
-Contents:
+**Contents:**
 
-- **Reports**:  
+- **Reports**  
   All the time series or scalar reports explicitly configured in ``simulation_config.json`` are saved here. The format and structure depend on the report type and backend.
 
-- **Spike files**:  
+- **Spike files**  
   The final spike output is written in two formats:
-  
+
   - ``out.dat``: Plain text file listing spike events (only present when using CoreNEURON)
   - ``out.h5``: HDF5 version of the same data for efficient access
 
-More info here: `SONATA Developer Guide – Spike File <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#spike-file>`_
-
+  More info: `SONATA Developer Guide – Spike File <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#spike-file>`_
 
   Both contain a table with two columns:
-  
-  1. **gid** - the global identifier of the neuron that spiked  
-  2. **time** - the time (in ms) at which the spike occurred
 
-- **populations_offset.dat**:  
+  1. **gid** – the global identifier of the neuron that spiked  
+  2. **time** – the time (in ms) at which the spike occurred
+
+- **populations_offset.dat**  
   This file contains the offset indices for each neuron population. It is primarily used for visualization and internal processing. It helps map GIDs back to their corresponding populations.
 
 .. note::
 
-   If the simulation was run with CoreNEURON and either the ``--keep-build`` flag was specified or the simulation failed midway, this folder may also contain internal files. These files are described in the **save** section below.
+   These files are deleted after simulation completion unless ``--keep-build`` and/or ``--save=<path>`` is specified. If ``--save`` is used, files are relocated to the provided save path.
 
-save/
------
+``save/`` or ``build/``
+-----------------------
 
-This folder is only relevant when running the simulation with **CoreNEURON**. It is enabled via the CLI option ``--save=<path>`` and contains internal files necessary to support save/restore functionality. It is not used with NEURON. It does not need to be insde ``output`` anymore.
+This feature is available **only in CoreNEURON** and is related to preserving internal simulator state for potential restoration.
 
-Contents:
+- If ``--save=<path>`` is specified, the CoreNEURON internal data files are stored in the given path. This allows explicit control over where to persist the simulation state for a possible restore in the future.
+- If ``--keep-build`` is specified (without ``--save``), the files are written to a default ``build/`` directory in the simulation launch folder.
 
-- **populations_offset.dat**:  
-  Same file as described in the ``output/`` folder. This is duplicated here for convenience or redundancy in restoration workflows.
+These files are normally deleted at the end of a successful simulation run—unless either ``--save`` or ``--keep-build`` is used. However, if the simulation terminates abnormally, the temporary files in ``build/`` may remain.
 
-- **1_2.dat** and **time.dat**:  
-  Binary files required by CoreNEURON to resume simulations. These files store internal simulator state and time-related metadata.
 
-- **sim.conf**:  
-  A plain-text configuration file preserving the internal state and runtime parameters of CoreNEURON at the time of saving.
+**Contents:**
 
-- **report.conf**:  
-  A hybrid binary/text file containing GID lists and other metadata necessary to resume report generation after a restore. It ensures that the restored simulation continues to write reports as originally configured.
+- ``<pop>_2.dat`` and ``time.dat``  
+  Binary files required to resume simulations, storing simulator state and time-related metadata.
 
-- **coreneuron_input/**:  
-  This subfolder contains additional runtime state and mechanism files split by MPI rank. When running with multiple ranks, this folder may contain a large number of files. If ``--restore=`` was specified it is a link to the ``coreneuron_input`` in that folder. Contents include:
+- ``populations_offset.dat``  
+  Duplicated from the output path. Maps GIDs to their populations.
 
-  - ``<rank>_1.dat``, ``<rank>_2.dat``, ``<rank>_3.dat``:  
-    Binary files, one set per rank, holding internal data structures necessary to restart the simulation for each compute unit.
+- **CoreNEURON data** *(internal transient data, see note below)*
 
-  - ``bbcore_mech.dat``:  
-    A text file describing the mechanisms used in the simulation (e.g., ion channels, synapses), including implementation details for reinitialization.
+  - **coreneuron_input/**  
+    Subfolder containing various CoreNEURON model state files. Not intended for direct user manipulation. When running with multiple ranks, this folder may contain a large number of files. Contents include:
 
-  - ``globals.dat``:  
-    Text file storing the values of global variables required by mechanisms or model components.
+    - ``<rank>_1.dat``, ``<rank>_2.dat``, ``<rank>_3.dat``:  
+      Binary files, one set for each MPI rank, holding internal CoreNEURON data structures.
 
-  - ``files.dat``:  
-    This file manages the list or mapping of internal data files used by CoreNEURON. 
+    - ``bbcore_mech.dat``  
+      Describes mechanisms used in the simulation (e.g., ion channels, synapses), including implementation details.
 
-.. note::
+    - ``globals.dat``  
+      Text file storing values of global variables required by mechanisms or model components.
 
-   This folder is only created if the ``--save`` option is used and the simulation backend is CoreNEURON. Its contend it left in ``output`` if ``--keep-build`` is used. The files are not intended for direct user access and are managed by the simulator.
+    - ``files.dat``  
+      Lists or maps internal data files used by CoreNEURON.
 
-restore/
---------
+  - ``sim.conf``  
+    Plain-text configuration file preserving internal state and runtime parameters at save time.
 
-The simulator can resume a previously saved simulation state by using the ``--restore=<path>`` option. This functionality is available **only with CoreNEURON**.
+  - ``report.conf``  
+    Hybrid binary/text file with GID lists and metadata required to resume report generation after restore.
 
-The path provided to ``--restore`` must point to a folder that was previously created with ``--save`` and must contain all the files described in the ``save/`` section.
+``restore/``
+------------
 
-When restoring, the simulator will:
+The simulator can resume a previously saved state using the ``--restore=<path>`` option (CoreNEURON only).
 
-- Load all internal state from binary files such as ``1_2.dat`` and ``time.dat``
+The provided path must point to a folder created with ``--save`` and must include all files described in the ``save/`` section.
+
+Upon restoring, the simulator will:
+
+- Load internal state from binary files like ``1_2.dat`` and ``time.dat``
 - Re-initialize report generation using ``report.conf``
 - Resume simulation from the saved timestamp
 
 .. note::
 
    If any file is missing or inconsistent in the restore folder, the simulation may fail to start or behave incorrectly.
-
-
-
-
-

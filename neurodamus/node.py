@@ -997,6 +997,7 @@ class Node:
             if SimConfig.restore_coreneuron:
                 # we copy it first. We will proceed to modify
                 # it in update_report_config later in one go
+                Path(CoreConfig.report_config_file_save).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
@@ -1705,20 +1706,20 @@ class Node:
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
         assert data_folder.is_dir(), "Data folder must be a directory"
-
         if data_folder.is_symlink():
             # in restore, coreneuron data is a symbolic link
             data_folder.unlink()
         else:
             subprocess.call(["/bin/rm", "-rf", str(data_folder)])
+        build_path = Path(SimConfig.build_path())
+        if build_path.exists():
+            shutil.rmtree(build_path)
 
         sim_conf = Path(CoreConfig.sim_config_file)
-        if sim_conf.exists():
-            sim_conf.unlink()
+        assert not sim_conf.exists()
 
         report_file = Path(CoreConfig.report_config_file_save)
-        if report_file.exists():
-            Path(CoreConfig.report_config_file_save).unlink()
+        assert not report_file.exists()
 
     def cleanup(self):
         """Have the compute nodes wrap up tasks before exiting."""
@@ -1729,7 +1730,7 @@ class Node:
         if not SimConfig.use_coreneuron or SimConfig.simulate_model is False:
             self.clear_model(avoid_creating_objs=True)
 
-        if SimConfig.delete_corenrn_data and not SimConfig.dry_run:
+        if SimConfig.delete_corenrn_data and not SimConfig.save and not SimConfig.dry_run:
             with timeit(name="Delete corenrn data"):
                 self.coreneuron_cleanup()
                 MPI.barrier()
