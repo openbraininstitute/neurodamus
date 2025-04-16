@@ -211,9 +211,10 @@ class CircuitManager:
         The data comes from outside because pop_offsets are not initialized
         in a restore scenario.
         """
-        # populations_offset is necessary for restore replay. We add it to save_path
-        save_path = SimConfig.populations_offset_save_path(create=True)
-        with open(save_path, "w") as f:
+        # populations_offset is necessary in output_path
+        output_path = SimConfig.populations_offset_output_path(create=True)
+
+        with open(output_path, "w") as f:
             f.writelines(
                 "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
                 for alias, pop in alias_pop.items()
@@ -223,11 +224,10 @@ class CircuitManager:
                 for pop, offset in virtual_pop_offsets.items()
             )
 
-        # Add a file in output too as it may be needed as simple output
-        # For example, it is needed by the viz team
-        output_path = SimConfig.populations_offset_output_path(create=True)
-        if output_path != save_path:
-            shutil.copy(save_path, output_path)
+        # Add a file in save_path too if required
+        if SimConfig.save:
+            save_path = SimConfig.populations_offset_save_path(create=True)
+            shutil.copy(output_path, save_path)
 
     def get_population_offsets(self):
         pop_offsets = {

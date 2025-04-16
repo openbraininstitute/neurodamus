@@ -54,7 +54,7 @@ def test_coreneuron_filemode(create_tmp_simulation_config_file):
     check_directory(CoreConfig.datadir)
     assert Path(CoreConfig.sim_config_file).exists()
     assert Path(CoreConfig.report_config_file_save).exists()
-    assert Path(SimConfig.populations_offset_save_path()).exists()
+    assert Path(SimConfig.populations_offset_output_path()).exists()
 
     n.run()
 
@@ -190,4 +190,4 @@ def test_coreneuron_keep_build(create_tmp_simulation_config_file):
     check_directory(CoreConfig.datadir)
     assert Path(CoreConfig.sim_config_file).exists()
     assert Path(CoreConfig.report_config_file_save).exists()
-    assert Path(SimConfig.populations_offset_save_path()).exists()
+    assert Path(SimConfig.populations_offset_output_path()).exists()

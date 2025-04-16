@@ -76,7 +76,7 @@ def test_cli_keep_build():
     os.chdir(test_folder_path)
     nd = Neurodamus(CONFIG_FILE_MINI, keep_build=True, disable_reports=True)
     nd.run()
-    coreneuron_input_dir = test_folder_path / "output_keep_build" / "coreneuron_input"
+    coreneuron_input_dir = test_folder_path / "build" / "coreneuron_input"
     assert coreneuron_input_dir.is_dir(), "Directory 'coreneuron_input' not found."
 
 

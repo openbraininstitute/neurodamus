@@ -86,12 +86,12 @@ class _CoreNEURONConfig:
     @property
     def sim_config_file(self):
         """Get sim config file path to be saved"""
-        return str(Path(self.save_path) / "sim.conf")
+        return str(Path(self.build_path) / "sim.conf")
 
     @property
     def report_config_file_save(self):
         """Get report config file path to be saved"""
-        return str(Path(self.save_path) / "report.conf")
+        return str(Path(self.build_path) / "report.conf")
 
     @property
     def report_config_file_restore(self):
@@ -113,9 +113,9 @@ class _CoreNEURONConfig:
         return SimConfig.coreneuron_datadir_path()
 
     @property
-    def save_path(self):
+    def build_path(self):
         """Save root folder"""
-        return SimConfig.generated_ouput_path()
+        return SimConfig.build_path()
 
     @property
     def restore_path(self):
@@ -302,10 +302,10 @@ class _CoreNEURONConfig:
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
         coreneuron.sim_config = f"{self.sim_config_file}"
-        # set save_path only if the user explicitly asked with --save
+        # set build_path only if the user explicitly asked with --save
         # in this way we do not create 1_2.dat and time.dat if not needed
         if SimConfig.save:
-            coreneuron.save_path = self.save_path
+            coreneuron.save_path = self.build_path
         if SimConfig.restore:
             coreneuron.restore_path = self.restore_path
 

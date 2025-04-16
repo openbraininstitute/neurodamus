@@ -11,6 +11,7 @@ from tests.utils import (
 )
 
 from neurodamus.core.configuration import SimConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.node import Node
 
 
@@ -353,7 +354,7 @@ def test_enable_summation_report(create_tmp_simulation_config_file):
     assert n.reports[0].variable_name == "i_membrane  IClamp"
 
     if SimConfig.use_coreneuron:
-        assert (Path(SimConfig.output_root) / "report.conf").exists()
+        assert Path(CoreConfig.report_config_file_save).exists()
 
 
 @pytest.mark.parametrize(
@@ -407,4 +408,4 @@ def test_enable_coreneuron_report(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
-    assert (Path(SimConfig.output_root) / "report.conf").exists()
+    assert Path(CoreConfig.report_config_file_save).exists()

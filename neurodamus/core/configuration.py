@@ -293,14 +293,20 @@ class _SimConfig:
         cls._init_hoc_config_objs()
 
     @classmethod
-    def generated_ouput_path(cls):
-        """Default to output_root if none is provided"""
-        return cls.save or cls.output_root
+    def current_dir_path(cls):
+        if cls.current_dir:
+            return cls.current_dir
+        return str(Path.cwd())
+
+    @classmethod
+    def build_path(cls):
+        """Default to <currend_dir>/build if save is None"""
+        return cls.save or str(Path(cls.current_dir_path()) / "build")
 
     @classmethod
     def coreneuron_datadir_path(cls, create=False):
         """Default to output_root if none is provided"""
-        ans = cls.coreneuron_datadir or str(Path(cls.generated_ouput_path()) / "coreneuron_input")
+        ans = cls.coreneuron_datadir or str(Path(cls.build_path()) / "coreneuron_input")
         if create:
             Path(ans).mkdir(parents=True, exist_ok=True)
         return ans
@@ -322,7 +328,7 @@ class _SimConfig:
 
         Optional: create pathing folders if necessary
         """
-        ans = Path(cls.generated_ouput_path()) / "populations_offset.dat"
+        ans = Path(cls.build_path()) / "populations_offset.dat"
         if create:
             ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
@@ -921,7 +927,7 @@ def _output_root(config: _SimConfig, run_conf):
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
     if not Path(output_path).is_absolute():
-        output_path = Path(config.current_dir) / output_path
+        output_path = Path(config.current_dir_path()) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
     run_conf["OutputRoot"] = str(output_path)
@@ -993,7 +999,7 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        contents = Path(config.output_root, "sim.conf").read_text()
+        contents = (Path(core_data_location).parent / "sim.conf").read_text()
         core_data_exists = (
             "datpath='/dev/shm/" not in contents and Path(core_data_location, "files.dat").is_file()
         )
