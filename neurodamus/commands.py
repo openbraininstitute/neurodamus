@@ -37,7 +37,8 @@ def neurodamus(args=None):
         --simulate-model=[ON, OFF]
                                 Shall the simulation start automatically? [default: ON]
         --output-path=PATH      Alternative output directory, overriding the config file's
-        --keep-build            Keep coreneuron intermediate data. Otherwise deleted at the end
+        --keep-build            Keep coreneuron intermediate data in a folder named `build`.
+                                Otherwise deleted at the end. ``--save=<PATH>`` overrides this.
         --modelbuilding-steps=<number>
                                 Set the number of ModelBuildingSteps for the CoreNeuron sim
         --experimental-stims    Shall use only Python stimuli? [default: False]
@@ -51,10 +52,10 @@ def neurodamus(args=None):
                                 - Memory: Load balance based on memory usage. By default, it uses
                                     the "allocation_r#_c#.pkl.gz" file to load a pre-computed load
                                     balance
-        --save=<PATH>           Path to create a save point (at tstop) to enable resume. Only
+        --save=<PATH>           Path to create a save point (at tstop) to enable restore. Only
                                 available for CoreNEURON.
-        --restore=<PATH>        Restore and resume simulation from a save point on disk. Only
-                                available for CoreNEURON.
+        --restore=<PATH>        Restore and resume simulation from a save point (created by 
+                                --save=<PATH>) on disk. Only available for CoreNEURON.
         --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
         --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input (available
                                 only on linux) [default: OFF]

@@ -40,19 +40,15 @@ This folder contains the simulation results, including all reports requested in 
 - **populations_offset.dat**  
   This file contains the offset indices for each neuron population. It is primarily used for visualization and internal processing. It helps map GIDs back to their corresponding populations.
 
-.. note::
-
-   These files are deleted after simulation completion unless ``--keep-build`` and/or ``--save=<path>`` is specified. If ``--save`` is used, files are relocated to the provided save path.
-
 ``save/`` or ``build/``
 -----------------------
 
-This feature is available **only in CoreNEURON** and is related to preserving internal simulator state for potential restoration.
+This feature is available **only in CoreNEURON** and is related to preserving internal simulator state for potential restoration. By default, CoreNEURON uses a folder named 'build'
 
-- If ``--save=<path>`` is specified, the CoreNEURON internal data files are stored in the given path. This allows explicit control over where to persist the simulation state for a possible restore in the future.
-- If ``--keep-build`` is specified (without ``--save``), the files are written to a default ``build/`` directory in the simulation launch folder.
+- If ``--keep-build`` is specified (without ``--save``), the files in the 'build' folder will not be deleted (see note below for more details)
+- If ``--save=<path>`` is specified, the CoreNEURON internal data files are instead stored in the given path. This provides a simpler bundle  which allows explicit control over where to persist the simulation state for a possible restore in the future.
 
-These files are normally deleted at the end of a successful simulation run—unless either ``--save`` or ``--keep-build`` is used. However, if the simulation terminates abnormally, the temporary files in ``build/`` may remain.
+Note: These files are normally deleted at the end of a successful simulation run—unless either ``--keep-build`` or ``--save`` is used. However, if the simulation terminates abnormally, the temporary files in ``build/`` may remain and will need to be manually managed.
 
 
 **Contents:**
@@ -63,7 +59,8 @@ These files are normally deleted at the end of a successful simulation run—unl
 - ``populations_offset.dat``  
   Duplicated from the output path. Maps GIDs to their populations.
 
-- **CoreNEURON data** *(internal transient data, see note below)*
+- **CoreNEURON data**.  
+  Internal transient data for switching from NEURON to CoreNEURON simulation mode
 
   - **coreneuron_input/**  
     Subfolder containing various CoreNEURON model state files. Not intended for direct user manipulation. When running with multiple ranks, this folder may contain a large number of files. Contents include:
