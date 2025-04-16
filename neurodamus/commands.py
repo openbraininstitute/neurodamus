@@ -54,8 +54,8 @@ def neurodamus(args=None):
                                     balance
         --save=<PATH>           Path to create a save point (at tstop) to enable restore. Only
                                 available for CoreNEURON.
-        --restore=<PATH>        Restore and resume simulation from a save point (created by 
-                                --save=<PATH>) on disk. Only available for CoreNEURON.
+        --restore=<PATH>        Restore and resume simulation from a save point. Only available
+                                for CoreNEURON.
         --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
         --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input (available
                                 only on linux) [default: OFF]
