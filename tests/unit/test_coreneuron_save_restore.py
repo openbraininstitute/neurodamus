@@ -210,6 +210,7 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     check_dir_content("output", output_content)
     check_dir_content("checkpoint", checkpoint_content | removable_checkpoint_content)
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
+    assert not Path("build").exists()
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

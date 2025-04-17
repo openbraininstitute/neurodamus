@@ -1879,6 +1879,7 @@ class Neurodamus(Node):
 
         self._sim_ready = True
 
+    @run_only_rank0
     def _setup_coreneuron_datadir_from_restore(self):
         """Configure the environment for restoring CoreNEURON.
 
