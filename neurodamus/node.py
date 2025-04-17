@@ -1449,6 +1449,7 @@ class Node:
         )
         # Wait for rank0 to write the sim config file
         MPI.barrier()
+        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
 
     # -
     def run_all(self):
