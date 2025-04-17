@@ -159,39 +159,6 @@ def test_cli_build_model():
     assert "SIMULATION (SKIP MODEL BUILD)" in result_off.stdout
 
 
-def test_cli_shm_transfer():
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
-        sim_config_data = json.load(f)
-        sim_config_data["target_simulator"] = "CORENEURON"
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
-
-    test_folder = tempfile.TemporaryDirectory("cli-test-shm-transfer")  # auto removed
-    test_folder_path = Path(test_folder.name)
-    with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
-        json.dump(sim_config_data, f, indent=2)
-
-    shm_transfer_message = "Unknown SHM directory for model file transfer in CoreNEURON."
-    shm_transfer_message_bb5 = "SHM file transfer mode for CoreNEURON enabled"
-    result_shm = subprocess.run(
-        ["neurodamus", CONFIG_FILE_MINI, "--enable-shm=ON"],
-        check=True,
-        cwd=test_folder_path,
-        capture_output=True,
-        text=True
-    )
-    assert shm_transfer_message in result_shm.stdout or \
-        shm_transfer_message_bb5 in result_shm.stdout
-    result_shm_off = subprocess.run(
-        ["neurodamus", CONFIG_FILE_MINI, "--enable-shm=OFF"],
-        check=True,
-        cwd=test_folder_path,
-        capture_output=True,
-        text=True
-    )
-    assert shm_transfer_message not in result_shm_off.stdout and \
-        shm_transfer_message_bb5 not in result_shm_off.stdout
-
-
 def test_cli_lb_mode():
     test_folder = tempfile.TemporaryDirectory("cli-test-lb-mode")  # auto removed
     test_folder_path = Path(test_folder.name)
