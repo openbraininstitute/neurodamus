@@ -65,7 +65,6 @@ class CliOptions(ConfigT):
     experimental_stims = False
     enable_coord_mapping = False
     save = False
-    save_time = None
     restore = None
     enable_shm = False
     model_stats = False
@@ -192,7 +191,6 @@ class LoadBalanceMode(Enum):
 class _SimConfig:
     """A class initializing several HOC config objects and proxying to simConfig"""
 
-    __slots__ = ()
     config_file = None
     cli_options = None
     run_conf = None
@@ -221,14 +219,13 @@ class _SimConfig:
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
-    save_time = None
     restore = None
+    coreneuron_outputdir = None
+    coreneuron_datadir = None
     extracellular_calcium = None
     secondorder = None
     use_coreneuron = False
     use_neuron = True
-    coreneuron_datadir = None
-    coreneuron_outputdir = None
     corenrn_buff_size = 8
     delete_corenrn_data = False
     modelbuilding_steps = 1
@@ -276,6 +273,7 @@ class _SimConfig:
         cls.modifications = cls._config_parser.parsedModifications or {}
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
+
         cls.dry_run = cls.cli_options.dry_run
         cls.crash_test_mode = cls.cli_options.crash_test
         cls.num_target_ranks = cls.cli_options.num_target_ranks
@@ -293,6 +291,71 @@ class _SimConfig:
 
         logging.info("Initializing hoc config objects")
         cls._init_hoc_config_objs()
+
+    @classmethod
+    def current_dir_path(cls):
+        if cls.current_dir:
+            return cls.current_dir
+        return str(Path.cwd())
+
+    @classmethod
+    def build_path(cls):
+        """Default to <currend_dir>/build if save is None"""
+        return cls.save or str(Path(cls.current_dir_path()) / "build")
+
+    @classmethod
+    def coreneuron_datadir_path(cls, create=False):
+        """Default to output_root if none is provided"""
+        ans = cls.coreneuron_datadir or str(Path(cls.build_path()) / "coreneuron_input")
+        if create:
+            Path(ans).mkdir(parents=True, exist_ok=True)
+        return ans
+
+    @classmethod
+    def coreneuron_datadir_restore_path(cls):
+        """Default to output_root if none is provided"""
+        return str(Path(cls.restore) / "coreneuron_input")
+
+    @classmethod
+    def populations_offset_restore_path(cls):
+        return str(Path(cls.restore) / "populations_offset.dat")
+
+    @classmethod
+    def populations_offset_save_path(cls, create=False):
+        """Get polulations_offset path for the save folder.
+
+        Used internally for a save/restore cycle.
+
+        Optional: create pathing folders if necessary
+        """
+        ans = Path(cls.build_path()) / "populations_offset.dat"
+        if create:
+            ans.parent.mkdir(parents=True, exist_ok=True)
+        return str(ans)
+
+    @classmethod
+    def populations_offset_output_path(cls, create=False):
+        """Get polulations_offset path for the output folder.
+
+        Used for visualization.
+
+        Optional: create pathing folders if necessary
+        """
+        ans = Path(cls.output_root) / "populations_offset.dat"
+        if create:
+            ans.parent.mkdir(parents=True, exist_ok=True)
+        return str(ans)
+
+    @classmethod
+    def output_root_path(cls, create=False):
+        """Get the output_root path
+
+        Create the folder path if required and needed
+        """
+        outdir = Path(SimConfig.output_root)
+        if create:
+            outdir.mkdir(parents=True, exist_ok=True)
+        return str(outdir)
 
     @classmethod
     def _init_config_parser(cls, config_file):
@@ -856,57 +919,27 @@ def _current_dir(config: _SimConfig, run_conf):
 
 @SimConfig.validator
 def _output_root(config: _SimConfig, run_conf):
-    def check_oputput_directory(output_dir):
-        """Checks if output directory exists and is a directory.
-        If it doesn't exists create it.
-        This logic is based in old utility.mod.
-        """
-        if os.path.exists(output_dir):
-            if not os.path.isdir(output_dir):
-                raise Exception(f"{output_dir} does not name a directory.")
-        else:
-            try:
-                os.makedirs(output_dir)
-            except Exception as e:
-                raise Exception(f"Failed to create OutputRoot directory {output_dir} with {e}")
-            log_verbose(f"Directory {output_dir} does not exist.  Creating...")
-
-    """confirm output_path exists and is usable"""
+    """Confirm output_path exists and is usable"""
     output_path = run_conf.get("OutputRoot")
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
-    if not os.path.isabs(output_path):
-        output_path = os.path.join(config.current_dir, output_path)
-
-    from ._neurodamus import MPI
-
-    if MPI.rank == 0:
-        check_oputput_directory(output_path)
-        # Delete coreneuron_input link since it may conflict with restore
-        corenrn_input = output_path + "/coreneuron_input"
-        if os.path.islink(corenrn_input):
-            os.remove(corenrn_input)
-
-    # Barrier to make sure that the output_path is created in case it doesn't exist
-    MPI.barrier()
+    if not Path(output_path).is_absolute():
+        output_path = Path(config.current_dir_path()) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
-    run_conf["OutputRoot"] = output_path
-    config.output_root = output_path
+    run_conf["OutputRoot"] = str(output_path)
+    config.output_root = str(output_path)
 
 
 @SimConfig.validator
 def _check_save(config: _SimConfig, run_conf):
     cli_args = config.cli_options
     save_path = cli_args.save or run_conf.get("Save")
-    save_time = cli_args.save_time or run_conf.get("SaveTime")
 
     if not save_path:
-        if save_time:
-            logging.warning("SaveTime/--save-time IGNORED. Reason: no 'Save' config entry")
         return
 
     if not config.use_coreneuron:
@@ -914,17 +947,11 @@ def _check_save(config: _SimConfig, run_conf):
 
     # Handle save
     assert isinstance(save_path, str), "Save must be a string path"
-    if save_time:
-        save_time = float(save_time)
-        if save_time > config.tstop:
-            logging.warning(
-                "SaveTime specified beyond Simulation Duration. "
-                "Setting SaveTime to simulation end time."
-            )
-            save_time = None
+    path_obj = Path(save_path)
+    if not path_obj.is_absolute():
+        path_obj = Path(config.current_dir) / path_obj
 
-    config.save = os.path.join(config.current_dir, save_path)
-    config.save_time = save_time
+    config.save = str(path_obj)
 
 
 @SimConfig.validator
@@ -939,28 +966,12 @@ def _check_restore(config: _SimConfig, run_conf):
     # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
     run_conf["Restore"] = restore
 
-    restore_path = os.path.join(config.current_dir, restore)
-    assert os.path.isdir(os.path.dirname(restore_path))
-    config.restore = restore_path
+    assert isinstance(restore, str), "Restore must be a string path"
+    path_obj = Path(restore)
+    if not path_obj.is_absolute():
+        path_obj = Path(config.current_dir) / path_obj
 
-
-@SimConfig.validator
-def _coreneuron_params(config: _SimConfig, _run_conf):
-    # Set defaults for CoreNeuron dirs since SimConfig init/verification happens after
-    config.coreneuron_outputdir = config.output_root
-    coreneuron_datadir = os.path.join(config.output_root, "coreneuron_input")
-
-    if config.use_coreneuron and config.restore:
-        # Most likely we will need to reuse coreneuron_input from the save part
-        # A symlink is created for the scenario of multiple save/restore processes in one simulation
-        if not os.path.isdir(coreneuron_datadir):
-            logging.info(
-                "RESTORE: Create a symlink for coreneuron_input pointing to %s", config.restore
-            )
-            os.symlink(os.path.join(config.restore, "..", "coreneuron_input"), coreneuron_datadir)
-        assert os.path.isdir(coreneuron_datadir), "coreneuron_input dir not found"
-
-    config.coreneuron_datadir = coreneuron_datadir
+    config.restore = str(path_obj)
 
 
 @SimConfig.validator
@@ -984,11 +995,11 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
         return
 
     # It's a CoreNeuron run. We have to check if build_model is AUTO or OFF
-    core_data_location = config.coreneuron_datadir
+    core_data_location = config.coreneuron_datadir_path()
 
     try:
         # Ensure that 'sim.conf' and 'files.dat' exist, and that '/dev/shm' was not used
-        contents = Path(config.output_root, "sim.conf").read_text()
+        contents = (Path(core_data_location).parent / "sim.conf").read_text()
         core_data_exists = (
             "datpath='/dev/shm/" not in contents and Path(core_data_location, "files.dat").is_file()
         )

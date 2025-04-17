@@ -169,7 +169,7 @@ Here is a summary of main features supported by the Sonata simulation config fil
      - Modifications, Electrode, Projection [#f1]_.
    * - Non-Sonata Configuration as CLI
      - Full
-     - New args: --save=<PATH>, --save-time=<TIME>, --restore=<PATH>, --lb-mode=[RoundRobin, WholeCell, MultiSplit], --dump-cell-state=<GID>.
+     - New args: --save=<PATH>, --restore=<PATH>, --lb-mode=[RoundRobin, WholeCell, MultiSplit], --dump-cell-state=<GID>.
 
 .. [#f1] The Projection section is merged into the circuit config file.
 

@@ -2,13 +2,12 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
-import platform
 import tempfile
 from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
-from .conftest import RINGTEST_DIR
-from .conftest import NGV_DIR
+from .conftest import RINGTEST_DIR, NGV_DIR
+from ..conftest import PLATFORM_SYSTEM
 
 TMP_FOLDER = tempfile.mkdtemp()
 
@@ -30,7 +29,7 @@ def test_dry_run_memory_use():
 
     nd.run()
 
-    isMacOS = platform.system() == "Darwin"
+    isMacOS = PLATFORM_SYSTEM == "Darwin"
     assert (45.0 if isMacOS else 80.0) <= nd._dry_run_stats.base_memory <= (
         100.0 if isMacOS else 120.0)
     assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0

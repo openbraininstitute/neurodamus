@@ -13,6 +13,7 @@ Contents
 
    Overview <overview>
    Inputs <inputs>
+   Outputs <outputs>
    Run a Sonata Simulation <sonata-simulation>
    Examples <examples>
    Developer Documentation <architecture>
