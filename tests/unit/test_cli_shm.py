@@ -40,10 +40,13 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
     shm_deletion_message = "Deleting intermediate SHM data in"
 
     if is_linux:
-        assert Path(CoreConfig.datadir).is_relative_to(os.environ["SHMDIR"])
+        shmdir = Path(os.environ["SHMDIR"])
+        assert Path(CoreConfig.datadir).is_relative_to(shmdir)
         assert shm_transfer_message_enabled in captured.out
         assert not Path(CoreConfig.datadir).exists()
-
+        assert shmdir.exists(), f"SHMDIR does not exist: {shmdir}"
+        assert shmdir.is_dir(), f"SHMDIR is not a directory: {shmdir}"
+        assert not any(shmdir.iterdir()), f"SHMDIR is not empty: {list(shmdir.iterdir())}"
     else:
         assert shm_transfer_message_warning in captured.out
         assert shm_deletion_message not in captured.out

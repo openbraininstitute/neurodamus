@@ -1503,6 +1503,10 @@ class Node:
     def _create_save_handler(self):
         @timeit(name="savetime")
         def save_f():
+            """Function that saves the current simulation state:
+            syncs MPI, saves stimuli, flushes reports, clears the model,
+            and logs progress.
+            """
             logging.info("Saving State... (t=%f)", SimConfig.tstop)
             MPI.barrier()
             self._stim_manager.saveStatePreparation(self._bbss)
