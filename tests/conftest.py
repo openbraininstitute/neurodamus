@@ -2,16 +2,18 @@ import json
 import pytest
 from pathlib import Path
 import platform
+from neurodamus.core._utils import run_only_rank0
 
-# utils needs to be registered to let pytest rewrite
-# properly the assert errors. Either import it or use:
-pytest.register_assert_rewrite("tests.utils")
-#
-# Example:
-# a, b = 3, 4
-# a == b
-# this should say somewhere:
-# AssertError 3 =/= 4
+from tests import utils
+
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except ImportError:
+    MPI = False
+    comm = None
+    rank = 0  # fallback to single-process logic
 
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
@@ -56,50 +58,65 @@ def change_test_dir(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def create_tmp_simulation_config_file(request, tmp_path):
-    """create simulation config file in tmp_path from
-        1. simconfig_fixture in request: fixture's name (str)
-        2. or simconfig_data in request: dict
-        3. or copy of simconfig_file in request, and attach relative paths to src_dir
-    Updates the config file with extra_config
-    Returns the tmp file path
+def create_tmp_simulation_config_file(request):
     """
-    # import locally to register it in the pytests.
-    # check the explanation about
-    # pytest.register_assert_rewrite("tests.utils")
-    # at the beginning of the file
-    from tests import utils
+    Creates a simulation config file in a temporary directory.
+
+    Uses mpi_tmp_path if available, otherwise tmp_path.
+    Builds the config from:
+    1. A fixture name (simconfig_fixture)
+    2. A data dict (simconfig_data)
+    3. An existing file (simconfig_file), with paths adjusted to src_dir
+
+    Applies extra_config overrides.
+    Only rank 0 writes the file; others wait. Returns the config path.
+    """
+    try:
+        tmp_path = request.getfixturevalue("mpi_tmp_path")
+    except pytest.FixtureLookupError:
+        tmp_path = request.getfixturevalue("tmp_path")
 
     params = request.param
     src_dir = Path(params.get("src_dir", ""))
     config_file = Path(params.get("simconfig_file", "simulation_config.json"))
-    sim_config_data = params.get("simconfig_data")
+    sim_config_path = tmp_path / config_file
 
-    if "simconfig_fixture" in params:
-        sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
-    if not sim_config_data:
-        # read sim_config_data from a config file
-        with open(src_dir / config_file) as src_f:
-            sim_config_data = json.load(src_f)
+    @run_only_rank0  # Ensure this block only executes on rank 0
+    def write_config():
+        sim_config_data = params.get("simconfig_data")
 
-    if "extra_config" in params:
-        sim_config_data = utils.merge_dicts(sim_config_data, params.get("extra_config"))
+        if "simconfig_fixture" in params:
+            sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
+        if not sim_config_data:
+            with open(src_dir / config_file) as src_f:
+                sim_config_data = json.load(src_f)
 
-    # patch the relative file path to src_dir
-    circuit_conf = sim_config_data.get("network", "circuit_config.json")
-    if _is_valid_relative_path(circuit_conf):
-        sim_config_data["network"] = str(src_dir / circuit_conf)
-    node_sets_file = sim_config_data.get("node_sets_file", "")
-    if _is_valid_relative_path(node_sets_file):
-        sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
-    for input in sim_config_data.get("inputs", {}).values():
-        spike_file = input.get("spike_file", "")
-        if _is_valid_relative_path(spike_file):
-            input["spike_file"] = str(src_dir / input["spike_file"])
+        if "extra_config" in params:
+            sim_config_data = utils.merge_dicts(sim_config_data, params.get("extra_config"))
 
-    with open(tmp_path / config_file, "w") as dst_f:
-        json.dump(sim_config_data, dst_f, indent=2)
-    return str(tmp_path / config_file)
+        # patch relative paths
+        circuit_conf = sim_config_data.get("network", "circuit_config.json")
+        if _is_valid_relative_path(circuit_conf):
+            sim_config_data["network"] = str(src_dir / circuit_conf)
+        node_sets_file = sim_config_data.get("node_sets_file", "")
+        if _is_valid_relative_path(node_sets_file):
+            sim_config_data["node_sets_file"] = str(src_dir / node_sets_file)
+        for input in sim_config_data.get("inputs", {}).values():
+            spike_file = input.get("spike_file", "")
+            if _is_valid_relative_path(spike_file):
+                input["spike_file"] = str(src_dir / spike_file)
+
+        with open(sim_config_path, "w") as dst_f:
+            json.dump(sim_config_data, dst_f, indent=2)
+
+    # Call the write_config function that only runs on rank 0
+    write_config()
+
+    # Ensure all ranks wait for the file to be written
+    if MPI:
+        MPI.COMM_WORLD.Barrier()
+
+    return str(sim_config_path)
 
 
 def _is_valid_relative_path(filepath: str):
