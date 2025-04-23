@@ -142,10 +142,11 @@ def test_number_electrodes():
 def test_lfp_reports(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import SimConfig
+    from neurodamus.core.coreneuron_configuration import CoreConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
-    assert (Path(SimConfig.output_root) / "report.conf").exists()
+    assert Path(CoreConfig.report_config_file_save).exists()
 
     assert len(SimConfig.reports) == 1
     rep_name, rep_config = next(iter(SimConfig.reports.items()))
@@ -156,6 +157,6 @@ def test_lfp_reports(create_tmp_simulation_config_file):
     assert rep_config['EndTime'] == 2.0
     assert rep_config['Dt'] == 0.1
     assert rep_config['ReportOn'] == 'v'
-    assert rep_config['FileName'] == str(Path(SimConfig.output_root) / (rep_name + ".h5"))
+    assert rep_config['FileName'] == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
 
     nd.run()
