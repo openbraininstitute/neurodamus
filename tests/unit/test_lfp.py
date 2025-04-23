@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 import h5py
-import numpy as np
 
 from .conftest import RINGTEST_DIR
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
@@ -114,7 +113,7 @@ def test_number_electrodes():
                 "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
             },
             "reports": {
-                "lfp": {
+                "lfp_report": {
                     "type": "lfp",
                     "cells": "Mosaic",
                     "variable_name": "v",
@@ -142,30 +141,21 @@ def test_number_electrodes():
 @pytest.mark.forked
 def test_lfp_reports(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.core.configuration import SimConfig
-    from tests.utils import record_lfp_report
-
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
+    assert (Path(SimConfig.output_root) / "report.conf").exists()
 
+    assert len(SimConfig.reports) == 1
+    rep_name, rep_config = next(iter(SimConfig.reports.items()))
+    assert rep_name == 'lfp_report'
+    assert rep_config['Type'] == 'lfp'
+    assert rep_config['Target'] == 'Mosaic'
+    assert rep_config['StartTime'] == 0.0
+    assert rep_config['EndTime'] == 2.0
+    assert rep_config['Dt'] == 0.1
+    assert rep_config['ReportOn'] == 'v'
+    assert rep_config['FileName'] == str(Path(SimConfig.output_root) / (rep_name + ".h5"))
 
-    reports_conf = {name: conf for name, conf in SimConfig.reports.items()}
-    recorders = {}
-    for rep_name, rep_conf in reports_conf.items():
-        rep_type = rep_conf["Type"]
-        if rep_type == "lfp":
-            recorders[rep_name] = record_lfp_report(rep_conf, nd._target_manager)
-
-    Nd.finitialize()  # reinit for the recordings to be registered
     nd.run()
-
-    assert len(recorders)>0
-    for name, recorder in recorders.items():
-        tvec = np.array(recorder[1])
-        for gid, compartment_voltages in recorder[0].items():
-            for i, voltages_vec in enumerate(compartment_voltages):
-                voltages_vec = np.array(voltages_vec)
-                assert len(voltages_vec) == len(tvec)
-
