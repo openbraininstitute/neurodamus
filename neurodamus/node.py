@@ -183,10 +183,6 @@ class CircuitManager:
     def all_synapse_managers(self):
         return itertools.chain.from_iterable(self.edge_managers.values())
 
-    @property
-    def base_cell_manager(self):
-        return self.get_node_manager(None)
-
     @run_only_rank0
     def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
@@ -523,12 +519,6 @@ class Node:
         config = SimConfig.cli_options
         if not load_balance:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
-        # Always create a cell_distributor as the base_cell_manager, node pop = None
-        # Fake CoreNeuron cells are created in it
-        cell_distributor = CellDistributor(
-            circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
-        )
-        self._circuits.register_node_manager(cell_distributor)
 
         for name, circuit in self._sonata_circuits.items():
             log_stage("Circuit %s", name)
@@ -1012,9 +1002,9 @@ class Node:
                     continue
 
             # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
-            target_population = target_spec.population or self._target_spec.population
-            cell_manager = self._circuits.get_node_manager(target_population)
-            cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
+            # target_population = target_spec.population or self._target_spec.population
+            # cell_manager = self._circuits.get_node_manager(target_population)
+            # cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
 
             self._report_list.append(report)
 
@@ -1305,7 +1295,8 @@ class Node:
             yield
             return
 
-        # create a fake node with a fake population "zzz" to get an unused gid.
+        # Create a dummy cell manager with node_pop = None
+        # which holds a fake node with a fake population "zzz" to get an unused gid.
         # coreneuron fails if this edge case is reached multiple times as we
         # try to add twice the same gid. pop "zzz" is reserved to be used
         # exclusively for handling cases where no real GIDs are assigned to
@@ -1315,9 +1306,11 @@ class Node:
         "for handling empty GID ranks and should not be used elsewhere."
         pop_group = PopulationNodes.get("zzz", create=True)
         fake_gid = pop_group.offset + 1 + MPI.rank
-        # Add the fake cell to the base manager
-        base_manager = self._circuits.base_cell_manager
-        base_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
+        # Add the fake cell to a dummy manager
+        dummy_cell_manager = CellDistributor(
+            circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
+        )
+        dummy_cell_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
         yield
 
         # register_mapping() doesn't work for this artificial cell as somatic attr is
