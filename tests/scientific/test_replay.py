@@ -43,7 +43,7 @@ def test_replay_sim(sonata_config):
     )
 
     node_managers = nd.circuits.node_managers
-    assert set(node_managers) == set([None, "NodeA"])
+    assert set(node_managers) == set(["NodeA"])
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
@@ -83,7 +83,7 @@ def test_many_replay_sim(sonata_config):
     )
 
     node_managers = nd.circuits.node_managers
-    assert set(node_managers) == set([None, "NodeA"])
+    assert set(node_managers) == set(["NodeA"])
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
@@ -123,7 +123,7 @@ def test_replay_sonata_spikes(sonata_config):
     )
 
     node_managers = nd.circuits.node_managers
-    assert set(node_managers) == set([None, "NodeA", "NodeB"])
+    assert set(node_managers) == set(["NodeA", "NodeB"])
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
