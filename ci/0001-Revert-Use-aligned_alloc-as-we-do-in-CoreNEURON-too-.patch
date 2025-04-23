@@ -1,0 +1,34 @@
+From 66791fc353535abe0a45ff00e0049e740962fa18 Mon Sep 17 00:00:00 2001
+From: Goran Jelic-Cizmek <goran.jelic-cizmek@epfl.ch>
+Date: Mon, 10 Mar 2025 13:37:09 +0100
+Subject: [PATCH] Revert "Use aligned_alloc as we do in CoreNEURON too (#933)"
+
+This reverts commit 3eab851dd4a31e6f8e082faf79d83d69b6482e2b.
+---
+ src/codegen/codegen_coreneuron_cpp_visitor.cpp | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/src/codegen/codegen_coreneuron_cpp_visitor.cpp b/src/codegen/codegen_coreneuron_cpp_visitor.cpp
+index c46ad2e..38e3f08 100644
+--- a/src/codegen/codegen_coreneuron_cpp_visitor.cpp
++++ b/src/codegen/codegen_coreneuron_cpp_visitor.cpp
+@@ -297,12 +297,11 @@ bool CodegenCoreneuronCppVisitor::optimize_ion_variable_copies() const {
+ 
+ void CodegenCoreneuronCppVisitor::print_memory_allocation_routine() const {
+     printer->add_newline(2);
+-    auto args = "size_t num, size_t size, size_t alignment = 64";
++    auto args = "size_t num, size_t size, size_t alignment = 16";
+     printer->fmt_push_block("static inline void* mem_alloc({})", args);
+-    printer->add_line(
+-        "size_t aligned_size = ((num*size + alignment - 1) / alignment) * alignment;");
+-    printer->add_line("void* ptr = aligned_alloc(alignment, aligned_size);");
+-    printer->add_line("memset(ptr, 0, aligned_size);");
++    printer->add_line("void* ptr;");
++    printer->add_line("posix_memalign(&ptr, alignment, num*size);");
++    printer->add_line("memset(ptr, 0, size);");
+     printer->add_line("return ptr;");
+     printer->pop_block();
+ 
+-- 
+2.39.3 (Apple Git-145)
+
