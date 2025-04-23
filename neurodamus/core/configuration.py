@@ -689,7 +689,7 @@ def _validate_file_extension(path):
 def _circuits(config: _SimConfig, _run_conf):
     from . import EngineBase
 
-    circuits_config = {}
+    circuit_configs = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
         log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
@@ -701,13 +701,13 @@ def _circuits(config: _SimConfig, _run_conf):
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
-        circuits_config[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        circuits_config[name].name = name
+        circuit_configs[name] = _make_circuit_config(circuit_info, req_morphology=False)
+        circuit_configs[name].name = name
 
     # Sort so that iteration is deterministic
     config.sonata_circuits = dict(
         sorted(
-            circuits_config.items(),
+            circuit_configs.items(),
             key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0]),
         )
     )

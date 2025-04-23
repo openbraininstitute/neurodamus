@@ -523,7 +523,7 @@ class Node:
         config = SimConfig.cli_options
         if not load_balance:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
-        # Always create a cell_distributor even if engine is disabled.
+        # Always create a cell_distributor as the base_cell_manager
         # Fake CoreNeuron cells are created in it
         cell_distributor = CellDistributor(
             circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
