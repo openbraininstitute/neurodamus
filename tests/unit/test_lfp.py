@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 import h5py
+import numpy as np
 
 from .conftest import RINGTEST_DIR
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
@@ -116,21 +117,23 @@ def test_number_electrodes():
                 "lfp": {
                     "type": "lfp",
                     "cells": "Mosaic",
-                    "variable_name": "lfp_report",
+                    "variable_name": "v",
                     "dt": 0.1,
                     "start_time": 0.0,
-                    "end_time": 1.0
+                    "end_time": 2.0
                 }
             },
             "inputs": {
-                "stimulus": {
-                    "module": "noise",
+                "stimulus_pulse": {
+                    "module": "pulse",
                     "input_type": "current_clamp",
-                    "mean_percent": 100.0,
-                    "variance": 0.001,
-                    "delay": 0.0,
+                    "delay": 1,
                     "duration": 50,
                     "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
                 }
             }
         }
@@ -139,21 +142,30 @@ def test_number_electrodes():
 @pytest.mark.forked
 def test_lfp_reports(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
+    from neurodamus.core import NeurodamusCore as Nd
     from neurodamus.core.configuration import SimConfig
+    from tests.utils import record_lfp_report
+
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
-    assert len(nd.reports) == 1
-    assert nd.reports[0].variable_name == "lfp_report"
 
-    print(f"------------------report name {nd.reports[0].variable_name}")
 
-    # if SimConfig.use_coreneuron:
-    assert (Path(SimConfig.output_root) / "report.conf").exists()
+    reports_conf = {name: conf for name, conf in SimConfig.reports.items()}
+    recorders = {}
+    for rep_name, rep_conf in reports_conf.items():
+        rep_type = rep_conf["Type"]
+        if rep_type == "lfp":
+            recorders[rep_name] = record_lfp_report(rep_conf, nd._target_manager)
 
-    # nd.enable_reports()
-    # nd.run()
+    Nd.finitialize()  # reinit for the recordings to be registered
+    nd.run()
 
-    # if SimConfig.use_coreneuron:
-    # assert (Path(SimConfig.output_root) / "lfp.h5").exists()
-    # assert Path("lfp.h5").exists()
+    assert len(recorders)>0
+    for name, recorder in recorders.items():
+        tvec = np.array(recorder[1])
+        for gid, compartment_voltages in recorder[0].items():
+            for i, voltages_vec in enumerate(compartment_voltages):
+                voltages_vec = np.array(voltages_vec)
+                assert len(voltages_vec) == len(tvec)
+

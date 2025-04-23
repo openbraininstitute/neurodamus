@@ -291,6 +291,35 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
 
+def record_lfp_report(rep_conf: dict, target_manager: TargetManager):
+    rep_type = rep_conf["Type"]
+    assert rep_type == "lfp", "Report type is not supported"
+    variable_name = rep_conf["ReportOn"]
+    start_time = rep_conf["StartTime"]
+    stop_time = rep_conf["EndTime"]
+    dt = rep_conf["Dt"]
+
+    tvec = Nd.Vector()
+    tvec.indgen(start_time, stop_time, dt)
+
+    target_spec = TargetSpec(rep_conf["Target"])
+    target = target_manager.get_target(target_spec)
+    points = target_manager.getPointList(target, sections="all", compartments="all")
+    recorder = {}
+    for point in points:
+        gid = point.gid
+        per_gid_record = []
+        for i, sc in enumerate(point.sclst):
+            section = sc.sec
+            x = point.x[i]
+            var_ref = getattr(section(x), "_ref_" + variable_name)
+            voltage_vec = Nd.Vector()
+            voltage_vec.record(var_ref, tvec)
+            per_gid_record.append(voltage_vec)
+        recorder[gid] = per_gid_record
+    return recorder, tvec
+
+
 def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()
