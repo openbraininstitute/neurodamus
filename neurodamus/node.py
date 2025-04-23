@@ -40,7 +40,6 @@ from .core.configuration import (
     Feature,
     GlobalConfig,
     SimConfig,
-    _SimConfig,
     _make_circuit_config,
     find_input_file,
     get_debug_cell_gid,
@@ -491,10 +490,6 @@ class Node:
         with load_balancer.generate_load_balance(target_spec, cell_dist):
             # Instantiate a circuit to evaluate complexities
             cell_dist.finalize()
-            self._circuits.global_manager.finalize()
-            SimConfig.update_connection_blocks(self._circuits.alias)
-            target_manager = self._target_manager
-            self._create_synapse_manager(SynapseRuleManager, circuit, target_manager)
 
         # reset since we instantiated with RR distribution
         Nd.t = 0.0  # Reset time
@@ -1414,7 +1409,7 @@ class Node:
                     (shm_avail >> 20),
                     (mem_avail >> 20),
                 )
-        _SimConfig.coreneuron_datadir = (
+        SimConfig.coreneuron_datadir = (
             corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
         )
 
