@@ -100,7 +100,7 @@ def test_mpi_send_recv(mpi_ranks):
     }
 ], indirect=True)
 @pytest.mark.mpi(ranks=[1, 2, 4])
-def test_neurodamus(create_tmp_simulation_config_file, mpi_ranks):
+def test_neurodamus(create_tmp_simulation_config_file, mpi_ranks, mpi_tmp_path):
     """Test Neurodamus/neuron with and without MPI."""
     from neurodamus import Neurodamus
 

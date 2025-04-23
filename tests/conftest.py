@@ -15,7 +15,11 @@ except ImportError:
     comm = None
     rank = 0  # fallback to single-process logic
 
+# Make all tests run forked
+pytestmark = pytest.mark.forked
 
+RINGTEST_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest"
+NGV_DIR = Path(__file__).parent.absolute() / "simulations" / "ngv"
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
 PLATFORM_SYSTEM = platform.system()
@@ -124,4 +128,23 @@ def _is_valid_relative_path(filepath: str):
         filepath
         and not Path(filepath).is_absolute()
         and not Path(filepath).parts[0].startswith("$")
+    )
+
+
+@pytest.fixture
+def ringtest_baseconfig():
+    return dict(
+        network=str(RINGTEST_DIR / "circuit_config.json"),
+        node_sets_file=str(RINGTEST_DIR / "nodesets.json"),
+        target_simulator="NEURON",
+        run={
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        node_set="Mosaic",
+        conditions={
+            "celsius": 35,
+            "v_init": -65
+        }
     )
