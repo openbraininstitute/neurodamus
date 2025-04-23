@@ -388,14 +388,14 @@ class CellManagerBase(_CellManager):
 
         pc.multisplit()
 
-    # def enable_report(self, report_conf, target_name, use_coreneuron):
-    #     """Placeholder for Engines implementing their own reporting
+    def enable_report(self, report_conf, target_name, use_coreneuron):
+        """Placeholder for Engines implementing their own reporting
 
-    #     Args:
-    #         report_conf: The dict containing the report configuration
-    #         target_name: The target of the report
-    #         use_coreneuron: Whether the simulator is CoreNeuron
-    #     """
+        Args:
+            report_conf: The dict containing the report configuration
+            target_name: The target of the report
+            use_coreneuron: Whether the simulator is CoreNeuron
+        """
 
     def load_artificial_cell(self, gid, artificial_cell):
         logging.info(" > Adding Artificial cell for CoreNeuron")

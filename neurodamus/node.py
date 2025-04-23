@@ -523,7 +523,7 @@ class Node:
         config = SimConfig.cli_options
         if not load_balance:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
-        # Always create a cell_distributor as the base_cell_manager
+        # Always create a cell_distributor as the base_cell_manager, node pop = None
         # Fake CoreNeuron cells are created in it
         cell_distributor = CellDistributor(
             circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
@@ -1011,10 +1011,10 @@ class Node:
                     n_errors += 1
                     continue
 
-            # # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
-            # target_population = target_spec.population or self._target_spec.population
-            # cell_manager = self._circuits.get_node_manager(target_population)
-            # cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
+            # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
+            target_population = target_spec.population or self._target_spec.population
+            cell_manager = self._circuits.get_node_manager(target_population)
+            cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
 
             self._report_list.append(report)
 
@@ -1647,7 +1647,7 @@ class Node:
 
     # -
     def dump_circuit_config(self, suffix="nrn_python"):
-        gidvec = self._circuits.base_cell_manager.local_nodes.final_gids()
+        gidvec = self._circuits.global_manager.get_final_gids()
         log_stage("Dumping cells state")
         suffix += "_t=" + str(Nd.t)
 
