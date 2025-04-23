@@ -41,6 +41,7 @@ from .core.configuration import (
     GlobalConfig,
     SimConfig,
     _make_circuit_config,
+    _SimConfig,
     find_input_file,
     get_debug_cell_gid,
 )
@@ -309,8 +310,8 @@ class Node:
       attributes being prefixed with an underscore (`_`). Notable internal
       attributes include:
 
-      - `self._sonata_circuits`: The SONATA circuits used by the Node
-      each represents a node population
+      `self._sonata_circuits`: The SONATA circuits used by the Node
+      each represents a node population.
 
     These details make the Node class versatile and powerful for advanced users
     who need more granular control over the simulation process.
@@ -1409,7 +1410,7 @@ class Node:
                     (shm_avail >> 20),
                     (mem_avail >> 20),
                 )
-        SimConfig.coreneuron_datadir = (
+        _SimConfig.coreneuron_datadir = (
             corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
         )
 
