@@ -7,11 +7,11 @@ from .core.configuration import ConfigurationError
 
 
 class LFPManager:
-    """Class handling the Local Field Potential (LFP) functionality.
+    """Class handling the Online Local Field Potential (LFP) functionality.
 
-    This class is designed to manage the configuration and retrieval of Local
-    Field Potential (LFP) data used in large-scale neural simulations. LFPs
-    represent the aggregate extracellular electrical activity recorded by
+    This class is designed to manage the configuration and retrieval of Online
+    Local Field Potential (LFP) data used in large-scale neural simulations.
+    LFPs represent the aggregate extracellular electrical activity recorded by
     electrodes, reflecting the synchronized activity of nearby neuronal
     populations.
 
