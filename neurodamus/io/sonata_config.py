@@ -32,6 +32,8 @@ class SonataConfig:
         # which is unordered; however, the order of stimuli matter, so try and
         # recover the order defined in the json file: this assumes that `json.load`
         # keeps it; which is not guaranteed
+
+        self._stable_inputs_order = None
         with open(config_path) as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
@@ -314,9 +316,13 @@ class SonataConfig:
 
         stimuli = {}
         names1 = self._sim_conf.list_input_names
-        names = ("ThresholdInh", "ThresholdExc", "hypamp_mosaic")
+        #names = ("ThresholdInh", "ThresholdExc", "hypamp_mosaic")
         names = self._sim_conf.list_input_names
-        logging.warning("old: %s, new: %s", names1, names)
+        if names1 is None:
+            logging.warning("parsedStimuli: injects: %s", injects)
+            return stimuli
+
+        logging.warning("old: %s, new: %s", ("ThresholdInh", "ThresholdExc", "hypamp_mosaic"), names)
         for name in names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
@@ -336,6 +342,10 @@ class SonataConfig:
         # so better to preserve it as in the config file
 
         names1 = self._stable_inputs_order
+        if names1 is None:
+            logging.warning("parsedInjects: injects: %s", injects)
+            return injects
+
         names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
         names = self._sim_conf.list_input_names
         logging.warning("old: %s, new: %s", names1, names)
