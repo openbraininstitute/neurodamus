@@ -24,7 +24,7 @@ import neurodamus.core.random
 import neurodamus.core.stimuli
 import neurodamus.core.synapses
 import neurodamus.gap_junction
-import neurodamus.gj_user_corrections
+import neurodamus.gap_junction_user_corrections
 import neurodamus.hocify
 import neurodamus.io.__init__
 import neurodamus.io.cell_readers

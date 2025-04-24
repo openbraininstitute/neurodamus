@@ -1,11 +1,11 @@
 import json
 import pytest
 from pathlib import Path
+import platform
 
-from tests import utils
 # utils needs to be registered to let pytest rewrite
 # properly the assert errors. Either import it or use:
-# pytest.register_assert_rewrite("tests.utils")
+pytest.register_assert_rewrite("tests.utils")
 #
 # Example:
 # a, b = 3, 4
@@ -16,6 +16,7 @@ from tests import utils
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
+PLATFORM_SYSTEM = platform.system()
 
 
 @pytest.fixture(scope="session")
@@ -63,6 +64,12 @@ def create_tmp_simulation_config_file(request, tmp_path):
     Updates the config file with extra_config
     Returns the tmp file path
     """
+    # import locally to register it in the pytests.
+    # check the explanation about
+    # pytest.register_assert_rewrite("tests.utils")
+    # at the beginning of the file
+    from tests import utils
+
     params = request.param
     src_dir = Path(params.get("src_dir", ""))
     config_file = Path(params.get("simconfig_file", "simulation_config.json"))

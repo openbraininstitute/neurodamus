@@ -5,12 +5,11 @@ import numpy as np
 import pytest
 from libsonata import EdgeStorage
 
+from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
 from tests import utils
 
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
-REF_DIR = SIM_DIR / "reference"
-CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
+from .conftest import RINGTEST_DIR
 
 
 def check_cell(cell):
@@ -23,7 +22,7 @@ def check_cell(cell):
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
-            "network": str(SIM_DIR / "circuit_config_RingB.json"),
+            "network": str(RINGTEST_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "NEURON"
         }
@@ -31,7 +30,7 @@ def check_cell(cell):
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
-            "network": str(SIM_DIR / "circuit_config_RingB.json"),
+            "network": str(RINGTEST_DIR / "circuit_config_RingB.json"),
             "node_set": "RingB",
             "target_simulator": "CORENEURON"
         }
@@ -60,7 +59,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
         utils.check_netcons(sgid, nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        utils.check_directory(Path(SimConfig.coreneuron_datadir))
+        utils.check_directory(CoreConfig.datadir)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -101,7 +100,7 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         # dump cell/synapses/netcons states to a json and compare with ref
         outputfile = "cellstate_" + str(tgid) + ".json"
         dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
-        reference = REF_DIR / outputfile
+        reference = RINGTEST_DIR / "reference" / outputfile
         utils.compare_json_files(Path(outputfile), reference)
 
         cell = n._pc.gid2cell(tgid)
@@ -122,4 +121,25 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         utils.check_synapses(nclist, edges, selection)
 
     if SimConfig.use_coreneuron:
-        utils.check_directory(Path(SimConfig.coreneuron_datadir))
+        utils.check_directory(CoreConfig.datadir)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "node_set": "Mosaic"
+        }
+    }
+], indirect=True)
+def test_coreneuron(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
+                   coreneuron_direct_mode=True, keep_build=True)
+    n.run()
+    coreneuron_data = Path(CoreConfig.datadir)
+    assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
+        f"{coreneuron_data} should be empty."
+    )

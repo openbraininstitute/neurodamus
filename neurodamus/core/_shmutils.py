@@ -1,5 +1,6 @@
 import os
 import subprocess
+from pathlib import Path
 
 import psutil
 
@@ -110,11 +111,10 @@ class SHMUtil:
     @staticmethod
     def get_datadir_shm(datadir=""):
         shmdir = os.environ.get("SHMDIR")
-        return (
-            None
-            if not shmdir or not shmdir.startswith(SHM)
-            else os.path.join(shmdir, os.path.abspath(datadir)[1:])
-        )
+        if not shmdir or not shmdir.startswith(SHM):
+            return None
+
+        return str(Path(shmdir) / Path(datadir).resolve().relative_to("/"))
 
     @staticmethod
     def get_shm_factor():

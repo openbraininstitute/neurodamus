@@ -64,7 +64,6 @@ class TargetSpec:
     def disjoint_populations(self, other):
         # When a population is None we cannot draw conclusions
         #  - In Sonata there's no filtering and target may have multiple
-        #  - In BCs it's the base population, but the specified one may be the same
         if self.population is None or other.population is None:
             return False
         # We are only sure if both are specified and different
@@ -365,13 +364,50 @@ class NodeSetReader:
 
 
 class NodesetTarget:
+    """Represents a subset of nodes defined in a node_sets.json file.
+
+    A `NodesetTarget` is constructed based on key-value pairs from the `node_sets.json` file,
+    where each key defines an object containing a group of nodes. Nodes in a target can be
+    selected from one or more populations, and they are internally organized into `nodesets`
+    based on their respective populations.
+
+    Example:
+    Given populations:
+    ```python
+    populations = {
+    "pop_A": [0, 1, 2],
+    "pop_B": [1000, 1001],
+    "pop_C": [2000, 2001, 2002]
+    }
+    ```
+    A target could look like:
+    ```python
+    target = [0, 1, 1000, 1001]
+    ```
+    Internally, `NodesetTarget` would organize these nodes into:
+    ```python
+    nodesets = [
+    _NodeSetBase(0, 1),
+    _NodeSetBase(1000, 1001)
+    ]
+    ```
+    """
+
     def __init__(self, name, nodesets: list[_NodeSetBase], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
 
     def gid_count(self):
+        """Total number of nodes"""
         return sum(len(ns) for ns in self.nodesets)
+
+    def max_gid_count_per_population(self):
+        """Max number of nodes per population
+
+        Useful to distribute in multicycle runs
+        """
+        return max(len(ns) for ns in self.nodesets)
 
     def get_gids(self):
         """Retrieve the final gids of the nodeset target"""
