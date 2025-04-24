@@ -45,11 +45,6 @@ def test_node_run(trace=False):
     logging.info("Enable Modifications")
     node.enable_modifications()
 
-    if trace:
-        logging.info("Dumping config")
-        Nd.stdinit()
-        node.dump_circuit_config("")
-
     logging.info("Enable Reports")
     node.enable_reports()
 

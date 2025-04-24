@@ -275,6 +275,7 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     Note: this also implicitly tests that the save/restore works even if the save folder is
     not a subfolder of the output folder.
     """
+    assert False
     gids = [0, 1, 2, 1000, 1001]
     t = [0, 13, 26]
 

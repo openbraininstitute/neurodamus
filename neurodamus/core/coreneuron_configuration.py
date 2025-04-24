@@ -231,7 +231,7 @@ class _CoreNEURONConfig:
         self,
         tstop,
         dt,
-        prcellgid,
+        prcellgids,
         celsius,
         v_init,
         pattern=None,
@@ -248,7 +248,7 @@ class _CoreNEURONConfig:
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
             fp.write(f"tstop={tstop}\n")
             fp.write(f"dt={dt}\n")
-            fp.write(f"prcellgid={int(prcellgid)}\n")
+            fp.write(f"prcellgids={prcellgids}\n")
             fp.write(f"celsius={celsius}\n")
             fp.write(f"voltage={v_init}\n")
             fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
