@@ -54,7 +54,7 @@ from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import Report
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
-from .utils.logging import log_all, log_stage, log_verbose
+from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
 
@@ -360,7 +360,7 @@ class Node:
         self._base_circuit: CircuitConfig = SimConfig.base_circuit
 
         self._extra_circuits = SimConfig.extra_circuits
-        self._pr_cell_gids = get_debug_cell_gids(options)
+        self._dump_cell_state_gids = get_debug_cell_gids(options)
 
         self._core_replay_file = ""
         self._is_ngv_run = any(
@@ -1231,7 +1231,9 @@ class Node:
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sim_init_neuron()
 
-        self.dump_cell_states()
+        assert not (SimConfig.use_neuron and SimConfig.use_coreneuron)
+        if SimConfig.use_neuron:
+            self.dump_cell_states()
 
         self._sim_ready = True
         return self._pc
@@ -1436,10 +1438,16 @@ class Node:
                     self._pc.nrnbbcore_write(CoreConfig.datadir)
                     MPI.barrier()  # wait for all ranks to finish corenrn data generation
 
+        prcellgid = self._dump_cell_state_gids[0] if self._dump_cell_state_gids else -1
+        if self._dump_cell_state_gids and len(self._dump_cell_state_gids) > 1:
+            logging.warning(
+                "Multiple cell state GIDs provided. Using the first one: %d",
+                self._dump_cell_state_gids[0],
+            )
         CoreConfig.write_sim_config(
             Nd.tstop,
             Nd.dt,
-            self._pr_cell_gids or -1,
+            prcellgid,
             getattr(SimConfig, "celsius", 34.0),
             getattr(SimConfig, "v_init", -65.0),
             self._core_replay_file,
@@ -1544,19 +1552,14 @@ class Node:
 
         logging.info("Running simulation until t=%d ms", tstop)
         t = tstart  # default if there are no events
-        self.dump_cell_states()
         for t, events in event_list:
             self._psolve_loop(t)
             for event in events:
                 event()
-            # TODO removeme
-            # self.dump_cell_config()  # Respect prCellGid on every state change
             self.dump_cell_states()
         # Run until the end
         if t < tstop:
             self._psolve_loop(tstop)
-            # TODO removeme
-            # self.dump_cell_config()
             self.dump_cell_states()
 
         # Final flush
@@ -1650,63 +1653,25 @@ class Node:
             self._sonatareport_helper.write_spikes(spikevec, idvec, output_root, *extra_args)
 
     def dump_cell_states(self):
-        logging.warning("miao miao")
-        if not self._pr_cell_gids:
+        """Dump the _pr_cell_gid cell state if not already done
+
+        We assume that the parallel context is ready. Thus, This function should
+        not be called if coreNeuron is employed and we are not at t=0.0.
+        """
+        assert SimConfig.use_neuron, "This function can work only with Neuron. Use sim.conf to "
+        "instruct coreNeuron to dump a cell state instead."
+        if not self._dump_cell_state_gids:
             return
         if self._last_cell_state_dump_t == Nd.t:  # avoid duplicating output
             return
-        
-        for i in self._pr_cell_gids:
-            simulator = "CoreNeuron" if SimConfig.use_coreneuron else "Neuron"
-            logging.warning("Dumping info about cell %d in %s, %s", i, str(Nd.t), str(self._last_cell_state_dump_t))
+
+        for i in self._dump_cell_state_gids:
             log_verbose("Dumping info about cell %d", i)
-            
-            self._pc.prcellstate(i, f"py_{simulator}_t{Nd.t}")
-        
+
+            self._pc.prcellstate(i, f"py_Neuron_t{Nd.t}")
+
         self._last_cell_state_dump_t = Nd.t
         logging.warning(f"self._last_cell_state_dump_t: {self._last_cell_state_dump_t}")
-
-    # def dump_cell_config(self):
-    #     # todo removeme
-    #     """Dump the _pr_cell_gid cell state if not already done"""
-    #     if not self._pr_cell_gid:
-    #         return
-    #     if self._cell_state_dump_t == Nd.t:  # avoid duplicating output
-    #         return
-    #     log_verbose("Dumping info about cell %d", self._pr_cell_gid)
-    #     simulator = "CoreNeuron" if SimConfig.use_coreneuron else "Neuron"
-    #     self._pc.prcellstate(self._pr_cell_gid, f"py_{simulator}_t{Nd.t}")
-    #     self._cell_state_dump_t = Nd.t
-
-    # # -
-    # def dump_circuit_config(self, suffix="nrn_python"):
-    #     # TODO removeme
-    #     gidvec = self._circuits.global_manager.get_final_gids()
-    #     log_stage("Dumping cells state")
-    #     suffix += "_t=" + str(Nd.t)
-
-    #     if not ospath.isfile("debug_gids.txt"):
-    #         logging.info("Debugging all gids")
-    #         gids = gidvec
-    #     else:
-    #         gids = []
-    #         for line in open("debug_gids.txt"):
-    #             line = line.strip()
-    #             if not line:
-    #                 continue
-    #             gid = int(line)
-    #             if gid in gidvec:
-    #                 gids.append(gid)
-    #         if len(gids):
-    #             log_all(
-    #                 logging.INFO,
-    #                 "Rank %d: Debugging %d gids from debug_gids.txt",
-    #                 MPI.rank,
-    #                 len(gids),
-    #             )
-
-    #     for gid in gids:
-    #         self._pc.prcellstate(gid, suffix)
 
     @run_only_rank0
     def coreneuron_cleanup(self):
@@ -2105,9 +2070,8 @@ class Neurodamus(Node):
             )
             gj_manager.save_seclamp()
 
-        # self.dump_cell_states()
         self.move_dumpcellstates_to_output_root()
-    
+
         if cleanup:
             self.cleanup()
 

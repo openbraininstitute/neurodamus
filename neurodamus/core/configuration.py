@@ -1142,8 +1142,7 @@ def _coreneuron_direct_mode(config: _SimConfig, _run_conf):
 
 
 def get_debug_cell_gids(cli_options):
-    """
-    Parse the --dump-cell-state option from CLI.
+    """Parse the --dump-cell-state option from CLI.
 
     Supports:
     - A single integer (e.g., "2")
@@ -1161,8 +1160,7 @@ def get_debug_cell_gids(cli_options):
         return None
 
     def parse_gid_token(token):
-        """
-        Parse a single token: an integer or a range (e.g., "3" or "1-4").
+        """Parse a single token: an integer or a range (e.g., "3" or "1-4").
 
         Returns:
             List of integers parsed from the token.
@@ -1176,21 +1174,24 @@ def get_debug_cell_gids(cli_options):
             if start > end:
                 raise ConfigurationError(f"Invalid range in dump-cell-state: {token}")
             return list(range(start, end + 1))
-        elif token.isdigit():
+        if token.isdigit():
             return [int(token)]
-        else:
-            raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
+        raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
 
     try:
-        tokens = value.split(",")
+        if isinstance(value, int):
+            tokens = [str(value)]
+        else:
+            tokens = value.split(",")
         gids = []
         for token in tokens:
             gids.extend(parse_gid_token(token))
         gids = [gid + 1 for gid in gids]
-        return gids
-
+        gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
     except ValueError as e:
         raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
+    else:
+        return gids
 
 
 def check_connections_configure(SimConfig, target_manager):
