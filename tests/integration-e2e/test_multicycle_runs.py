@@ -29,16 +29,13 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     spike_gids = np.array([
         4, 2, 0
     ])  # 0-based
-    # timestamps = np.array([
-    #     33.425, 37.35, 39.725
-    # ])
+    timestamps = np.array([
+        33.425, 37.35, 39.725
+    ])
     spike_file = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
-    _obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
+    obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
     npt.assert_allclose(spike_gids, obtained_spike_gids)
-    # coreneuron and neuron have a discrepancy now:
-    # https://github.com/openbraininstitute/neurodamus/issues/44?issue=openbraininstitute%7Cneurodamus%7C3
-    # TODO: re-enable once it is fixed
-    # npt.assert_allclose(timestamps, obtained_timestamps)
+    npt.assert_allclose(timestamps, obtained_timestamps)
 
     captured = capsys.readouterr()
     assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
