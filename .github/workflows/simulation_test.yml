@@ -243,6 +243,10 @@ jobs:
     - name: unit
       run: |
         tox -e unit
+
+    - name: unit-mpi
+      run: |
+        tox -e unit-mpi
       
     - name: baseline
       run: |
