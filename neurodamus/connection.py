@@ -458,14 +458,6 @@ class Connection(ConnectionBase):
 
                 syn_obj.setup_delay_vecs(self._delay_vec, self._delayweight_vec)
 
-        # Apply configurations to the synapses
-        # Set global options in mod overrides
-        for mod_override in self._mod_overrides:
-            for syn_option, value in SimConfig.synapse_options.items():
-                syn_opt_name = f"{syn_option}_{mod_override}"
-                if hasattr(Nd.h, syn_opt_name):
-                    setattr(Nd.h, syn_opt_name, value)
-
         self._configure_synapses()
         return n_syns
 
@@ -490,6 +482,10 @@ class Connection(ConnectionBase):
             self._spont_minis = None
 
         # Delayed vecs: release if not used, sort if over 1 value
+        if self._delay_vec is None or self._delayweight_vec is None:
+            # they should be set together
+            assert self._delayweight_vec == self._delay_vec
+            return
         total_delays = self._delay_vec.size()
         if total_delays == 0:
             self._delay_vec = None
@@ -555,14 +551,11 @@ class Connection(ConnectionBase):
         return syn_helper.synapse
 
     # -
-    def finalize_gap_junctions(self, cell, offset, end_offset):
+    def finalize_gap_junctions(self):
         """When all parameters are set, create synapses and netcons
 
         Args:
             cell: The cell to create synapses and netcons on.
-            offset: offset for this cell's gap junctions
-            end_offset: offset for the other cell's gap junctions
-
         """
         self._synapses = compat.List()
         self._netcons = []
@@ -576,24 +569,26 @@ class Connection(ConnectionBase):
             if dbg_conn and dbg_conn in ([self.tgid], [self.sgid, self.tgid]):
                 log_all(
                     logging.DEBUG,
-                    "connect %f to %f [D: %f + %f], [F: %f + %f] (weight: %f)",
-                    self.tgid,
+                    (
+                        "connect %f to %f [efferent_junction_id: %f], "
+                        "[afferent_junction_id: %f] (weight: %f)"
+                    ),
                     self.sgid,
-                    offset,
-                    active_params.D,
-                    end_offset,
-                    active_params.F,
+                    self.tgid,
+                    active_params.efferent_junction_id,
+                    active_params.afferent_junction_id,
                     active_params.weight,
                 )
 
             with Nd.section_in_stack(sec):
                 self._pc.target_var(
-                    gap_junction, gap_junction._ref_vgap, (offset + active_params.D)
+                    gap_junction,
+                    gap_junction._ref_vgap,
+                    active_params.efferent_junction_id,
                 )
-                self._pc.source_var(sec(x)._ref_v, (end_offset + active_params.F))
+                self._pc.source_var(sec(x)._ref_v, active_params.afferent_junction_id)
             gap_junction.g = active_params.weight
             self._synapses.append(gap_junction)
-            self._configure_cell(cell)
 
     # ------------------------------------------------------------------
     # Parameters Live update / Configuration
@@ -636,13 +631,6 @@ class Connection(ConnectionBase):
         res = self.ConnUtils.executeConfigure(synapses, configuration)
         if res > 0:
             raise ConfigurationError(f"Errors found in configuration: {configuration}")
-
-    def _configure_cell(self, cell):
-        """Internal helper to apply all the configuration statements on
-        a given cell synapses
-        """
-        for config in self._configurations:
-            self._configure(cell.CellRef.synlist, config)
 
     def _configure_synapses(self):
         """Internal helper to apply all the configuration statements to

@@ -1,12 +1,15 @@
+import os
 import struct
 
+from neurodamus.core.configuration import _SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
 from pathlib import Path
 
 
 def test_write_report_config(tmpdir):
-    CoreConfig.outpath = str(tmpdir.join("outpath"))
-    CoreConfig.datpath = str(tmpdir.join("datpath"))
+    _SimConfig.output_root = str(tmpdir.join("outpath"))
+    _SimConfig.coreneuron_datadir = str(tmpdir.join("datpath"))
+
     # Define your test parameters
     report_name = "soma"
     target_name = "Mosaic"
@@ -36,7 +39,7 @@ def test_write_report_config(tmpdir):
     CoreConfig.write_spike_filename(spikes_name)
 
     # Check that the report configuration file was created
-    report_config_file = Path(CoreConfig.output_root) / CoreConfig.report_config_file
+    report_config_file = Path(CoreConfig.report_config_file_save)
     assert report_config_file.exists()
 
     # Check the content of the report configuration file
@@ -65,12 +68,11 @@ def test_write_report_config(tmpdir):
 
 
 def test_write_sim_config(tmpdir):
-    CoreConfig.output_root = str(tmpdir.join("outpath"))
-    CoreConfig.datadir = str(tmpdir.join("datpath"))
+    _SimConfig.output_root = str(tmpdir.join("outpath"))
+    _SimConfig.coreneuron_datadir = str(tmpdir.join("datpath"))
     cell_permute = 0
     tstop = 100
     dt = 0.1
-    forwardskip = 0
     prcellgid = 0
     seed = 12345
     celsius = 34.0
@@ -78,11 +80,10 @@ def test_write_sim_config(tmpdir):
     model_stats = True
     pattern = "file_pattern"
     enable_reports = 1
-    report_conf = f"{CoreConfig.output_root}/{CoreConfig.report_config_file}"
+    report_conf = f"{CoreConfig.report_config_file_save}"
     CoreConfig.write_sim_config(
         tstop,
         dt,
-        forwardskip,
         prcellgid,
         celsius,
         v_init,
@@ -101,13 +102,12 @@ def test_write_sim_config(tmpdir):
         assert lines[1].strip() == f"datpath='{Path(CoreConfig.datadir).absolute()}'"
         assert lines[2].strip() == f"tstop={tstop}"
         assert lines[3].strip() == f"dt={dt}"
-        assert lines[4].strip() == f"forwardskip={forwardskip}"
-        assert lines[5].strip() == f"prcellgid={prcellgid}"
-        assert lines[6].strip() == f"celsius={celsius}"
-        assert lines[7].strip() == f"voltage={v_init}"
-        assert lines[8].strip() == f"cell-permute={cell_permute}"
-        assert lines[9].strip() == f"pattern='{pattern}'"
-        assert lines[10].strip() == f"seed={seed}"
-        assert lines[11].strip() == "'model-stats'"
-        assert lines[12].strip() == f"report-conf='{report_conf}'"
-        assert lines[13].strip() == "mpi=true"
+        assert lines[4].strip() == f"prcellgid={prcellgid}"
+        assert lines[5].strip() == f"celsius={celsius}"
+        assert lines[6].strip() == f"voltage={v_init}"
+        assert lines[7].strip() == f"cell-permute={cell_permute}"
+        assert lines[8].strip() == f"pattern='{pattern}'"
+        assert lines[9].strip() == f"seed={seed}"
+        assert lines[10].strip() == "'model-stats'"
+        assert lines[11].strip() == f"report-conf='{report_conf}'"
+        assert lines[12].strip() == f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}"

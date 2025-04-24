@@ -105,7 +105,6 @@ class SonataConfig:
         "Projection": None,
         "StimulusInject": "inputs",
         "Connection": "connection_overrides",
-        "parsedConfigures": False,
         # Section fields
         # --------------
         "run": {

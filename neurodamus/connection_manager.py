@@ -33,10 +33,10 @@ class ConnectionSet:
 
     def __init__(self, src_id, dst_id, conn_factory=Connection):
         # Connections indexed by post-gid, then ordered by pre-gid
-        self.src_id = src_id
-        self.dst_id = dst_id
-        self.src_name = None
-        self.dst_name = None
+        self.src_pop_id = src_id
+        self.dst_pop_id = dst_id
+        self.src_pop_name = None
+        self.dst_pop_name = None
         self.virtual_source = False
         self._conn_factory = conn_factory
         self._connections_map = defaultdict(list)
@@ -122,7 +122,7 @@ class ConnectionSet:
                 if conns[pos].sgid == sgid:
                     return conns[pos]
         # Not found. Create & insert
-        cur_conn = self._conn_factory(sgid, tgid, self.src_id, self.dst_id, **kwargs)
+        cur_conn = self._conn_factory(sgid, tgid, self.src_pop_id, self.dst_pop_id, **kwargs)
         conns.insert(pos, cur_conn)
         self._conn_count += 1
         return cur_conn
@@ -215,17 +215,15 @@ class ConnectionSet:
             expr_src, expr_dst = population_ids
         else:
             expr_src, expr_dst = (population_ids, dst_second)
-        return (expr_src is None or expr_src == self.src_id) and (
-            expr_dst is None or expr_dst == self.dst_id
+        return (expr_src is None or expr_src == self.src_pop_id) and (
+            expr_dst is None or expr_dst == self.dst_pop_id
         )
 
-    def is_default(self):
-        return self.src_id == 0 and self.dst_id == 0
-
     def __str__(self):
-        if self.is_default():
-            return "<ConnectionSet: Default>"
-        return f"<ConnectionSet: {self.src_id}-{self.dst_id} ({self.src_name}->{self.dst_name})>"
+        return (
+            f"<ConnectionSet: {self.src_pop_id}-{self.dst_pop_id} "
+            f"({self.src_pop_name}->{self.dst_pop_name})>"
+        )
 
     def __repr__(self):
         return str(self)
@@ -299,18 +297,14 @@ class ConnectionManagerBase:
     def open_edge_location(self, syn_source, circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
         pop_name = pop[0] if pop else None
-        src_pop_id = _get_projection_population_id(circuit_conf)
-        return self.open_synapse_file(edge_file, pop_name, src_pop_id=src_pop_id, **kw)
+        return self.open_synapse_file(edge_file, pop_name, **kw)
 
-    def open_synapse_file(
-        self, synapse_file, edge_population, *, src_pop_id=None, src_name=None, **_kw
-    ):
+    def open_synapse_file(self, synapse_file, edge_population, *, src_pop_name=None, **_kw):
         """Initializes a reader for Synapses config objects and associated population
 
         Args:
             synapse_file: The nrn/edge file. For old nrn files it may be a dir.
             edge_population: The population of the edges
-            src_pop_id: (compat) Allow overriding the src population ID
             src_name: The source pop name, normally matching that of the source cell manager
         """
         if not ospath.isabs(synapse_file):
@@ -328,7 +322,7 @@ class ConnectionManagerBase:
                 "Please use a more recent version of neurodamus-core/synapse-tool"
             )
 
-        self._init_conn_population(src_name, src_pop_id)
+        self._init_conn_population(src_pop_name)
         self._unlock_all_connections()  # Allow appending synapses from new sources
         return synapse_file
 
@@ -339,11 +333,11 @@ class ConnectionManagerBase:
             synapse_file, pop_name, extracellular_calcium=SimConfig.extracellular_calcium
         )
 
-    def _init_conn_population(self, src_pop_name, pop_id_override):
+    def _init_conn_population(self, src_pop_name):
         if not src_pop_name:
             src_pop_name = self.src_node_population
         dst_pop_name = self.dst_node_population
-        src_pop_id, dst_pop_id = self._compute_pop_ids(src_pop_name, dst_pop_name, pop_id_override)
+        src_pop_id, dst_pop_id = self._compute_pop_ids(src_pop_name, dst_pop_name)
 
         if self._cur_population and src_pop_id == 0 and not src_pop_name:
             logging.warning(
@@ -352,28 +346,21 @@ class ConnectionManagerBase:
             )
 
         cur_pop = self.select_connection_set(src_pop_id, dst_pop_id)  # type: ConnectionSet
-        cur_pop.src_name = src_pop_name
-        cur_pop.dst_name = dst_pop_name
+        cur_pop.src_pop_name = src_pop_name
+        cur_pop.dst_pop_name = dst_pop_name
         cur_pop.virtual_source = (
-            self._src_cell_manager.is_virtual
-            or src_pop_name != self.src_node_population
-            or (bool(pop_id_override) and not src_pop_name)
+            self._src_cell_manager.is_virtual or src_pop_name != self.src_node_population
         )
         logging.info("Loading connections to population: %s", cur_pop)
 
-    def _compute_pop_ids(self, src_pop, dst_pop, src_pop_id=None):
-        """Compute pop id automatically. pop src 0 is base population.
-        if src_pop_id is provided, it will be used instead.
-        """
+    def _compute_pop_ids(self, src_pop_name, dst_pop_name):
+        """Compute pop id automatically base on population name."""
 
-        def make_id(node_pop):
-            pop_hash = hashlib.md5(node_pop.encode()).digest()
+        def make_id(node_pop_name):
+            pop_hash = hashlib.md5(node_pop_name.encode()).digest()
             return ((pop_hash[1] & 0x0F) << 8) + pop_hash[0]  # id: 12bit hash
 
-        dst_pop_id = 0 if self._cell_manager.is_default else make_id(dst_pop)
-        if src_pop_id is None:
-            src_pop_id = 0 if self._src_cell_manager.is_default else make_id(src_pop)
-        return src_pop_id, dst_pop_id
+        return make_id(src_pop_name), make_id(dst_pop_name)
 
     # -
     def select_connection_set(self, src_pop_id, dst_pop_id):
@@ -386,7 +373,7 @@ class ConnectionManagerBase:
         return self._cur_population
 
     # -
-    def get_population(self, src_pop_id, dst_pop_id=0):
+    def get_population(self, src_pop_id, dst_pop_id):
         """Retrieves a connection set given node src and dst pop ids"""
         pop = self._populations.get((src_pop_id, dst_pop_id))
         if not pop:
@@ -468,9 +455,9 @@ class ConnectionManagerBase:
             dst_target: Target name to restrict creating connections going into it
         """
         conn_src_spec = TargetSpec(src_target)  # instantiate all from src
-        conn_src_spec.population = self.current_population.src_name
+        conn_src_spec.population = self.current_population.src_pop_name
         conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target)
-        conn_dst_spec.population = self.current_population.dst_name
+        conn_dst_spec.population = self.current_population.dst_pop_name
         this_pathway = {"Source": str(conn_src_spec), "Destination": str(conn_dst_spec)}
         matching_conns = [
             conn
@@ -1128,12 +1115,12 @@ class ConnectionManagerBase:
         n_created_conns = 0
 
         for popid, pop in self._populations.items():
-            attach_src = pop.src_id == 0 or not pop.virtual_source  # real populations
+            attach_src = pop.src_pop_id == 0 or not pop.virtual_source  # real populations
             conn_params["attach_src_cell"] = attach_src
             logging.info(
                 " * Connections among %s -> %s, attach src: %s",
-                pop.src_name or "(base)",
-                pop.dst_name or "(base)",
+                pop.src_pop_name or "(base)",
+                pop.dst_pop_name or "(base)",
                 attach_src,
             )
 
@@ -1171,23 +1158,15 @@ class ConnectionManagerBase:
 # ##############
 
 
-def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_name=None):
-    """Find/decides the node populations names from several edge configurations
+def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_name=None) -> tuple:
+    """Find the node populations names.
 
     Args:
         edge_file: The edge file to extract the population names from
         edge_pop_name: The name of the edge population
-        src_pop_name: Overriding source pop name
-        dst_pop_name: Overriding target population name
-
-    Returns: tuple of the src-dst population names. Any can be None if not available
+    Returns: tuple of the src-dst population names.
     """
-    if (src_pop_name and dst_pop_name) or not edge_file.endswith(".h5"):
-        return src_pop_name, dst_pop_name
-    # Get src-dst pop names, allowing current ones to override
-    src_dst_pop_names = _edge_meta_get_node_populations(
-        edge_file, edge_pop_name
-    ) or _edge_to_node_population_names(edge_pop_name)
+    src_dst_pop_names = _edge_meta_get_node_populations(edge_file, edge_pop_name)
     if src_dst_pop_names:
         if src_pop_name is None:
             src_pop_name = src_dst_pop_names[0]
@@ -1197,54 +1176,18 @@ def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_nam
 
 
 @run_only_rank0
-def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple | None:
-    import h5py
+def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple:
+    import libsonata
 
-    f = h5py.File(edge_file, "r")
-    if "edges" not in f:
-        return None
-    edge_group = f["edges"]
+    edge_storage = libsonata.EdgeStorage(edge_file)
     if not edge_pop_name:
-        assert len(edge_group) == 1, "multi-population edges require manual selection"
-        edge_pop_name = next(iter(edge_group.keys()))
-    edge_pop = edge_group[edge_pop_name]
-
-    try:
-        return (
-            edge_pop["source_node_id"].attrs["node_population"],
-            edge_pop["target_node_id"].attrs["node_population"],
+        assert len(edge_storage.population_names) == 1, (
+            "multi-population edges require manual selection"
         )
-    except KeyError:
-        logging.warning("Edges don't have 'node_population' attribute")
-    return None
+        edge_pop_name = next(iter(edge_storage.population_names))
 
-
-def _edge_to_node_population_names(edge_pop_name):
-    """Obtain the node source and destination population names from an edge population name"""
-    if edge_pop_name is None or "__" not in edge_pop_name:
-        return None
-    logging.info("(Compat) Using edge population name to know intervening nodes")
-    pop_infos = edge_pop_name.split("__")
-    src_pop = pop_infos[0]
-    dst_pop = pop_infos[1] if len(pop_infos) > 2 else src_pop
-    return src_pop, dst_pop
-
-
-def _get_projection_population_id(projection):
-    """Check projection config for overrides to the population ID"""
-    pop_id = None
-    if "PopulationID" in projection:
-        pop_id = int(projection["PopulationID"])
-    if pop_id == 0:
-        raise ConfigurationError("PopulationID 0 is not allowed")
-    # If the projections are to be merged with base connectivity and the base
-    # population is unknown, with Sonata pop we need a way to explicitly request it.
-    # Note: gid offsetting must have been previously done
-    if projection.get("AppendBasePopulation"):
-        assert pop_id is None, "AppendBasePopulation is incompatible with PopulationID"
-        log_verbose("Appending projection to base connectivity (AppendBasePopulation)")
-        pop_id = 0
-    return pop_id
+    edge_pop = edge_storage.open_population(edge_pop_name)
+    return (edge_pop.source, edge_pop.target)
 
 
 # ######################################################################
