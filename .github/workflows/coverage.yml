@@ -24,6 +24,8 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev
         python -m pip install --upgrade pip tox coverage
 
     - name: Run tox baseline
