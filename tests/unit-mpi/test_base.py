@@ -9,7 +9,8 @@ size = comm.Get_size()
 @pytest.mark.mpi(ranks=2)
 def test_mpi_send_recv(mpi_ranks):
     """Test basic MPI send/receive functionality."""
-    assert size == 2, "This test requires at least 2 MPI processes"
+    assert size == 2, "This test requires exactly 2 MPI processes"
+    assert size == mpi_ranks, "MPI ranks do not match the expected number"
 
     if rank == 0:
         data = {"msg": "Hello from rank 0"}
