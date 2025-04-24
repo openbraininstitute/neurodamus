@@ -643,7 +643,7 @@ def _modification_params(config: _SimConfig, _run_conf):
         _check_params("Modification " + name, mod_block, required_fields, ())
 
 
-def _make_circuit_config(config_dict, req_morphology=True):
+def make_circuit_config(config_dict, req_morphology=True):
     if config_dict.get("CircuitPath", "<NONE>") == "<NONE>":
         config_dict["CircuitPath"] = False
         config_dict["nrnPath"] = False
@@ -701,7 +701,7 @@ def _circuits(config: _SimConfig, _run_conf):
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
-        circuit_configs[name] = _make_circuit_config(circuit_info, req_morphology=False)
+        circuit_configs[name] = make_circuit_config(circuit_info, req_morphology=False)
         circuit_configs[name].name = name
 
     # Sort so that iteration is deterministic

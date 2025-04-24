@@ -40,10 +40,10 @@ from .core.configuration import (
     Feature,
     GlobalConfig,
     SimConfig,
-    _make_circuit_config,
     _SimConfig,
     find_input_file,
     get_debug_cell_gid,
+    make_circuit_config,
 )
 from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
 from .core.nodeset import PopulationNodes
@@ -1308,7 +1308,7 @@ class Node:
         fake_gid = pop_group.offset + 1 + MPI.rank
         # Add the fake cell to a dummy manager
         dummy_cell_manager = CellDistributor(
-            circuit_conf=_make_circuit_config({}), target_manager=self._target_manager
+            circuit_conf=make_circuit_config({}), target_manager=self._target_manager
         )
         dummy_cell_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
         yield
