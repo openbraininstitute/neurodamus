@@ -46,3 +46,14 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         flag-name: unit
+
+    - name: Run tox unit-mpi
+      run: |
+        rm -rf .coverage
+        tox -e unit-mpi
+
+    - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: unit-mpi
