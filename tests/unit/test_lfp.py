@@ -1,3 +1,5 @@
+import numpy.testing as npt
+import numpy as np
 import pytest
 from pathlib import Path
 import h5py
@@ -49,15 +51,17 @@ def test_read_lfp_factors():
 
     # Test the function with valid inputs for both populations
     result = lfp.read_lfp_factors(3, ("RingA", 0)).to_python()
-    expected_result = [0.111, 0.112, 0.121, 0.122, 0.131, 0.132, 0.141, 0.142, 0.151, 0.152]
-    assert result == expected_result, f'Expected {expected_result}, but got {result}'
+    expected_result = np.array(
+        [0.111, 0.112, 0.121, 0.122, 0.131, 0.132, 0.141, 0.142, 0.151, 0.152]
+        )
+    npt.assert_allclose(result, expected_result)
 
     result = lfp.read_lfp_factors(1002, ("RingB", 1000)).to_python()
-    expected_result = [
+    expected_result = np.array([
         0.064, 0.065, 0.066, 0.074, 0.075, 0.076, 0.084, 0.085, 0.086,
         0.094, 0.095, 0.096, 0.104, 0.105, 0.106
-        ]
-    assert result == expected_result
+        ])
+    npt.assert_allclose(result, expected_result)
 
     # Test the function with invalid input
     # (non-existent gid)

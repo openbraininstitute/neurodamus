@@ -109,7 +109,7 @@ def make_edges(filename, edges, wanted_attributes):
         target_node_count=max(tgt_ids) + 1,
     )
 
-def make_lfp_file():
+def make_lfp_weights():
     filename = "lfp_file.h5"
     with h5py.File(filename, "w") as h5:
         def write_pop(population, node_ids, offsets, scaling_factors):
@@ -162,13 +162,11 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
+        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],
         "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
         "x": it.count(0),
         "y": it.count(1),
         "z": it.count(2),
-        # Note: the morphology isn't used because it's encoded in the hoc file
         "morphology": "cell_small",
     }
     make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
@@ -176,13 +174,11 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1"],  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
+        "mtype": ["MTYPE0", "MTYPE1"], 
         "etype": ["ETYPE1", "ETYPE1"],
         "x": it.count(3),
         "y": it.count(4),
         "z": it.count(5),
-        # Note: the morphology isn't used because it's encoded in the hoc file
         "morphology": "cell_small",
     }
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
@@ -190,13 +186,11 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": "MTYPE0",  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
+        "mtype": "MTYPE0",
         "etype": "ETYPE1",
         "x": it.count(3),
         "y": it.count(4),
         "z": it.count(5),
-        # Note: the morphology isn't used because it's encoded in the hoc file
         "morphology": "cell_small",
     }
     make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
@@ -290,4 +284,4 @@ def make_ringtest_edges():
 
 make_ringtest_nodes()
 make_ringtest_edges()
-make_lfp_file()
+make_lfp_weights()

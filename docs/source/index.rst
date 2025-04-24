@@ -20,6 +20,7 @@ Contents
    Developing a Custom Neurodamus <development>
    NGV <ngv>
    Memory Load Balance Tutorial <memory_load_balance>
+   Local Field Potentials (LFPs) <lfp>
    More on Neurodamus Wiki <https://github.com/BlueBrain/neurodamus/wiki>
    Module Reference <api/modules>
    Changelog <changes>
