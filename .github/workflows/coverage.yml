@@ -26,7 +26,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libmpich-dev python3-dev
-        python -m pip install --upgrade pip tox coverage
+        python -m pip install --upgrade pip tox coverage mpi4py
 
 
 
