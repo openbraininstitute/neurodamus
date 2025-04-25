@@ -51,7 +51,6 @@ jobs:
     - name: Check for coverage files before running tox
       run: |
         echo "Checking for coverage files before running tox"
-        ls -alh .coverage*
         ls -alh  # List all files in the directory
 
     - name: Run tox unit-mpi
@@ -62,7 +61,6 @@ jobs:
     - name: Check for coverage files after running tox
       run: |
         echo "Checking for coverage files after running tox"
-        ls -alh .coverage*
         ls -alh  # List all files in the directory
 
     - name: Coveralls
