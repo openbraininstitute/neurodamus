@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt install python3-mpi4py
+        sudo apt install -y python3-mpi4py
         python -c "from mpi4py import MPI"
 
 
