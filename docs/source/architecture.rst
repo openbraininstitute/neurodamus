@@ -89,10 +89,10 @@ state by digging the hierarchy.
 *Notice that the Node object still owns most the top-level objects, except the cell and synapse
 managers since they are now handled by the Circuits class.*
 
-*Technical note:* These properties are read-only objects for internal attributes "_"prefixed.
+*Technical note:* These properties are read-only objects for internal attributes whose names are prefixed with "_".
 Besides them, many other internal attributes exist, but at least one is worth being mentioned:
 
-`self._sonata_circuits`: The SONATA circuits used by the Node class each represents a node population.
+- `self._sonata_circuits`: The SONATA circuits used by the Node class each represents a node population.
 
 Cells
 -----
