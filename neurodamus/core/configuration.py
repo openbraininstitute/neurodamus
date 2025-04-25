@@ -101,6 +101,7 @@ class CircuitConfig(ConfigT):
     MorphologyPath = None
     CircuitTarget = None
     DetailedAxon = False
+    PopulationType = None
 
 
 class RNGConfig(ConfigT):

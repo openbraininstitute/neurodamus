@@ -59,7 +59,7 @@ class SonataConfig:
 
         self._circuit_conf = libsonata.CircuitConfig.from_file(self.network)
         self._circuit_networks = json.loads(self._circuit_conf.expanded_json)["networks"]
-        self._circuits = self._legacy_style_circuits()
+        self._circuits = self._extract_circuits_info()
 
     @classmethod
     def _resolve(cls, entry, name, manifest: dict):
@@ -201,8 +201,22 @@ class SonataConfig:
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
         return {"Conditions": conditions}
 
-    def _legacy_style_circuits(self):
-        """Yield legacy blueconfig-style circuits"""
+    def _extract_circuits_info(self) -> dict:
+        """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
+        return a dictionary of circuit info as:
+        {
+            pop_name: { "CellLibraryFile": ...,
+                        "CircuitTarget": ...,
+                        "MorphologyPath": ...,
+                        "MorphologyType": ...,
+                        "METypePath": ...,
+                        "Engine": ...,
+                        "nrnPath": ...,
+                        "PopulationType": ...
+                }
+        }
+        It will be used to build the internal circuit structure CircuitConfig in configuration.py
+        """
         node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
 
         if "node_set" not in self._entries:
