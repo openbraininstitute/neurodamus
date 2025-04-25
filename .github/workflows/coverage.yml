@@ -27,8 +27,9 @@ jobs:
         nproc
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev
+        echo $MPIEXEC
         mpicc -o mpi_hello_world mpi_hello_world.c
-        mpiexec -n 4 ./mpi_hello_world
+        mpiexec -n 4 -v -host localhost ./mpi_hello_world
     
     # - name: Upgrade pip and install base Python packages
     #   run: |
