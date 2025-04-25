@@ -151,7 +151,7 @@ def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_fact
 
     _, lfp_weights_file = test_weights_file
     with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
-            sim_config_data = json.load(f)
+        sim_config_data = json.load(f)
     params = {
         "extra_config": {
             "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),

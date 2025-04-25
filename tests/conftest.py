@@ -76,7 +76,6 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-
 def _create_tmp_simulation_config_file(params, dst_dir, sim_config_data=None):
     from tests import utils
 
