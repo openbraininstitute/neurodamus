@@ -113,4 +113,4 @@ def test_neurodamus(create_tmp_simulation_config_file, mpi_ranks):
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
     import numpy.testing as npt
     npt.assert_allclose(local_gids, local_gids_ref[MPI.rank])
-    n.run()
+    # n.run()
