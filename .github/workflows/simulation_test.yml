@@ -170,7 +170,7 @@ jobs:
 
     - name: Build h5py with the local hdf5
       run: |
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/openmpi HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
     - name: Install neurodamus
