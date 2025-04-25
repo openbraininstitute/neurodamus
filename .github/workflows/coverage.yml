@@ -31,7 +31,7 @@ jobs:
         sudo apt-get install -y libopenmpi-dev openmpi-bin
         echo $MPIEXEC
         mpicc -o mpi_hello_world mpi_hello_world.c
-        mpiexec -n 2 -v -host localhost ./mpi_hello_world
+        mpiexec -n 2 -v ./mpi_hello_world
     
     # - name: Upgrade pip and install base Python packages
     #   run: |
