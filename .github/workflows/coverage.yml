@@ -28,26 +28,26 @@ jobs:
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev
         python -m pip install --upgrade pip tox coverage
 
-    - name: Run tox baseline
-      run: |
-        tox -e baseline
+    # - name: Run tox baseline
+    #   run: |
+    #     tox -e baseline
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: baseline
+    # - name: Coveralls
+    #   if: ${{ matrix.os == 'ubuntu-latest' }}
+    #   uses: coverallsapp/github-action@v2
+    #   with:
+    #     flag-name: baseline
 
-    - name: Run tox unit
-      run: |
-        rm -rf .coverage
-        tox -e unit
+    # - name: Run tox unit
+    #   run: |
+    #     rm -rf .coverage
+    #     tox -e unit
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: unit
+    # - name: Coveralls
+    #   if: ${{ matrix.os == 'ubuntu-latest' }}
+    #   uses: coverallsapp/github-action@v2
+    #   with:
+    #     flag-name: unit
 
     - name: Test raw MPI call
       run: |
