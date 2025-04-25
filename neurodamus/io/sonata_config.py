@@ -317,7 +317,8 @@ class SonataConfig:
         stimuli = {}
         names1 = self._sim_conf.list_input_names
         # names = ("ThresholdInh", "ThresholdExc", "hypamp_mosaic")
-        names = self._sim_conf.list_input_names
+        names = ('hypamp_mosaic', 'ThresholdExc', 'ThresholdInh')
+
         if names1 is None:
             logging.warning("parsedStimuli: injects: %s", stimuli)
             return stimuli
@@ -349,7 +350,9 @@ class SonataConfig:
 
         names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
         names = self._sim_conf.list_input_names
+        names = ('hypamp_mosaic', 'ThresholdExc', 'ThresholdInh')
         logging.warning("old: %s, new: %s", names1, names)
+
         for name in names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
