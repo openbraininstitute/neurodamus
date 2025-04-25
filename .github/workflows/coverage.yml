@@ -49,6 +49,14 @@ jobs:
       with:
         flag-name: unit
 
+    - name: Test raw MPI call
+      run: |
+        python -m pip install mpi4py
+        mpirun -n 2 python mpi_hello_world.py
+
+    - name: Tox raw MPI test
+      run: tox -e removeme
+
     - name: Run tox unit-mpi
       run: |
         rm -rf .coverage
