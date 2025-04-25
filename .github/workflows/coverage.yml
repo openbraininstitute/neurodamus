@@ -22,15 +22,32 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install dependencies for ${{ matrix.os }}
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libopenmpi-dev openmpi-bin
+        if [[ $RUNNER_OS == 'Linux' ]]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+        elif [[ $RUNNER_OS == 'macOS' ]]; then
+          # Install MPI and Python dependencies for macOS
+          brew update
+          brew install open-mpi
+        fi
         python -m pip install --upgrade pip tox coverage
 
     - name: Run tox baseline
       run: |
         tox -e baseline
+
+    - name: Coveralls
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: baseline
+
+    - name: Run tox unit-mpi
+      run: |
+        rm -rf .coverage
+        tox -e unit-mpi
 
     - name: Coveralls
       if: ${{ matrix.os == 'ubuntu-latest' }}
