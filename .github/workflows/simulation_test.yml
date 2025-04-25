@@ -82,7 +82,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install libopenmpi-dev libhdf5-openmpi-dev hdf5-tools flex libfl-dev bison ninja-build
+        sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
 
     - name: Cache python virtual env
       id: cache-venv
@@ -170,7 +170,7 @@ jobs:
 
     - name: Build h5py with the local hdf5
       run: |
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/openmpi HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi \
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
     - name: Install neurodamus
