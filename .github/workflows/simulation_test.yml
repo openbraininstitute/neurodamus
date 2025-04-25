@@ -50,13 +50,13 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-v1
-        restore-keys: |
-          ${{ matrix.os }}-pip-
+    # - name: Cache pip
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: ~/.cache/pip
+    #     key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-v1
+    #     restore-keys: |
+    #       ${{ matrix.os }}-pip-
 
     - name: Get latest tags
       run: |
@@ -84,17 +84,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
 
-    - name: Cache python virtual env
-      id: cache-venv
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-venv
-      with:
-        path: venv
-        key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
+    # - name: Cache python virtual env
+    #   id: cache-venv
+    #   uses: actions/cache@v3
+    #   env:
+    #     cache-name: cache-venv
+    #   with:
+    #     path: venv
+    #     key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
 
     - name: Upgrade pip and install base Python packages
-      if: steps.cache-venv.outputs.cache-hit != 'true'
+      # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         python -m venv venv
         . ./venv/bin/activate
@@ -105,21 +105,21 @@ jobs:
       run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
 
     - name: Install libsonata
-      if: steps.cache-venv.outputs.cache-hit != 'true'
+      # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
-    - name: Cache libsonatareport
-      id: cache-libsonatareport
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-libsonatareport
-      with:
-        path: libsonatareport
-        key: ${{ matrix.os }}-libsonatareport-${{ env.LIBSONATA_REPORT_BRANCH }}-py${{ matrix.python-version }}
+    # - name: Cache libsonatareport
+    #   id: cache-libsonatareport
+    #   uses: actions/cache@v3
+    #   env:
+    #     cache-name: cache-libsonatareport
+    #   with:
+    #     path: libsonatareport
+    #     key: ${{ matrix.os }}-libsonatareport-${{ env.LIBSONATA_REPORT_BRANCH }}-py${{ matrix.python-version }}
 
     - name: Install libsonatareport
-      if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
+      # if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
       run: |
         git clone --branch="${{ env.LIBSONATA_REPORT_BRANCH}}" https://github.com/openbraininstitute/libsonatareport.git --recursive --depth=1
         cd libsonatareport
@@ -128,17 +128,17 @@ jobs:
         cmake --build . --parallel
         cmake --build . --target install
 
-    - name: Cache NEURON
-      id: cache-neuron
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-neuron
-      with:
-        path: nrn
-        key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
+    # - name: Cache NEURON
+    #   id: cache-neuron
+    #   uses: actions/cache@v3
+    #   env:
+    #     cache-name: cache-neuron
+    #   with:
+    #     path: nrn
+    #     key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
 
     - name: Install NEURON
-      if: steps.cache-neuron.outputs.cache-hit != 'true'
+      # if: steps.cache-neuron.outputs.cache-hit != 'true'
       run: |
         export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
         if [[ ${{ env.NEURON_BRANCH }} == 'master' ]]; then
@@ -164,7 +164,7 @@ jobs:
         cmake --build nrn/build --target install
 
     - name: Install mpi4py
-      if: steps.cache-venv.outputs.cache-hit != 'true'
+      # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         pip install mpi4py
 
