@@ -19,7 +19,6 @@ class ConnectionTypes(str, Enum):
 class SonataConfig:
     __slots__ = (
         "_bc_circuits",
-        "_circuit_networks",
         "_sim_conf",
         "_stable_inputs_order",
         "circuits",
@@ -33,14 +32,14 @@ class SonataConfig:
         # recover the order defined in the json file: this assumes that `json.load`
         # keeps it; which is not guaranteed
 
-        self._stable_inputs_order = None
         with open(config_path) as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
                 logging.warning("_stable_inputs_order: %s", self._stable_inputs_order)
+            else:
+                self._stable_inputs_order = tuple()
 
         self.circuits = libsonata.CircuitConfig.from_file(self._sim_conf.network)
-        self._circuit_networks = json.loads(self.circuits.expanded_json)["networks"]
         self._bc_circuits = self._blueconfig_circuits()
 
     @property
@@ -120,7 +119,7 @@ class SonataConfig:
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
         parsed_run["CircuitTarget"] = self._sim_conf.node_set
         parsed_run["Celsius"] = self._sim_conf.conditions.celsius
-        parsed_run["V_Init"] = -65.  # self._sim_conf.conditions.v_init
+        parsed_run["V_Init"] = -65.0  # self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
         parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
         logging.warning("parsedRun: %s", parsed_run)
@@ -158,7 +157,7 @@ class SonataConfig:
         if not simulation_nodeset_name:
             logging.warning("Simulating all populations from all node files...")
 
-        network = self._circuit_networks
+        network = json.loads(self.circuits.expanded_json)["networks"]
 
         def make_circuit(nodes_file, node_pop_name, population_info):
             if not os.path.isabs(nodes_file):
@@ -246,7 +245,8 @@ class SonataConfig:
         internal_edge_pops = {c_conf["nrnPath"] for c_conf in self._bc_circuits.values()}
         projections = {}
 
-        for edge_config in self._circuit_networks.get("edges") or []:
+        networks = json.loads(self.circuits.expanded_json)["networks"]
+        for edge_config in networks.get("edges") or []:
             for edge_pop_name, edge_pop_config in edge_config["populations"].items():
                 edge_pop = self.circuits.edge_population(edge_pop_name)
                 pop_type = edge_pop_config.get("type", "chemical")
@@ -277,7 +277,7 @@ class SonataConfig:
                         projection["Source"],
                     )
                 if projection.get("Type") == ConnectionTypes.GlioVascular:
-                    for node_file_info in self._circuit_networks["nodes"]:
+                    for node_file_info in networks["nodes"]:
                         for pop_name, pop_info in node_file_info["populations"].items():
                             if pop_info.get("type") == "vasculature":
                                 projection["VasculaturePath"] = (
@@ -289,10 +289,6 @@ class SonataConfig:
 
         logging.warning("parsedProjections: %s", projections)
         return projections
-
-    @property
-    def parsedElectrodes(self):
-        return None  # No electrodes in Sonata config
 
     @property
     def parsedConnects(self):
@@ -315,17 +311,7 @@ class SonataConfig:
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
         stimuli = {}
-        names1 = self._sim_conf.list_input_names
-        # names = ("ThresholdInh", "ThresholdExc", "hypamp_mosaic")
-        names = ('hypamp_mosaic', 'ThresholdExc', 'ThresholdInh')
-
-        if names1 is None:
-            logging.warning("parsedStimuli: injects: %s", stimuli)
-            return stimuli
-
-        logging.warning("old: %s, new: %s",
-                        ("ThresholdInh", "ThresholdExc", "hypamp_mosaic"), names)
-        for name in names:
+        for name in self._sim_conf.list_input_names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
@@ -342,18 +328,7 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-
-        names1 = self._stable_inputs_order
-        if names1 is None:
-            logging.warning("parsedInjects: injects: %s", injects)
-            return injects
-
-        names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
-        names = self._sim_conf.list_input_names
-        names = ('hypamp_mosaic', 'ThresholdExc', 'ThresholdInh')
-        logging.warning("old: %s, new: %s", names1, names)
-
-        for name in names:
+        for name in self._stable_inputs_order:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj

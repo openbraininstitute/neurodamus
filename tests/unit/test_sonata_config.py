@@ -9,7 +9,6 @@ from .conftest import RINGTEST_DIR
 def test_parse_base():
     from neurodamus.io.sonata_config import SonataConfig
     raw_conf = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
-    breakpoint() # XXX BREAKPOINT
     assert raw_conf.parsedRun["BaseSeed"] == 1122
 
 
