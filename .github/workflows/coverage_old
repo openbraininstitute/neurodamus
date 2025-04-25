@@ -22,26 +22,28 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libopenmpi-dev openmpi-bin
-        python -m pip install --upgrade pip tox coverage
 
-    - name: Run tox baseline
+    - name: Upgrade pip and install base Python packages
       run: |
-        tox -e baseline
+        pip install tox
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: baseline
+    - name: Check for coverage files before running tox
+      run: |
+        echo "Checking for coverage files before running tox"
+        ls -alh  # List all files in the directory
 
     - name: Run tox unit-mpi
       run: |
+        # Remove any existing .coverage files before running tox
         rm -rf .coverage
         tox -e unit-mpi
+        # Check if the .coverage file was generated after running tox
+        echo "Checking for coverage files after running tox"
+        ls -alh  # List all files in the directory
 
     - name: Coveralls
       if: ${{ matrix.os == 'ubuntu-latest' }}
