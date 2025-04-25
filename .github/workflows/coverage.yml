@@ -26,8 +26,6 @@ jobs:
       run: |
         nproc
         sudo apt-get update
-        sudo apt upgrade -y
-        sudo apt-get install -y build-essential
         sudo apt-get install -y libopenmpi-dev openmpi-bin
         echo $MPIEXEC
         mpicc -o mpi_hello_world mpi_hello_world.c
