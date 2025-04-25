@@ -2,7 +2,7 @@ import pytest
 import h5py
 import numpy as np
 from pathlib import Path
-from ..unit.conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
@@ -145,12 +145,14 @@ def _read_sonata_lfp_file(lfp_file):
 
 def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_factory, tmp_path):
     import numpy.testing as npt
+    import json
     from neurodamus import Neurodamus
     from neurodamus.core.coreneuron_configuration import CoreConfig
 
     _, lfp_weights_file = test_weights_file
+    with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
+            sim_config_data = json.load(f)
     params = {
-        "simconfig_file": str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json"),
         "extra_config": {
             "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),
             "target_simulator": "CORENEURON",
@@ -167,7 +169,7 @@ def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_fact
             }
         }
     }
-    config_file = create_tmp_simulation_config_file_factory(None, params, tmp_path)
+    config_file = create_tmp_simulation_config_file_factory(params, tmp_path, sim_config_data)
 
     nd = Neurodamus(config_file)
     nd.run()
@@ -186,7 +188,7 @@ def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_fact
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
-        "simconfig_file": str(RINGTEST_DIR / "simulation_config.json"),
+        "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
             "run": {

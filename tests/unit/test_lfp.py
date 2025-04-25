@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 import h5py
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
 
 

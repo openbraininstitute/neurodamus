@@ -9,7 +9,7 @@ from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
 from tests import utils
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 
 
 def check_cell(cell):

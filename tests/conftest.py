@@ -17,6 +17,8 @@ pytest.register_assert_rewrite("tests.utils")
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
 PLATFORM_SYSTEM = platform.system()
+RINGTEST_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest"
+NGV_DIR = Path(__file__).parent.absolute() / "simulations" / "ngv"
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +50,25 @@ def sonata_config():
     )
 
 
+@pytest.fixture
+def ringtest_baseconfig():
+    return dict(
+        network=str(RINGTEST_DIR / "circuit_config.json"),
+        node_sets_file=str(RINGTEST_DIR / "nodesets.json"),
+        target_simulator="NEURON",
+        run={
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        node_set="Mosaic",
+        conditions={
+            "celsius": 35,
+            "v_init": -65
+        }
+    )
+
+
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_path):
     """change the working directory to tmp_path per test function automatically
@@ -55,7 +76,8 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-def _create_tmp_simulation_config_file(sim_config_data, params, dst_dir):
+
+def _create_tmp_simulation_config_file(params, dst_dir, sim_config_data=None):
     from tests import utils
 
     src_dir = Path(params.get("src_dir", ""))
@@ -113,7 +135,7 @@ def create_tmp_simulation_config_file(request, tmp_path):
     sim_config_data = None
     if "simconfig_fixture" in params:
         sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
-    return _create_tmp_simulation_config_file(sim_config_data, params, tmp_path)
+    return _create_tmp_simulation_config_file(params, tmp_path, sim_config_data)
 
 
 @pytest.fixture
