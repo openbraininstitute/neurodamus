@@ -82,7 +82,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
+        sudo apt-get install libopenmpi-dev libhdf5-openmpi-dev hdf5-tools flex libfl-dev bison ninja-build
 
     - name: Cache python virtual env
       id: cache-venv
