@@ -24,6 +24,7 @@ jobs:
 
     - name: Install system dependencies
       run: |
+        nproc
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev
     
