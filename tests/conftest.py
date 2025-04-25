@@ -55,28 +55,14 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-@pytest.fixture
-def create_tmp_simulation_config_file(request, tmp_path):
-    """create simulation config file in tmp_path from
-        1. simconfig_fixture in request: fixture's name (str)
-        2. or simconfig_data in request: dict
-        3. or copy of simconfig_file in request, and attach relative paths to src_dir
-    Updates the config file with extra_config
-    Returns the tmp file path
-    """
-    # import locally to register it in the pytests.
-    # check the explanation about
-    # pytest.register_assert_rewrite("tests.utils")
-    # at the beginning of the file
+def _create_tmp_simulation_config_file(sim_config_data, params, dst_dir):
     from tests import utils
 
-    params = request.param
     src_dir = Path(params.get("src_dir", ""))
     config_file = Path(params.get("simconfig_file", "simulation_config.json"))
-    sim_config_data = params.get("simconfig_data")
 
-    if "simconfig_fixture" in params:
-        sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
+    if not sim_config_data:
+        sim_config_data = params.get("simconfig_data")
     if not sim_config_data:
         # read sim_config_data from a config file
         with open(src_dir / config_file) as src_f:
@@ -97,9 +83,9 @@ def create_tmp_simulation_config_file(request, tmp_path):
         if _is_valid_relative_path(spike_file):
             input["spike_file"] = str(src_dir / input["spike_file"])
 
-    with open(tmp_path / config_file, "w") as dst_f:
+    with open(dst_dir / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
-    return str(tmp_path / config_file)
+    return str(dst_dir / config_file)
 
 
 def _is_valid_relative_path(filepath: str):
@@ -108,3 +94,31 @@ def _is_valid_relative_path(filepath: str):
         and not Path(filepath).is_absolute()
         and not Path(filepath).parts[0].startswith("$")
     )
+
+
+@pytest.fixture
+def create_tmp_simulation_config_file(request, tmp_path):
+    """create simulation config file in tmp_path from
+        1. simconfig_fixture in request: fixture's name (str)
+        2. or simconfig_data in request: dict
+        3. or copy of simconfig_file in request, and attach relative paths to src_dir
+    Updates the config file with extra_config
+    Returns the tmp file path
+    """
+    # import locally to register it in the pytests.
+    # check the explanation about
+    # pytest.register_assert_rewrite("tests.utils")
+    # at the beginning of the file
+    params = request.param
+    sim_config_data = None
+    if "simconfig_fixture" in params:
+        sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
+    return _create_tmp_simulation_config_file(sim_config_data, params, tmp_path)
+
+
+@pytest.fixture
+def create_tmp_simulation_config_file_factory():
+    """Returns the factory to allow the creation of the simulation config
+    file
+    """
+    return _create_tmp_simulation_config_file
