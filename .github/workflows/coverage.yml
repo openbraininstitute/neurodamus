@@ -24,20 +24,17 @@ jobs:
 
     - name: Install system dependencies
       run: |
-        nproc
         sudo apt-get update
         sudo apt-get install -y libopenmpi-dev openmpi-bin
         echo $MPIEXEC
         mpicc -o mpi_hello_world mpi_hello_world.c
         mpiexec -n 2 -v ./mpi_hello_world
     
-    # - name: Upgrade pip and install base Python packages
-    #   run: |
-    #     python -m venv venv
-    #     source venv/bin/activate
-    #     python -m pip install --upgrade pip setuptools
-    #     pip install mpi4py
-    #     python -c "from mpi4py import MPI"
+    - name: Upgrade pip and install base Python packages
+      run: |
+        pip install mpi4py
+        python -c "from mpi4py import MPI"
+        mpiexec -n 2 python mpi_hello_world.py
 
     # - name: Add virtual environment to PATH
     #   run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
