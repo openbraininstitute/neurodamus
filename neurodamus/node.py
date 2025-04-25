@@ -428,7 +428,7 @@ class Node:
             )
             return None
 
-        if not circuit.CircuitPath:
+        if not circuit.CellLibraryFile:
             logging.info(" => No circuit for Load Balancing. Skipping... ")
             return None
 
@@ -474,9 +474,9 @@ class Node:
             return alloc
 
         # Build load balancer as per requested options
-        data_src = circuit.CircuitPath
+        node_path = circuit.CellLibraryFile
         pop = target_spec.population
-        load_balancer = LoadBalance(lb_mode, data_src, pop, self._target_manager)
+        load_balancer = LoadBalance(lb_mode, node_path, pop, self._target_manager)
 
         if load_balancer.valid_load_distribution(target_spec):
             logging.info("Load Balancing done.")
@@ -714,9 +714,7 @@ class Node:
         """Determine the full path to a projection.
         The "Path" might specify the filename. If not, it will attempt the old 'proj_nrn.h5'
         """
-        return self._find_config_file(
-            proj_path, ("ProjectionPath", "CircuitPath"), alt_filename="proj_nrn.h5"
-        )
+        return self._find_config_file(proj_path, ("ProjectionPath"), alt_filename="proj_nrn.h5")
 
     def _find_config_file(self, filepath, path_conf_entries=(), alt_filename=None):
         search_paths = [

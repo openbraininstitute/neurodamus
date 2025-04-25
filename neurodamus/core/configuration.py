@@ -94,14 +94,12 @@ class CliOptions(ConfigT):
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
-    CellLibraryFile = None
+    CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
     CircuitTarget = None
-    PopulationID = 0
     DetailedAxon = False
 
 
@@ -554,9 +552,8 @@ def _loadbal_mode(config: _SimConfig, run_conf):
 @SimConfig.validator
 def _projection_params(config: _SimConfig, _run_conf):
     required_fields = ("Path",)
-    non_negatives = ("PopulationID",)
     for name, proj in config.projections.items():
-        _check_params("Projection " + name, proj, required_fields, (), non_negatives)
+        _check_params("Projection " + name, proj, required_fields, (), ())
         _validate_file_extension(proj.get("Path"))
 
 
@@ -644,11 +641,11 @@ def _modification_params(config: _SimConfig, _run_conf):
 
 
 def make_circuit_config(config_dict, req_morphology=True):
-    if config_dict.get("CircuitPath", "<NONE>") == "<NONE>":
-        config_dict["CircuitPath"] = False
+    if not config_dict.get("CellLibraryFile"):
+        config_dict["CellLibraryFile"] = False
         config_dict["nrnPath"] = False
         config_dict["MorphologyPath"] = False
-    elif config_dict.get("nrnPath", "<NONE>") == "<NONE>":
+    elif not config_dict.get("nrnPath"):
         config_dict["nrnPath"] = False
     _validate_circuit_morphology(config_dict, req_morphology)
     _validate_file_extension(config_dict.get("CellLibraryFile"))

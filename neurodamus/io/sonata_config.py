@@ -158,7 +158,6 @@ class SonataConfig:
     def parsedRun(self):
         parsed_run = self._translate_dict("run", self._sim_conf.run)
         self._adapt_libsonata_fields(parsed_run)
-        parsed_run["CircuitPath"] = "<NONE>"  # Sonata doesnt have default circuit
         # "OutputRoot" and "SpikesFile" will be read from self._sim_conf.output
         # once libsonata resolves the manifest info
         parsed_run["OutputRoot"] = self._sim_conf.output.output_dir
@@ -214,7 +213,6 @@ class SonataConfig:
             if not os.path.isabs(nodes_file):
                 nodes_file = os.path.join(os.path.dirname(self.network), nodes_file)
             circuit_config = dict(
-                CircuitPath=os.path.dirname(nodes_file) or "",
                 CellLibraryFile=nodes_file,
                 # Use the extended ":" syntax to filter the nodeset by the related population
                 CircuitTarget=node_pop_name + ":" + (self._entries.get("node_set") or ""),
