@@ -31,27 +31,6 @@ jobs:
       run: |
         pip install tox
 
-    # - name: Run tox baseline
-    #   run: |
-    #     tox -e baseline
-
-    # - name: Coveralls
-    #   if: ${{ matrix.os == 'ubuntu-latest' }}
-    #   uses: coverallsapp/github-action@v2
-    #   with:
-    #     flag-name: baseline
-
-    # - name: Run tox unit
-    #   run: |
-    #     rm -rf .coverage
-    #     tox -e unit
-
-    # - name: Coveralls
-    #   if: ${{ matrix.os == 'ubuntu-latest' }}
-    #   uses: coverallsapp/github-action@v2
-    #   with:
-    #     flag-name: unit
-
     - name: Check for coverage files before running tox
       run: |
         echo "Checking for coverage files before running tox"
@@ -59,11 +38,10 @@ jobs:
 
     - name: Run tox unit-mpi
       run: |
+        # Remove any existing .coverage files before running tox
         rm -rf .coverage
         tox -e unit-mpi
-
-    - name: Check for coverage files after running tox
-      run: |
+        # Check if the .coverage file was generated after running tox
         echo "Checking for coverage files after running tox"
         ls -alh  # List all files in the directory
 
