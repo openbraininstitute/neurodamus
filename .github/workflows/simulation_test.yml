@@ -35,7 +35,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        python-version: ['3.11.10', ] #['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+        python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+      fail-fast: false
 
     steps:
     - name: Setup Python
@@ -227,14 +228,26 @@ jobs:
 
         which special
 
-        ## launch simulation with NEURON
-        #cd tests/simulations/usecase3/
-        #mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
-        #ls reporting/*.h5
-        ## launch simulation with CORENEURON
-        #mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
-        #ls reporting_coreneuron/*.h5
+        # launch simulation with NEURON
+        cd tests/simulations/usecase3/
+        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
+        ls reporting/*.h5
+        # launch simulation with CORENEURON
+        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
+        ls reporting_coreneuron/*.h5
 
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip tox
+    
+    - name: unit
+      run: |
+        tox -e unit
+      
+    - name: baseline
+      run: |
+        tox -e baseline
+      
     - name: integration-e2e
       run: |
         tox -e integration-e2e

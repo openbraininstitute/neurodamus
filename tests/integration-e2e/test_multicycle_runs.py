@@ -39,7 +39,6 @@ def test_v5_sonata_multisteps(create_tmp_simulation_config_file):
     npt.assert_allclose(timestamps, obtained_timestamps)
 
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(USECASE3),
