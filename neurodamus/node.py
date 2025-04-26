@@ -1441,7 +1441,7 @@ class Node:
             Nd.dt,
             self._pr_cell_gid or -1,
             getattr(SimConfig, "celsius", 34.0),
-            getattr(SimConfig, "v_init", -65.0),
+            getattr(SimConfig, "v_init", -80.0),
             self._core_replay_file,
             SimConfig.rng_info.getGlobalSeed(),
             int(SimConfig.cli_options.model_stats),
