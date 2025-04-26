@@ -114,7 +114,7 @@ def test_multipop_simple(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_multipop_full_conn(create_tmp_simulation_config_file):
+def test_multipop_full_conn(create_tmp_simulation_config_file, capsys):
     """
     Test that two populations are correctly set for running in parallel, with offsetting
     """
@@ -194,6 +194,8 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     Nd.finitialize()  # reinit for the recordings to be registered
 
     nd.run()
+    with capsys.disabled():
+        print(tuple(Path(create_tmp_simulation_config_file).parent.glob('pydam*.*'))[0].open().read())
 
     # Find impact on voltage. See test_spont_minis for an explanation
     v_increase_rate = numpy.diff(voltage_vec, 2)
