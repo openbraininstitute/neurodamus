@@ -169,7 +169,6 @@ ignore = [
     "S102",   # exec-builtin
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
-    "PERF203",# try-except-in-loop
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
     "N818",   # error-suffix-on-exception-name
