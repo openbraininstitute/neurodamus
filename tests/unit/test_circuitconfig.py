@@ -6,7 +6,7 @@ which is usually translated from a SONATA config file done in sonata_config.py
 
 import pytest
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 from neurodamus.core.configuration import ConfigurationError, make_circuit_config
 from neurodamus.io.sonata_config import SonataConfig
 
