@@ -15,8 +15,8 @@ def test_gapjunction_sonata_reader():
                                     1094745., 1167632., 1172523., 1260104.])
     ref_junction_id_post = np.array([14., 52., 71., 76., 78., 84., 89., 90., 93.])
     ref_weight = np.array([0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
-    npt.assert_allclose(syn_params_sonata.D, ref_junction_id_pre)
-    npt.assert_allclose(syn_params_sonata.F, ref_junction_id_post)
+    npt.assert_allclose(syn_params_sonata.efferent_junction_id, ref_junction_id_pre)
+    npt.assert_allclose(syn_params_sonata.afferent_junction_id, ref_junction_id_post)
     npt.assert_allclose(syn_params_sonata.weight, ref_weight)
 
 
