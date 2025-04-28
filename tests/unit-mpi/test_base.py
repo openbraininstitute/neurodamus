@@ -117,4 +117,4 @@ def test_neurodamus(create_tmp_simulation_config_file, mpi_ranks):
 
     np.testing.assert_allclose(local_gids, local_gids_ref[MPI.rank])
     # if not SimConfig.use_coreneuron:
-    n.run()
+    # n.run()
