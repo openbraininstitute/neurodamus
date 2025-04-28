@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from mpi4py import MPI
 
 comm = MPI.COMM_WORLD
@@ -105,14 +106,15 @@ def test_neurodamus(create_tmp_simulation_config_file, mpi_ranks):
     """Test Neurodamus/neuron with and without MPI."""
     from neurodamus import Neurodamus
     from neurodamus.core import MPI
-    from neurodamus.core.configuration import SimConfig
+    # from neurodamus.core.configuration import SimConfig
 
-    assert MPI.size == mpi_ranks == size
+    assert MPI.size == mpi_ranks == size == 2
     assert MPI.rank == rank
+
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    local_gids_ref = [[1,3], [2]]
+    local_gids_ref = [[1, 3], [2]]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
-    import numpy.testing as npt
-    npt.assert_allclose(local_gids, local_gids_ref[MPI.rank])
-    if not SimConfig.use_coreneuron:
-        n.run()
+
+    np.testing.assert_allclose(local_gids, local_gids_ref[MPI.rank])
+    # if not SimConfig.use_coreneuron:
+    n.run()
