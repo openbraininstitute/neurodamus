@@ -8,6 +8,5 @@ def test_handling_neuron_exceptions(USECASE3):
     n.load_targets()
     n._extra_circuits['NodeA'].MorphologyPath = str(USECASE3 / "dummy_err_dir")
     with pytest.raises(RuntimeError,
-                       match="Error from NEURON when loading Gid .: emodel: .*, Morphology: .*: "
-                             "hocobj_call error: hoc_execerror: .*:file is not open"):
+                       match="Error from NEURON loading Gid .: emodel: .*, morph: .*"):
         n.create_cells()

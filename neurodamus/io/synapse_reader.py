@@ -272,7 +272,7 @@ class SonataReader(SynapseReader):
         #       Ensuring the number of chunks must be the same in all ranks (collective)!
         CHUNK_SIZE = 1000
         if not minimal_mode or len(gids) < CHUNK_SIZE:
-            return self._preload_data_chunk(gids, minimal_mode)
+            return
 
         ranges = list(gen_ranges(len(gids), CHUNK_SIZE))
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):

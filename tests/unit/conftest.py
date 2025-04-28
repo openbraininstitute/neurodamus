@@ -8,11 +8,7 @@ from pathlib import Path
 pytestmark = pytest.mark.forked
 
 RINGTEST_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
-
-
-@pytest.fixture
-def ringtest_dir():
-    return RINGTEST_DIR
+NGV_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ngv"
 
 
 @pytest.fixture
