@@ -244,22 +244,44 @@ class _CoreNEURONConfig:
         simconf.parent.mkdir(parents=True, exist_ok=True)
 
         with simconf.open("w") as fp:
+            logging.info("  outpath=%s", os.path.abspath(self.output_root))
             fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
+
+            logging.info("  datpath=%s", os.path.abspath(self.datadir))
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
+
+            logging.info("  tstop=%s", tstop)
             fp.write(f"tstop={tstop}\n")
+
+            logging.info("  dt=%s", dt)
             fp.write(f"dt={dt}\n")
+
+            logging.info("  prcellgid=%s", prcellgid)
             fp.write(f"prcellgid={int(prcellgid)}\n")
+
+            logging.info("  celsius=%s", celsius)
             fp.write(f"celsius={celsius}\n")
+
+            logging.info("  v_init=%s", v_init)
             fp.write(f"voltage={v_init}\n")
+
+            logging.info("  cell-permute=%s", self.default_cell_permute)
             fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
+
             if pattern:
+                logging.info("  pattern=%s", pattern)
                 fp.write(f"pattern='{pattern}'\n")
             if seed:
+                logging.info("  seed=%s", seed)
                 fp.write(f"seed={int(seed)}\n")
             if model_stats:
+                logging.info("  model-stats=on")
                 fp.write("'model-stats'\n")
             if enable_reports:
+                logging.info("  report-conf=%s", report_config_file_save)
                 fp.write(f"report-conf='{self.report_config_file_save}'\n")
+
+            logging.info("  mpi=%s", os.environ.get('NEURON_INIT_MPI', '1'))
             fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
 
         logging.info(f" => Dataset written to '{simconf}'")

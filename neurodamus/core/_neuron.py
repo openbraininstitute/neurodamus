@@ -179,6 +179,7 @@ class Simulation:
 
         Neuron.h.tstop = t_stop
         for key, val in self.args.items():
+            logging.info("Setting NEURON default to '%d' to '%d'", key, val)
             setattr(Neuron.h, key, val)
         Neuron.h.run()
 
