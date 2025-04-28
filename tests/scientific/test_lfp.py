@@ -143,7 +143,7 @@ def _read_sonata_lfp_file(lfp_file):
     return lfp_data
 
 
-def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_factory, tmp_path):
+def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
     import numpy.testing as npt
     import json
     from neurodamus import Neurodamus
@@ -169,7 +169,7 @@ def test_v5_sonata_lfp(test_weights_file, create_tmp_simulation_config_file_fact
             }
         }
     }
-    config_file = create_tmp_simulation_config_file_factory(params, tmp_path, sim_config_data)
+    config_file = create_simulation_config_file_factory(params, tmp_path, sim_config_data)
 
     nd = Neurodamus(config_file)
     nd.run()
