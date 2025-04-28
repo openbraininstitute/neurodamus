@@ -7,7 +7,20 @@ from .core.configuration import ConfigurationError
 
 
 class LFPManager:
-    """Class handling the lfp functionality"""
+    """Class handling the Online Local Field Potential (LFP) functionality.
+
+    This class is designed to manage the configuration and retrieval of Online
+    Local Field Potential (LFP) data used in large-scale neural simulations.
+    LFPs represent the aggregate extracellular electrical activity recorded by
+    electrodes, reflecting the synchronized activity of nearby neuronal
+    populations.
+
+    LFP data in this context is stored in HDF5 files, which must include
+    information on:
+        - Electrode scaling factors (per compartment contribution to each electrode)
+        - Node IDs (cell identifiers contributing to the signal)
+        - Offsets (to index subsets of the data per neuron)
+    """
 
     def __init__(self):
         self._lfp_file = None
