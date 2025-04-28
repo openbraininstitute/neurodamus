@@ -278,7 +278,7 @@ class _CoreNEURONConfig:
                 logging.info("  model-stats=on")
                 fp.write("'model-stats'\n")
             if enable_reports:
-                logging.info("  report-conf=%s", report_config_file_save)
+                logging.info("  report-conf=%s", self.report_config_file_save)
                 fp.write(f"report-conf='{self.report_config_file_save}'\n")
 
             logging.info("  mpi=%s", os.environ.get('NEURON_INIT_MPI', '1'))

@@ -195,7 +195,8 @@ def test_multipop_full_conn(create_tmp_simulation_config_file, capsys):
 
     nd.run()
     with capsys.disabled():
-        print(tuple(Path(create_tmp_simulation_config_file).parent.glob('pydam*.*'))[0].open().read())
+        logs = Path(create_tmp_simulation_config_file).parent.glob('pydam*.*')
+        print(tuple(logs)[0].open().read())
 
     # Find impact on voltage. See test_spont_minis for an explanation
     v_increase_rate = numpy.diff(voltage_vec, 2)
