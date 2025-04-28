@@ -1671,7 +1671,6 @@ class Node:
             self._pc.prcellstate(i, f"py_Neuron_t{Nd.t}")
 
         self._last_cell_state_dump_t = Nd.t
-        logging.warning(f"self._last_cell_state_dump_t: {self._last_cell_state_dump_t}")
 
     @run_only_rank0
     def coreneuron_cleanup(self):
