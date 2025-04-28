@@ -562,7 +562,7 @@ class Node:
                 ]
                 lfp_manager.load_lfp_config(lfp_weights_file, population_list)
             else:
-                logging.warning("Online LFP supported only with CoreNEURON.")
+                logging.warning("LFP supported only with CoreNEURON.")
 
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
