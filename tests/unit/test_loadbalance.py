@@ -95,7 +95,7 @@ def circuit_conf():
         CellLibraryFile=circuit_base + "/nodes_A.h5",
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies/asc",
-        nrnPath=False,  # no connectivity
+        nrnPath="NONE",  # no connectivity
         CircuitTarget="All",
     )
 

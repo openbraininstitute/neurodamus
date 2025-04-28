@@ -290,7 +290,6 @@ class SonataConfig:
             if pop_info.get("type") != "vasculature"
         }
 
-    # Compat with BlueConfig circuit definitions
     Circuit = property(lambda self: self._circuits)
 
     @property
