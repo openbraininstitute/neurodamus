@@ -2,12 +2,13 @@ import pytest
 import h5py
 import numpy as np
 from pathlib import Path
+from ..conftest import RINGTEST_DIR
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
 @pytest.fixture
-def test_file(tmp_path):
+def test_weights_file(tmp_path):
     """
     Generates example weights file
     Returns the h5py.File obj and the file path
@@ -55,7 +56,7 @@ def test_file(tmp_path):
     return test_file, str(tmp_path / "test_file.h5")
 
 
-def test_load_lfp_config(test_file):
+def test_load_lfp_config(test_weights_file):
     """
     Test that the 'load_lfp_config' function opens and loads correctly
     the LFP weights file and checks its format
@@ -64,7 +65,7 @@ def test_load_lfp_config(test_file):
     from neurodamus.core.configuration import ConfigurationError
 
     # Load the electrodes file
-    _, lfp_weights_file = test_file
+    _, lfp_weights_file = test_weights_file
 
     # Create an instance of the class
     lfp = LFPManager()
@@ -87,7 +88,7 @@ def test_load_lfp_config(test_file):
         lfp.load_lfp_config(lfp_weights_invalid_file, pop_list)
 
 
-def test_read_lfp_factors(test_file):
+def test_read_lfp_factors(test_weights_file):
     """
     Test that the 'read_lfp_factors' function correctly extracts the LFP factors
     for the specified gid and section ids from the weights file
@@ -95,7 +96,7 @@ def test_read_lfp_factors(test_file):
     from neurodamus.cell_distributor import LFPManager
     # Create an instance of the class
     lfp = LFPManager()
-    lfp._lfp_file, _ = test_file
+    lfp._lfp_file, _ = test_weights_file
     # Test the function with valid input (node_id is 0 based, so expected 42 in the file)
     gid = 43
     result = lfp.read_lfp_factors(gid, ("default", 0)).to_python()
@@ -109,7 +110,7 @@ def test_read_lfp_factors(test_file):
     assert result == expected_result, f'Expected {expected_result}, but got {result}'
 
 
-def test_number_electrodes(test_file):
+def test_number_electrodes(test_weights_file):
     """
     Test that the 'get_number_electrodes' function correctly extracts the number of
     electrodes in the weights file for a certain gid
@@ -117,7 +118,7 @@ def test_number_electrodes(test_file):
     from neurodamus.cell_distributor import LFPManager
     # Create an instance of the class
     lfp = LFPManager()
-    lfp._lfp_file, _ = test_file
+    lfp._lfp_file, _ = test_weights_file
     # Test the function with valid input
     gid = 1
     result = lfp.get_number_electrodes(gid, ("default", 0))
@@ -134,65 +135,119 @@ def test_number_electrodes(test_file):
 def _read_sonata_lfp_file(lfp_file):
     import libsonata
     report = libsonata.ElementReportReader(lfp_file)
-    pop_name = report.get_population_names()[0]
-    node_ids = report[pop_name].get_node_ids()
-    data = report[pop_name].get()
-    return node_ids, data
+    lfp_data = {}
+    for pop_name in report.get_population_names():
+        node_ids = report[pop_name].get_node_ids()
+        data = report[pop_name].get()
+        lfp_data[pop_name] = (node_ids, data)
+    return lfp_data
 
 
-def _create_lfp_config(original_config_path, lfp_file, base_dir: Path):
-    """
-    Create a modified lfp configuration file in a temporary directory.
-    """
-    import json
-    # Read the original config file
-    with open(original_config_path, 'r') as f:
-        config = json.load(f)
-
-    # Update the network path in the config
-    config["network"] = str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json")
-
-    # Modify the necessary fields
-    config["target_simulator"] = "CORENEURON"
-    config["run"]["electrodes_file"] = str(lfp_file)
-    config["reports"] = config.get("reports", {})
-    config["reports"]["lfp"] = {
-        "type": "lfp",
-        "cells": "Mosaic",
-        "variable_name": "v",
-        "dt": 0.1,
-        "start_time": 0.0,
-        "end_time": 1.0
-    }
-
-    # Write the modified configuration to a temporary file
-    temp_config_path = base_dir / "lfp_config.json"
-    with open(temp_config_path, "w") as f:
-        json.dump(config, f, indent=4)
-
-    # Create output directory
-    output_dir = base_dir / config["output"]["output_dir"]
-
-    return str(temp_config_path), str(output_dir)
-
-
-def test_v5_sonata_lfp(test_file, tmp_path):
+def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
     import numpy.testing as npt
+    import json
     from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
 
-    config_file = SIM_DIR / "v5_sonata" / "simulation_config_mini.json"
-    _, lfp_weights_file = test_file
-    temp_config_path, output_dir = _create_lfp_config(config_file, lfp_weights_file, tmp_path)
+    _, lfp_weights_file = test_weights_file
+    with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
+        sim_config_data = json.load(f)
+    params = {
+        "extra_config": {
+            "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),
+            "target_simulator": "CORENEURON",
+            "run": {"electrodes_file": lfp_weights_file},
+            "reports": {
+                "lfp": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 1.0
+                }
+            }
+        }
+    }
+    config_file = create_simulation_config_file_factory(params, tmp_path, sim_config_data)
 
-    nd = Neurodamus(temp_config_path, output_path=output_dir)
+    nd = Neurodamus(config_file)
     nd.run()
 
     # compare results with refs
     t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
     t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
     node_ids = np.array([0, 4])
-    result_ids, result_data = _read_sonata_lfp_file(Path(output_dir) / "lfp.h5")
+    result_ids, result_data = _read_sonata_lfp_file(
+        Path(CoreConfig.output_root) / "lfp.h5")["default"]
 
     npt.assert_allclose(result_data.data[3], t3_data)
     npt.assert_allclose(result_data.data[7], t7_data)
     npt.assert_allclose(result_ids, node_ids)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {
+                "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
+            },
+            "reports": {
+                "lfp_report": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0
+                }
+            },
+            "inputs": {
+                "stimulus_pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
+        }
+    },
+], indirect=True)
+def test_ringcircuit_lfp(create_tmp_simulation_config_file):
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
+
+    # compare results with refs
+    lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report.h5")
+    result_ids, result_data = lfp_data["RingA"]
+
+    node_ids = np.array([0, 1, 2])
+    t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])
+    t19_data = np.array([0.11362588, 0.12362587, 0.6136259, 0.6236259, 1.1136259, 1.1236259])
+
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)
+
+    result_ids, result_data = lfp_data["RingB"]
+
+    node_ids = np.array([0, 1])
+    t11_data = np.array(
+        [6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07])
+    t19_data = np.array(
+        [8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07])
+
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)
