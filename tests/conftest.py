@@ -76,7 +76,13 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-def _create_tmp_simulation_config_file(params, dst_dir, sim_config_data=None):
+def _create_simulation_config_file(params, dst_dir, sim_config_data=None):
+    """create simulation config file in dst_dir from
+        1. simconfig_data: dict
+        2. or copy of simconfig_file in params, and attach relative paths to src_dir
+    Updates the config file with extra_config
+    Returns the file path
+    """
     from tests import utils
 
     src_dir = Path(params.get("src_dir", ""))
@@ -134,12 +140,13 @@ def create_tmp_simulation_config_file(request, tmp_path):
     sim_config_data = None
     if "simconfig_fixture" in params:
         sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
-    return _create_tmp_simulation_config_file(params, tmp_path, sim_config_data)
+    return _create_simulation_config_file(params, tmp_path, sim_config_data)
 
 
 @pytest.fixture
-def create_tmp_simulation_config_file_factory():
+def create_simulation_config_file_factory():
     """Returns the factory to allow the creation of the simulation config
     file
     """
-    return _create_tmp_simulation_config_file
+    return _create_simulation_config_file
+
