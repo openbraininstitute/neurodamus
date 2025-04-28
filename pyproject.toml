@@ -161,7 +161,6 @@ ignore = [
     "SIM108", # if-else-block-instead-of-if-exp
     "N805",   # invalid-first-argument-name-for-method
     "S603",   # subprocess-without-shell-equals-true
-    "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin

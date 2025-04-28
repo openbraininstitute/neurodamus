@@ -1666,13 +1666,14 @@ class Node:
             gids = gidvec
         else:
             gids = []
-            for line in open("debug_gids.txt"):
-                line = line.strip()
-                if not line:
-                    continue
-                gid = int(line)
-                if gid in gidvec:
-                    gids.append(gid)
+            with open("debug_gids.txt") as fd:
+                for line in fd:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    gid = int(line)
+                    if gid in gidvec:
+                        gids.append(gid)
             if len(gids):
                 log_all(
                     logging.INFO,
