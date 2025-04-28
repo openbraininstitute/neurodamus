@@ -14,7 +14,7 @@ HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
 
 
-class _NeurodamusCore(_Neuron):
+class _NeuronWrapper(_Neuron):
     """A wrapper class representing an instance of Neuron with the required
     neurodamus hoc and mod modules loaded
     """
@@ -116,4 +116,4 @@ class _NeurodamusCore(_Neuron):
 
 
 # Singleton
-NeurodamusCore = _NeurodamusCore()
+NeuronWrapper = _NeuronWrapper()

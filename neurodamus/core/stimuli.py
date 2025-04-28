@@ -3,7 +3,7 @@
 import logging
 
 from .random import RNG, gamma
-from neurodamus.core import NeurodamusCore as Nd
+from neurodamus.core import NeuronWrapper as Nd
 
 
 class SignalSource:

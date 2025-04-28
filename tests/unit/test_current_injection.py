@@ -25,7 +25,7 @@ from tests import utils
 @pytest.mark.forked
 def test_current_injection(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 

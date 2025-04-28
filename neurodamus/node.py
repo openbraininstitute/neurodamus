@@ -26,7 +26,7 @@ from .cell_distributor import (
 from .connection_manager import SynapseRuleManager, edge_node_pop_names
 from .core import (
     MPI,
-    NeurodamusCore as Nd,
+    NeuronWrapper as Nd,
     SimulationProgress,
     mpi_no_errors,
     return_neuron_timings,

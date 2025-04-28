@@ -249,7 +249,7 @@ class _SimConfig:
     @classmethod
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.init()
         if not os.path.isfile(config_file):
