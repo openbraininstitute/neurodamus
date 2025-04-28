@@ -240,13 +240,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip tox
 
-    - name: unit-mpi
-      run: |
-        tox -e unit-mpi
-
     - name: unit
       run: |
         tox -e unit
+
+    - name: unit-mpi
+      run: |
+        tox -e unit-mpi
 
     - name: baseline
       run: |
