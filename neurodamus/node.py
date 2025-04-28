@@ -1615,11 +1615,10 @@ class Node:
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
             spike_path = self._run_conf.get("SpikesFile")
-            if spike_path is not None:
-                # Get only the spike file name
-                file_name = spike_path.split("/")[-1]
-            else:
-                file_name = "out.h5"
+
+            # Get only the spike file name
+            file_name = spike_path.split("/")[-1] if spike_path is not None else "out.h5"
+
             # create a sonata spike file
             self._sonatareport_helper.create_spikefile(output_root, file_name)
             # write spikes per population

@@ -232,10 +232,8 @@ def _filter_warnings():
     """
     import warnings
 
-    if MPI.rank == 0:
-        action = "once"
-    else:
-        action = "ignore"
+    action = "once" if MPI.rank == 0 else "ignore"
+
     warnings.filterwarnings(
         action=action,
         message="The value of the smallest subnormal for .* type is zero.",
