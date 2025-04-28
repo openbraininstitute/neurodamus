@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 
 base_dir = Path("sim_conf")
