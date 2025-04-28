@@ -149,4 +149,3 @@ def create_simulation_config_file_factory():
     file
     """
     return _create_simulation_config_file
-
