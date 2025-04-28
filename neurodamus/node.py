@@ -1306,7 +1306,8 @@ class Node:
         fake_gid = pop_group.offset + 1 + MPI.rank
         # Add the fake cell to a dummy manager
         dummy_cell_manager = CellDistributor(
-            circuit_conf=make_circuit_config({}), target_manager=self._target_manager
+            circuit_conf=make_circuit_config({"CellLibraryFile": "<NONE>"}),
+            target_manager=self._target_manager,
         )
         dummy_cell_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
         yield
