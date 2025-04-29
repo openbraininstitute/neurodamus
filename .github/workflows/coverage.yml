@@ -1,10 +1,10 @@
 name: Build coverage reports
 
 on:
-    pull_request:
-    push:
-      branches:
-        - main
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   coverage:
@@ -27,22 +27,17 @@ jobs:
         python -m pip install --upgrade pip tox coverage
 
     - name: Run tox baseline
-      run: |
-        tox -e baseline
-
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: baseline
+      run: tox -e baseline
 
     - name: Run tox unit
-      run: |
-        rm -rf .coverage
-        tox -e unit
+      run: tox -e unit
 
-    - name: Coveralls
+    - name: Combine coverage files
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        coverage combine
+        coverage xml
+
+    - name: Upload to Coveralls
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
-      with:
-        flag-name: unit
