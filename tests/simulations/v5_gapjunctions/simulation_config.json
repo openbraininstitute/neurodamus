@@ -8,6 +8,9 @@
     "target_simulator": "NEURON",
     "node_set": "mini2",
     "node_sets_file": "node_sets.json",
+    "conditions": {
+        "v_init": -65.0
+    },
     "output": {
         "output_dir": "output"
     },
