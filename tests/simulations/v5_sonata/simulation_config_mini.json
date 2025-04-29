@@ -13,6 +13,7 @@
         "random_seed": 767740
     },
     "conditions": {
+        "v_init": -65.0
     },
     "output": {
         "output_dir": "output_sonata2"

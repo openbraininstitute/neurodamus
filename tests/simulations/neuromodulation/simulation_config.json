@@ -13,6 +13,9 @@
     "output": {
         "output_dir": "output"
     },
+    "conditions": {
+        "v_init": -65.0
+    },
     "inputs": {
         "depol_mosaic": {
             "node_set": "Mosaic",

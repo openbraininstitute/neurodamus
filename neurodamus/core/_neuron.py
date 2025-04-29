@@ -166,11 +166,8 @@ endtemplate {cls_name}
 
 
 class Simulation:
-    # Some defaults from stdrun
-    v_init = NeuronStdrunDefaults.v_init  # -65V
-
     def __init__(self, **args):
-        args.setdefault("v_init", self.v_init)
+        args.setdefault("v_init", NeuronStdrunDefaults.v_init)
         self.args = args
         self.t_vec = None
         self.recordings = {}
@@ -182,6 +179,7 @@ class Simulation:
 
         Neuron.h.tstop = t_stop
         for key, val in self.args.items():
+            logging.info("Setting NEURON default to '%d' to '%d'", key, val)
             setattr(Neuron.h, key, val)
         Neuron.h.run()
 

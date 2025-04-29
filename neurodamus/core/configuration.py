@@ -124,7 +124,7 @@ class NeuronStdrunDefaults:
     steps_per_ms = 1 / 0.025
     nstep_steprun = 1
     global_ra = 35.4
-    v_init = -65
+    v_init = -80.0
 
 
 class LoadBalanceMode(Enum):
@@ -732,16 +732,20 @@ def _global_parameters(config: _SimConfig):
     run_conf = config.run_conf
 
     config.celsius = run_conf.get("Celsius", 34)
-    config.v_init = run_conf.get("V_Init", -65)
+    config.v_init = run_conf.get("V_Init", -80)
     config.extracellular_calcium = run_conf.get("ExtracellularCalcium")
     config.buffer_time = 25 * run_conf.get("FlushBufferScalar", 1)
     config.tstop = run_conf["Duration"]
+
     h.celsius = config.celsius
     h.set_v_init(config.v_init)
     h.tstop = config.tstop
+
     config.default_neuron_dt = h.dt
+
     h.dt = run_conf.get("Dt", h.dt)
     h.steps_per_ms = 1.0 / h.dt
+
     props = ("celsius", "v_init", "extracellular_calcium", "tstop", "buffer_time")
     log_verbose("Global params: %s", " | ".join(p + f": {getattr(config, p)}" for p in props))
     if "CompartmentsPerSection" in run_conf:
