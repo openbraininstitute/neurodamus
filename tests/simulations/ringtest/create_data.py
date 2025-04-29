@@ -1,13 +1,21 @@
+
+#!/bin/env python
+# /// script
+# dependencies = ['h5py', 'libsonata', 'numpy']
+# ///
+# the above allows one to run `uv run create_data.py` without a virtualenv
 # This script generates a 3-ring model with configurable node and edge properties. 
-# The model consists of three main components:
-# 1. `make_ringtest_nodes`: Defines the node properties (e.g., position, type) for each of the three rings.
-# 2. `make_ringtest_edges`: Sets up the edges (connections between nodes) between the three rings.
-# 3. `main`: Combines the nodes and edges into the final graph structure, including the visualization of the rings.
-#
-# To customize the model, you can adjust:
-# - `make_ringtest_nodes`: Modify the node properties such as types, positions, or attributes.
-# - `make_ringtest_edges`: Change how the nodes are connected (e.g., the type of edges or how nodes from different rings connect).
-# - `main`: Control how many rings are created and how they are visualized or saved.
+"""
+The model consists of three main components:
+1. `make_ringtest_nodes`: Defines the node properties (e.g., position, type) for each of the three rings.
+2. `make_ringtest_edges`: Sets up the edges (connections between nodes) between the three rings.
+3. `main`: Combines the nodes and edges into the final graph structure, including the visualization of the rings.
+
+To customize the model, you can adjust:
+- `make_ringtest_nodes`: Modify the node properties such as types, positions, or attributes.
+- `make_ringtest_edges`: Change how the nodes are connected (e.g., the type of edges or how nodes from different rings connect).
+- `main`: Control how many rings are created and how they are visualized or saved.
+"""
 
 import itertools as it
 from collections.abc import Iterable
