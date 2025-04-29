@@ -18,6 +18,102 @@ import h5py
 import libsonata
 import numpy as np
 
+@dataclass
+class Edges:
+    src: str
+    tgt: str
+    type: str
+    connections: Union[int, list[tuple[int, int]]]
+
+    def __post_init__(self):
+        if isinstance(self.connections, int):
+            n = self.connections
+            self.connections = [(i, (i + 1) % n) for i in range(n)]
+@dataclass
+class SonataAttribute:
+    name: str
+    type: type
+    prefix: bool
+
+
+NODE_TYPES = [
+    SonataAttribute("node_type_id", type=int, prefix=False),
+    SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("x", type=np.float32, prefix=True),
+    SonataAttribute("y", type=np.float32, prefix=True),
+    SonataAttribute("z", type=np.float32, prefix=True),
+    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
+]
+NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
+
+EDGE_TYPES = [
+    SonataAttribute("edge_type_id", type=int, prefix=False),
+    SonataAttribute("conductance", type=np.float32, prefix=True),
+    SonataAttribute("decay_time", type=np.float32, prefix=True),
+    SonataAttribute("delay", type=np.float32, prefix=True),
+    SonataAttribute("depression_time", type=np.float32, prefix=True),
+    SonataAttribute("facilitation_time", type=np.float32, prefix=True),
+    SonataAttribute("u_syn", type=np.float32, prefix=True),
+    SonataAttribute("afferent_section_id", type=int, prefix=True),
+    SonataAttribute("afferent_section_pos", type=np.float32, prefix=True),
+    SonataAttribute("afferent_segment_id", type=int, prefix=True),
+    SonataAttribute("afferent_segment_offset", type=int, prefix=True),
+    SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
+    SonataAttribute("syn_type_id", type=int, prefix=True),
+    SonataAttribute("afferent_junction_id", type=int, prefix=True),
+    SonataAttribute("efferent_junction_id", type=int, prefix=True)
+]
+EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
+
+
+def _expand_values(value, count):
+    if isinstance(value, str):
+        return [value] * count
+    elif isinstance(value, Iterable):
+        return list(it.islice(it.cycle(value), count))
+    else:
+        return [value] * count
+
+
+def make_node(filename, name, count, wanted_attributes):
+    with h5py.File(filename, "w") as h5:
+        dg = h5.create_group(f"/nodes/{name}")
+
+        for attr, value in wanted_attributes.items():
+            typ = NODE_TYPES[attr]
+            ds_name = ("0/" if typ.prefix else "") + typ.name
+            ds_value = _expand_values(value, count)
+            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
+
+
+def make_edges(filename, edges, wanted_attributes):
+    name = f"{edges.src}__{edges.tgt}__{edges.type}"
+    src_ids, tgt_ids = zip(*edges.connections)
+    count = len(src_ids)
+    with h5py.File(filename, "w") as h5:
+        dg = h5.create_group(f"/edges/{name}")
+
+        for attr, value in wanted_attributes.items():
+            typ = EDGE_TYPES[attr]
+            ds_name = ("0/" if typ.prefix else "") + typ.name
+            ds_value = _expand_values(value, count)
+            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
+
+        ds = dg.create_dataset("source_node_id", data=np.array(src_ids, dtype=int))
+        ds.attrs["node_population"] = edges.src
+        ds = dg.create_dataset("target_node_id", data=np.array(tgt_ids, dtype=int))
+        ds.attrs["node_population"] = edges.tgt
+
+    libsonata.EdgePopulation.write_indices(
+        filename,
+        name,
+        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
+        target_node_count=max(tgt_ids) + 1,
+    )
+
+
 #### INPUTS
 
 def make_ringtest_nodes(ringA_count, ringB_count, ringC_count):
@@ -217,102 +313,6 @@ def make_lfp_weights():
             [0.104, 0.105, 0.106]
             ]
         write_pop("RingB", node_ids, offsets, scaling_factors)
-
-### STRUCTURES AND COMPUTATIONS
-@dataclass
-class Edges:
-    src: str
-    tgt: str
-    type: str
-    connections: Union[int, list[tuple[int, int]]]
-
-    def __post_init__(self):
-        if isinstance(self.connections, int):
-            n = self.connections
-            self.connections = [(i, (i + 1) % n) for i in range(n)]
-@dataclass
-class SonataAttribute:
-    name: str
-    type: type
-    prefix: bool
-
-
-NODE_TYPES = [
-    SonataAttribute("node_type_id", type=int, prefix=False),
-    SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("x", type=np.float32, prefix=True),
-    SonataAttribute("y", type=np.float32, prefix=True),
-    SonataAttribute("z", type=np.float32, prefix=True),
-    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
-]
-NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
-
-EDGE_TYPES = [
-    SonataAttribute("edge_type_id", type=int, prefix=False),
-    SonataAttribute("conductance", type=np.float32, prefix=True),
-    SonataAttribute("decay_time", type=np.float32, prefix=True),
-    SonataAttribute("delay", type=np.float32, prefix=True),
-    SonataAttribute("depression_time", type=np.float32, prefix=True),
-    SonataAttribute("facilitation_time", type=np.float32, prefix=True),
-    SonataAttribute("u_syn", type=np.float32, prefix=True),
-    SonataAttribute("afferent_section_id", type=int, prefix=True),
-    SonataAttribute("afferent_section_pos", type=np.float32, prefix=True),
-    SonataAttribute("afferent_segment_id", type=int, prefix=True),
-    SonataAttribute("afferent_segment_offset", type=int, prefix=True),
-    SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
-    SonataAttribute("syn_type_id", type=int, prefix=True),
-    SonataAttribute("afferent_junction_id", type=int, prefix=True),
-    SonataAttribute("efferent_junction_id", type=int, prefix=True)
-]
-EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
-
-
-def _expand_values(value, count):
-    if isinstance(value, str):
-        return [value] * count
-    elif isinstance(value, Iterable):
-        return list(it.islice(it.cycle(value), count))
-    else:
-        return [value] * count
-
-
-def make_node(filename, name, count, wanted_attributes):
-    with h5py.File(filename, "w") as h5:
-        dg = h5.create_group(f"/nodes/{name}")
-
-        for attr, value in wanted_attributes.items():
-            typ = NODE_TYPES[attr]
-            ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(value, count)
-            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
-
-
-def make_edges(filename, edges, wanted_attributes):
-    name = f"{edges.src}__{edges.tgt}__{edges.type}"
-    src_ids, tgt_ids = zip(*edges.connections)
-    count = len(src_ids)
-    with h5py.File(filename, "w") as h5:
-        dg = h5.create_group(f"/edges/{name}")
-
-        for attr, value in wanted_attributes.items():
-            typ = EDGE_TYPES[attr]
-            ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(value, count)
-            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
-
-        ds = dg.create_dataset("source_node_id", data=np.array(src_ids, dtype=int))
-        ds.attrs["node_population"] = edges.src
-        ds = dg.create_dataset("target_node_id", data=np.array(tgt_ids, dtype=int))
-        ds.attrs["node_population"] = edges.tgt
-
-    libsonata.EdgePopulation.write_indices(
-        filename,
-        name,
-        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
-        target_node_count=max(tgt_ids) + 1,
-    )
 
 if __name__ == "__main__":
     ringA_count, ringB_count, ringC_count = 3, 2, 3
