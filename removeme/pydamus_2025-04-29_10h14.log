@@ -1,0 +1,132 @@
+[STEP] (Apr.29 10:14:01) Initializing Neurodamus... Logfile: pydamus_2025-04-29_10h14.log
+[INFO] (Apr.29 10:14:01)  => Neurodamus Mod & Hoc lib loaded.
+[INFO] (Apr.29 10:14:01) Checking for plugins...
+[INFO] (Apr.29 10:14:01)  => Engines Available: ['Base', 'NGV', 'METype']
+[INFO] (Apr.29 10:14:01)   : Connections Types: [<ConnectionTypes.NeuroGlial: 'NeuroGlial'>, <ConnectionTypes.GlioVascular: 'GlioVascular'>, None, <ConnectionTypes.Synaptic: 'Synaptic'>, <ConnectionTypes.GapJunction: 'GapJunction'>, <ConnectionTypes.NeuroModulation: 'NeuroModulation'>]
+[STEP] (Apr.29 10:14:01) Setting up Neurodamus configuration
+[INFO] (Apr.29 10:14:01) Initializing Simulation Configuration and Validation
+[INFO] (Apr.29 10:14:01) Valid CoreNeuron input data not found in '/Users/katta/OBI/neurodamus/removeme/build/coreneuron_input'. Neurodamus will proceed to model building.
+[INFO] (Apr.29 10:14:01) Initializing hoc config objects
+[INFO] (Apr.29 10:14:01) User-defined RNG base seed 1122
+[INFO] (Apr.29 10:14:01) Memusage (RSS) per task [MB]: Max=71.16, Min=71.16, Mean(Stdev)=71.16(0.00)
+[INFO] (Apr.29 10:14:01) Checking Connection Configurations
+[INFO] (Apr.29 10:14:01)  => CHECK No Global vars!
+[INFO] (Apr.29 10:14:01)  => CHECK No Block Overrides!
+[INFO] (Apr.29 10:14:01)  => CHECK No single Weight=0 blocks!
+[STEP] (Apr.29 10:14:01) ================ CALCULATING LOAD BALANCE ================
+[STEP] (Apr.29 10:14:01) Computing Load Balance
+[INFO] (Apr.29 10:14:01) Activating experimental LB for Sonata circuit 'RingA'
+[WARNING] (Apr.29 10:14:01) Load Balance AUTO-SELECTED: RoundRobin. Reason: Single rank - not worth using Load Balance
+[INFO] (Apr.29 10:14:01) Memusage (RSS) per task [MB]: Max=71.73, Min=71.73, Mean(Stdev)=71.73(0.00)
+[STEP] (Apr.29 10:14:01) ==================== BUILDING CIRCUIT ====================
+[STEP] (Apr.29 10:14:01) LOADING NODES
+[INFO] (Apr.29 10:14:01) Load-balance object not present. Continuing Round-Robin...
+[INFO] (Apr.29 10:14:01)  => (default) Circuit has been disabled
+[STEP] (Apr.29 10:14:01) Circuit RingA
+[INFO] (Apr.29 10:14:01) Reading Nodes (METype) info from '/Users/katta/OBI/neurodamus/tests/simulations/ringtest/nodes_A.h5'
+[INFO] (Apr.29 10:14:01)  -> Distributing 'RingA:Mosaic' target cells Round-Robin
+[INFO] (Apr.29 10:14:02)  => Loaded info about 60000 target cells (out of 60000)
+[STEP] (Apr.29 10:14:02) Circuit RingB
+[INFO] (Apr.29 10:14:02) Reading Nodes (METype) info from '/Users/katta/OBI/neurodamus/tests/simulations/ringtest/nodes_B.h5'
+[INFO] (Apr.29 10:14:02)  -> Distributing 'RingB:Mosaic' target cells Round-Robin
+[INFO] (Apr.29 10:14:02)  => Loaded info about 2 target cells (out of 2)
+[STEP] (Apr.29 10:14:02) FINALIZING CIRCUIT CELLS
+[STEP] (Apr.29 10:14:02) Circuit (default)
+[STEP] (Apr.29 10:14:02) Circuit RingA
+[INFO] (Apr.29 10:14:02) Finalizing cells... Gid offset: 0
+[INFO] (Apr.29 10:14:02)  > Instantiating cells... (60000 in Rank 0)
+[INFO] (Apr.29 10:14:28)  > Updating targets
+[INFO] (Apr.29 10:14:28)  > Initializing cell network
+[STEP] (Apr.29 10:14:30) Circuit RingB
+[INFO] (Apr.29 10:14:30) Finalizing cells... Gid offset: 60000
+[INFO] (Apr.29 10:14:30)  > Instantiating cells... (2 in Rank 0)
+[INFO] (Apr.29 10:14:30)  > Updating targets
+[INFO] (Apr.29 10:14:30)  > Initializing cell network
+[INFO] (Apr.29 10:14:32) Memusage (RSS) per task [MB]: Max=1506.39, Min=1506.39, Mean(Stdev)=1506.39(0.00)
+[STEP] (Apr.29 10:14:32) LOADING CIRCUIT CONNECTIVITY
+[STEP] (Apr.29 10:14:32) Circuit (default)
+[INFO] (Apr.29 10:14:32)  => No connectivity set as internal. See projections
+[STEP] (Apr.29 10:14:32) Circuit RingA
+[INFO] (Apr.29 10:14:32) Processing edge file /Users/katta/OBI/neurodamus/tests/simulations/ringtest/local_edges_A.h5, pop: RingA__RingA__chemical
+[INFO] (Apr.29 10:14:32) Init SynapseRuleManager. Options: {'load_offsets': False, 'dry_run_stats': None}
+[INFO] (Apr.29 10:14:32) Loading connections to population: <ConnectionSet: 1341-1341 (RingA->RingA)>
+[INFO] (Apr.29 10:14:32) No matching Connection blocks. Loading all synapses...
+[INFO] (Apr.29 10:14:54)  * [ALL]. Created 3 connections
+[STEP] (Apr.29 10:14:54) Circuit RingB
+[INFO] (Apr.29 10:14:54) Processing edge file /Users/katta/OBI/neurodamus/tests/simulations/ringtest/local_edges_B.h5, pop: RingB__RingB__chemical
+[INFO] (Apr.29 10:14:54) Init SynapseRuleManager. Options: {'load_offsets': False, 'dry_run_stats': None}
+[INFO] (Apr.29 10:14:54) Loading connections to population: <ConnectionSet: 1057-1057 (RingB->RingB)>
+[INFO] (Apr.29 10:14:54) No matching Connection blocks. Loading all synapses...
+[INFO] (Apr.29 10:14:54)  * [ALL]. Created 2 connections
+[STEP] (Apr.29 10:14:54) Handling projections...
+[INFO] (Apr.29 10:14:54) Processing Edge file: /Users/katta/OBI/neurodamus/tests/simulations/ringtest/edges_AB.h5
+[INFO] (Apr.29 10:14:54)  * RingA__RingB__chemical__RingA-RingB (Type: ConnectionTypes.Synaptic, Src: RingA, Dst: RingB)
+[INFO] (Apr.29 10:14:54) Loading connections to population: <ConnectionSet: 1341-1057 (RingA->RingB)>
+[INFO] (Apr.29 10:14:54) No matching Connection blocks. Loading all synapses...
+[INFO] (Apr.29 10:14:54)  * [ALL]. Created 1 connections
+[STEP] (Apr.29 10:14:54) Configuring connections...
+[INFO] (Apr.29 10:14:54) Done, but waiting for all ranks
+[INFO] (Apr.29 10:14:54) Memusage (RSS) per task [MB]: Max=1521.56, Min=1521.56, Mean(Stdev)=1521.56(0.00)
+[STEP] (Apr.29 10:14:54) ================ INSTANTIATING SIMULATION ================
+[STEP] (Apr.29 10:14:54) Handling Replay
+[INFO] (Apr.29 10:14:54) Memusage (RSS) per task [MB]: Max=1521.56, Min=1521.56, Mean(Stdev)=1521.56(0.00)
+[STEP] (Apr.29 10:14:54) Creating connections in the simulator
+[INFO] (Apr.29 10:14:54) Instantiating synapses... Params: {'replay_mode': <ReplayMode.AS_REQUIRED: 1>}
+[INFO] (Apr.29 10:14:54)  * Connections among RingA -> RingA, attach src: True
+[INFO] (Apr.29 10:14:54)  => Created 3 synapses
+[INFO] (Apr.29 10:14:54) Instantiating synapses... Params: {'replay_mode': <ReplayMode.AS_REQUIRED: 1>}
+[INFO] (Apr.29 10:14:54)  * Connections among RingB -> RingB, attach src: True
+[INFO] (Apr.29 10:14:54)  => Created 2 synapses
+[INFO] (Apr.29 10:14:54) Instantiating synapses... Params: {'replay_mode': <ReplayMode.AS_REQUIRED: 1>}
+[INFO] (Apr.29 10:14:54)  * Connections among RingA -> RingB, attach src: True
+[INFO] (Apr.29 10:14:54)  => Created 1 synapses
+[INFO] (Apr.29 10:14:54) Memusage (RSS) per task [MB]: Max=1521.56, Min=1521.56, Mean(Stdev)=1521.56(0.00)
+[STEP] (Apr.29 10:14:54) Stimulus Apply.
+[INFO] (Apr.29 10:14:54) Instantiating Stimulus Injects:
+[INFO] (Apr.29 10:14:54)  * [STIM] injectStimulus: Stimulus (Pulse) -> RingA
+[INFO] (Apr.29 10:14:55) Memusage (RSS) per task [MB]: Max=1675.83, Min=1675.83, Mean(Stdev)=1675.83(0.00)
+[STEP] (Apr.29 10:14:55) Enabling modifications...
+[STEP] (Apr.29 10:14:55) Reports Enabling
+[INFO] (Apr.29 10:14:55) Memusage (RSS) per task [MB]: Max=1675.84, Min=1675.84, Mean(Stdev)=1675.84(0.00)
+[INFO] (Apr.29 10:14:55) Preparing to run simulation...
+[INFO] (Apr.29 10:14:57) Executing actions after stdinit...
+[STEP] (Apr.29 10:14:57) Dataset generation for CoreNEURON
+[INFO] (Apr.29 10:15:04) Writing sim config file: /Users/katta/OBI/neurodamus/removeme/build/sim.conf
+[INFO] (Apr.29 10:15:04)  => Dataset written to '/Users/katta/OBI/neurodamus/removeme/build/sim.conf'
+[INFO] (Apr.29 10:15:04)  => Dataset written to '/Users/katta/OBI/neurodamus/removeme/build/coreneuron_input'
+[STEP] (Apr.29 10:15:04) ======================= SIMULATION =======================
+[INFO] (Apr.29 10:15:04) Memusage (RSS) per task [MB]: Max=1936.38, Min=1936.38, Mean(Stdev)=1936.38(0.00)
+[INFO] (Apr.29 10:15:04) Clearing model
+[ERROR] (Apr.29 10:15:05) (rank 0) (rank 0) Unable to call malloc_trim.
+Traceback (most recent call last):
+  File "/Users/katta/OBI/neurodamus/neurodamus/utils/memory.py", line 51, in trim_memory
+    memory_trimmed = libc.malloc_trim(0)
+                     ^^^^^^^^^^^^^^^^
+  File "/Users/katta/OBI/spack/opt/spack/darwin-macos-m1/apple-clang-16.0.0/python-3.11.6-i2nm4y5re7byogev4dqv5m2w35u67bsk/lib/python3.11/ctypes/__init__.py", line 389, in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/katta/OBI/spack/opt/spack/darwin-macos-m1/apple-clang-16.0.0/python-3.11.6-i2nm4y5re7byogev4dqv5m2w35u67bsk/lib/python3.11/ctypes/__init__.py", line 394, in __getitem__
+    func = self._FuncPtr((name_or_ordinal, self))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: dlsym(RTLD_DEFAULT, malloc_trim): symbol not found
+[INFO] (Apr.29 10:15:05) malloc_trim: not possible to release any memory.
+[INFO] (Apr.29 10:15:05) Memusage (RSS) per task [MB]: Max=1893.67, Min=1893.67, Mean(Stdev)=1893.67(0.00)
+[INFO] (Apr.29 10:15:05) Launching simulation with CoreNEURON
+[INFO] (Apr.29 10:15:07) Finished! Creating .SUCCESS file: 'simulation_config.json.SUCCESS'
+[INFO] (Apr.29 10:15:07) Memusage (RSS) per task [MB]: Max=2038.81, Min=2038.81, Mean(Stdev)=2038.81(0.00)
+[INFO] (Apr.29 10:15:07) Deleting intermediate data in /Users/katta/OBI/neurodamus/removeme/build/coreneuron_input
+[INFO] (Apr.29 10:15:07) +================================================ TIMEIT STATS =================================================+
+[INFO] (Apr.29 10:15:07) |                       Event Label                        | Avg.Time | Min.Time | Max.Time | Hits R0 / Total   |
+[INFO] (Apr.29 10:15:07) +---------------------------------------------------------------------------------------------------------------+
+[INFO] (Apr.29 10:15:07) | Compute LB                                               |     0.00 |     0.00 |     0.00 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Cell creation                                            |    30.40 |    30.40 |    30.40 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Synapse creation                                         |    21.92 |    21.92 |    21.92 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Enable Stimulus                                          |     1.87 |     1.87 |     1.87 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Enable Modifications                                     |     0.00 |     0.00 |     0.00 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Enable Reports                                           |     0.00 |     0.00 |     0.00 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | Model Finalized                                          |     1.63 |     1.63 |     1.63 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) |  + stdinit                                               |     1.63 |     1.63 |     1.63 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | corewrite                                                |     6.56 |     6.56 |     6.56 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) | finished Run                                             |     3.64 |     3.64 |     3.64 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) |  + Delete corenrn data                                   |     0.03 |     0.03 |     0.03 |       1 / 1       |
+[INFO] (Apr.29 10:15:07) +---------------------------------------------------------------------------------------------------------------+

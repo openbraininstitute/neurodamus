@@ -4,7 +4,7 @@
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
 import itertools as it
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import h5py
@@ -59,18 +59,13 @@ EDGE_TYPES = [
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
 
-def _expand_values(attr, value, count):
+def _expand_values(value, count):
     if isinstance(value, str):
-        ds_value = [value] * count
-    elif isinstance(value, Sequence):
-        assert len(value) == count, f"For {attr}, {len(value)} != (count) {count}"
-        ds_value = value
+        return [value] * count
     elif isinstance(value, Iterable):
-        ds_value = list(it.islice(value, count))
+        return list(it.islice(it.cycle(value), count))
     else:
-        ds_value = [value] * count
-
-    return ds_value
+        return [value] * count
 
 
 def make_node(filename, name, count, wanted_attributes):
@@ -80,7 +75,7 @@ def make_node(filename, name, count, wanted_attributes):
         for attr, value in wanted_attributes.items():
             typ = NODE_TYPES[attr]
             ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(attr, value, count)
+            ds_value = _expand_values(value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
 
 
@@ -94,7 +89,7 @@ def make_edges(filename, edges, wanted_attributes):
         for attr, value in wanted_attributes.items():
             typ = EDGE_TYPES[attr]
             ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(attr, value, count)
+            ds_value = _expand_values(value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
 
         ds = dg.create_dataset("source_node_id", data=np.array(src_ids, dtype=int))
@@ -169,7 +164,7 @@ def make_ringtest_nodes():
         "z": it.count(2),
         "morphology": "cell_small",
     }
-    make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
+    make_node(filename="nodes_A.h5", name="RingA", count=60000, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,

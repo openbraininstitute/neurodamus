@@ -1,0 +1,28 @@
+{
+    "network": "../tests/simulations/ringtest/circuit_config.json",
+    "run": {
+      "random_seed": 1122,
+      "dt": 0.1,
+      "tstop": 6
+    },
+    "node_set": "Mosaic",
+    "node_sets_file": "../tests/simulations/ringtest/nodesets.json",
+    "conditions": {
+      "celsius": 35,
+      "v_init": -65
+    },
+    "inputs": {
+      "Stimulus": {
+        "module": "pulse",
+        "input_type": "current_clamp",
+        "delay": 5,
+        "duration": 50,
+        "node_set": "RingA",
+        "represents_physical_electrode": true,
+        "amp_start": 10,
+        "width": 1,
+        "frequency": 50
+      }
+    },
+    "target_simulator": "CORENEURON"
+  }
