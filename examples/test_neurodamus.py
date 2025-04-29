@@ -4,7 +4,6 @@ An example on how node can be used to mimick neurodamus behavior
 """
 from __future__ import print_function
 from neurodamus import Node, Neurodamus
-from neurodamus.core import NeurodamusCore as Nd
 from neurodamus.utils.logging import setup_logging
 import sys
 import logging
@@ -44,11 +43,6 @@ def test_node_run(trace=False):
 
     logging.info("Enable Modifications")
     node.enable_modifications()
-
-    if trace:
-        logging.info("Dumping config")
-        Nd.stdinit()
-        node.dump_circuit_config("")
 
     logging.info("Enable Reports")
     node.enable_reports()
