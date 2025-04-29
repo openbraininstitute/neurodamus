@@ -1,113 +1,174 @@
-#!/bin/env python
-# /// script
-# dependencies = ['h5py', 'libsonata', 'numpy']
-# ///
-# the above allows one to run `uv run create_data.py` without a virtualenv
+# This script generates a 3-ring model with configurable node and edge properties. 
+# The model consists of three main components:
+# 1. `make_ringtest_nodes`: Defines the node properties (e.g., position, type) for each of the three rings.
+# 2. `make_ringtest_edges`: Sets up the edges (connections between nodes) between the three rings.
+# 3. `main`: Combines the nodes and edges into the final graph structure, including the visualization of the rings.
+#
+# To customize the model, you can adjust:
+# - `make_ringtest_nodes`: Modify the node properties such as types, positions, or attributes.
+# - `make_ringtest_edges`: Change how the nodes are connected (e.g., the type of edges or how nodes from different rings connect).
+# - `main`: Control how many rings are created and how they are visualized or saved.
+
 import itertools as it
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Union
 
 import h5py
 import libsonata
 import numpy as np
 
+#### INPUTS
 
-@dataclass
-class Edges:
-    src: str
-    tgt: str
-    type: str
-    connections: list[(int, int)]
+def make_ringtest_nodes(ringA_count, ringB_count, ringC_count):
+    """
+    Create three node files (RingA, RingB, RingC) with test cell attributes.
 
+    Each ring has a specified number of nodes and varying mtype/etype definitions:
+    - RingA: 3 mtypes/etypes, cyclic across nodes
+    - RingB: 2 mtypes/etypes, cyclic across nodes
+    - RingC: single mtype/etype for all nodes
 
-@dataclass
-class SonataAttribute:
-    name: str
-    type: type
-    prefix: bool
+    Node positions (x, y, z) are generated using count-based iterators for uniqueness.
+    The files are saved as: nodes_A.h5, nodes_B.h5, nodes_C.h5.
+    """
+    wanted = {
+        "node_type_id": -1,
+        "model_template": "hoc:TestCell",
+        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],
+        "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
+        "x": it.count(0),
+        "y": it.count(1),
+        "z": it.count(2),
+        "morphology": "cell_small",
+    }
+    make_node(filename="nodes_A.h5", name="RingA", count=ringA_count, wanted_attributes=wanted)
 
+    wanted = {
+        "node_type_id": -1,
+        "model_template": "hoc:TestCell",
+        "mtype": ["MTYPE0", "MTYPE1"], 
+        "etype": ["ETYPE1", "ETYPE1"],
+        "x": it.count(3),
+        "y": it.count(4),
+        "z": it.count(5),
+        "morphology": "cell_small",
+    }
+    make_node(filename="nodes_B.h5", name="RingB", count=ringB_count, wanted_attributes=wanted)
 
-NODE_TYPES = [
-    SonataAttribute("node_type_id", type=int, prefix=False),
-    SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
-    SonataAttribute("x", type=np.float32, prefix=True),
-    SonataAttribute("y", type=np.float32, prefix=True),
-    SonataAttribute("z", type=np.float32, prefix=True),
-    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
-]
-NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
+    wanted = {
+        "node_type_id": -1,
+        "model_template": "hoc:TestCell",
+        "mtype": "MTYPE0",
+        "etype": "ETYPE1",
+        "x": it.count(3),
+        "y": it.count(4),
+        "z": it.count(5),
+        "morphology": "cell_small",
+    }
+    make_node(filename="nodes_C.h5", name="RingC", count=ringC_count, wanted_attributes=wanted)
 
-EDGE_TYPES = [
-    SonataAttribute("edge_type_id", type=int, prefix=False),
-    SonataAttribute("conductance", type=np.float32, prefix=True),
-    SonataAttribute("decay_time", type=np.float32, prefix=True),
-    SonataAttribute("delay", type=np.float32, prefix=True),
-    SonataAttribute("depression_time", type=np.float32, prefix=True),
-    SonataAttribute("facilitation_time", type=np.float32, prefix=True),
-    SonataAttribute("u_syn", type=np.float32, prefix=True),
-    SonataAttribute("afferent_section_id", type=int, prefix=True),
-    SonataAttribute("afferent_section_pos", type=np.float32, prefix=True),
-    SonataAttribute("afferent_segment_id", type=int, prefix=True),
-    SonataAttribute("afferent_segment_offset", type=int, prefix=True),
-    SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
-    SonataAttribute("syn_type_id", type=int, prefix=True),
-    SonataAttribute("afferent_junction_id", type=int, prefix=True),
-    SonataAttribute("efferent_junction_id", type=int, prefix=True)
-]
-EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
+def make_ringtest_edges(ringA_count, ringB_count, ringC_count):
+    """
+    Create edge files for three rings (RingA, RingB, RingC) with predefined connectivity.
 
+    - RingA and RingB: chemical ring connections of size `ringA_count` and `ringB_count`, respectively.
+    - RingA → RingB: one directed chemical connection (0 → 0).
+    - RingC: 
+        - Electrical edges with bidirectional connections [(0, 2), (2, 0)]
+        - Chemical ring connections of size `ringC_count`
 
-def _expand_values(attr, value, count):
-    if isinstance(value, str):
-        ds_value = [value] * count
-    elif isinstance(value, Sequence):
-        assert len(value) == count, f"For {attr}, {len(value)} != (count) {count}"
-        ds_value = value
-    elif isinstance(value, Iterable):
-        ds_value = list(it.islice(value, count))
-    else:
-        ds_value = [value] * count
+    Various synaptic and anatomical attributes are assigned using either counters for variability or constants.
+    Files written:
+      - local_edges_A.h5
+      - local_edges_B.h5
+      - edges_AB.h5
+      - local_edges_C_electrical.h5
+      - local_edges_C.h5
+    """
+    edges = Edges("RingA", "RingA", "chemical", ringA_count)
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": it.count(11.0),
+        "decay_time": it.count(12.0),
+        "delay": it.count(13.0),
+        "depression_time": it.count(14.0),
+        "facilitation_time": it.count(15.0),
+        "u_syn": it.count(16.0),
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.75,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": [60, 104, 77],
+    }
+    make_edges(filename="local_edges_A.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    return ds_value
+    edges = Edges("RingB", "RingB", "chemical", ringB_count)
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": it.count(21.0),
+        "decay_time": it.count(22.0),
+        "delay": it.count(23.0),
+        "depression_time": it.count(24.0),
+        "facilitation_time": it.count(25.0),
+        "u_syn": it.count(26.0),
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.75,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": [24, 29],
+    }
+    make_edges(filename="local_edges_B.h5", edges=edges, wanted_attributes=wanted_attributes)
 
+    edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": 100.0,
+        "decay_time": 2.0,
+        "delay": 3.0,
+        "depression_time": 4.0,
+        "facilitation_time": 5.0,
+        "u_syn": 6.0,
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.75,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": 131,
+    }
+    make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-def make_node(filename, name, count, wanted_attributes):
-    with h5py.File(filename, "w") as h5:
-        dg = h5.create_group(f"/nodes/{name}")
+    edges = Edges("RingC", "RingC", "electrical", [(0, 2), (2, 0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": 100.0,
+        "afferent_section_id": 1,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "efferent_junction_id": [0, 2],
+        "afferent_junction_id": [2, 0]
+    }
+    make_edges(filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-        for attr, value in wanted_attributes.items():
-            typ = NODE_TYPES[attr]
-            ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(attr, value, count)
-            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
-
-
-def make_edges(filename, edges, wanted_attributes):
-    name = f"{edges.src}__{edges.tgt}__{edges.type}"
-    src_ids, tgt_ids = zip(*edges.connections)
-    count = len(src_ids)
-    with h5py.File(filename, "w") as h5:
-        dg = h5.create_group(f"/edges/{name}")
-
-        for attr, value in wanted_attributes.items():
-            typ = EDGE_TYPES[attr]
-            ds_name = ("0/" if typ.prefix else "") + typ.name
-            ds_value = _expand_values(attr, value, count)
-            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
-
-        ds = dg.create_dataset("source_node_id", data=np.array(src_ids, dtype=int))
-        ds.attrs["node_population"] = edges.src
-        ds = dg.create_dataset("target_node_id", data=np.array(tgt_ids, dtype=int))
-        ds.attrs["node_population"] = edges.tgt
-
-    libsonata.EdgePopulation.write_indices(
-        filename,
-        name,
-        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
-        target_node_count=max(tgt_ids) + 1,
-    )
+    edges = Edges("RingC", "RingC", "chemical", ringC_count)
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": it.count(31.0),
+        "decay_time": it.count(32.0),
+        "delay": it.count(33.0),
+        "depression_time": it.count(34.0),
+        "facilitation_time": it.count(35.0),
+        "u_syn": it.count(36.0),
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.75,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": [60, 104, 77],
+    }
+    make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
 
 def make_lfp_weights():
     filename = "lfp_file.h5"
@@ -157,131 +218,104 @@ def make_lfp_weights():
             ]
         write_pop("RingB", node_ids, offsets, scaling_factors)
 
+### STRUCTURES AND COMPUTATIONS
+@dataclass
+class Edges:
+    src: str
+    tgt: str
+    type: str
+    connections: Union[int, list[tuple[int, int]]]
 
-def make_ringtest_nodes():
-    wanted = {
-        "node_type_id": -1,
-        "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],
-        "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
-        "x": it.count(0),
-        "y": it.count(1),
-        "z": it.count(2),
-        "morphology": "cell_small",
-    }
-    make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
-
-    wanted = {
-        "node_type_id": -1,
-        "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1"], 
-        "etype": ["ETYPE1", "ETYPE1"],
-        "x": it.count(3),
-        "y": it.count(4),
-        "z": it.count(5),
-        "morphology": "cell_small",
-    }
-    make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
-
-    wanted = {
-        "node_type_id": -1,
-        "model_template": "hoc:TestCell",
-        "mtype": "MTYPE0",
-        "etype": "ETYPE1",
-        "x": it.count(3),
-        "y": it.count(4),
-        "z": it.count(5),
-        "morphology": "cell_small",
-    }
-    make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
+    def __post_init__(self):
+        if isinstance(self.connections, int):
+            n = self.connections
+            self.connections = [(i, (i + 1) % n) for i in range(n)]
+@dataclass
+class SonataAttribute:
+    name: str
+    type: type
+    prefix: bool
 
 
-def make_ringtest_edges():
-    edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": it.count(11.0),
-        "decay_time": it.count(12.0),
-        "delay": it.count(13.0),
-        "depression_time": it.count(14.0),
-        "facilitation_time": it.count(15.0),
-        "u_syn": it.count(16.0),
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": [60, 104, 77],
-    }
-    make_edges(filename="local_edges_A.h5", edges=edges, wanted_attributes=wanted_attributes)
+NODE_TYPES = [
+    SonataAttribute("node_type_id", type=int, prefix=False),
+    SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("x", type=np.float32, prefix=True),
+    SonataAttribute("y", type=np.float32, prefix=True),
+    SonataAttribute("z", type=np.float32, prefix=True),
+    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
+]
+NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
 
-    edges = Edges("RingB", "RingB", "chemical", [(0, 1), (1, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": it.count(21.0),
-        "decay_time": it.count(22.0),
-        "delay": it.count(23.0),
-        "depression_time": it.count(24.0),
-        "facilitation_time": it.count(25.0),
-        "u_syn": it.count(26.0),
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": [24, 29],
-    }
-    make_edges(filename="local_edges_B.h5", edges=edges, wanted_attributes=wanted_attributes)
-
-    edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": 100.0,
-        "decay_time": 2.0,
-        "delay": 3.0,
-        "depression_time": 4.0,
-        "facilitation_time": 5.0,
-        "u_syn": 6.0,
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": 131,
-    }
-    make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
-
-    edges = Edges("RingC", "RingC", "electrical", [(0, 2), (2, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": 100.0,
-        "afferent_section_id": 1,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "efferent_junction_id": [0, 2],
-        "afferent_junction_id": [2, 0]
-    }
-    make_edges(filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
-
-    edges = Edges("RingC", "RingC", "chemical", [(0, 1), (1, 2), (2, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": it.count(31.0),
-        "decay_time": it.count(32.0),
-        "delay": it.count(33.0),
-        "depression_time": it.count(34.0),
-        "facilitation_time": it.count(35.0),
-        "u_syn": it.count(36.0),
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": [60, 104, 77],
-    }
-    make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
+EDGE_TYPES = [
+    SonataAttribute("edge_type_id", type=int, prefix=False),
+    SonataAttribute("conductance", type=np.float32, prefix=True),
+    SonataAttribute("decay_time", type=np.float32, prefix=True),
+    SonataAttribute("delay", type=np.float32, prefix=True),
+    SonataAttribute("depression_time", type=np.float32, prefix=True),
+    SonataAttribute("facilitation_time", type=np.float32, prefix=True),
+    SonataAttribute("u_syn", type=np.float32, prefix=True),
+    SonataAttribute("afferent_section_id", type=int, prefix=True),
+    SonataAttribute("afferent_section_pos", type=np.float32, prefix=True),
+    SonataAttribute("afferent_segment_id", type=int, prefix=True),
+    SonataAttribute("afferent_segment_offset", type=int, prefix=True),
+    SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
+    SonataAttribute("syn_type_id", type=int, prefix=True),
+    SonataAttribute("afferent_junction_id", type=int, prefix=True),
+    SonataAttribute("efferent_junction_id", type=int, prefix=True)
+]
+EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
 
-make_ringtest_nodes()
-make_ringtest_edges()
-make_lfp_weights()
+def _expand_values(value, count):
+    if isinstance(value, str):
+        return [value] * count
+    elif isinstance(value, Iterable):
+        return list(it.islice(it.cycle(value), count))
+    else:
+        return [value] * count
+
+
+def make_node(filename, name, count, wanted_attributes):
+    with h5py.File(filename, "w") as h5:
+        dg = h5.create_group(f"/nodes/{name}")
+
+        for attr, value in wanted_attributes.items():
+            typ = NODE_TYPES[attr]
+            ds_name = ("0/" if typ.prefix else "") + typ.name
+            ds_value = _expand_values(value, count)
+            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
+
+
+def make_edges(filename, edges, wanted_attributes):
+    name = f"{edges.src}__{edges.tgt}__{edges.type}"
+    src_ids, tgt_ids = zip(*edges.connections)
+    count = len(src_ids)
+    with h5py.File(filename, "w") as h5:
+        dg = h5.create_group(f"/edges/{name}")
+
+        for attr, value in wanted_attributes.items():
+            typ = EDGE_TYPES[attr]
+            ds_name = ("0/" if typ.prefix else "") + typ.name
+            ds_value = _expand_values(value, count)
+            dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
+
+        ds = dg.create_dataset("source_node_id", data=np.array(src_ids, dtype=int))
+        ds.attrs["node_population"] = edges.src
+        ds = dg.create_dataset("target_node_id", data=np.array(tgt_ids, dtype=int))
+        ds.attrs["node_population"] = edges.tgt
+
+    libsonata.EdgePopulation.write_indices(
+        filename,
+        name,
+        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
+        target_node_count=max(tgt_ids) + 1,
+    )
+
+if __name__ == "__main__":
+    ringA_count, ringB_count, ringC_count = 3, 2, 3
+    make_ringtest_nodes(ringA_count, ringB_count, ringC_count)
+    make_ringtest_edges(ringA_count, ringB_count, ringC_count)
+    make_lfp_weights()
