@@ -1110,15 +1110,57 @@ def _coreneuron_direct_mode(config: _SimConfig):
     config.coreneuron_direct_mode = direct_mode
 
 
-def get_debug_cell_gid(cli_options):
-    gid = cli_options.get("dump_cell_state") if cli_options else None
-    if gid is not None:
-        try:
-            # Convert to integer and adjust for sonata mode (0-based to 1-based indexing)
-            gid = int(gid) + 1
-        except ValueError as e:
-            raise ConfigurationError("Cannot parse Gid for dump-cell-state: " + gid) from e
-    return gid
+def get_debug_cell_gids(cli_options):
+    """Parse the --dump-cell-state option from CLI.
+
+    Supports:
+    - A single integer (e.g., "2")
+    - A comma-separated list of integers or ranges (e.g., "1,3-5,7")
+    - A file path containing one GID per line
+
+    Returns:
+        List of 1-based GIDs as integers, or None if not provided.
+
+    Raises:
+        ConfigurationError: if the format is invalid or file doesn't exist.
+    """
+    value = cli_options.get("dump_cell_state") if cli_options else None
+    if value is None:
+        return None
+
+    def parse_gid_token(token):
+        """Parse a single token: an integer or a range (e.g., "3" or "1-4").
+
+        Returns:
+            List of integers parsed from the token.
+
+        Raises:
+            ConfigurationError: if the token is invalid.
+        """
+        token = token.strip()
+        if re.match(r"^\d+-\d+$", token):
+            start, end = map(int, token.split("-"))
+            if start > end:
+                raise ConfigurationError(f"Invalid range in dump-cell-state: {token}")
+            return list(range(start, end + 1))
+        if token.isdigit():
+            return [int(token)]
+        raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
+
+    try:
+        if isinstance(value, int):
+            tokens = [str(value)]
+        else:
+            tokens = value.split(",")
+        gids = []
+        for token in tokens:
+            gids.extend(parse_gid_token(token))
+        gids = [gid + 1 for gid in gids]
+        gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
+    except ValueError as e:
+        raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
+    else:
+        return gids
 
 
 def check_connections_configure(SimConfig, target_manager):
