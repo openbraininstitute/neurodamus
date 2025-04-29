@@ -24,7 +24,7 @@ venv
 *.egg-info
 
 # tests and coverage
-.coverage
+.coverage*
 .tox
 
 # Build and docs folder/files
