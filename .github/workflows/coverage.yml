@@ -35,9 +35,11 @@ jobs:
     - name: Combine coverage files
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
-        coverage combine
+        coverage combine .coverage.baseline .coverage.unit
         coverage xml
 
-    - name: Upload to Coveralls
+    - name: Coveralls
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
+      with:
+        path-to-xml: coverage.xml
