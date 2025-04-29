@@ -123,7 +123,7 @@ def make_edges(filename, edges, wanted_attributes):
     )
 
 
-def make_lfp_weights():
+def make_lfp_weights(ringA_count, ringB_count):
     filename = "lfp_file.h5"
     with h5py.File(filename, "w") as h5:
         def write_pop(population, node_ids, offsets, scaling_factors):
@@ -134,8 +134,8 @@ def make_lfp_weights():
             dg = h5.create_group("electrodes/" + population)
             dg.create_dataset("scaling_factors", dtype='f8', data=scaling_factors)
 
-        node_ids = [0, 1, 2]
-        offsets = [0, 5, 10, 15]
+        node_ids = list(range(ringA_count))
+        offsets = [i * 5 for i in range(ringA_count+1)]
         scaling_factors = [
             [0.011, 0.012], 
             [0.021, 0.022], 
@@ -155,8 +155,8 @@ def make_lfp_weights():
             ]
         write_pop("RingA", node_ids, offsets, scaling_factors)
 
-        node_ids = [0, 1]
-        offsets = [0, 5, 10]
+        node_ids = list(range(ringB_count))
+        offsets = [i * 5 for i in range(ringB_count+1)]
         scaling_factors = [
             [0.014, 0.015, 0.016], 
             [0.024, 0.025, 0.026], 
@@ -326,4 +326,4 @@ if __name__ == "__main__":
     ringA_count, ringB_count, ringC_count = 3, 2, 3
     make_ringtest_nodes(ringA_count, ringB_count, ringC_count)
     make_ringtest_edges(ringA_count, ringB_count, ringC_count)
-    make_lfp_weights()
+    make_lfp_weights(ringA_count, ringB_count)
