@@ -137,6 +137,7 @@ class TargetManager:
 
     def clear_simulation_data(self):
         self.local_nodes.clear()
+        # deference SectionRefs to sections
         self._section_access.clear()
 
     def get_target(self, target_spec: TargetSpec, target_pop=None):
