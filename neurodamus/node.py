@@ -485,8 +485,12 @@ class Node:
         logging.info("Could not reuse load balance data. Doing a Full Load-Balance")
         cell_dist = self._circuits.new_node_manager(circuit, self._target_manager, self._run_conf)
         with load_balancer.generate_load_balance(target_spec, cell_dist):
-            # Instantiate a circuit to evaluate complexities
+            # Instantiate the circuit cells and synapses to evaluate complexities
             cell_dist.finalize()
+            self._circuits.global_manager.finalize()
+            SimConfig.update_connection_blocks(self._circuits.alias)
+            target_manager = self._target_manager
+            self._create_synapse_manager(SynapseRuleManager, circuit, target_manager)
 
         # reset since we instantiated with RR distribution
         Nd.t = 0.0  # Reset time
