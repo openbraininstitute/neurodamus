@@ -18,27 +18,26 @@ class ConnectionTypes(str, Enum):
 
 class SonataConfig:
     __slots__ = (
+        "_circuit_conf",  # libsonata.CircuitConfig
         "_circuits",
-        "_circuit_conf",
-        "_sim_conf",
+        "_sim_conf",  # libsonata.SimulationConfig
+        # Currently, the `inputs` of a simulation_config is a json object,
+        # which is unordered; however, the order of stimuli matter, so try and
+        # recover the order defined in the json file: this assumes that `json.load`
+        # keeps it; *which is not guaranteed* see the discussion:
+        # https://github.com/openbraininstitute/neurodamus/issues/217#issuecomment-2827930163
         "_stable_inputs_order",
     )
 
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
 
-        # Currently, the `inputs` of a simulation_config is a json object,
-        # which is unordered; however, the order of stimuli matter, so try and
-        # recover the order defined in the json file: this assumes that `json.load`
-        # keeps it; *which is not guaranteed* see the discussion:
-        # https://github.com/openbraininstitute/neurodamus/issues/217#issuecomment-2827930163
-
         with open(config_path) as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
                 logging.warning("_stable_inputs_order: %s", self._stable_inputs_order)
             else:
-                self._stable_inputs_order = tuple()
+                self._stable_inputs_order = ()
 
         self._circuit_conf = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuits = self._extract_circuits_info()
