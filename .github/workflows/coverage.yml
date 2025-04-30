@@ -27,24 +27,28 @@ jobs:
         python -m pip install --upgrade pip tox coverage
 
     - name: Run tox baseline
-      run: tox -e baseline
+      run: |
+        tox -e baseline
+        COVERAGE_FILE=.coverage.baseline coverage xml -o coverage.baseline.xml
 
     - name: Run tox unit
-      run: tox -e unit
+      run: |
+        tox -e unit
+        COVERAGE_FILE=.coverage.unit coverage xml -o coverage.unit.xml
 
-    - name: Upload baseline to Coveralls
+    - name: Coveralls (baseline)
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
-        path-to-coverage: .coverage.baseline
+        file: coverage.baseline.xml
         flag-name: baseline
         parallel: true
 
-    - name: Upload unit to Coveralls
+    - name: Coveralls (unit)
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: coverallsapp/github-action@v2
       with:
-        path-to-coverage: .coverage.unit
+        file: coverage.unit.xml
         flag-name: unit
         parallel: true
 
