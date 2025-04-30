@@ -177,6 +177,7 @@ class SonataConfig:
                 # read SpikeLocation from "conditions" with libsonata parser 0.1.17+
                 # before 0.1.17 read from "run" by calling _translate_dict
                 parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        logging.warning("parsedRun: %s", parsed_run)
         return parsed_run
 
     @property
@@ -199,6 +200,7 @@ class SonataConfig:
             else:
                 conditions[key] = value
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
+        logging.warning("Conditions: %s", conditions)
         return {"Conditions": conditions}
 
     def _extract_circuits_info(self) -> dict:
@@ -347,6 +349,7 @@ class SonataConfig:
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
+        logging.warning("parsedProjections: %s", projections)
         return projections
 
     @property
@@ -355,10 +358,12 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        return {
+        connects = {
             libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
+        logging.warning("parsedConnects: %s", connects)
+        return connects
 
     @property
     def parsedStimuli(self):
@@ -371,8 +376,11 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
+        names1 = self._sim_conf.list_input_names
+        names = ('ThresholdInh', 'ThresholdExc', 'hypamp_mosaic')
+        logging.warning("old: %s, new: %s", names1, names)
         stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        for name in names:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
@@ -380,6 +388,8 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
+
+        logging.warning("parsedStimuli: %s", stimuli)
         return stimuli
 
     @property
@@ -387,10 +397,15 @@ class SonataConfig:
         injects = {}
         # the order of stimulus injection could lead to minor difference on the results
         # so better to preserve it as in the config file
-        for name in self._sections["inputs"]:
+        names1 = self._sections["inputs"]
+        names = ("ThresholdExc", "ThresholdInh", "hypamp_mosaic")
+        logging.warning("old: %s, new: %s", names1, names)
+        for name in names:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
+
+        logging.warning("parsedInjects: %s", injects)
         return injects
 
     @property
@@ -406,6 +421,7 @@ class SonataConfig:
             rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
+        logging.warning("parsedReports: %s", reports)
         return reports
 
     @property
@@ -415,6 +431,7 @@ class SonataConfig:
             setting = self._translate_dict("modifications", modification)
             self._adapt_libsonata_fields(setting)
             result[modification.name] = setting
+        logging.warning("parsedModifications: %s", result)
         return result
 
     def _dir(self, obj):

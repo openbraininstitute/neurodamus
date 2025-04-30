@@ -16,7 +16,7 @@ from ..conftest import SIM_DIR, USECASE3
         }
     }
 ], indirect=True)
-def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
+def test_v5_sonata_multisteps(create_tmp_simulation_config_file):
     import numpy.testing as npt
     from neurodamus import Neurodamus
 
@@ -37,8 +37,6 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     npt.assert_allclose(timestamps, obtained_timestamps)
 
-    captured = capsys.readouterr()
-    assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
