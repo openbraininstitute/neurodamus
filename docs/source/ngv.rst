@@ -138,3 +138,5 @@ It may be helpful to provide a sample of a typical `circuit_config.json` file. T
       ]
     }
   }
+
+The rest of the simulation can be found `here <https://github.com/BlueBrain/MultiscaleRun/tree/main/multiscale_run/templates/tiny_CI>`_.
