@@ -29,6 +29,10 @@ jobs:
         run: |
           tox -e baseline
 
+      - name: Run tox unit
+        run: |
+          tox -e unit
+
       - name: Upload baseline coverage to Coveralls
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
@@ -38,10 +42,6 @@ jobs:
           flag-name: baseline
           parallel: true
 
-      - name: Run tox unit
-        run: |
-          tox -e unit
-
       - name: Upload unit coverage to Coveralls
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
@@ -49,6 +49,24 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: .coverage.unit
           flag-name: unit
+          parallel: true
+
+      - name: Upload XML coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.baseline.xml
+          flag-name: baseline-xml
+          parallel: true
+
+      - name: Upload unit XML coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.unit.xml
+          flag-name: unit-xml
           parallel: true
 
   finish:
