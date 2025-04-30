@@ -41,7 +41,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus.core import NeurodamusCore as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
+    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
     src_gids = [1, 2]
