@@ -65,7 +65,7 @@ which defaults to NEURON.
 The second block selects which circuit is to be simulated. This is the main difference wrt BlueConfig.
 `network` should point to the circuit config file which, as showing in the diagram, contains
 information about the location of the files building it up. Therefore this entry replaces all
-entries specifying circuit files, namely `CircuitPath`, `MorphologyPath`, `MorphologyType`,
+entries specifying circuit files, namely `MorphologyPath`, `MorphologyType`,
 `METypePath`, `MEComboInfoFile`, `CellLibraryFile`, `nrnPath`.
 
 There will likely be such files available per circuit, but the user may define himself a custom one.

@@ -43,6 +43,7 @@ from .core.configuration import (
     _SimConfig,
     find_input_file,
     get_debug_cell_gids,
+    make_circuit_config,
 )
 from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
 from .core.nodeset import PopulationNodes
@@ -182,10 +183,6 @@ class CircuitManager:
     def all_synapse_managers(self):
         return itertools.chain.from_iterable(self.edge_managers.values())
 
-    @property
-    def base_cell_manager(self):
-        return self.get_node_manager(None)
-
     @run_only_rank0
     def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
@@ -309,8 +306,8 @@ class Node:
       attributes being prefixed with an underscore (`_`). Notable internal
       attributes include:
 
-      - `self._base_circuit`: The main circuit object used by the Node.
-      - `self._extra_circuits`: Additional circuits managed by the Node.
+      `self._sonata_circuits`: The SONATA circuits used by the Node
+      each represents a node population.
 
     These details make the Node class versatile and powerful for advanced users
     who need more granular control over the simulation process.
@@ -357,14 +354,11 @@ class Node:
         self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
-        self._base_circuit: CircuitConfig = SimConfig.base_circuit
-
-        self._extra_circuits = SimConfig.extra_circuits
+        self._sonata_circuits = SimConfig.sonata_circuits
         self._dump_cell_state_gids = get_debug_cell_gids(options)
-
         self._core_replay_file = ""
         self._is_ngv_run = any(
-            c.Engine.__name__ == "NGVEngine" for c in self._extra_circuits.values() if c.Engine
+            c.Engine.__name__ == "NGVEngine" for c in self._sonata_circuits.values() if c.Engine
         )
         self._initial_rss = 0
         self._cycle_i = 0
@@ -407,10 +401,8 @@ class Node:
     stims = property(lambda self: self._stim_list)
     reports = property(lambda self: self._report_list)
 
-    def all_circuits(self, exclude_disabled=True):
-        if not exclude_disabled or self._base_circuit.CircuitPath:
-            yield self._base_circuit
-        yield from self._extra_circuits.values()
+    def all_circuits(self):
+        yield from self._sonata_circuits.values()
 
     # -
     def load_targets(self):
@@ -427,18 +419,18 @@ class Node:
         CellDistributor to split cells and balance those pieces across the available CPUs.
         """
         log_stage("Computing Load Balance")
-        circuit = self._base_circuit
-        for name, circuit in self._extra_circuits.items():
+        circuit = None
+        for name, circuit in self._sonata_circuits.items():
             if circuit.get("PopulationType") != "virtual":
                 logging.info("Activating experimental LB for Sonata circuit '%s'", name)
                 break
-        if circuit.get("PopulationType") == "virtual":
+        if circuit is None:
             logging.warning(
-                "Cannot calculate the load balance because only virtual populations were found"
+                "Cannot calculate the load balance because no non-virtual circuit is found"
             )
             return None
 
-        if not circuit.CircuitPath:
+        if not circuit.CellLibraryFile:
             logging.info(" => No circuit for Load Balancing. Skipping... ")
             return None
 
@@ -484,9 +476,9 @@ class Node:
             return alloc
 
         # Build load balancer as per requested options
-        data_src = circuit.CircuitPath
+        node_path = circuit.CellLibraryFile
         pop = target_spec.population
-        load_balancer = LoadBalance(lb_mode, data_src, pop, self._target_manager)
+        load_balancer = LoadBalance(lb_mode, node_path, pop, self._target_manager)
 
         if load_balancer.valid_load_distribution(target_spec):
             logging.info("Load Balancing done.")
@@ -495,12 +487,12 @@ class Node:
         logging.info("Could not reuse load balance data. Doing a Full Load-Balance")
         cell_dist = self._circuits.new_node_manager(circuit, self._target_manager, self._run_conf)
         with load_balancer.generate_load_balance(target_spec, cell_dist):
-            # Instantiate a basic circuit to evaluate complexities
+            # Instantiate the circuit cells and synapses to evaluate complexities
             cell_dist.finalize()
             self._circuits.global_manager.finalize()
             SimConfig.update_connection_blocks(self._circuits.alias)
             target_manager = self._target_manager
-            self._create_synapse_manager(SynapseRuleManager, self._base_circuit, target_manager)
+            self._create_synapse_manager(SynapseRuleManager, circuit, target_manager)
 
         # reset since we instantiated with RR distribution
         Nd.t = 0.0  # Reset time
@@ -533,14 +525,8 @@ class Node:
         config = SimConfig.cli_options
         if not load_balance:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
-        # Always create a cell_distributor even if engine is disabled.
-        # Fake CoreNeuron cells are created in it
-        cell_distributor = CellDistributor(self._base_circuit, self._target_manager, self._run_conf)
-        cell_distributor.load_nodes(load_balance, loader_opts=loader_opts)  # no-op if disabled
-        self._circuits.register_node_manager(cell_distributor)
 
-        # SUPPORT for extra/custom Circuits
-        for name, circuit in self._extra_circuits.items():
+        for name, circuit in self._sonata_circuits.items():
             log_stage("Circuit %s", name)
             if config.restrict_node_populations and name not in config.restrict_node_populations:
                 logging.warning("Skipped node population (restrict_node_populations)")
@@ -600,10 +586,7 @@ class Node:
             "dry_run_stats": self._dry_run_stats,
         }
 
-        if circuit := self._base_circuit:
-            self._create_synapse_manager(SynapseRuleManager, circuit, target_manager, **manager_kwa)
-
-        for circuit in self._extra_circuits.values():
+        for circuit in self._sonata_circuits.values():
             Engine = circuit.Engine or METypeEngine
             SynManagerCls = Engine.InnerConnectivityCls
             self._create_synapse_manager(SynManagerCls, circuit, target_manager, **manager_kwa)
@@ -737,9 +720,7 @@ class Node:
         """Determine the full path to a projection.
         The "Path" might specify the filename. If not, it will attempt the old 'proj_nrn.h5'
         """
-        return self._find_config_file(
-            proj_path, ("ProjectionPath", "CircuitPath"), alt_filename="proj_nrn.h5"
-        )
+        return self._find_config_file(proj_path, ("ProjectionPath"), alt_filename="proj_nrn.h5")
 
     def _find_config_file(self, filepath, path_conf_entries=(), alt_filename=None):
         search_paths = [
@@ -1018,16 +999,16 @@ class Node:
 
             if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
                 try:
+                    # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
+                    # e.g.
+                    #   target_population = target_spec.population or self._target_spec.population
+                    #   cell_manager = self._circuits.get_node_manager(target_population)
+                    #   cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
                 except Exception:
                     logging.exception("Error setting up report '%s'", rep_name)
                     n_errors += 1
                     continue
-
-            # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
-            target_population = target_spec.population or self._target_spec.population
-            cell_manager = self._circuits.get_node_manager(target_population)
-            cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
 
             self._report_list.append(report)
 
@@ -1317,7 +1298,8 @@ class Node:
             yield
             return
 
-        # create a fake node with a fake population "zzz" to get an unused gid.
+        # Create a dummy cell manager with node_pop = None
+        # which holds a fake node with a fake population "zzz" to get an unused gid.
         # coreneuron fails if this edge case is reached multiple times as we
         # try to add twice the same gid. pop "zzz" is reserved to be used
         # exclusively for handling cases where no real GIDs are assigned to
@@ -1327,9 +1309,12 @@ class Node:
         "for handling empty GID ranks and should not be used elsewhere."
         pop_group = PopulationNodes.get("zzz", create=True)
         fake_gid = pop_group.offset + 1 + MPI.rank
-        # Add the fake cell to the base manager
-        base_manager = self._circuits.base_cell_manager
-        base_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
+        # Add the fake cell to a dummy manager
+        dummy_cell_manager = CellDistributor(
+            circuit_conf=make_circuit_config({"CellLibraryFile": "<NONE>"}),
+            target_manager=self._target_manager,
+        )
+        dummy_cell_manager.load_artificial_cell(fake_gid, CoreConfig.artificial_cell_object)
         yield
 
         # register_mapping() doesn't work for this artificial cell as somatic attr is
@@ -1979,9 +1964,7 @@ class Neurodamus(Node):
                 for cur_target in sub_targets[cycle_i]:
                     self._target_manager.register_target(cur_target)
                     pop = next(iter(cur_target.population_names))
-                    for circuit in itertools.chain(
-                        [self._base_circuit], self._extra_circuits.values()
-                    ):
+                    for circuit in self._sonata_circuits.values():
                         tmp_target_spec = TargetSpec(circuit.CircuitTarget)
                         if tmp_target_spec.population == pop:
                             tmp_target_spec.name = cur_target.name
