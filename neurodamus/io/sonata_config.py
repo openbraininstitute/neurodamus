@@ -35,7 +35,6 @@ class SonataConfig:
         with open(config_path) as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
-                logging.warning("_stable_inputs_order: %s", self._stable_inputs_order)
             else:
                 self._stable_inputs_order = ()
 
@@ -121,7 +120,6 @@ class SonataConfig:
         parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
         parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
-        logging.warning("parsedRun: %s", parsed_run)
         return parsed_run
 
     @property
@@ -145,7 +143,6 @@ class SonataConfig:
                 conditions[key] = value
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
 
-        logging.warning("Conditions: %s", conditions)
         return {"Conditions": conditions}
 
     def _extract_circuits_info(self) -> dict:
@@ -301,7 +298,6 @@ class SonataConfig:
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
 
-        logging.warning("parsedProjections: %s", projections)
         return projections
 
     @property
@@ -310,7 +306,6 @@ class SonataConfig:
             libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
-        logging.warning("parsedConnects connects: %s", connects)
         return connects
 
     @property
@@ -334,7 +329,6 @@ class SonataConfig:
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimuli[name] = stimulus
 
-        logging.warning("parsedStimuli stimuli: %s", stimuli)
         return stimuli
 
     @property
@@ -347,7 +341,6 @@ class SonataConfig:
             inj.setdefault("Stimulus", name)
             injects["inject" + name] = inj
 
-        logging.warning("parsedInjects: injects: %s", injects)
         return injects
 
     @property
@@ -364,7 +357,6 @@ class SonataConfig:
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
 
-        logging.warning("parsedReports: %s", reports)
         return reports
 
     @property
@@ -375,7 +367,6 @@ class SonataConfig:
             self._adapt_libsonata_fields(setting)
             result[modification.name] = setting
 
-        logging.warning("parsedModifications: %s", result)
         return result
 
     def _dir(self, obj):
