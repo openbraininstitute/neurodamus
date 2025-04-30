@@ -51,7 +51,7 @@ def test_multipop_simple(create_tmp_simulation_config_file):
         logging_level=3,
     )
 
-    assert set(nd.circuits.node_managers) == {None, "NodeA", "NodeB"}
+    assert set(nd.circuits.node_managers) == {"NodeA", "NodeB"}
     assert len(nd.circuits.edge_managers) == 2  # only intra connectivity
     edges_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
     assert len(list(edges_A.all_connections())) == 2
@@ -131,7 +131,7 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
         logging_level=3,
     )
 
-    assert set(nd.circuits.node_managers) == {None, "NodeA", "NodeB"}
+    assert set(nd.circuits.node_managers) == {"NodeA", "NodeB"}
     assert len(nd.circuits.edge_managers) == 4  # all-to-all connectivity
     edges_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
     assert len(list(edges_A.all_connections())) == 2
