@@ -36,7 +36,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: .coverage.baseline
           flag-name: baseline
-          parallel: true
+          # parallel: true
 
       - name: Run tox unit
         run: |
@@ -50,15 +50,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: .coverage.unit
           flag-name: unit
-          parallel: true
+          # parallel: true
 
-  finish:
-    if: ${{ always() }}
-    needs: coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Finalize Coveralls parallel build
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
+  # finish:
+  #   if: ${{ always() }}
+  #   needs: coverage
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Finalize Coveralls parallel build
+  #       uses: coverallsapp/github-action@v2
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         parallel-finished: true
