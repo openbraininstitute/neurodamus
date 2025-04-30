@@ -40,7 +40,6 @@ jobs:
 
       - name: Run tox unit
         run: |
-          rm -rf .coverage
           tox -e unit
 
       - name: Upload unit coverage to Coveralls
