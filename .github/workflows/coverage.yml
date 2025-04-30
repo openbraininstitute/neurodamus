@@ -51,24 +51,6 @@ jobs:
           flag-name: unit
           parallel: true
 
-      - name: Upload XML coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: .coverage.baseline.xml
-          flag-name: baseline-xml
-          parallel: true
-
-      - name: Upload unit XML coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: .coverage.unit.xml
-          flag-name: unit-xml
-          parallel: true
-
   finish:
     if: ${{ always() }}
     needs: coverage
@@ -79,3 +61,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
+          carryforward: "baseline,unit"
