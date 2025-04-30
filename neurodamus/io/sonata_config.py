@@ -46,13 +46,6 @@ class SonataConfig:
         return self._sim_conf.beta_features
 
     _translation = {
-        # Section Names
-        # -------------
-        "Run": "run",
-        "Conditions": "conditions",
-        "Projection": None,
-        "StimulusInject": "inputs",
-        "Connection": "connection_overrides",
         # Section fields
         # --------------
         "run": {
@@ -67,7 +60,6 @@ class SonataConfig:
             "electrodes_file": "LFPWeightsPath",
         },
         "conditions": {"randomize_gaba_rise_time": "randomize_Gaba_risetime"},
-        "projection": {},
         "connection_overrides": {
             "target": "Destination",
             "modoverride": "ModOverride",
@@ -105,7 +97,9 @@ class SonataConfig:
     @property
     def parsedRun(self):
         parsed_run = self._translate_dict("run", self._sim_conf.run)
+
         self._adapt_libsonata_fields(parsed_run)
+
         # "OutputRoot" and "SpikesFile" will be read from self._sim_conf.output
         # once libsonata resolves the manifest info
         parsed_run["OutputRoot"] = self._sim_conf.output.output_dir
@@ -141,6 +135,7 @@ class SonataConfig:
                         conditions[name + "_" + suffix] = val
             else:
                 conditions[key] = value
+
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
 
         return {"Conditions": conditions}
