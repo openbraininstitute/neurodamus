@@ -119,7 +119,7 @@ class SonataConfig:
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
         parsed_run["CircuitTarget"] = self._sim_conf.node_set
         parsed_run["Celsius"] = self._sim_conf.conditions.celsius
-        parsed_run["V_Init"] = -65.0  # self._sim_conf.conditions.v_init
+        parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
         parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
         logging.warning("parsedRun: %s", parsed_run)

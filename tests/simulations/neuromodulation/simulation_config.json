@@ -7,6 +7,9 @@
         "tstop": 15.0,
         "dt": 0.025
     },
+    "conditions": {
+        "v_init": -65.0
+    },
     "network": "circuit_config.json",
     "node_set": "Mosaic",
     "target_simulator": "NEURON",
