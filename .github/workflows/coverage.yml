@@ -29,11 +29,13 @@ jobs:
     - name: Run tox baseline
       run: |
         tox -e baseline
+        COVERAGE_FILE=.coverage.baseline coverage report
         COVERAGE_FILE=.coverage.baseline coverage xml -o coverage.baseline.xml
 
     - name: Run tox unit
       run: |
         tox -e unit
+        COVERAGE_FILE=.coverage.baseline coverage report
         COVERAGE_FILE=.coverage.unit coverage xml -o coverage.unit.xml
 
     - name: Coveralls (baseline)
@@ -51,6 +53,12 @@ jobs:
         file: coverage.unit.xml
         flag-name: unit
         parallel: true
+
+    - name: Combine coverage files and show summary
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        coverage combine .coverage.baseline .coverage.unit
+        coverage report
 
     - name: Finish Coveralls parallel
       if: ${{ matrix.os == 'ubuntu-latest' }}
