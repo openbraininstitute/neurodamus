@@ -110,13 +110,60 @@ def make_edges(filename, edges, wanted_attributes):
         target_node_count=max(tgt_ids) + 1,
     )
 
+def make_lfp_weights():
+    filename = "lfp_file.h5"
+    with h5py.File(filename, "w") as h5:
+        def write_pop(population, node_ids, offsets, scaling_factors):
+            dg = h5.create_group(population)
+            dg.create_dataset("node_ids", data=node_ids)
+            dg.create_dataset("offsets", data=offsets)
+
+            dg = h5.create_group("electrodes/" + population)
+            dg.create_dataset("scaling_factors", dtype='f8', data=scaling_factors)
+
+        node_ids = [0, 1, 2]
+        offsets = [0, 5, 10, 15]
+        scaling_factors = [
+            [0.011, 0.012], 
+            [0.021, 0.022], 
+            [0.031, 0.032], 
+            [0.041, 0.042], 
+            [0.051, 0.052], 
+            [0.061, 0.062],
+            [0.071, 0.072], 
+            [0.081, 0.082], 
+            [0.091, 0.092], 
+            [0.101, 0.102], 
+            [0.111, 0.112], 
+            [0.121, 0.122], 
+            [0.131, 0.132], 
+            [0.141, 0.142], 
+            [0.151, 0.152]
+            ]
+        write_pop("RingA", node_ids, offsets, scaling_factors)
+
+        node_ids = [0, 1]
+        offsets = [0, 5, 10]
+        scaling_factors = [
+            [0.014, 0.015, 0.016], 
+            [0.024, 0.025, 0.026], 
+            [0.034, 0.035, 0.036], 
+            [0.044, 0.045, 0.046], 
+            [0.054, 0.055, 0.056], 
+            [0.064, 0.065, 0.066],
+            [0.074, 0.075, 0.076], 
+            [0.084, 0.085, 0.086], 
+            [0.094, 0.095, 0.096], 
+            [0.104, 0.105, 0.106]
+            ]
+        write_pop("RingB", node_ids, offsets, scaling_factors)
+
 
 def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
+        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],
         "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
         "x": it.count(0),
         "y": it.count(1),
@@ -129,8 +176,7 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1"],  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
+        "mtype": ["MTYPE0", "MTYPE1"], 
         "etype": ["ETYPE1", "ETYPE1"],
         "x": it.count(3),
         "y": it.count(4),
@@ -140,6 +186,16 @@ def make_ringtest_nodes():
     }
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
+    wanted = {
+        "node_type_id": -1,
+        "model_template": "hoc:TestCell",
+        "mtype": "MTYPE0",
+        "etype": "ETYPE1",
+        "x": it.count(3),
+        "y": it.count(4),
+        "z": it.count(5),
+        "morphology": "cell_small",
+    }
     make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
 
 
@@ -231,3 +287,4 @@ def make_ringtest_edges():
 
 make_ringtest_nodes()
 make_ringtest_edges()
+make_lfp_weights()

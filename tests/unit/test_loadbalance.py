@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 
 base_dir = Path("sim_conf")
@@ -77,11 +77,10 @@ def circuit_conf_bigcell():
 
     circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
-        CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A_bigcell.h5",
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies/asc",
-        nrnPath="<NONE>",  # no connectivity
+        nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
 
@@ -93,11 +92,10 @@ def circuit_conf():
 
     circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
-        CircuitPath=circuit_base,
         CellLibraryFile=circuit_base + "/nodes_A.h5",
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies/asc",
-        nrnPath="<NONE>",  # no connectivity
+        nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
 
@@ -109,7 +107,7 @@ def test_load_balance_integrated(target_manager, circuit_conf):
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
 
-    lbal = LoadBalance(1, circuit_conf.CircuitPath, "RingA", target_manager, 3)
+    lbal = LoadBalance(1, circuit_conf.CellLibraryFile, "RingA", target_manager, 3)
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
 
@@ -138,7 +136,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
-        LoadBalanceMode.MultiSplit, circuit_conf_bigcell.CircuitPath, "RingA", target_manager, 2
+        LoadBalanceMode.MultiSplit, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
     )
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
@@ -189,7 +187,7 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
-        LoadBalanceMode.MultiSplit, circuit_conf.CircuitPath, "RingA", target_manager, 2
+        LoadBalanceMode.MultiSplit, circuit_conf.CellLibraryFile, "RingA", target_manager, 2
     )
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
@@ -225,7 +223,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
-        LoadBalanceMode.WholeCell, circuit_conf.CircuitPath, "RingA", target_manager, 2
+        LoadBalanceMode.WholeCell, circuit_conf.CellLibraryFile, "RingA", target_manager, 2
     )
     t1 = TargetSpec("RingA:All")
     assert not lbal._cx_valid(t1)
@@ -249,7 +247,7 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
-        LoadBalanceMode.WholeCell, circuit_conf_bigcell.CircuitPath, "RingA", target_manager, 2
+        LoadBalanceMode.WholeCell, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
     )
     t1 = TargetSpec("RingA:All")
     with lbal.generate_load_balance(t1, cell_manager):

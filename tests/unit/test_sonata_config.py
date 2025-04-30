@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from tests import utils
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 
 
 def test_parse_base():

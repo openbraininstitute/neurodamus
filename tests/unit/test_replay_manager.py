@@ -2,7 +2,7 @@ import pytest
 import numpy.testing as npt
 from tests import utils
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 
 INPUT_SPIKES_FILE = str(RINGTEST_DIR / "input_spikes.h5")
 

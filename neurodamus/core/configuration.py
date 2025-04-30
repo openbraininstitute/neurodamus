@@ -94,15 +94,14 @@ class CliOptions(ConfigT):
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
-    CellLibraryFile = None
+    CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
     CircuitTarget = None
-    PopulationID = 0
     DetailedAxon = False
+    PopulationType = None
 
 
 class RNGConfig(ConfigT):
@@ -195,8 +194,6 @@ class _SimConfig:
     cli_options = None
     run_conf = None
     output_root = None
-    base_circuit = None
-    extra_circuits = None
     sonata_circuits = None
     projections = None
     connections = None
@@ -240,7 +237,6 @@ class _SimConfig:
     crash_test_mode = False
 
     _validators = []
-    _requisitors = []
     _cell_requirements = {}
 
     restore_coreneuron = property(lambda self: self.use_coreneuron and bool(self.restore))
@@ -262,7 +258,6 @@ class _SimConfig:
         cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.sonata_circuits = cls._config_parser.circuits
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
 
         cls.projections = cls._config_parser.parsedProjections
@@ -281,13 +276,9 @@ class _SimConfig:
         if cls.cli_options.simulator:
             cls._parsed_run["Simulator"] = cls.cli_options.simulator
 
-        cls.run_conf = run_conf = cls._parsed_run
+        cls.run_conf = cls._parsed_run
         for validator in cls._validators:
-            validator(cls, run_conf)
-
-        logging.info("Checking simulation requirements")
-        for requisitor in cls._requisitors:
-            requisitor(cls, cls._config_parser)
+            validator(cls)
 
         logging.info("Initializing hoc config objects")
         cls._init_hoc_config_objs()
@@ -385,11 +376,6 @@ class _SimConfig:
     def validator(cls, f):
         """Decorator to register parameters / config validators"""
         cls._validators.append(f)
-
-    @classmethod
-    def requisitor(cls, f):
-        """Decorator to register requirements investigators"""
-        cls._requisitors.append(f)
 
     @classmethod
     def update_connection_blocks(cls, alias):
@@ -536,35 +522,34 @@ def _check_params(
 
 
 @SimConfig.validator
-def _run_params(_config: _SimConfig, run_conf):
+def _run_params(config: _SimConfig):
     required_fields = ("Duration",)
     numeric_fields = ("BaseSeed", "StimulusSeed", "Celsius", "V_Init")
     non_negatives = ("Duration", "Dt", "ModelBuildingSteps")
-    _check_params("Run default", run_conf, required_fields, numeric_fields, non_negatives)
+    _check_params("Run default", config.run_conf, required_fields, numeric_fields, non_negatives)
 
 
 @SimConfig.validator
-def _loadbal_mode(config: _SimConfig, run_conf):
+def _loadbal_mode(config: _SimConfig):
     cli_args = config.cli_options
     if Feature.LoadBalance not in cli_args.restrict_features:
         logging.warning("Disabled Load Balance (restrict_features)")
         config.loadbal_mode = LoadBalanceMode.RoundRobin
         return
-    lb_mode_str = cli_args.lb_mode or run_conf.get("RunMode")
+    lb_mode_str = cli_args.lb_mode or config.run_conf.get("RunMode")
     config.loadbal_mode = LoadBalanceMode.parse(lb_mode_str)
 
 
 @SimConfig.validator
-def _projection_params(config: _SimConfig, _run_conf):
+def _projection_params(config: _SimConfig):
     required_fields = ("Path",)
-    non_negatives = ("PopulationID",)
     for name, proj in config.projections.items():
-        _check_params("Projection " + name, proj, required_fields, (), non_negatives)
+        _check_params("Projection " + name, proj, required_fields, (), ())
         _validate_file_extension(proj.get("Path"))
 
 
 @SimConfig.validator
-def _stimulus_params(config: _SimConfig, _run_conf):
+def _stimulus_params(config: _SimConfig):
     required_fields = (
         "Mode",
         "Pattern",
@@ -637,7 +622,7 @@ def _stimulus_params(config: _SimConfig, _run_conf):
 
 
 @SimConfig.validator
-def _modification_params(config: _SimConfig, _run_conf):
+def _modification_params(config: _SimConfig):
     required_fields = (
         "Target",
         "Type",
@@ -646,9 +631,9 @@ def _modification_params(config: _SimConfig, _run_conf):
         _check_params("Modification " + name, mod_block, required_fields, ())
 
 
-def _make_circuit_config(config_dict, req_morphology=True):
-    if config_dict.get("CircuitPath") == "<NONE>":
-        config_dict["CircuitPath"] = False
+def make_circuit_config(config_dict, req_morphology=True):
+    if config_dict.get("CellLibraryFile") == "<NONE>":
+        config_dict["CellLibraryFile"] = False
         config_dict["nrnPath"] = False
         config_dict["MorphologyPath"] = False
     elif config_dict.get("nrnPath") == "<NONE>":
@@ -689,55 +674,38 @@ def _validate_file_extension(path):
 
 
 @SimConfig.validator
-def _base_circuit(config: _SimConfig, run_conf):
-    log_verbose("CIRCUIT (default): %s", run_conf.get("CircuitPath", "<DISABLED>"))
-    config.base_circuit = _make_circuit_config(run_conf)
-
-
-@SimConfig.validator
-def _extra_circuits(config: _SimConfig, _run_conf):
+def _circuits(config: _SimConfig):
     from . import EngineBase
 
-    extra_circuits = {}
+    circuit_configs = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
         log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
-        if "Engine" in circuit_info:
-            # Replace name by actual engine
-            circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
-        else:
-            # Without custom engine, inherit base circuit infos
-            for field in (
-                "CircuitPath",
-                "MorphologyPath",
-                "MorphologyType",
-                "METypePath",
-                "CellLibraryFile",
-            ):
-                if field in config.base_circuit and field not in circuit_info:
-                    log_verbose(" > Inheriting '%s' from base circuit", field)
-                    circuit_info[field] = config.base_circuit[field]
+        # Replace name by actual engine class
+        circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
 
         circuit_info.setdefault("nrnPath", False)
         if config.cli_options.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
-        extra_circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        extra_circuits[name].name = name
+        circuit_configs[name] = make_circuit_config(circuit_info, req_morphology=False)
+        circuit_configs[name].name = name
 
     # Sort so that iteration is deterministic
-    config.extra_circuits = dict(
+    config.sonata_circuits = dict(
         sorted(
-            extra_circuits.items(),
+            circuit_configs.items(),
             key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0]),
         )
     )
 
 
 @SimConfig.validator
-def _global_parameters(config: _SimConfig, run_conf):
+def _global_parameters(config: _SimConfig):
     from neuron import h
+
+    run_conf = config.run_conf
 
     config.celsius = run_conf.get("Celsius", 34)
     config.v_init = run_conf.get("V_Init", -65)
@@ -760,12 +728,12 @@ def _global_parameters(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _set_simulator(config: _SimConfig, run_conf):
+def _set_simulator(config: _SimConfig):
     user_config = config.cli_options
-    simulator = run_conf.get("Simulator")
+    simulator = config.run_conf.get("Simulator")
 
     if simulator is None:
-        run_conf["Simulator"] = simulator = "NEURON"
+        config.run_conf["Simulator"] = simulator = "NEURON"
     if simulator not in {"NEURON", "CORENEURON"}:
         raise ConfigurationError("'Simulator' value must be either NEURON or CORENEURON")
     if simulator == "NEURON" and (
@@ -781,11 +749,11 @@ def _set_simulator(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _spike_parameters(config: _SimConfig, run_conf):
-    spike_location = run_conf.get("SpikeLocation", "soma")
+def _spike_parameters(config: _SimConfig):
+    spike_location = config.run_conf.get("SpikeLocation", "soma")
     if spike_location not in {"soma", "AIS"}:
         raise ConfigurationError("Possible options for SpikeLocation are 'soma' and 'AIS'")
-    spike_threshold = run_conf.get("SpikeThreshold", -30)
+    spike_threshold = config.run_conf.get("SpikeThreshold", -30)
     log_verbose("Spike_Location = %s", spike_location)
     log_verbose("Spike_Threshold = %s", spike_threshold)
     config.spike_location = spike_location
@@ -810,7 +778,7 @@ _condition_checks = {
 
 
 @SimConfig.validator
-def _simulator_globals(config: _SimConfig, _run_conf):
+def _simulator_globals(config: _SimConfig):
     if not hasattr(config._simulation_config, "Conditions"):
         return
     from neuron import h
@@ -842,8 +810,8 @@ def _simulator_globals(config: _SimConfig, _run_conf):
 
 
 @SimConfig.validator
-def _second_order(config: _SimConfig, run_conf):
-    second_order = run_conf.get("SecondOrder")
+def _second_order(config: _SimConfig):
+    second_order = config.run_conf.get("SecondOrder")
     if second_order is None:
         return
     second_order = int(second_order)
@@ -858,16 +826,17 @@ def _second_order(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _single_vesicle(_config: _SimConfig, run_conf):
-    if "MinisSingleVesicle" not in run_conf:
+def _single_vesicle(config: _SimConfig):
+    if "MinisSingleVesicle" not in config.run_conf:
         return
+
     from neuron import h
 
     if not hasattr(h, "minis_single_vesicle_ProbAMPANMDA_EMS"):
         raise NotImplementedError(
             "Synapses don't implement minis_single_vesicle. More recent neurodamus model required."
         )
-    minis_single_vesicle = int(run_conf["MinisSingleVesicle"])
+    minis_single_vesicle = int(config.run_conf["MinisSingleVesicle"])
     log_verbose("minis_single_vesicle = %d", minis_single_vesicle)
     h.minis_single_vesicle_ProbAMPANMDA_EMS = minis_single_vesicle
     h.minis_single_vesicle_ProbGABAAB_EMS = minis_single_vesicle
@@ -875,8 +844,8 @@ def _single_vesicle(_config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _randomize_gaba_risetime(_config: _SimConfig, run_conf):
-    randomize_risetime = run_conf.get("RandomizeGabaRiseTime")
+def _randomize_gaba_risetime(config: _SimConfig):
+    randomize_risetime = config.run_conf.get("RandomizeGabaRiseTime")
     if randomize_risetime is None:
         return
     from neuron import h
@@ -893,8 +862,8 @@ def _randomize_gaba_risetime(_config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _current_dir(config: _SimConfig, run_conf):
-    curdir = run_conf.get("CurrentDir")
+def _current_dir(config: _SimConfig):
+    curdir = config.run_conf.get("CurrentDir")
 
     if curdir is None:
         log_verbose("CurrentDir using simulation config path [default]")
@@ -913,14 +882,14 @@ def _current_dir(config: _SimConfig, run_conf):
             raise ConfigurationError("CurrentDir doesnt exist: " + curdir)
 
     log_verbose("CurrentDir = %s", curdir)
-    run_conf["CurrentDir"] = curdir
+    config.run_conf["CurrentDir"] = curdir
     config.current_dir = curdir
 
 
 @SimConfig.validator
-def _output_root(config: _SimConfig, run_conf):
+def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
-    output_path = run_conf.get("OutputRoot")
+    output_path = config.run_conf.get("OutputRoot")
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
@@ -930,14 +899,14 @@ def _output_root(config: _SimConfig, run_conf):
         output_path = Path(config.current_dir_path()) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
-    run_conf["OutputRoot"] = str(output_path)
+    config.run_conf["OutputRoot"] = str(output_path)
     config.output_root = str(output_path)
 
 
 @SimConfig.validator
-def _check_save(config: _SimConfig, run_conf):
+def _check_save(config: _SimConfig):
     cli_args = config.cli_options
-    save_path = cli_args.save or run_conf.get("Save")
+    save_path = cli_args.save or config.run_conf.get("Save")
 
     if not save_path:
         return
@@ -955,8 +924,8 @@ def _check_save(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _check_restore(config: _SimConfig, run_conf):
-    restore = config.cli_options.restore or run_conf.get("Restore")
+def _check_restore(config: _SimConfig):
+    restore = config.cli_options.restore or config.run_conf.get("Restore")
     if not restore:
         return
 
@@ -964,7 +933,7 @@ def _check_restore(config: _SimConfig, run_conf):
         raise ConfigurationError("Save-restore only available with CoreNeuron")
 
     # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
-    run_conf["Restore"] = restore
+    config.run_conf["Restore"] = restore
 
     assert isinstance(restore, str), "Restore must be a string path"
     path_obj = Path(restore)
@@ -975,7 +944,7 @@ def _check_restore(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _check_model_build_mode(config: _SimConfig, _run_conf):
+def _check_model_build_mode(config: _SimConfig):
     user_config = config.cli_options
     config.build_model = user_config.build_model
     config.simulate_model = user_config.simulate_model
@@ -1035,10 +1004,10 @@ def _check_model_build_mode(config: _SimConfig, _run_conf):
 
 
 @SimConfig.validator
-def _keep_coreneuron_data(config: _SimConfig, run_conf):
+def _keep_coreneuron_data(config: _SimConfig):
     if config.use_coreneuron:
         keep_core_data = False
-        if config.cli_options.keep_build or run_conf.get("KeepModelData", False) == "True":
+        if config.cli_options.keep_build or config.run_conf.get("KeepModelData", False) == "True":
             keep_core_data = True
         elif not config.cli_options.simulate_model or config.save:
             logging.warning("Keeping coreneuron data for CoreNeuron following run")
@@ -1048,7 +1017,7 @@ def _keep_coreneuron_data(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _model_building_steps(config: _SimConfig, run_conf):
+def _model_building_steps(config: _SimConfig):
     user_config = config.cli_options
     if user_config.modelbuilding_steps is not None:
         ncycles = int(user_config.modelbuilding_steps)
@@ -1061,7 +1030,7 @@ def _model_building_steps(config: _SimConfig, run_conf):
         logging.warning("IGNORING ModelBuildingSteps since simulator is not CORENEURON")
         return
 
-    if "CircuitTarget" not in run_conf:
+    if "CircuitTarget" not in config.run_conf:
         raise ConfigurationError(
             "Multi-iteration coreneuron data generation requires CircuitTarget"
         )
@@ -1072,7 +1041,7 @@ def _model_building_steps(config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _report_vars(config: _SimConfig, _run_conf):
+def _report_vars(config: _SimConfig):
     """Compartment reports read voltages or i_membrane only. Other types must be summation"""
     mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
     report_types = {"compartment", "Summation", "Synapse", "PointType", "lfp"}
@@ -1109,8 +1078,8 @@ def _report_vars(config: _SimConfig, _run_conf):
 
 
 @SimConfig.validator
-def _spikes_sort_order(_config: _SimConfig, run_conf):
-    order = run_conf.get("SpikesSortOrder", "by_time")
+def _spikes_sort_order(config: _SimConfig):
+    order = config.run_conf.get("SpikesSortOrder", "by_time")
     if order not in {"none", "by_time"}:
         raise ConfigurationError(
             f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
@@ -1118,7 +1087,7 @@ def _spikes_sort_order(_config: _SimConfig, run_conf):
 
 
 @SimConfig.validator
-def _coreneuron_direct_mode(config: _SimConfig, _run_conf):
+def _coreneuron_direct_mode(config: _SimConfig):
     user_config = config.cli_options
     direct_mode = user_config.coreneuron_direct_mode
     if direct_mode:
@@ -1141,15 +1110,57 @@ def _coreneuron_direct_mode(config: _SimConfig, _run_conf):
     config.coreneuron_direct_mode = direct_mode
 
 
-def get_debug_cell_gid(cli_options):
-    gid = cli_options.get("dump_cell_state") if cli_options else None
-    if gid is not None:
-        try:
-            # Convert to integer and adjust for sonata mode (0-based to 1-based indexing)
-            gid = int(gid) + 1
-        except ValueError as e:
-            raise ConfigurationError("Cannot parse Gid for dump-cell-state: " + gid) from e
-    return gid
+def get_debug_cell_gids(cli_options):
+    """Parse the --dump-cell-state option from CLI.
+
+    Supports:
+    - A single integer (e.g., "2")
+    - A comma-separated list of integers or ranges (e.g., "1,3-5,7")
+    - A file path containing one GID per line
+
+    Returns:
+        List of 1-based GIDs as integers, or None if not provided.
+
+    Raises:
+        ConfigurationError: if the format is invalid or file doesn't exist.
+    """
+    value = cli_options.get("dump_cell_state") if cli_options else None
+    if value is None:
+        return None
+
+    def parse_gid_token(token):
+        """Parse a single token: an integer or a range (e.g., "3" or "1-4").
+
+        Returns:
+            List of integers parsed from the token.
+
+        Raises:
+            ConfigurationError: if the token is invalid.
+        """
+        token = token.strip()
+        if re.match(r"^\d+-\d+$", token):
+            start, end = map(int, token.split("-"))
+            if start > end:
+                raise ConfigurationError(f"Invalid range in dump-cell-state: {token}")
+            return list(range(start, end + 1))
+        if token.isdigit():
+            return [int(token)]
+        raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
+
+    try:
+        if isinstance(value, int):
+            tokens = [str(value)]
+        else:
+            tokens = value.split(",")
+        gids = []
+        for token in tokens:
+            gids.extend(parse_gid_token(token))
+        gids = [gid + 1 for gid in gids]
+        gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
+    except ValueError as e:
+        raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
+    else:
+        return gids
 
 
 def check_connections_configure(SimConfig, target_manager):

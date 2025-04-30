@@ -7,7 +7,7 @@ import pickle
 
 from tests.utils import check_signal_peaks
 
-from .conftest import RINGTEST_DIR
+from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
 from neurodamus.connection_manager import SynapseRuleManager
 from neurodamus.core.configuration import SimConfig
