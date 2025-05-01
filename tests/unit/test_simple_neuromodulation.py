@@ -2,7 +2,6 @@ import pytest
 
 from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
-from neurodamus.core import NeuronWrapper as Nrn
 from neurodamus.neuromodulation_manager import NeuroModulationManager
 
 
@@ -31,6 +30,10 @@ from neurodamus.neuromodulation_manager import NeuroModulationManager
     indirect=True,
 )
 def test_neuromodulation(create_tmp_simulation_config_file):
+    # the import of neuron must be at function level,
+    # otherwise impact other tests even done in forked process
+    from neurodamus.core import NeuronWrapper as Nrn
+
     nd = Neurodamus(create_tmp_simulation_config_file)
 
     gid = 1001
