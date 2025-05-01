@@ -105,14 +105,41 @@ def test_mpi_send_recv(mpi_ranks):
 def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
     """Test Neurodamus/neuron with and without MPI."""
     from neurodamus import Neurodamus
-    from neurodamus.core import MPI
+    from neurodamus.core import MPI as neuron_MPI
 
-    assert MPI.size == mpi_ranks == size == 2
-    assert MPI.rank == rank
+    assert neuron_MPI.size == mpi_ranks == size == 2
+    assert neuron_MPI.rank == rank
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     local_gids_ref = [[1, 3], [2]]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
 
-    np.testing.assert_allclose(local_gids, local_gids_ref[MPI.rank])
+    np.testing.assert_allclose(local_gids, local_gids_ref[neuron_MPI.rank])
+    n.run()
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "RingA_oneCell",
+        }
+    },
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "node_set": "RingA_oneCell",
+        }
+    }
+], indirect=True)
+@pytest.mark.mpi(ranks=2)
+def test_fake_cell_with_neuron_and_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
+    """Test Neurodamus/neuron with and without MPI."""
+    from neurodamus import Neurodamus
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    local_gids_ref = [[2], []]
+    local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
+    np.testing.assert_allclose(local_gids, local_gids_ref[rank])
+    # test that it runs with a fake cell
     n.run()
