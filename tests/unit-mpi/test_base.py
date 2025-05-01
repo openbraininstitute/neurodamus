@@ -117,6 +117,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
     np.testing.assert_allclose(local_gids, local_gids_ref[neuron_MPI.rank])
     n.run()
 
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
