@@ -15,7 +15,7 @@ import numpy as np
 from .connection_manager import ConnectionManagerBase
 from .core import (
     MPI,
-    NeurodamusCore as Nd,
+    NeuronWrapper as Nd,
     ProgressBarRank0 as ProgressBar,
     mpi_no_errors,
     run_only_rank0,

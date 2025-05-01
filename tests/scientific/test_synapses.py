@@ -13,7 +13,7 @@ def test_synapses_params():
     """
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.node import Node
     from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
     from neurodamus.io.synapse_reader import SynapseReader

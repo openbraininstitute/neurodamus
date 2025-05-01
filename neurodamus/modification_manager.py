@@ -22,7 +22,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 import ast
 import logging
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .utils.logging import log_verbose
 

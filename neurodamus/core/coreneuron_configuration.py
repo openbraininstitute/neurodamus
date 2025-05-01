@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from . import NeurodamusCore as Nd
+from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
 from neurodamus.report import get_section_index
@@ -310,7 +310,7 @@ class _CoreNEURONConfig:
     def psolve_core(self, coreneuron_direct_mode=False):
         from neuron import coreneuron
 
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.cvode.cache_efficient(1)
         coreneuron.enable = True
