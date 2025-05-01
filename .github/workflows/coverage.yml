@@ -1,10 +1,10 @@
 name: Build coverage reports
 
 on:
-    pull_request:
-    push:
-      branches:
-        - main
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   coverage:
@@ -15,54 +15,75 @@ jobs:
       fail-fast: false
 
     steps:
+      - uses: actions/checkout@v4
 
-    - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip tox coverage
 
-    - name: Install dependencies for ${{ matrix.os }}
-      run: |
-        if [[ $RUNNER_OS == 'Linux' ]]; then
-          sudo apt-get update
-          sudo apt-get install -y libopenmpi-dev openmpi-bin
-        elif [[ $RUNNER_OS == 'macOS' ]]; then
-          # Install MPI and Python dependencies for macOS
-          brew update
-          brew install open-mpi
-        fi
-        python -m pip install --upgrade pip tox coverage
+      - name: Install dependencies for ${{ matrix.os }}
+        run: |
+          if [[ $RUNNER_OS == 'Linux' ]]; then
+            sudo apt-get update
+            sudo apt-get install -y libopenmpi-dev openmpi-bin
+          elif [[ $RUNNER_OS == 'macOS' ]]; then
+            # Install MPI and Python dependencies for macOS
+            brew update
+            brew install open-mpi
+          fi
+          python -m pip install --upgrade pip tox coverage
 
-    - name: Run tox baseline
-      run: |
-        tox -e baseline
+      - name: Run tox baseline
+        run: |
+          tox -e baseline
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: baseline
+      - name: Run tox unit
+        run: |
+          tox -e unit
+      
+      - name: Run tox unit-mpi
+        run: |
+          tox -e unit-mpi
 
-    - name: Run tox unit-mpi
-      run: |
-        rm -rf .coverage
-        tox -e unit-mpi
+      - name: Upload baseline coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.baseline
+          flag-name: baseline
+          parallel: true
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: baseline
+      - name: Upload unit coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.unit
+          flag-name: unit
+          parallel: true
 
-    - name: Run tox unit-mpi
-      run: |
-        rm -rf .coverage
-        tox -e unit-mpi
+      - name: Upload unit coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.unit-mpi
+          flag-name: unit-mpi
+          parallel: true
 
-    - name: Coveralls
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: coverallsapp/github-action@v2
-      with:
-        flag-name: unit-mpi
-
+  finish:
+    if: ${{ always() }}
+    needs: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize Coveralls parallel build
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+          carryforward: "baseline,unit"
