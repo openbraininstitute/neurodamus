@@ -326,7 +326,6 @@ class _CoreNEURONConfig:
         # Model is already written to disk by calling pc.nrncore_write()
         coreneuron.skip_write_model_to_disk = True
         coreneuron.model_path = f"{self.datadir}"
-        logging.warning("AAAAAAAAA CoreNEURON simulation starting")
         Nd.pc.psolve(Nd.tstop)
 
 
