@@ -147,7 +147,7 @@ def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import Feature
     from neurodamus.connection import NetConType
 
@@ -213,7 +213,7 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_replay_virtual_population(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import Feature
     from neurodamus.connection import NetConType
 

@@ -8,7 +8,7 @@ from abc import abstractmethod
 import libsonata
 import numpy as np
 
-from neurodamus.core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar
+from neurodamus.core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import gen_ranges
 

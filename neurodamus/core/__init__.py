@@ -5,7 +5,7 @@ They can be seen as a High-Level Neuron API, and several examples are found unde
 
 from ._engine import EngineBase
 from ._mpi import MPI, OtherRankError
-from ._neurodamus import NeurodamusCore
+from ._neurodamus import NeuronWrapper
 from ._neuron import Neuron
 from ._utils import (
     ProgressBarRank0,
@@ -18,8 +18,8 @@ from ._utils import (
 __all__ = [
     "MPI",
     "EngineBase",
-    "NeurodamusCore",
     "Neuron",
+    "NeuronWrapper",
     "OtherRankError",
     "ProgressBarRank0",
     "SimulationProgress",

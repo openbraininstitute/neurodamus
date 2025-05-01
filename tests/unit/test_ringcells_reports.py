@@ -259,7 +259,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     but currently only for compartment reports
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import SimConfig
 
     n = Neurodamus(create_tmp_simulation_config_file)

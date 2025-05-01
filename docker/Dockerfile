@@ -97,7 +97,7 @@ RUN ARCH=$(uname -m) \
  && sed -i "s/ARCH=\"x86_64\"/ARCH=\"$ARCH\"/g" $INSTALL_DIR/bin/build_neurodamus.sh \
  && build_neurodamus.sh $NEURODAMUS_MODS_DIR \
  && ./$ARCH/special -python -c "from neuron import h; h.quit()" \
- && ./$ARCH/special -python -c "from neurodamus.core import NeurodamusCore as Nd; Nd.init()" \
+ && ./$ARCH/special -python -c "from neurodamus.core import NeuronWrapper as Nd; Nd.init()" \
  && rm -rf $ARCH/
 
 ENTRYPOINT ["bash"]

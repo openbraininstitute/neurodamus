@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 
 
