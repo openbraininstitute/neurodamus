@@ -1,9 +1,9 @@
 import pytest
 
-from neurodamus import Neurodamus
-from neurodamus.core import NeurodamusCore as Nd
-from neurodamus.neuromodulation_manager import NeuroModulationManager
 from ..conftest import RINGTEST_DIR
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nrn
+from neurodamus.neuromodulation_manager import NeuroModulationManager
 
 
 @pytest.mark.parametrize(
@@ -49,11 +49,12 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     # check netcons targeting cell gid 1001, it should have 3 netcons,
     # 2 from the synapse objects from the neuron connections
     # 1 from the replay via the neuromodulatory project
-    nclist = Nd.cvode.netconlist("", cell, "")
+    nclist = Nrn.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     assert nclist[0].srcgid() == 1
     assert nclist[1].srcgid() == 1002
     assert nclist[2].srcgid() < 0
     replay_netcon = nclist[2]
-    replay_netcon.syn() == nclist[1].syn()
-    replay_netcon.weight[4] == 10
+    assert replay_netcon == nclist[2]
+    assert replay_netcon.syn() == nclist[1].syn()
+    assert replay_netcon.weight[4] == 10
