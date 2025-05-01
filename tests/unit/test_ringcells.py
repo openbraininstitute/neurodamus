@@ -38,7 +38,7 @@ def check_cell(cell):
 ], indirect=True)
 def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
@@ -80,7 +80,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     from neurodamus.utils.dump_cellstate import dump_cellstate

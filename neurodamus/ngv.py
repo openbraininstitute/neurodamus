@@ -9,7 +9,7 @@ import numpy as np
 from .cell_distributor import CellDistributor
 from .connection import Connection
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, EngineBase, NeurodamusCore as Nd
+from .core import MPI, EngineBase, NeuronWrapper as Nd
 from .core.configuration import GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters

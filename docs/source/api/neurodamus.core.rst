@@ -12,7 +12,7 @@ neurodamus.core package
    .. autosummary::
       Neuron
       MPI
-      NeurodamusCore
+      NeuronWrapper
       ProgressBarRank0
 
    .. rubric:: Decorators
@@ -47,7 +47,7 @@ Module API
 
    *property* :py:attr:`size` The number of MPI ranks
 
-.. autoclass:: NeurodamusCore
+.. autoclass:: NeuronWrapper
    :members:
 
 .. autoclass:: neurodamus.core._utils.ProgressBarRank0

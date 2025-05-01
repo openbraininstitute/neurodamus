@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, NeurodamusCore as Nd
+from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 from .gap_junction_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes

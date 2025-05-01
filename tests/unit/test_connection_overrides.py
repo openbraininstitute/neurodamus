@@ -50,7 +50,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
     Tests simple synapse parameter changes.
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
@@ -128,7 +128,7 @@ def test_synapse_without_weight(create_tmp_simulation_config_file):
     Test that 0 weight removes the netcon
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
@@ -168,7 +168,7 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
     Test modoverride
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
@@ -252,7 +252,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     """
     from neurodamus import Neurodamus
     from neurodamus.connection import NetConType
-    from neurodamus.core import NeurodamusCore as Ndc
+    from neurodamus.core import NeuronWrapper as Ndc
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     # get all the netcons targetting 1001 from neuron directly
@@ -300,7 +300,7 @@ def test_override_globals_from_conditions(create_tmp_simulation_config_file):
     Override global synapse variable from the conditions section
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Ndc
+    from neurodamus.core import NeuronWrapper as Ndc
 
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
@@ -363,7 +363,7 @@ def test_override_globals(create_tmp_simulation_config_file):
     - The override in the synapse overrides the one in conditions
     """
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Ndc
+    from neurodamus.core import NeuronWrapper as Ndc
 
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
