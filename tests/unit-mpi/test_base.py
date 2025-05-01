@@ -134,7 +134,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
     }
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
-def test_fake_cell_with_neuron_and_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
+def test_empty_rank_with_neuron_and_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
     """Test Neurodamus/neuron with and without MPI."""
     from neurodamus import Neurodamus
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
