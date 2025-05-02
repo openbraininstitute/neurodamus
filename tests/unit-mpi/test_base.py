@@ -140,7 +140,7 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     # test that it runs with a fake cell
     n.run()
 
-    # I checked and these are my conclusions (I am not 100% sure that 
+    # I checked and these are my conclusions (I am not 100% sure that
     # there isn't something else afoot):
     # - neurodamus is imported. It gets cwd and sets `CoreNeuron.datadir`
     # - `pytest-isolate-mpi` changes cwd (one per rank) and starts the simulations
