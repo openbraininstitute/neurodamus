@@ -305,15 +305,15 @@ def make_ringtest_edges():
     }
     make_edges(filename="neuromodulation/edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    edges = Edges("virtual_neurons", "RingB", "neuromodulatory", [(0, 0), (1, 0)])
+    edges = Edges("virtual_neurons", "RingB", "neuromodulatory", [(0, 0), (1, 0), (1, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
         "afferent_section_id": 1,
-        "afferent_section_pos": [0.22, 0.78],
+        "afferent_section_pos": [0.22, 0.78, 0.81],
         "afferent_segment_id": 1,
         "delay": it.count(44.0),
-        "neuromod_dtc": [50, 75],
-        "neuromod_strength": [0.5, 0.2]
+        "neuromod_dtc": [50, 75, 75],
+        "neuromod_strength": [0.5, 0.2, 0.2]
     }
     make_edges(filename="neuromodulation/projections.h5", edges=edges, wanted_attributes=wanted_attributes)
 

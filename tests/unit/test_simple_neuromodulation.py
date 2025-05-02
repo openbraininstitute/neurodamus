@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from ..conftest import RINGTEST_DIR
@@ -25,11 +26,32 @@ from neurodamus.neuromodulation_manager import NeuroModulationManager
                     }
                 },
             },
+        },
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_neuromodulation.json"),
+                "node_set": "Mosaic",
+                "target_simulator": "CORENEURON",
+                "inputs": {
+                    "neuromodulatory": {
+                        "node_set": "RingB",
+                        "input_type": "spikes",
+                        "delay": 0.0,
+                        "duration": 5000.0,
+                        "module": "synapse_replay",
+                        "spike_file": str(RINGTEST_DIR / "neuromodulation/proj_spikes.h5"),
+                    }
+                },
+            },
         }
     ],
     indirect=True,
 )
 def test_neuromodulation(create_tmp_simulation_config_file):
+    """
+    Test neuromodulation process in NEURON and CoreNEURON
+    """
     # the import of neuron must be at function level,
     # otherwise impact other tests even done in forked process
     from neurodamus.core import NeuronWrapper as Nrn
@@ -50,14 +72,79 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     # neuromodulatory projection don't create addition synapses
     assert cell.synlist.count() == 2
     # check netcons targeting cell gid 1001, it should have 3 netcons,
-    # 2 from the synapse objects from the neuron connections
-    # 1 from the replay via the neuromodulatory project
+    # 2 from the synapse objects from the neuron connections (B->B, A->B)
+    # 1 from the replay via the neuromodulatory project (virtual_neurons->B)
     nclist = Nrn.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     assert nclist[0].srcgid() == 1
     assert nclist[1].srcgid() == 1002
     assert nclist[2].srcgid() < 0
     replay_netcon = nclist[2]
-    assert replay_netcon == nclist[2]
-    assert replay_netcon.syn() == nclist[1].syn()
+    assert replay_netcon.pre().hname() == "VecStim[0]"  # source obj is VecStim
+    assert replay_netcon.syn() == nclist[1].syn()  # target syn is the same as netcon[1]
+    assert replay_netcon.weight[0] == 1
+    assert np.isclose(replay_netcon.weight[1], 0.2)
+    assert np.isclose(replay_netcon.weight[2], 75)
     assert replay_netcon.weight[4] == 10
+
+    nd.run()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_neuromodulation.json"),
+                "node_set": "Mosaic",
+                "target_simulator": "NEURON",
+                "inputs": {
+                    "neuromodulatory": {
+                        "node_set": "RingB",
+                        "input_type": "spikes",
+                        "delay": 0.0,
+                        "duration": 5000.0,
+                        "module": "synapse_replay",
+                        "spike_file": str(RINGTEST_DIR / "neuromodulation/proj_spikes.h5"),
+                    }
+                },
+                "connection_overrides": [
+                    {
+                        "name": "neuromodulatory",
+                        "source": "virtual_neurons",
+                        "target": "RingB",
+                        "weight": 2,
+                        "neuromodulation_strength": 0.33,
+                        "neuromodulation_dtc": 77.7,
+                    }
+                ],
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_override_strength_dtc(create_tmp_simulation_config_file):
+    """
+    Test the overriding of neuromodulation_strength and neuromodulation_dtc
+      via simulation config file
+    """
+    from neurodamus.core import NeuronWrapper as Nrn
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+
+    cell = nd._pc.gid2cell(1001)
+    # check cell gid 1001 has 2 syns from neurons,
+    # neuromodulatory projection don't create addition synapses
+    assert cell.synlist.count() == 2
+    nclist = Nrn.cvode.netconlist("", cell, "")
+    assert len(nclist) == 3
+    replay_netcon = nclist[2]
+    assert replay_netcon.pre().hname() == "VecStim[0]"  # source obj is VecStim
+    assert replay_netcon.syn() == nclist[1].syn()  # target syn is the same as netcon[1]
+    assert replay_netcon.weight[0] == 1  # neuromodulatory weight is binary
+    assert np.isclose(replay_netcon.weight[1], 0.33)
+    assert np.isclose(replay_netcon.weight[2], 77.7)
+    assert replay_netcon.weight[4] == 10
+
+    nd.run()
