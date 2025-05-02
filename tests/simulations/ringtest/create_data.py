@@ -286,7 +286,7 @@ def make_ringtest_edges():
     }
     make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-# For neuromodulation test: Create another A->B edge with different afferent_section_pos from B->B edge
+# For neuromodulation test: Create another A->B edge with different afferent_section_pos w.r.t B->B edge
     edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
