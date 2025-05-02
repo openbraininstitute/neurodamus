@@ -132,6 +132,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
 def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
     """Test CoreNeuron with empty rank."""
     from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True, keep_build=True)
     local_gids_ref = [[2], []]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
@@ -144,8 +145,7 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     # - neurodamus is imported. It gets cwd and sets `CoreNeuron.datadir`
     # - `pytest-isolate-mpi` changes cwd (one per rank) and starts the simulations
     # - all the ranks write in the folder for rank 0 (as coreneuron would want to do)
-    # - if you assert if a file is there, it will do it in its own, changed, cwd. 
-    # Thus we should check files only in rank 0
-    if rank == 0:
-        assert Path("build/coreneuron_input/2_1.dat").exists()
-        assert Path("build/coreneuron_input/1002_1.dat").exists()
+    # - if you assert if a file is there, it will do it in its own, changed, cwd.
+
+    assert (Path(CoreConfig.datadir) / "2_1.dat").exists()
+    assert (Path(CoreConfig.datadir) / "1002_1.dat").exists()
