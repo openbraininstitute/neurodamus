@@ -4,6 +4,9 @@
         "tstop": 50.0,
         "dt": 0.025
     },
+    "conditions": {
+        "v_init": -65.0
+    },
     "network": "sub_mini2/circuit_config.json",
     "target_simulator": "NEURON",
     "node_set": "mini2",

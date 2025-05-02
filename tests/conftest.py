@@ -56,6 +56,9 @@ def sonata_config():
             "random_seed": 12345,
             "dt": 0.05,
             "tstop": 10,
+        },
+        conditions={
+            "v_init": -65,
         }
     )
 

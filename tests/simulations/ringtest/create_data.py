@@ -36,6 +36,7 @@ NODE_TYPES = [
     SonataAttribute("y", type=np.float32, prefix=True),
     SonataAttribute("z", type=np.float32, prefix=True),
     SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("synapse_class", type=h5py.string_dtype(), prefix=True),
 ]
 NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
 
@@ -168,6 +169,7 @@ def make_ringtest_nodes():
         "y": it.count(1),
         "z": it.count(2),
         "morphology": "cell_small",
+        "synapse_class": ['EXC', 'EXC', 'EXC']
     }
     make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
 
@@ -180,6 +182,7 @@ def make_ringtest_nodes():
         "y": it.count(4),
         "z": it.count(5),
         "morphology": "cell_small",
+        "synapse_class": ['EXC', 'INH']
     }
     make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
