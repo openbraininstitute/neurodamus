@@ -10,7 +10,7 @@ Projection edges (connection type in SONATA: `neuromodulatory`) are created betw
 
 - A neuromodulator sends a spike, and the relevent post cell receives the spike at synapses e.g. S1, S2 and S7.
 - The synapse model at S1, S2, and S7 has to manage both presyanaptic spikes (nc_type = 0) and neuromodulatory spikes (nc_type = 10).
-- Neuromodulatory spikes change parameters in the synapse models (e.g. `Use`), but not the membrane current `i`.
+- Neuromodulatory spikes may change parameters in the synapse models (e.g. `Use`), but not the membrane current `i`.
 - The neuromodulators influence one or more, but not all synapses from a PRE neuron (e.g. S3 is not changed)
 - The neuromodulators influence synapses coming from different neurons (e.g. S7 that comes from somewhere else)
 

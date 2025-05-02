@@ -1,3 +1,12 @@
+"""Test neuromodulations using the toy ringtest data as such:
+neuromodulatory projection: virtual_neurons->RingB, 0->0, 1->0
+The post synatic cell RingB gid 0 has 2 synapses:
+    RingA->RingB : 0->0
+    RingB->RingB : 1->0
+The neuromodulatory spikes are inject via replay from virtual neuron gid 1
+Therefore, the neuromodulator applies netcon to the synapse from connection RingB->RingB : 1->0
+"""
+
 import numpy as np
 import pytest
 
@@ -44,7 +53,7 @@ from neurodamus.neuromodulation_manager import NeuroModulationManager
                     }
                 },
             },
-        }
+        },
     ],
     indirect=True,
 )
@@ -81,7 +90,7 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     assert nclist[2].srcgid() < 0
     replay_netcon = nclist[2]
     assert replay_netcon.pre().hname() == "VecStim[0]"  # source obj is VecStim
-    assert replay_netcon.syn() == nclist[1].syn()  # target syn is the same as netcon[1]
+    assert replay_netcon.syn() == nclist[1].syn()  # target syn is the same as netcon[1], src 1002
     assert replay_netcon.weight[0] == 1
     assert np.isclose(replay_netcon.weight[1], 0.2)
     assert np.isclose(replay_netcon.weight[2], 75)
