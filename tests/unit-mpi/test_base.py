@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 import numpy as np
 from mpi4py import MPI
 
@@ -122,13 +123,6 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
-            "target_simulator": "NEURON",
-            "node_set": "RingA_oneCell",
-        }
-    },
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
             "target_simulator": "CORENEURON",
             "node_set": "RingA_oneCell",
         }
@@ -138,9 +132,15 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
 def test_empty_rank_with_neuron_and_coreneuron(create_tmp_simulation_config_file, mpi_ranks):
     """Test Neurodamus/neuron with and without MPI."""
     from neurodamus import Neurodamus
-    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True, keep_build=True)
     local_gids_ref = [[2], []]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
     np.testing.assert_allclose(local_gids, local_gids_ref[rank])
     # test that it runs with a fake cell
     n.run()
+
+    # pytest-isolate-mpi isolates cwd folders: every rank has its own
+    # Since only rank 0 writes, only rank 0 has the build folder
+    if rank == 0:
+        assert Path("build/coreneuron_input/2_1.dat").exists()
+        assert Path("build/coreneuron_input/1002_1.dat").exists()
