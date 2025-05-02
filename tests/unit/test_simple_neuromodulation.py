@@ -3,7 +3,7 @@ neuromodulatory projection: virtual_neurons->RingB, 0->0, 1->0
 The post synatic cell RingB gid 0 has 2 synapses:
     RingA->RingB : 0->0
     RingB->RingB : 1->0
-The neuromodulatory spikes are inject via replay from virtual neuron gid 1
+The neuromodulatory spikes are injected via replay from virtual neuron gid 1
 Therefore, the neuromodulator applies netcon to the synapse from connection RingB->RingB : 1->0
 """
 
