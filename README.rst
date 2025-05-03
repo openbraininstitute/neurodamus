@@ -122,4 +122,4 @@ Copyright (c) 2005-2023 Blue Brain Project/EPFL
 Copyright (c) 2025 Open Brain Institute
 
 .. substitutions
-.. |banner| image:: docs/img/neurodamus_banner_230701.png
+.. |banner| image:: docs/source/img/neurodamus_banner_230701.png
