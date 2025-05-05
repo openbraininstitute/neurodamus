@@ -44,7 +44,11 @@ jobs:
       - name: Run tox unit
         run: |
           tox -e unit
-      
+
+      - name: Run tox unit-ngv
+        run: |
+          tox -e unit-ngv
+
       - name: Run tox unit-mpi
         run: |
           tox -e unit-mpi
@@ -67,7 +71,16 @@ jobs:
           flag-name: unit
           parallel: true
 
-      - name: Upload unit coverage to Coveralls
+      - name: Upload unit-ngv coverage to Coveralls
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.unit-ngv
+          flag-name: unit-ngv
+          parallel: true
+
+      - name: Upload unit-mpi coverage to Coveralls
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
         with:
