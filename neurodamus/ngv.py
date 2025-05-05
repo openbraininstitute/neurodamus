@@ -1,10 +1,10 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
 import logging
-import os.path
+from itertools import chain
+from pathlib import Path
 
 import libsonata
-import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -17,8 +17,6 @@ from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
-from pathlib import Path
-from itertools import chain
 
 
 class Astrocyte(BaseCell):
@@ -29,7 +27,10 @@ class Astrocyte(BaseCell):
         super().__init__(gid, meinfos, None)
 
         # Load morphology file path
-        morph_file = Path(circuit_conf.MorphologyPath) / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+        morph_file = (
+            Path(circuit_conf.MorphologyPath)
+            / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+        )
 
         # Create the NEURON cell and load its morphology
         self._cellref = Nd.Cell(gid)
