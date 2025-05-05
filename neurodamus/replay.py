@@ -1,5 +1,6 @@
 """Stimulus implementation where incoming synaptic events are replayed for a single gid"""
 
+from .core.configuration import ConfigurationError
 from .utils.multimap import GroupedMultiMap
 from .utils.timeit import timeit
 
@@ -36,7 +37,10 @@ class SpikeManager:
             filename: path to spike out file. Interpret as binary or ascii according to extension
             delay: delay to apply to spike times
         """
-        tvec, gidvec = self._read_spikes_sonata(filename, population)
+        if filename.endswith(".h5"):
+            tvec, gidvec = self._read_spikes_sonata(filename, population)
+        else:
+            raise ConfigurationError("Spikes input should be a SONATA h5 file")
         if delay:
             tvec += delay
 

@@ -107,6 +107,14 @@ def test_sonata_spike_manager_with_delay():
     npt.assert_allclose(spike_manager.filter_map(pre_gids=[2, 3]).get(2), [10.175, 13.025, 15.7])
 
 
+def test_error_replay_format():
+    from neurodamus.core.configuration import ConfigurationError
+    from neurodamus.replay import SpikeManager
+
+    with pytest.raises(ConfigurationError, match="Spikes input should be a SONATA h5 file"):
+        SpikeManager("out.dat")
+
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
