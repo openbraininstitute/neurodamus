@@ -1,23 +1,11 @@
-#!/bin/env python
-# objective of this script: create a functioning CI testing
-# ngv circuit. We do not necessarily want real data, just 
-# something that qualitatively runs
-
-# This script is heavily inspired on ringtest
-# we should merge and take inspiration from this too:
-# https://github.com/openbraininstitute/ArchNGV/blob/main/tests/functional/input_data_builder.py
-
-# TODO: unfortunately I do not have bandwidth to finish this atm (Katta)
-
-import itertools as it
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
 
+import itertools as it
 import h5py
 import libsonata
 import numpy as np
-
+from typing import Optional
 
 @dataclass
 class Edges:
@@ -25,6 +13,8 @@ class Edges:
     tgt: str
     type: str
     connections: list[(int, int)]
+    edge_pop: Optional[str] = None
+    synapses: Optional[list[int]] = None
 
 
 @dataclass
@@ -37,13 +27,24 @@ class SonataAttribute:
 NODE_TYPES = [
     SonataAttribute("node_type_id", type=int, prefix=False),
     SonataAttribute("model_template", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("model_type", type=h5py.string_dtype(), prefix=True),
     SonataAttribute("mtype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("etype", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("type", type=int, prefix=True),
+    SonataAttribute("start_node", type=int, prefix=True),
+    SonataAttribute("end_node", type=int, prefix=True),
+    SonataAttribute("section_id", type=int, prefix=True),
+    SonataAttribute("segment_id", type=int, prefix=True),
     SonataAttribute("x", type=np.float32, prefix=True),
     SonataAttribute("y", type=np.float32, prefix=True),
     SonataAttribute("z", type=np.float32, prefix=True),
-    SonataAttribute("morphology", type=h5py.string_dtype(), prefix=True),
+    SonataAttribute("radius", type=np.float32, prefix=True),
+    SonataAttribute("start_diameter", type=np.float32, prefix=True),
+    SonataAttribute("end_diameter", type=np.float32, prefix=True)
 ]
 NODE_TYPES = {attr.name: attr for attr in NODE_TYPES}
+
 
 EDGE_TYPES = [
     SonataAttribute("edge_type_id", type=int, prefix=False),
@@ -59,6 +60,21 @@ EDGE_TYPES = [
     SonataAttribute("afferent_segment_offset", type=int, prefix=True),
     SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
     SonataAttribute("syn_type_id", type=int, prefix=True),
+    SonataAttribute("afferent_junction_id", type=int, prefix=True),
+    SonataAttribute("efferent_junction_id", type=int, prefix=True),
+    SonataAttribute("astrocyte_section_id", type=int, prefix=True),
+    SonataAttribute("astrocyte_segment_id", type=int, prefix=True),
+    SonataAttribute("astrocyte_segment_offset", type=np.float32, prefix=True),
+    SonataAttribute("endfoot_compartment_diameter", type=np.float32, prefix=True),
+    SonataAttribute("endfoot_compartment_length", type=np.float32, prefix=True),
+    SonataAttribute("endfoot_compartment_perimeter", type=np.float32, prefix=True),
+    SonataAttribute("endfoot_id", type=int, prefix=True),
+    SonataAttribute("vasculature_section_id", type=int, prefix=True),
+    SonataAttribute("vasculature_segment_id", type=int, prefix=True),
+    SonataAttribute("neuromod_dtc", type=np.float32, prefix=True),
+    SonataAttribute("neuromod_strength", type=np.float32, prefix=True)
+    
+
 ]
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
@@ -77,8 +93,7 @@ def _expand_values(attr, value, count):
     return ds_value
 
 
-def make_nodes_file(filename, name, count, wanted_attributes):
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+def make_node(filename, name, count, wanted_attributes):
     with h5py.File(filename, "w") as h5:
         dg = h5.create_group(f"/nodes/{name}")
 
@@ -87,13 +102,17 @@ def make_nodes_file(filename, name, count, wanted_attributes):
             ds_name = ("0/" if typ.prefix else "") + typ.name
             ds_value = _expand_values(attr, value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
+    
+        # virtual population has no attribute
+        # but group "0" is required by libsonata function open_population
+        if "0" not in dg:
+            dg.create_group("0")
 
 
-def make_edges_file(filename, edges, wanted_attributes):
+def make_edges(filename, edges, wanted_attributes):
     name = f"{edges.src}__{edges.tgt}__{edges.type}"
     src_ids, tgt_ids = zip(*edges.connections)
     count = len(src_ids)
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
     with h5py.File(filename, "w") as h5:
         dg = h5.create_group(f"/edges/{name}")
 
@@ -108,47 +127,18 @@ def make_edges_file(filename, edges, wanted_attributes):
         ds = dg.create_dataset("target_node_id", data=np.array(tgt_ids, dtype=int))
         ds.attrs["node_population"] = edges.tgt
 
+        if edges.edge_pop and edges.synapses:
+            ds = dg.create_dataset("0/synapse_id", data=np.array(edges.synapses, dtype=int))
+            ds.attrs["edge_population"] = edges.edge_pop
+            ds_value = _expand_values("synapse_population", edges.edge_pop, len(edges.synapses))
+            ds = dg.create_dataset("0/synapse_population", data=ds_value, dtype=h5py.string_dtype())
+
+            
+
+
     libsonata.EdgePopulation.write_indices(
         filename,
         name,
-        source_node_count=count,
-        target_node_count=count,
+        source_node_count=max(src_ids) + 1,  # add 1 because IDs are 0-based
+        target_node_count=max(tgt_ids) + 1,
     )
-
-
-def main():
-    # nodes
-    wanted_attributes = {
-        "node_type_id": -1,
-        "model_template": "hoc:B_BallStick",
-        "mtype": "MTYPE",  # neurodamus/io/cell_readers.py:140: SonataError
-        # neurodamus/io/cell_readers.py:162: SonataError
-        "x": it.count(0),
-        "y": 0,
-        "z": 0,
-        # Note: the morphology isn't used because it's encoded in the hoc file
-        "morphology": "NOT_USED",
-    }
-    make_nodes_file(filename="nodes/neurons.h5", name="neurons", count=4, wanted_attributes=wanted_attributes)
-
-    # edges
-    edges = Edges("neurons", "neurons", "chemical", [(0, 1), (1, 2), (2, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": 100.0,
-        "decay_time": 2.0,
-        "delay": 3.0,
-        "depression_time": 4.0,
-        "facilitation_time": 5.0,
-        "u_syn": 6.0,
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": 131,
-    }
-    make_edges_file(filename="edges/neuroneuro.h5", edges=edges, wanted_attributes=wanted_attributes)
-
-if __name__ == "__main__":
-    main()

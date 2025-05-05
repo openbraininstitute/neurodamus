@@ -1,0 +1,6 @@
+{
+  "RingA": {"population": "RingA"},
+  "AstrocyteA": {"population": "AstrocyteA"},
+  "VasculatureA": {"population": "VasculatureA"},
+  "Mosaic": {"population": ["RingA", "AstrocyteA", "VasculatureA"]}
+}

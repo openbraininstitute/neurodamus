@@ -31,6 +31,7 @@ MOD_DIR=$BUILD_DIR/mods.tmp
 mkdir -p $MOD_DIR
 cp -f $CORE_DIR/mod/*.mod $MOD_DIR
 cp -f $NEURODAMUS_MODELS_DIR/common/mod/*.mod $MOD_DIR
+# cp -f $NEURODAMUS_MODELS_DIR/common/mod/ngv/*.mod $MOD_DIR
 cd $BUILD_DIR
 nrnivmodl -coreneuron -incflags "-DENABLE_CORENEURON -DDISABLE_REPORTINGLIB -DDISABLE_HDF5" $MOD_DIR
 ARCH=$(uname -m)
