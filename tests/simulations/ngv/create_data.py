@@ -1,15 +1,15 @@
 #!/bin/env python
 # objective of this script: create a functioning CI testing
-# ngv circuit. We do not necessarily want real data, just 
+# ngv circuit. We do not necessarily want real data, just
 # something that qualitatively runs
-
 import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import Edges, make_node, make_edges
 import itertools as it
-import h5py
-import numpy as np
+from pathlib import Path
+
+# Add path for local imports
+if __name__ == "__main__":
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+from utils import Edges, make_node, make_edges
 
 
 def make_ngv_nodes():
@@ -72,8 +72,8 @@ def make_ngv_edges():
     }
     make_edges(filename="edges.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-
-    edges = Edges("AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0)], "RingA__RingA__chemical", [0])
+    edges = Edges(
+        "AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0)], "RingA__RingA__chemical", [0])
     wanted_attributes = {
         "edge_type_id": -1,
         "astrocyte_section_id" : 27,
@@ -81,7 +81,6 @@ def make_ngv_edges():
         "astrocyte_segment_offset" : 3.
     }
     make_edges(filename="neuroglia.h5", edges=edges, wanted_attributes=wanted_attributes)
-
 
     edges = Edges("vasculature", "AstrocyteA", "endfoot", [(2, 0)])
     wanted_attributes = {

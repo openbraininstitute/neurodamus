@@ -7,6 +7,7 @@ import libsonata
 import numpy as np
 from typing import Optional
 
+
 @dataclass
 class Edges:
     src: str
@@ -73,8 +74,6 @@ EDGE_TYPES = [
     SonataAttribute("vasculature_segment_id", type=int, prefix=True),
     SonataAttribute("neuromod_dtc", type=np.float32, prefix=True),
     SonataAttribute("neuromod_strength", type=np.float32, prefix=True)
-    
-
 ]
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
@@ -132,9 +131,6 @@ def make_edges(filename, edges, wanted_attributes):
             ds.attrs["edge_population"] = edges.edge_pop
             ds_value = _expand_values("synapse_population", edges.edge_pop, len(edges.synapses))
             ds = dg.create_dataset("0/synapse_population", data=ds_value, dtype=h5py.string_dtype())
-
-            
-
 
     libsonata.EdgePopulation.write_indices(
         filename,

@@ -5,10 +5,13 @@
 # the above allows one to run `uv run create_data.py` without a virtualenv
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import Edges, make_node, make_edges
 import itertools as it
 import h5py
+
+# Add path for local imports
+if __name__ == "__main__":
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+from utils import Edges, make_node, make_edges
 
 
 def make_lfp_weights():
@@ -25,20 +28,20 @@ def make_lfp_weights():
         node_ids = [0, 1, 2]
         offsets = [0, 5, 10, 15]
         scaling_factors = [
-            [0.011, 0.012], 
-            [0.021, 0.022], 
-            [0.031, 0.032], 
-            [0.041, 0.042], 
-            [0.051, 0.052], 
+            [0.011, 0.012],
+            [0.021, 0.022],
+            [0.031, 0.032],
+            [0.041, 0.042],
+            [0.051, 0.052],
             [0.061, 0.062],
-            [0.071, 0.072], 
-            [0.081, 0.082], 
-            [0.091, 0.092], 
-            [0.101, 0.102], 
-            [0.111, 0.112], 
-            [0.121, 0.122], 
-            [0.131, 0.132], 
-            [0.141, 0.142], 
+            [0.071, 0.072],
+            [0.081, 0.082],
+            [0.091, 0.092],
+            [0.101, 0.102],
+            [0.111, 0.112],
+            [0.121, 0.122],
+            [0.131, 0.132],
+            [0.141, 0.142],
             [0.151, 0.152]
             ]
         write_pop("RingA", node_ids, offsets, scaling_factors)
@@ -46,15 +49,15 @@ def make_lfp_weights():
         node_ids = [0, 1]
         offsets = [0, 5, 10]
         scaling_factors = [
-            [0.014, 0.015, 0.016], 
-            [0.024, 0.025, 0.026], 
-            [0.034, 0.035, 0.036], 
-            [0.044, 0.045, 0.046], 
-            [0.054, 0.055, 0.056], 
+            [0.014, 0.015, 0.016],
+            [0.024, 0.025, 0.026],
+            [0.034, 0.035, 0.036],
+            [0.044, 0.045, 0.046],
+            [0.054, 0.055, 0.056],
             [0.064, 0.065, 0.066],
-            [0.074, 0.075, 0.076], 
-            [0.084, 0.085, 0.086], 
-            [0.094, 0.095, 0.096], 
+            [0.074, 0.075, 0.076],
+            [0.084, 0.085, 0.086],
+            [0.094, 0.095, 0.096],
             [0.104, 0.105, 0.106]
             ]
         write_pop("RingB", node_ids, offsets, scaling_factors)
@@ -77,7 +80,7 @@ def make_ringtest_nodes():
     wanted = {
         "node_type_id": -1,
         "model_template": "hoc:TestCell",
-        "mtype": ["MTYPE0", "MTYPE1"], 
+        "mtype": ["MTYPE0", "MTYPE1"],
         "etype": ["ETYPE1", "ETYPE1"],
         "x": it.count(3),
         "y": it.count(4),
@@ -163,7 +166,8 @@ def make_ringtest_edges():
         "efferent_junction_id": [0, 2],
         "afferent_junction_id": [2, 0]
     }
-    make_edges(filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
+    make_edges(
+        filename="local_edges_C_electrical.h5", edges=edges, wanted_attributes=wanted_attributes)
 
     edges = Edges("RingC", "RingC", "chemical", [(0, 1), (1, 2), (2, 0)])
     wanted_attributes = {
