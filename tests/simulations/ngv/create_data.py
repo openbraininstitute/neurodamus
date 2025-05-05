@@ -73,7 +73,8 @@ def make_ngv_edges():
     make_edges(filename="edges.h5", edges=edges, wanted_attributes=wanted_attributes)
 
     edges = Edges(
-        "AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0), (1, 1)], "RingA__RingA__chemical", [0, 1])
+        "AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0), (1, 1)],
+        "RingA__RingA__chemical", [0, 1])
     wanted_attributes = {
         "edge_type_id": -1,
         "astrocyte_section_id" : [4, 27],
