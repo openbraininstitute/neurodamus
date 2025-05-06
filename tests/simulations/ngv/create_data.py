@@ -9,7 +9,7 @@ from pathlib import Path
 # Add path for local imports
 if __name__ == "__main__":
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import Edges, make_node, make_edges
+from utils import Edges, make_nodes, make_edges
 
 
 def make_ngv_nodes():
@@ -24,7 +24,7 @@ def make_ngv_nodes():
         "z": it.count(2),
         "morphology": "cell_small",
     }
-    make_node(filename="nodes.h5", name="RingA", count=3, wanted_attributes=wanted)
+    make_nodes(filename="nodes.h5", name="RingA", count=3, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
@@ -37,20 +37,21 @@ def make_ngv_nodes():
         "radius": 4.5,
         "morphology": "glia",
     }
-    make_node(filename="astrocytes.h5", name="AstrocyteA", count=2, wanted_attributes=wanted)
+    make_nodes(filename="astrocytes.h5", name="AstrocyteA", count=2, wanted_attributes=wanted)
 
+    num_nodes = 6
     wanted = {
         "node_type_id": -1,
         "model_type": "vasculature",
-        "start_node": [0, 1, 2, 3, 4, 5],
-        "end_node": [1, 2, 3, 4, 5, 6],
-        "start_diameter": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
-        "end_diameter": [1.2, 1.3, 1.4, 1.5, 1.6, 1.7],
-        "section_id": [0, 0, 0, 1, 1, 1],
-        "segment_id": [0, 1, 2, 0, 1, 2],
+        "start_node": list(range(0, num_nodes)),
+        "end_node": list(range(1, num_nodes+1)),
+        "start_diameter": [round(1.1 + 0.1 * i, 1) for i in range(num_nodes)],
+        "end_diameter": [round(1.2 + 0.1 * i, 1) for i in range(num_nodes)],
+        "section_id": [i // 3 for i in range(num_nodes)],
+        "segment_id": [i % 3 for i in range(num_nodes)],
         "type" : 0
     }
-    make_node(filename="vasculature.h5", name="VasculatureA", count=6, wanted_attributes=wanted)
+    make_nodes(filename="vasculature.h5", name="VasculatureA", count=num_nodes, wanted_attributes=wanted)
 
 
 def make_ngv_edges():

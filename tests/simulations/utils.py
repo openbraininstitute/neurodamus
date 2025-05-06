@@ -92,7 +92,7 @@ def _expand_values(attr, value, count):
     return ds_value
 
 
-def make_node(filename, name, count, wanted_attributes):
+def make_nodes(filename, name, count, wanted_attributes):
     with h5py.File(filename, "w") as h5:
         dg = h5.create_group(f"/nodes/{name}")
 

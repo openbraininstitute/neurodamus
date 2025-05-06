@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from libsonata import EdgeStorage, SpikeReader
+from scipy.signal import find_peaks
 from collections import defaultdict
 from collections.abc import Iterable
 
@@ -270,7 +271,6 @@ def check_synapse(syn, edges, selection, **kwargs):
 
 
 def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
-    from scipy.signal import find_peaks
     """
     Check the given signal peaks comparing with the given
     reference

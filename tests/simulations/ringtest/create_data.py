@@ -11,7 +11,7 @@ import h5py
 # Add path for local imports
 if __name__ == "__main__":
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import Edges, make_node, make_edges
+from utils import Edges, make_nodes, make_edges
 
 
 def make_lfp_weights():
@@ -75,7 +75,7 @@ def make_ringtest_nodes():
         "z": it.count(2),
         "morphology": "cell_small",
     }
-    make_node(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
+    make_nodes(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
@@ -87,7 +87,7 @@ def make_ringtest_nodes():
         "z": it.count(5),
         "morphology": "cell_small",
     }
-    make_node(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
+    make_nodes(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
@@ -99,7 +99,7 @@ def make_ringtest_nodes():
         "z": it.count(5),
         "morphology": "cell_small",
     }
-    make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
+    make_nodes(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
 
 def make_ringtest_edges():
     edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
