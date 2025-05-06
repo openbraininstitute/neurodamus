@@ -1,4 +1,3 @@
-{load_file("Cell.hoc")}
 begintemplate Astrocyte
 
 public gid, CellRef, getThreshold, geom_nseg, glutList, netconList
