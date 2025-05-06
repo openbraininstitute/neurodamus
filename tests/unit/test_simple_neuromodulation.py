@@ -7,12 +7,14 @@ The neuromodulatory spikes are injected via replay from virtual neuron gid 1
 Therefore, the neuromodulator applies netcon to the synapse from connection RingB->RingB : 1->0
 """
 
+from itertools import chain
+
 import numpy as np
 import pytest
 
 from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
-from neurodamus.neuromodulation_manager import NeuroModulationManager
+from neurodamus.neuromodulation_manager import NeuroModulationConnection, NeuroModulationManager
 
 
 @pytest.mark.parametrize(
@@ -97,6 +99,59 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     assert replay_netcon.weight[4] == 10
 
     nd.run()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_neuromodulation.json"),
+                "node_set": "Mosaic",
+                "target_simulator": "NEURON",
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_find_closest_cell_synapse(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    edges_VB = nd.circuits.get_edge_manager("virtual_neurons", "RingB")
+    base_managers = [
+        manager
+        for src_pop, manager in edges_VB.cell_manager.connection_managers.items()
+        if src_pop != "virtual_neurons"
+    ]
+    base_conns = list(
+        chain.from_iterable(base_manager.get_connections(1001) for base_manager in base_managers)
+    )
+
+    conns = list(edges_VB.get_connections(post_gids=1001))
+    assert len(conns) == 2
+    assert len(conns[0].synapse_params) == 1
+    assert len(conns[1].synapse_params) == 2
+
+    # found closest synapse w.r.t neuromodulation connection sec=1, location 0.22
+    syn_obj_1 = NeuroModulationConnection._find_closest_cell_synapse(
+        conns[0].synapse_params[0], base_conns
+    )
+    assert np.isclose(conns[0].synapse_params[0].location, 0.22)
+    assert np.isclose(syn_obj_1.get_loc(), 0.25)
+
+    # found closest synapse w.r.t neuromodulation connection sec=1, location 0.78
+    syn_obj_2 = NeuroModulationConnection._find_closest_cell_synapse(
+        conns[1].synapse_params[0], base_conns
+    )
+    assert np.isclose(conns[1].synapse_params[0].location, 0.78)
+    assert np.isclose(syn_obj_2.get_loc(), 0.75)
+
+    # not found, abs(0.81 - 0.75 or 0.22) > 0.05
+    syn_obj_3 = NeuroModulationConnection._find_closest_cell_synapse(
+        conns[1].synapse_params[1], base_conns
+    )
+    assert np.isclose(conns[1].synapse_params[1].location, 0.81)
+    assert syn_obj_3 is None
 
 
 @pytest.mark.parametrize(

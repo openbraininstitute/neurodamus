@@ -75,8 +75,8 @@ class NeuroModulationConnection(Connection):
             syn_params = self._synapse_params[syn_i]
             # We need to get all connections since we dont know the sgid
             # TODO: improve this by extracting all the relative distances only once
-            base_conns = chain(
-                *[base_manager.get_connections(self.tgid) for base_manager in base_managers]
+            base_conns = chain.from_iterable(
+                base_manager.get_connections(self.tgid) for base_manager in base_managers
             )
             syn_obj = self._find_closest_cell_synapse(syn_params, base_conns)
             if syn_obj is None:
@@ -101,7 +101,8 @@ class NeuroModulationConnection(Connection):
 
         return 1
 
-    def _find_closest_cell_synapse(self, syn_params, base_conns):
+    @staticmethod
+    def _find_closest_cell_synapse(syn_params, base_conns):
         """Find the closest cell synapse by the location parameter"""
         if not base_conns:
             return None
