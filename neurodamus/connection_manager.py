@@ -80,7 +80,6 @@ class ConnectionSet:
             return cell_conns, None
         return cell_conns, pos
 
-    # -
     def get_connection(self, sgid, tgid):
         """Retrieves a connection from the pre and post gids.
 
@@ -90,7 +89,6 @@ class ConnectionSet:
         conn_lst, idx = self._find_connection(sgid, tgid)
         return None if idx is None else conn_lst[idx]
 
-    # -
     def store_connection(self, conn):
         """When we have created a new connection (sgid->tgid), store it
         in order in our structure for faster retrieval later
@@ -105,7 +103,6 @@ class ConnectionSet:
         self._conn_count += 1
         cell_conns.insert(pos, conn)
 
-    # -
     def get_or_create_connection(self, sgid, tgid, **kwargs):
         """Returns a connection by pre-post gid, creating if required."""
         conns = self._connections_map[tgid]
@@ -127,7 +124,6 @@ class ConnectionSet:
         self._conn_count += 1
         return cur_conn
 
-    # -
     def get_connections(self, post_gids, pre_gids=None):
         """Get all connections between groups of gids."""
         if isinstance(post_gids, int):
@@ -165,25 +161,9 @@ class ConnectionSet:
         conns = self._connections_map[target_gid]
         return chain.from_iterable(c.synapse_params for c in conns)
 
-    def delete(self, sgid, tgid):
-        """Removes a given connection from the population."""
-        conn_lst, idx = self._find_connection(sgid, tgid)
-        if idx is None:
-            logging.error("Non-existing connection to delete: %d->%d", sgid, tgid)
-            return
-        self._conn_count -= 1
-        del conn_lst[idx]
-
-    def delete_group(self, post_gids, pre_gids=None):
-        """Removes a set of connections from the population."""
-        for conns, indices in self._find_connections(post_gids, pre_gids):
-            conns[:] = np.delete(conns, indices, axis=0).tolist()
-            self._conn_count -= len(indices)
-
     def count(self):
         return self._conn_count
 
-    # -
     def _find_connections(self, post_gids, pre_gids=None):
         """Get the indices of the connections between groups of gids"""
         post_gid_conn_lists = (
@@ -257,7 +237,6 @@ class ConnectionManagerBase:
     src_node_population = property(lambda self: self._src_cell_manager.population_name)
     dst_node_population = property(lambda self: self._cell_manager.population_name)
 
-    # -
     def __init__(self, circuit_conf, target_manager, cell_manager, src_cell_manager=None, **kw):
         """Base class c-tor for connections (Synapses & Gap-Junctions)
 
@@ -276,7 +255,6 @@ class ConnectionManagerBase:
 
         self._populations = {}  # Multiple edge populations support. key is a tuple (src, dst)
         self._cur_population = None
-        self._disabled_conns = defaultdict(list)
 
         self._synapse_reader = None
         self._raw_gids = cell_manager.local_nodes.raw_gids()
@@ -362,7 +340,6 @@ class ConnectionManagerBase:
 
         return make_id(src_pop_name), make_id(dst_pop_name)
 
-    # -
     def select_connection_set(self, src_pop_id, dst_pop_id):
         """Select the active population of connections given src and dst node pop ids.
         `connect_all()` and `connect_group()` will apply only to the active population.
@@ -372,7 +349,6 @@ class ConnectionManagerBase:
         self._cur_population = self.get_population(src_pop_id, dst_pop_id)
         return self._cur_population
 
-    # -
     def get_population(self, src_pop_id, dst_pop_id):
         """Retrieves a connection set given node src and dst pop ids"""
         pop = self._populations.get((src_pop_id, dst_pop_id))
@@ -405,7 +381,6 @@ class ConnectionManagerBase:
             return [self._populations[population_ids]]
         return [pop for pop in self._populations.values() if pop.ids_match(population_ids)]
 
-    # -
     def all_connections(self):
         """Retrieves all the existing connections"""
         return chain.from_iterable(pop.all_connections() for pop in self._populations.values())
@@ -418,7 +393,6 @@ class ConnectionManagerBase:
     def current_population(self):
         return self._cur_population
 
-    # -
     def get_connections(self, post_gids, pre_gids=None, population_ids=None):
         """Retrieves all connections that match post and pre gids eventually
         in a subset of the populations.
@@ -436,7 +410,6 @@ class ConnectionManagerBase:
         for pop in self.find_populations(population_ids):
             yield from pop.get_connections(post_gids, pre_gids)
 
-    # -
     def create_connections(self, src_target=None, dst_target=None):
         """Creates connections according to loaded parameters in 'Connection'
         blocks of the config in the currently active ConnectionSet.
@@ -490,7 +463,6 @@ class ConnectionManagerBase:
             mod_override = conn_conf.get("ModOverride")
             self.connect_group(conn_src, conn_dst, synapse_id, mod_override)
 
-    # -
     def configure_connections(self, conn_conf):
         """Configure-only circuit connections according to a config Connection block
 
@@ -548,7 +520,6 @@ class ConnectionManagerBase:
             cur_conn = pop.get_or_create_connection(sgid, tgid, **conn_options)
             self._add_synapses(cur_conn, syns_params, None, offset)
 
-    # -
     def connect_group(
         self, conn_source, conn_destination, synapse_type_restrict=None, mod_override=None
     ):
@@ -598,7 +569,6 @@ class ConnectionManagerBase:
             self._add_synapses(cur_conn, syns_params, synapse_type_restrict, offset)
             cur_conn.locked = True
 
-    # -
     def _add_synapses(self, cur_conn: Connection, syns_params, syn_type_restrict=None, base_id=0):
         if syn_type_restrict:
             syns_params = syns_params[syns_params["synType"] != syn_type_restrict]
@@ -609,7 +579,6 @@ class ConnectionManagerBase:
         else:
             cur_conn.add_synapses(self._target_manager, syns_params, base_id)
 
-    # -
     class ConnDebugger:
         __slots__ = ["yielded_src_gids"]
 
@@ -834,7 +803,6 @@ class ConnectionManagerBase:
 
         return int(total_estimate)
 
-    # -
     def get_target_connections(
         self, src_target_name, dst_target_name, selected_gids=None, conn_population=None
     ):
@@ -875,7 +843,6 @@ class ConnectionManagerBase:
                 if src_target is None or conn.sgid in src_gids:
                     yield conn
 
-    # -
     def configure_group(self, conn_config, gidvec=None):
         """Configure connections according to a config Connection block
 
@@ -916,7 +883,6 @@ class ConnectionManagerBase:
             configured_conns += 1
         return configured_conns
 
-    # -
     def configure_group_delayed(self, conn_config, gidvec=None):
         """Update instantiated connections with configuration from a
         'Delayed Connection' blocks.
@@ -968,80 +934,6 @@ class ConnectionManagerBase:
         """After restore, restart the artificial events (replay and spont minis)"""
         for conn in self.all_connections():
             conn.restart_events()
-
-    # ------------------------------------------------------------------
-    # Delete, Disable / Enable
-    # ------------------------------------------------------------------
-    def delete(self, sgid, tgid, population_ids=None):
-        """Deletes a connection given source and target gids.
-
-        NOTE: Contrary to disable(), deleting a connection cannot be undone,
-        however it may help saving computational resources.
-
-        Args:
-            sgid: The pre-gid of the cell
-            tgid: The post-gid of the cell
-            population_ids: The population selector. Default: all
-        """
-        for pop in self.find_populations(population_ids):
-            pop.delete(sgid, tgid)
-
-    def disable(self, sgid, tgid, also_zero_conductance=False, population_ids=None):
-        """Disable a connection, its netcons and optionally synapses.
-
-        NOTE: Disabling a connection before calling init() prevents
-        it from being instantiated in CoreNeuron.
-
-        Args:
-            sgid: The pre-gid of the cell
-            tgid: The post-gid of the cell
-            also_zero_conductance: Also sets synapses' conductances
-                to zero. Default: False
-            population_ids: The population selector. Default: all
-        """
-        for pop in self.find_populations(population_ids):
-            c = pop.get_connection(sgid, tgid)
-            c.disable(also_zero_conductance)
-            self._disabled_conns[tgid].append(c)
-
-    # GROUPS
-    # ------
-    def delete_group(self, post_gids, pre_gids=None, population_ids=None):
-        """Delete a number of connections given pre and post gid lists.
-           Note: None is neutral and will match all gids.
-
-        Args:
-            post_gids: The target gids of the connections to be disabled
-                Use None for all post-gids
-            pre_gids: idem for pre-gids. [Default: None -> all)
-            population_ids: A int/tuple of populations ids. Default: all
-        """
-        for pop in self.find_populations(population_ids):
-            pop.delete_group(post_gids, pre_gids)
-
-    def disable_group(
-        self, post_gids, pre_gids=None, also_zero_conductance=False, population_ids=None
-    ):
-        """Disable a number of connections given pre and post gid lists.
-
-        Args:
-            post_gids: The target gids of the connections to be deleted
-            pre_gids: idem for pre-gids. [Default: None -> all)
-            also_zero_conductance: Also sets synapse conductance to 0
-            population_ids: A int/tuple of populations ids. Default: all
-        """
-        for pop in self.find_populations(population_ids):
-            for conn in pop.get_connections(post_gids, pre_gids):
-                self._disabled_conns[conn.tgid].append(conn)
-                conn.disable(also_zero_conductance)
-
-    def get_disabled(self, post_gid=None):
-        """Returns the list of disabled connections, optionally for a
-        given post-gid.
-        """
-        if post_gid is not None:
-            return self._disabled_conns[post_gid]
-        return chain.from_iterable(self._disabled_conns.values())
 
     def _unlock_all_connections(self):
         """Unlock all, mainly when we load a new connectivity source"""
@@ -1100,7 +992,6 @@ class ConnectionManagerBase:
             n_created_conns += syn_count
         return n_created_conns
 
-    # -
     def replay(self, *_, **_kw):
         logging.warning("Replay is not available in %s", self.__class__.__name__)
 
@@ -1178,7 +1069,6 @@ class SynapseRuleManager(ConnectionManagerBase):
             logging.info("Init %s. Options: %s", type(self).__name__, kw)
             self.open_edge_location(syn_source, circuit_conf, **kw)
 
-    # -
     def finalize(self, base_seed=0, sim_corenrn=False, **kwargs):
         """Create the actual synapses and netcons. See super() docstring"""
         kwargs.setdefault("replay_mode", ReplayMode.AS_REQUIRED)
@@ -1188,7 +1078,6 @@ class SynapseRuleManager(ConnectionManagerBase):
         # Note: (Compat) neurodamus hoc finalizes connections in reversed order.
         return super()._finalize_conns(tgid, conns, base_seed, sim_corenrn, reverse=True, **kw)
 
-    # -
     def setup_delayed_connection(self, conn_config):
         """Setup delayed connection weights for synapse initialization.
 
@@ -1209,7 +1098,6 @@ class SynapseRuleManager(ConnectionManagerBase):
             configured_conns += 1
         return configured_conns
 
-    # -
     @timeit(name="Replay inject")
     def replay(self, spike_manager, src_target_name, dst_target_name, start_delay=0.0):
         """Create special netcons to trigger timed spikes on those synapses.
