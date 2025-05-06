@@ -89,9 +89,10 @@ state by digging the hierarchy.
 *Notice that the Node object still owns most the top-level objects, except the cell and synapse
 managers since they are now handled by the Circuits class.*
 
-*Technical note:* These properties are read-only objects for internal attributes `_`prefixed.
-Besides them, many other internal attributes exist, but at least two are worth being mentioned:
-`self._base_circuit` and `self._extra_circuits`. The first
+*Technical note:* These properties are read-only objects for internal attributes whose names are prefixed with "_".
+Besides them, many other internal attributes exist, but at least one is worth being mentioned:
+
+- `self._sonata_circuits`: The SONATA circuits used by the Node class each represents a node population.
 
 Cells
 -----
@@ -193,7 +194,6 @@ considered a cell manager, but by far lighter than a full cell manager.
     provide a population name, have this property as an empty string.
   * circuit_target: The name of the original target/sonata nodeset selecting the cells.
   * circuit_name: The unique name of the circuit (set in BlueConfigs or automatic (Sonata))
-  * is_default: Whether this manager handles the main/base node population (not offset)
   * is_virtual: Whether the population is virtual, i.e. cells are not instantiated, typically for
     the source of projections.
   * connection_managers: A dict of connection managers whose source population is us.

@@ -9,7 +9,7 @@ import numpy as np
 from .cell_distributor import CellDistributor
 from .connection import Connection
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, EngineBase, NeurodamusCore as Nd
+from .core import MPI, EngineBase, NeuronWrapper as Nd
 from .core.configuration import GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
@@ -33,11 +33,20 @@ class Astrocyte(BaseCell):
         )
         self._cellref.gid = gid
 
-    gid = property(
-        lambda self: int(self._cellref.gid), lambda self, val: setattr(self._cellref, "gid", val)
-    )
+    @property
+    def gid(self) -> int:
+        """Get the gid as an integer."""
+        return int(self._cellref.gid)
 
-    endfeet = property(lambda self: self._cellref.endfeet)
+    @gid.setter
+    def gid(self, val: int):
+        """Set the gid value."""
+        self._cellref.gid = val
+
+    @property
+    def endfeet(self):
+        """Get the endfeet attribute from _cellref."""
+        return self._cellref.endfeet
 
     def create_endfeet(self, size):
         """Create endfeet sections in the cell's context.
@@ -226,7 +235,7 @@ class AstrocyteManager(CellDistributor):
         MPI.allreduce(nseg_warning, MPI.SUM)
         if nseg_warning:
             logging.warning(
-                "Astrocyte sections with multiple compartments not yet supported.Reducing %d to 1",
+                "Astrocyte sections with multiple compartments not yet supported. Reducing %d to 1",
                 nseg_warning,
             )
 
@@ -397,7 +406,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
 
         super().finalize(
             base_Seed,
-            base_connections=base_manager.get_population(0),
+            base_connections=None,
             conn_type="NeuronGlia connections",
         )
 

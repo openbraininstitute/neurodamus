@@ -26,8 +26,6 @@ class PopulationNodes:
 
     _global_populations = []
     """Populations which may have offset"""
-    _has_base_population = False
-    """Select one population to be the first one, no offset"""
     _do_offsetting = True
     """False will freeze offsets to ensure final gids are consistent"""
 
@@ -80,19 +78,10 @@ class PopulationNodes:
         return obj
 
     @classmethod
-    def create_pop(cls, population_name, *, is_base_pop=False):
+    def create_pop(cls, population_name):
         new_population = cls(population_name)
-        if is_base_pop:
-            cls._global_populations.insert(0, new_population)
-            cls._has_base_population = True
-            return new_population
-
-        # Otherwise insert at the end and do sorting
         cls._global_populations.append(new_population)
-        base_pop, other_pops = [], cls._global_populations
-        if cls._has_base_population:
-            base_pop, other_pops = cls._global_populations[0:1], cls._global_populations[1:]
-        cls._global_populations = base_pop + sorted(other_pops, key=lambda x: x.name)
+        cls._global_populations = sorted(cls._global_populations, key=lambda x: x.name)
         new_population._compute_offset(cls._find_previous(new_population))
         return new_population
 
@@ -150,16 +139,13 @@ class _NodeSetBase:
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
 
-    def register_global(self, population_name, is_base_pop=False):
+    def register_global(self, population_name):
         """Registers a node set as being part of a population, potentially implying an offsett
 
         Args:
             population_name: The name of the population these ids belong to
-            is_base_population: In case we want this population the be the base, without offset
         """
-        self._population_group = PopulationNodes.register(
-            population_name, self, is_base_pop=is_base_pop
-        )
+        self._population_group = PopulationNodes.register(population_name, self)
         return self
 
     @property

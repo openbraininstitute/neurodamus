@@ -14,7 +14,7 @@ def test_eager_caching():
     """
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE

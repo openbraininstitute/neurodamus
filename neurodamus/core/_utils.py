@@ -6,7 +6,7 @@ from datetime import timedelta
 from functools import wraps
 from inspect import Signature, signature
 
-from . import NeurodamusCore as Nd
+from . import NeuronWrapper as Nd
 from ._mpi import MPI
 from neurodamus.utils import progressbar
 
@@ -54,7 +54,7 @@ class run_only_rank0:
     def __new__(cls, f):
         has_return = signature(f).return_annotation != Signature.empty
 
-        @wraps(f)
+        @wraps(f)  # noqa: RET503
         def rank0_wrapper(*args, **kw):
             # Situation we dont need/want the broadcast
             if MPI.size == 1 or cls.nested_depth > 0:

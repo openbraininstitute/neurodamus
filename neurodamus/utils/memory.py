@@ -9,7 +9,7 @@ import logging
 import math
 import multiprocessing
 import os
-import pickle
+import pickle  # noqa: S403
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -17,7 +17,7 @@ import numpy as np
 import psutil
 
 from .compat import Vector
-from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core import MPI, NeuronWrapper as Nd, run_only_rank0
 from neurodamus.io.sonata_config import ConnectionTypes
 
 # The factor to multiply the cell + synapses memory usage by to get the simulation memory estimate.
@@ -264,7 +264,7 @@ class DryRunStats:
         if self._alloc_cache is None or ignore_cache:
             logging.warning("Loading allocation stats from %s...", filename)
             with gzip.open(filename, "rb") as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # noqa: S301
             DryRunStats._alloc_cache = convert_to_standard_types(data)
         else:
             logging.warning("Using cached allocation stats.")

@@ -113,7 +113,7 @@ from itertools import chain
 from math import floor, log
 
 from .logging import log_verbose
-from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core import MPI, NeuronWrapper as Nd, run_only_rank0
 
 
 def human_readable(num):

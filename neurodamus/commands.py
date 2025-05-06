@@ -37,7 +37,8 @@ def neurodamus(args=None):
         --simulate-model=[ON, OFF]
                                 Shall the simulation start automatically? [default: ON]
         --output-path=PATH      Alternative output directory, overriding the config file's
-        --keep-build            Keep coreneuron intermediate data. Otherwise deleted at the end
+        --keep-build            Keep coreneuron intermediate data in a folder named `build`.
+                                Otherwise deleted at the end. ``--save=<PATH>`` overrides this.
         --modelbuilding-steps=<number>
                                 Set the number of ModelBuildingSteps for the CoreNeuron sim
         --experimental-stims    Shall use only Python stimuli? [default: False]
@@ -51,11 +52,17 @@ def neurodamus(args=None):
                                 - Memory: Load balance based on memory usage. By default, it uses
                                     the "allocation_r#_c#.pkl.gz" file to load a pre-computed load
                                     balance
-        --save=<PATH>           Path to create a save point to enable resume.
-        --save-time=<TIME>      The simulation time [ms] to save the state. (Default: At the end)
-        --restore=<PATH>        Restore and resume simulation from a save point on disk
-        --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
-        --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input [default: ON]
+        --save=<PATH>           Path to create a save point (at tstop) to enable restore. Only
+                                available for CoreNEURON.
+        --restore=<PATH>        Restore and resume simulation from a save point. Only available
+                                for CoreNEURON.
+        --dump-cell-state=<GID(s)>
+                                Dump cell state debug files on tstart and tstop.
+                                For NEURON, accepts a list of GIDs or ranges (e.g., 1,2,3-6,9).
+                                For CoreNEURON, behavior is unchanged and only one GID is accepted.
+                                If a list is provided, only the first GID will be used.
+        --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input (available
+                                only on linux) [default: OFF]
         --model-stats           Show model stats in CoreNEURON simulations [default: False]
         --dry-run               Dry-run simulation to estimate memory usage [default: False]
         --crash-test            Run the simulation with single section cells and single synapses
@@ -150,10 +157,12 @@ def _pop_log_level(options):
         log_level = LogLevel.DEBUG
     elif options.pop("verbose", False):
         log_level = LogLevel.VERBOSE
-    if log_level >= 3:
+
+    if log_level >= LogLevel.VERBOSE:
         from pprint import pprint
 
-        pprint(options)
+        pprint(options)  # noqa: T203
+
     return log_level
 
 
@@ -168,7 +177,7 @@ def show_exception_abort(err_msg, exc_info):
     ALL_RANKS_SYNC_WINDOW = 1
 
     if err_file.exists():
-        return 1
+        return
 
     with open(err_file, "a") as f:
         f.write(str(MPI.rank) + "\n")

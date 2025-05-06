@@ -114,6 +114,8 @@ ignore = [
     "FBT002",  # Boolean default positional argument in function definition
     "PTH",     # use of os.path, will move to pathlib at some point
     "S101",    # Use of `assert` detected
+    "RET504", # unnecessary-assign
+
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
     "D301",    # Use `r"""` if any backslashes in a docstring
@@ -150,15 +152,12 @@ ignore = [
     "PLR2004",# magic-value-comparison
     "PLW2901",# redefined-loop-name
     "C901",   # complex-structure
-    "UP031",  # printf-string-formatting
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
-    "RET504", # unnecessary-assign
     "B904",   # raise-without-from-inside-except
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "BLE001", # blind-except
-    "RET503", # implicit-return
     "SIM108", # if-else-block-instead-of-if-exp
     "N805",   # invalid-first-argument-name-for-method
     "S603",   # subprocess-without-shell-equals-true
@@ -166,22 +165,16 @@ ignore = [
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
-    "A005",   # stdlib-module-shadowing
-    "EM103",  # dot-format-in-exception
     "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
-    "S403",   # suspicious-pickle-import
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
     "N804",   # invalid-first-argument-name-for-class-method
     "PERF203",# try-except-in-loop
-    "S301",   # suspicious-pickle-usage
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
-    "PIE810", # multiple-starts-ends-with
-    "T203",   # p-print
     "N818",   # error-suffix-on-exception-name
     "PLR0913",# too-many-arguments
     "PLR0917",# too-many-positional-arguments

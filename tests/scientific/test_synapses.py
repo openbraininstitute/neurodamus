@@ -14,7 +14,7 @@ def test_synapses_params():
     """
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.node import Node
     from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
     from neurodamus.io.synapse_reader import SonataReader
@@ -66,7 +66,7 @@ def test_synapses_params():
     plast_params = ["volume_CR", "rho0_GB", "Use_d_TM", "Use_p_TM",
                     "gmax_d_AMPA", "gmax_p_AMPA", "theta_d", "theta_p", "gmax_NMDA"]
 
-    edges_file, edge_pop = n._extra_circuits[pop1].nrnPath.split(":")
+    edges_file, edge_pop = n._sonata_circuits[pop1].nrnPath.split(":")
     storage = EdgeStorage(edges_file)
     edge_pop = storage.open_population(edge_pop)
     sel1 = edge_pop.connecting_edges(pre_L5_BC, post_L5_PC)

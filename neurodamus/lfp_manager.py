@@ -2,12 +2,25 @@ import logging
 
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 
 
 class LFPManager:
-    """Class handling the lfp functionality"""
+    """Class handling the Online Local Field Potential (LFP) functionality.
+
+    This class is designed to manage the configuration and retrieval of Online
+    Local Field Potential (LFP) data used in large-scale neural simulations.
+    LFPs represent the aggregate extracellular electrical activity recorded by
+    electrodes, reflecting the synchronized activity of nearby neuronal
+    populations.
+
+    LFP data in this context is stored in HDF5 files, which must include
+    information on:
+        - Electrode scaling factors (per compartment contribution to each electrode)
+        - Node IDs (cell identifiers contributing to the signal)
+        - Offsets (to index subsets of the data per neuron)
+    """
 
     def __init__(self):
         self._lfp_file = None
@@ -55,7 +68,7 @@ class LFPManager:
         subset_data = electrodes_dataset[index_low:index_high, :]
         return subset_data
 
-    def read_lfp_factors(self, gid, population_info=("default", 0)):
+    def read_lfp_factors(self, gid, population_info):
         """Reads the local field potential (LFP) factors for a specific gid
         from an HDF5 file and returns the factors as a Nd.Vector.
 
@@ -81,7 +94,7 @@ class LFPManager:
                 logging.warning(msg)
         return scalar_factors
 
-    def get_number_electrodes(self, gid, population_info=("default", 0)):
+    def get_number_electrodes(self, gid, population_info):
         """Get number of electrodes of a certain gid"""
         num_electrodes = 0
         if self._lfp_file:

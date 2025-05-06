@@ -1,6 +1,6 @@
 import logging
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 
 
 def get_section_index(cell, section):
@@ -86,7 +86,7 @@ class Report:
             return 0  # SCALING_NONE
         return 2  # SCALING_ELECTRODE
 
-    def add_compartment_report(self, cell_obj, point, vgid, pop_name="default", pop_offset=0):
+    def add_compartment_report(self, cell_obj, point, vgid, pop_name, pop_offset):
         if self.use_coreneuron:
             return
         gid = cell_obj.gid

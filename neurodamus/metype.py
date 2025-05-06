@@ -6,7 +6,7 @@ from os import path as ospath
 
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
 
@@ -169,10 +169,8 @@ class Cell_V6(METype):
             self._cellref = EModel(gid, morpho_path, morpho_file, *add_params)
             Nd.pc.mpiabort_on_error(old_flag)
         except Exception as e:
-            raise RuntimeError(
-                "Error from NEURON when loading Gid %d: emodel: %s, Morphology: %s"
-                ": %s" % (gid, emodel, morpho_file, str(e))
-            ) from e
+            msg = f"Error from NEURON loading Gid {gid}: emodel: {emodel}, morph: {morpho_file}"
+            raise RuntimeError(msg) from e
         self._ccell = self._cellref
         self._synapses = Nd.List()
         self._syn_helper_list = Nd.List()

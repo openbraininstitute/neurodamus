@@ -7,7 +7,7 @@ from os import path as ospath
 import libsonata
 import numpy as np
 
-from neurodamus.core import NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core import NeuronWrapper as Nd, run_only_rank0
 from neurodamus.core.configuration import SimConfig
 from neurodamus.metype import METypeManager
 from neurodamus.utils.logging import log_verbose

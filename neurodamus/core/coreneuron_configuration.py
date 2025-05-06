@@ -2,9 +2,9 @@ import logging
 import os
 from pathlib import Path
 
-from . import NeurodamusCore as Nd
+from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
-from .configuration import ConfigurationError
+from .configuration import ConfigurationError, SimConfig
 from neurodamus.report import get_section_index
 
 
@@ -80,13 +80,47 @@ class _CoreNEURONConfig:
     Note: this creates the `CoreConfig` singleton
     """
 
-    sim_config_file = "sim.conf"
-    report_config_file = "report.conf"
-    restore_path = None
-    output_root = "output"
-    datadir = f"{output_root}/coreneuron_input"
     default_cell_permute = 0
     artificial_cell_object = None
+
+    @property
+    def sim_config_file(self):
+        """Get sim config file path to be saved"""
+        return str(Path(self.build_path) / "sim.conf")
+
+    @property
+    def report_config_file_save(self):
+        """Get report config file path to be saved"""
+        return str(Path(self.build_path) / "report.conf")
+
+    @property
+    def report_config_file_restore(self):
+        """Get report config file path to be restored
+
+        We need this file and path for restoring because we cannot recreate it
+        from scratch. Only usable when restore exists and is a dir
+        """
+        return str(Path(SimConfig.restore) / "report.conf")
+
+    @property
+    def output_root(self):
+        """Get output root from SimConfig"""
+        return SimConfig.output_root
+
+    @property
+    def datadir(self):
+        """Get datadir from SimConfig if not set explicitly"""
+        return SimConfig.coreneuron_datadir_path()
+
+    @property
+    def build_path(self):
+        """Save root folder"""
+        return SimConfig.build_path()
+
+    @property
+    def restore_path(self):
+        """Restore root folder"""
+        return SimConfig.restore
 
     # Instantiates the artificial cell object for CoreNEURON
     # This needs to happen only when CoreNEURON simulation is enabled
@@ -94,46 +128,51 @@ class _CoreNEURONConfig:
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
 
     @run_only_rank0
-    def update_tstop(self, report_name, nodeset_name, tstop):
-        # Try current directory first
-        report_conf = Path(self.output_root) / self.report_config_file
-        if not report_conf.exists():
-            # Try one level up from restore_path
-            parent_report_conf = Path(self.restore_path) / ".." / self.report_config_file
-            if parent_report_conf.exists():
-                # Copy the file to current location
-                report_conf.write_bytes(parent_report_conf.read_bytes())
-            else:
-                raise ConfigurationError(
-                    f"Report config file not found in {report_conf} or {parent_report_conf}"
-                )
+    def update_report_config(self, substitutions):
+        """Updates a report configuration (e.g., stop time).
+
+        Searches for the specified report and nodeset, updates the relevant parameters
+        (currently only `tstop`), and writes the updated configuration to a new file.
+
+        Note: `report.conf` must already exist.
+        """
+        report_conf = Path(self.report_config_file_save)
 
         # Read all content
         with report_conf.open("rb") as f:
             lines = f.readlines()
 
+        # Track performed substitutions
+        applied_subs = set()
+
         # Find and update the matching line
-        found = False
         for i, line in enumerate(lines):
             try:
                 parts = line.decode().split()
-                # Report name and target name must match in order to update the tstop
-                if parts[0:2] == [report_name, nodeset_name]:
-                    parts[9] = f"{tstop:.6f}"
+                key = tuple(parts[0:2])  # Report name and target name
+
+                if key in substitutions:
+                    # This is often but not always tstop:
+                    # new_tend = min(tstop, tend) where tend is the ending
+                    # of the report and tstop is the tstop of this simulation
+                    # (potentially between a restore and a save)
+                    new_tend = substitutions[key]
+                    parts[9] = f"{new_tend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
-                    found = True
-                    break
+                    applied_subs.add(key)
             except (UnicodeDecodeError, IndexError):
                 # Ignore lines that cannot be decoded (binary data)
                 continue
 
-        if not found:
+        # Find substitutions that were not applied
+        missing_subs = set(substitutions.keys()) - applied_subs
+
+        if missing_subs:
             raise ConfigurationError(
-                f"Report '{report_name}' with target '{nodeset_name}' "
-                "not matching any report in the 'save' execution"
+                f"Some substitutions could not be applied for the following "
+                f"(report, target) pairs: {missing_subs}"
             )
 
-        # Write back
         with report_conf.open("wb") as f:
             f.writelines(lines)
 
@@ -153,17 +192,20 @@ class _CoreNEURONConfig:
         gids,
         buffer_size=8,
     ):
+        """Here we append just one report entry to report.conf. We are not writing the full file as
+        this is done incrementally in Node.enable_reports
+        """
         import struct
 
         num_gids = len(gids)
         logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
-        report_conf = Path(self.output_root) / self.report_config_file
+        report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
         with report_conf.open("ab") as fp:
             # Write the formatted string to the file
             fp.write(
                 (
-                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"
+                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"  # noqa: UP031
                     % (
                         report_name,
                         target_name,
@@ -187,27 +229,40 @@ class _CoreNEURONConfig:
     @run_only_rank0
     def write_sim_config(
         self,
-        tstop,
-        dt,
-        forwardskip,
-        prcellgid,
-        celsius,
-        v_init,
+        tstop: float,
+        dt: float,
+        prcellgid: int,
+        celsius: float,
+        v_init: float,
         pattern=None,
         seed=None,
         model_stats=False,
         enable_reports=True,
     ):
-        simconf = Path(self.output_root) / self.sim_config_file
+        """Writes the simulation configuration to a file.
+
+        Args:
+            tstop (float): Simulation stop time.
+            dt (float): Time step for the simulation.
+            prcellgid (int): dump cell state GID. CoreNeuron allows only one
+                cell to be dumped at a time.
+            celsius (float): Temperature in Celsius.
+            v_init (float): Initial voltage.
+            pattern (str, optional): Pattern for the simulation. Defaults to None.
+            seed (int, optional): Random seed for the simulation. Defaults to None.
+            model_stats (bool, optional): Flag to enable model statistics. Defaults to False.
+            enable_reports (bool, optional): Flag to enable reports. Defaults to True.
+        """
+        simconf = Path(self.sim_config_file)
         logging.info(f"Writing sim config file: {simconf}")
         simconf.parent.mkdir(parents=True, exist_ok=True)
+
         with simconf.open("w") as fp:
             fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
             fp.write(f"tstop={tstop}\n")
             fp.write(f"dt={dt}\n")
-            fp.write(f"forwardskip={forwardskip}\n")
-            fp.write(f"prcellgid={int(prcellgid)}\n")
+            fp.write(f"prcellgid={prcellgid}\n")
             fp.write(f"celsius={celsius}\n")
             fp.write(f"voltage={v_init}\n")
             fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
@@ -218,12 +273,14 @@ class _CoreNEURONConfig:
             if model_stats:
                 fp.write("'model-stats'\n")
             if enable_reports:
-                fp.write(f"report-conf='{self.output_root}/{self.report_config_file}'\n")
-            fp.write("mpi=true\n")
+                fp.write(f"report-conf='{self.report_config_file_save}'\n")
+            fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
+
+        logging.info(f" => Dataset written to '{simconf}'")
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open(mode) as fp:
             fp.write(f"{count}\n")
@@ -234,7 +291,7 @@ class _CoreNEURONConfig:
 
     @run_only_rank0
     def write_spike_population(self, population_name, population_offset=None):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open("a") as fp:
             fp.write(population_name)
@@ -244,25 +301,28 @@ class _CoreNEURONConfig:
 
     @run_only_rank0
     def write_spike_filename(self, filename):
-        report_config = Path(self.output_root) / self.report_config_file
+        report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
         with report_config.open("a") as fp:
             fp.write(filename)
             fp.write("\n")
 
-    def psolve_core(self, save_path=None, restore_path=None, coreneuron_direct_mode=False):
+    def psolve_core(self, coreneuron_direct_mode=False):
         from neuron import coreneuron
 
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.cvode.cache_efficient(1)
         coreneuron.enable = True
         coreneuron.file_mode = not coreneuron_direct_mode
-        coreneuron.sim_config = f"{self.output_root}/{self.sim_config_file}"
-        if save_path:
-            coreneuron.save_path = save_path
-        if restore_path:
-            coreneuron.restore_path = restore_path
+        coreneuron.sim_config = f"{self.sim_config_file}"
+        # set build_path only if the user explicitly asked with --save
+        # in this way we do not create 1_2.dat and time.dat if not needed
+        if SimConfig.save:
+            coreneuron.save_path = self.build_path
+        if SimConfig.restore:
+            coreneuron.restore_path = self.restore_path
+
         # Model is already written to disk by calling pc.nrncore_write()
         coreneuron.skip_write_model_to_disk = True
         coreneuron.model_path = f"{self.datadir}"
