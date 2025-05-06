@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from .connection import Connection, ReplayMode
-from .core import MPI, NeurodamusCore as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
+from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SynapseReader

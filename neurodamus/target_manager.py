@@ -6,7 +6,7 @@ from functools import lru_cache
 import libsonata
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, find_input_file
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
@@ -137,6 +137,8 @@ class TargetManager:
 
     def clear_simulation_data(self):
         self.local_nodes.clear()
+        # deference SectionRefs to sections
+        self._section_access.clear()
 
     def get_target(self, target_spec: TargetSpec, target_pop=None):
         """Retrieves a target from any .target file or Sonata nodeset files.

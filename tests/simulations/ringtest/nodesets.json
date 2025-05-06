@@ -3,5 +3,11 @@
   "RingB": {"population": "RingB"},
   "Mosaic": {"population": ["RingA", "RingB"]},
   "RingC": {"population": "RingC"},
-  "ABC" : {"population": ["RingA", "RingB", "RingC"]}
+  "ABC" : {"population": ["RingA", "RingB", "RingC"]},
+  "RingA_oneCell": {
+    "population": "RingA",
+    "node_id": [
+        1
+    ]
+  }
 }

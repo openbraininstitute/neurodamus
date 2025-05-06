@@ -1,6 +1,6 @@
 import logging
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 
 
 def get_section_index(cell, section):

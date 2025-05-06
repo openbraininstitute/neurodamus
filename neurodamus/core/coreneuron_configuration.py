@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from . import NeurodamusCore as Nd
+from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
 from neurodamus.report import get_section_index
@@ -229,16 +229,30 @@ class _CoreNEURONConfig:
     @run_only_rank0
     def write_sim_config(
         self,
-        tstop,
-        dt,
-        prcellgid,
-        celsius,
-        v_init,
+        tstop: float,
+        dt: float,
+        prcellgid: int,
+        celsius: float,
+        v_init: float,
         pattern=None,
         seed=None,
         model_stats=False,
         enable_reports=True,
     ):
+        """Writes the simulation configuration to a file.
+
+        Args:
+            tstop (float): Simulation stop time.
+            dt (float): Time step for the simulation.
+            prcellgid (int): dump cell state GID. CoreNeuron allows only one
+                cell to be dumped at a time.
+            celsius (float): Temperature in Celsius.
+            v_init (float): Initial voltage.
+            pattern (str, optional): Pattern for the simulation. Defaults to None.
+            seed (int, optional): Random seed for the simulation. Defaults to None.
+            model_stats (bool, optional): Flag to enable model statistics. Defaults to False.
+            enable_reports (bool, optional): Flag to enable reports. Defaults to True.
+        """
         simconf = Path(self.sim_config_file)
         logging.info(f"Writing sim config file: {simconf}")
         simconf.parent.mkdir(parents=True, exist_ok=True)
@@ -248,7 +262,7 @@ class _CoreNEURONConfig:
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
             fp.write(f"tstop={tstop}\n")
             fp.write(f"dt={dt}\n")
-            fp.write(f"prcellgid={int(prcellgid)}\n")
+            fp.write(f"prcellgid={prcellgid}\n")
             fp.write(f"celsius={celsius}\n")
             fp.write(f"voltage={v_init}\n")
             fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
@@ -296,7 +310,7 @@ class _CoreNEURONConfig:
     def psolve_core(self, coreneuron_direct_mode=False):
         from neuron import coreneuron
 
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.cvode.cache_efficient(1)
         coreneuron.enable = True
