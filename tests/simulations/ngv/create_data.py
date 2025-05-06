@@ -51,7 +51,8 @@ def make_ngv_nodes():
         "segment_id": [i % 3 for i in range(num_nodes)],
         "type" : 0
     }
-    make_nodes(filename="vasculature.h5", name="VasculatureA", count=num_nodes, wanted_attributes=wanted)
+    make_nodes(
+        filename="vasculature.h5", name="VasculatureA", count=num_nodes, wanted_attributes=wanted)
 
 
 def make_ngv_edges():
