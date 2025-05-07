@@ -54,11 +54,13 @@ class StimulusManager:
         stim = stim_t(target, stim_info, cell_manager)
         self._stimulus.append(stim)
 
-    def interpret_extracellulars(self, injects, stimuli):
+    @staticmethod
+    def interpret_extracellulars(_injects, _stimuli):
         """Pending for BBPBGLIB-890"""
         raise ConfigurationError("input_type extracellular_stimulation is not implemented")
 
-    def reset_helpers(self):
+    @staticmethod
+    def reset_helpers():
         ShotNoise.stimCount = 0
         Noise.stimCount = 0
         OrnsteinUhlenbeck.stimCount = 0
@@ -510,7 +512,8 @@ class Hyperpolarizing(Linear):
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
 
-    def parse_check_all_parameters(self, stim_info: dict):
+    @staticmethod
+    def parse_check_all_parameters(_stim_info: dict):
         return True
 
     def compute_parameters(self, cell):

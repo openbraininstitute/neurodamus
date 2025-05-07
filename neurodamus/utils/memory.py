@@ -551,7 +551,8 @@ class DryRunStats:
         # syn_count_metypes = set(self.metype_cell_syn_average)
         # assert all_metypes <= syn_count_metypes, all_metypes - syn_count_metypes
 
-    def check_all_buckets_have_gids(self, bucket_allocation, population, num_ranks, cycles):
+    @staticmethod
+    def check_all_buckets_have_gids(bucket_allocation, population, num_ranks, cycles):
         """Checks if all possible buckets determined by num_ranks and cycles have at least one GID
         assigned.
 

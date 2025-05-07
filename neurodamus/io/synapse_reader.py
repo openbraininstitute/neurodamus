@@ -251,7 +251,8 @@ class SonataReader(SynapseReader):
         # A cache for connection counts, used mostly in dry run
         self._counts = {}
 
-    def has_nrrp(self):
+    @staticmethod
+    def has_nrrp():
         """This field is required in SONATA."""
         return True
 

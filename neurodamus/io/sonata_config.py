@@ -417,10 +417,12 @@ class SonataConfig:
             result[modification.name] = setting
         return result
 
-    def _dir(self, obj):
+    @staticmethod
+    def _dir(obj):
         return [x for x in dir(obj) if not x.startswith("__") and not callable(getattr(obj, x))]
 
-    def _adapt_libsonata_fields(self, rep):
+    @staticmethod
+    def _adapt_libsonata_fields(rep):
         for key in rep:
             # Convert enums to its string representation
             if key in {

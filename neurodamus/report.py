@@ -79,7 +79,8 @@ class Report:
         )
         Nd.BBSaveState().ignore(self.report)
 
-    def determine_scaling_mode(self, scaling_option):
+    @staticmethod
+    def determine_scaling_mode(scaling_option):
         if scaling_option is None or scaling_option == "Area":
             return 1  # SCALING_AREA
         if scaling_option == "None":
@@ -215,7 +216,8 @@ class Report:
         bbss.ignore(alu_helper)
         return alu_helper
 
-    def enable_fast_imem(self, mechanism):
+    @staticmethod
+    def enable_fast_imem(mechanism):
         """Adjust the mechanism name for fast membrane current calculation if necessary.
 
         If the mechanism is 'i_membrane', enables fast membrane current calculation in NEURON
@@ -229,7 +231,8 @@ class Report:
             mechanism = "i_membrane_"
         return mechanism
 
-    def is_point_process_at_location(self, point_process, section, x):
+    @staticmethod
+    def is_point_process_at_location(point_process, section, x):
         """Check if a point process is located at a specific position within a section.
 
         :param point_process: The point process to check.
@@ -244,7 +247,8 @@ class Report:
         # Check if the compartment ID matches the desired location
         return compartment_id == int(x * section.nseg)
 
-    def get_point_processes(self, section, mechanism):
+    @staticmethod
+    def get_point_processes(section, mechanism):
         """Retrieve all synapse objects attached to a given section.
 
         :param section: The NEURON section object to search for synapses.

@@ -75,7 +75,8 @@ class TTX:
                     sec.insert("TTXDynamicsSwitch")
                 sec.ttxo_level_TTXDynamicsSwitch = 1.0
 
-    def compartment_cast(self, target, subset):
+    @staticmethod
+    def compartment_cast(target, subset):
         if subset not in {"soma", "apic", "dend", ""}:
             raise Exception(f"Unknown subset {subset} in compartment_cast")
 
@@ -117,7 +118,8 @@ class ConfigureAllSections:
                 "please check its SectionConfigure for possible mistakes"
             )
 
-    def compartment_cast(self, target, subset):
+    @staticmethod
+    def compartment_cast(target, subset):
         if subset not in {"soma", "apic", "dend", ""}:
             raise Exception(f"Unknown subset {subset} in compartment_cast")
 
@@ -153,7 +155,8 @@ class ConfigureAllSections:
         def visit_Attribute(self, node):
             self.attrs.add(node.attr)
 
-    def assignment_targets(self, node):
+    @staticmethod
+    def assignment_targets(node):
         if isinstance(node, ast.Assign):
             return node.targets
         if isinstance(node, ast.AugAssign):

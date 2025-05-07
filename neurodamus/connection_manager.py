@@ -331,7 +331,8 @@ class ConnectionManagerBase:
         )
         logging.info("Loading connections to population: %s", cur_pop)
 
-    def _compute_pop_ids(self, src_pop_name, dst_pop_name):
+    @staticmethod
+    def _compute_pop_ids(src_pop_name, dst_pop_name):
         """Compute pop id automatically base on population name."""
 
         def make_id(node_pop_name):

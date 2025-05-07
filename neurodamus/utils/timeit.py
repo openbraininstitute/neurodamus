@@ -216,8 +216,9 @@ class _TimerManager:
 
             self._log_stats(timers_name, timers, avg_times, min_times, max_times, nof_hits)
 
+    @staticmethod
     @run_only_rank0
-    def _log_stats(self, timers_name, timers, avg_times, min_times, max_times, nof_hits):
+    def _log_stats(timers_name, timers, avg_times, min_times, max_times, nof_hits):
         stats_name = " TIMEIT STATS {}".format(
             "(" + timers_name + ") " if timers_name else timers_name
         )

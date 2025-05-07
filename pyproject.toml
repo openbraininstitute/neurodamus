@@ -143,7 +143,6 @@ ignore = [
     "RUF012", # mutable-class-default
     "TRY002", # raise-vanilla-class
     "N806",   # non-lowercase-variable-in-function
-    "PLR6301",# no-self-use
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
     "G004",   # logging-f-string

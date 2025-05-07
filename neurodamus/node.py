@@ -183,8 +183,9 @@ class CircuitManager:
     def all_synapse_managers(self):
         return itertools.chain.from_iterable(self.edge_managers.values())
 
+    @staticmethod
     @run_only_rank0
-    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
+    def write_population_offsets(pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
 
         It is needed for retrieving population offsets for reporting and replay at restore time.
@@ -640,7 +641,8 @@ class Node:
         manager = self._circuits.get_create_edge_manager(
             ctype, src, dst, c_target, (conf, *args), **kwargs
         )
-        self._load_connections(conf, manager)  # load internal connections right away
+        if manager.is_file_open:  # Base connectivity
+            manager.create_connections()
 
     def _process_connection_configure(self, conn_conf):
         source_t = TargetSpec(conn_conf["Source"])
@@ -658,12 +660,6 @@ class Node:
                     logging.debug("Using connection manager: %s", conn_manager)
                     conn_manager.configure_connections(conn_conf)
 
-    # -
-    def _load_connections(self, circuit_conf, conn_manager):
-        if conn_manager.is_file_open:  # Base connectivity
-            conn_manager.create_connections()
-
-    # -
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
@@ -1081,8 +1077,9 @@ class Node:
             rep_conf.get("Scaling"),
         )
 
+    @staticmethod
     @run_only_rank0
-    def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
+    def _coreneuron_write_report_config(rep_conf, target, rep_params):
         """Configure CoreNEURON reporting based on the provided configuration.
 
         Computes the target type (if "Sections" and "Compartments" are specified)
@@ -1471,8 +1468,8 @@ class Node:
         self.solve()
         logging.info("Simulation finished.")
 
-    # -
-    def _run_coreneuron(self):
+    @staticmethod
+    def _run_coreneuron():
         logging.info("Launching simulation with CoreNEURON")
         CoreConfig.psolve_core(
             SimConfig.coreneuron_direct_mode,
@@ -1657,8 +1654,9 @@ class Node:
 
         self._last_cell_state_dump_t = Nd.t
 
+    @staticmethod
     @run_only_rank0
-    def coreneuron_cleanup(self):
+    def coreneuron_cleanup():
         """Clean coreneuron save files after running"""
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
@@ -1692,8 +1690,9 @@ class Node:
                 self.coreneuron_cleanup()
                 MPI.barrier()
 
+    @staticmethod
     @run_only_rank0
-    def move_dumpcellstates_to_output_root(self):
+    def move_dumpcellstates_to_output_root():
         """Check for .corenrn or .nrn files in the current directory
         and move them to CoreConfig.output_root_path(create=True).
         """
@@ -1707,8 +1706,6 @@ class Node:
                 logging.info(f"Moved {file.name} to {output_root}")
 
 
-# Helper class
-# ------------
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
@@ -1812,8 +1809,8 @@ class Neurodamus(Node):
         self.sim_init()
         assert self._sim_ready, "sim_init should have set this"
 
-    # -
-    def _merge_filesdat(self, ncycles):
+    @staticmethod
+    def _merge_filesdat(ncycles):
         log_stage("Generating merged CoreNeuron files.dat")
         coreneuron_datadir = CoreConfig.datadir
         cn_entries = []
@@ -2057,14 +2054,16 @@ class Neurodamus(Node):
         if cleanup:
             self.cleanup()
 
+    @staticmethod
     @run_only_rank0
-    def _remove_file(self, file_name):
+    def _remove_file(file_name):
         import contextlib
 
         with contextlib.suppress(FileNotFoundError):
             os.remove(file_name)
 
+    @staticmethod
     @run_only_rank0
-    def _touch_file(self, file_name):
+    def _touch_file(file_name):
         with open(file_name, "a"):
             os.utime(file_name, None)

@@ -15,7 +15,8 @@ class CompartmentMapping:
         self.cell_distributor = cell_distributor
         self.pc = Nd.ParallelContext()
 
-    def create_section_vectors(self, section_id, section, secvec, segvec):
+    @staticmethod
+    def create_section_vectors(section_id, section, secvec, segvec):
         num_segments = 0
         for seg in section:
             secvec.append(section_id)
