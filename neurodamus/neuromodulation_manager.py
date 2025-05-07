@@ -1,4 +1,5 @@
 import logging
+from itertools import chain
 
 from .connection import Connection, NetConType, ReplayMode
 from .connection_manager import SynapseRuleManager
@@ -52,7 +53,7 @@ class NeuroModulationConnection(Connection):
         *,
         skip_disabled=False,
         replay_mode=ReplayMode.AS_REQUIRED,
-        base_manager=None,
+        base_managers=None,
         **_kwargs,
     ):
         """Override the finalize process from the base class.
@@ -74,7 +75,9 @@ class NeuroModulationConnection(Connection):
             syn_params = self._synapse_params[syn_i]
             # We need to get all connections since we dont know the sgid
             # TODO: improve this by extracting all the relative distances only once
-            base_conns = base_manager.get_connections(self.tgid)
+            base_conns = chain.from_iterable(
+                base_manager.get_connections(self.tgid) for base_manager in base_managers
+            )
             syn_obj = self._find_closest_cell_synapse(syn_params, base_conns)
             if syn_obj is None:
                 logging.warning("No cell synapse associated to the neuromodulatory event")
@@ -98,7 +101,8 @@ class NeuroModulationConnection(Connection):
 
         return 1
 
-    def _find_closest_cell_synapse(self, syn_params, base_conns):
+    @staticmethod
+    def _find_closest_cell_synapse(syn_params, base_conns):
         """Find the closest cell synapse by the location parameter"""
         if not base_conns:
             return None
@@ -154,10 +158,14 @@ class NeuroModulationManager(SynapseRuleManager):
     def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kwargs):
         """Override the function from the base class.
         Retrieve the base synapse connections with the same tgid.
-        Pass the base connections to the finalize process of superclass,
-        to be processed by NeuroModulationConnection.
+        Pass the base connection managers (from all src populations except the neuromodulatory one)
+        to the finalize process of superclass, to be processed by NeuroModulationConnection.
         """
-        base_manager = next(self.cell_manager.connection_managers.values())
+        base_managers = [
+            manager
+            for src_pop, manager in self.cell_manager.connection_managers.items()
+            if src_pop != self.src_node_population
+        ]
         return super()._finalize_conns(
-            tgid, conns, base_seed, sim_corenrn, base_manager=base_manager, **kwargs
+            tgid, conns, base_seed, sim_corenrn, base_managers=base_managers, **kwargs
         )

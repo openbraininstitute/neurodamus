@@ -354,7 +354,7 @@ class NodeSetReader:
                 logging.warning(msg)
                 return None
             if node_selection:
-                logging.debug("Nodeset %s: Appending gis from %s", nodeset_name, pop_name)
+                logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
                 ns = SelectionNodeSet(node_selection)
                 ns.register_global(pop_name)
                 return ns
