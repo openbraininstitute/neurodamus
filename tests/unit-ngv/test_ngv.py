@@ -1,8 +1,11 @@
 
-from ..conftest import NGV_DIR
 import pytest
 import numpy as np
 import numpy.testing as npt
+
+from tests.conftest import NGV_DIR
+from neurodamus import Neurodamus
+from neurodamus.ngv import GlioVascularManager
 
 
 def get_Rad(astro_id, manager):
@@ -26,9 +29,6 @@ def get_R0pas(astro_id, manager):
     }
 ], indirect=True)
 def test_vasccouplingB_radii(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-    from neurodamus.ngv import GlioVascularManager
-
     n = Neurodamus(create_tmp_simulation_config_file)
 
     manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
