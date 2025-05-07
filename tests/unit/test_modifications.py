@@ -1,10 +1,11 @@
+import numpy as np
 import pytest
 
 from tests.conftest import RINGTEST_DIR
 
 from neurodamus.core.configuration import ConfigurationError, SimConfig
 from neurodamus.modification_manager import ModificationManager
-from neurodamus.node import Node, Neurodamus
+from neurodamus.node import Neurodamus, Node
 
 SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
 
@@ -62,7 +63,7 @@ def test_applyTTX():
                         "frequency": 50,
                     }
                 },
-            }
+            },
         }
     ],
     indirect=True,
@@ -126,17 +127,53 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "NEURON",
-                "conditions":{
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "RingA_oneCell",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.gnabar_hh *= 11",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
+    """Test the augmented assignment (*=) for ConfigureAllSections"""
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    Neurodamus(create_tmp_simulation_config_file)
+    soma1 = Nd._pc.gid2cell(1).soma[0]
+    soma2 = Nd._pc.gid2cell(2).soma[0]
+
+    assert np.isclose(soma1.gnabar_hh, 0.12)
+    assert np.isclose(soma2.gnabar_hh, 1.32)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
                     "modifications": [
                         {
                             "name": "no_SK_E2",
                             "node_set": "Mosaic",
                             "type": "ConfigureAllSections",
-                            "section_configure": "%s.gSK_E2bar_SK_E2 = 0"
+                            "section_configure": "%s.gSK_E2bar_SK_E2 = 0",
                         }
                     ]
-                }
-            }
+                },
+            },
         }
     ],
     indirect=True,
@@ -153,3 +190,35 @@ def test_error_unknown_modification():
     mod_manager = ModificationManager(target_manager="dummy")
     with pytest.raises(ConfigurationError, match="Unknown Modification mod_blabla"):
         mod_manager.interpret(target_spec="dummy", mod_info={"Type": "mod_blabla"})
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "Mosaic",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "gSK_E2bar_SK_E2 = 0",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_error_wrong_SectionConfig_syntax(create_tmp_simulation_config_file):
+    """Test error handling: wrong SectionConfig_syntax"""
+    with pytest.raises(
+        ConfigurationError,
+        match="SectionConfigure only supports single assignments of "
+        "attributes of the section wildcard %s",
+    ):
+        Neurodamus(create_tmp_simulation_config_file)
