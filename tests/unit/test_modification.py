@@ -2,8 +2,9 @@ import pytest
 
 from tests.conftest import RINGTEST_DIR
 
-from neurodamus.core.configuration import SimConfig
-from neurodamus.node import Node
+from neurodamus.core.configuration import ConfigurationError, SimConfig
+from neurodamus.modification_manager import ModificationManager
+from neurodamus.node import Node, Neurodamus
 
 SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
 
@@ -116,3 +117,39 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
 
     assert nspike_noConfigureAllSections > 0
     assert nspike_ConfigureAllSections == 0
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions":{
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "Mosaic",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.gSK_E2bar_SK_E2 = 0"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    indirect=True,
+)
+def test_warning_no_modification(create_tmp_simulation_config_file, capsys):
+    """Test warning when modification is not applied on any section"""
+    Neurodamus(create_tmp_simulation_config_file)
+    captured = capsys.readouterr()
+    assert "ConfigureAllSections applied to zero sections" in captured.out
+
+
+def test_error_unknown_modification():
+    """Test error handling: unknown modification type"""
+    mod_manager = ModificationManager(target_manager="dummy")
+    with pytest.raises(ConfigurationError, match="Unknown Modification mod_blabla"):
+        mod_manager.interpret(target_spec="dummy", mod_info={"Type": "mod_blabla"})
