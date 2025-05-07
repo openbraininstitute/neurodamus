@@ -1,0 +1,118 @@
+import pytest
+
+from tests.conftest import RINGTEST_DIR
+
+from neurodamus.core.configuration import SimConfig
+from neurodamus.node import Node
+
+SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
+
+
+def test_applyTTX():
+    """
+    A test of enabling TTX with a short simulation.
+    As Ringtest cells dont't contain mechanisms that use the TTX concentration
+    to enable/disable sodium channels, no spike change is expected.
+    Instead, we check that a section contains TTXDynamicsSwitch after modification
+    """
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Node(str(SIMULATION_CONFIG_FILE))
+
+    # setup sim
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+
+    # check TTXDynamicsSwitch is not inserted in any section of cell gid=1
+    cell = n._pc.gid2cell(1)
+    for sec in cell.all:
+        assert not Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
+
+    # append modification to config directly
+    TTX_mod = {"Type": "TTX", "Target": "RingA"}
+    SimConfig.modifications["applyTTX"] = TTX_mod
+
+    n.enable_modifications()
+
+    # check TTXDynamicsSwitch is inserted after modifications
+    for sec in cell.all:
+        assert Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "inputs": {
+                    "pulse": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingA",
+                        "amp_start": 5,
+                        "width": 1,
+                        "frequency": 50,
+                    }
+                },
+            }
+        }
+    ],
+    indirect=True,
+)
+def test_ConfigureAllSections(create_tmp_simulation_config_file):
+    """
+    A test of performing ConfigureAllSections with a short simulation.
+    Without the modification, there are spikes with the given stimulus.
+    After applying sec.gnabar_hh = 0, the expected outcome is 0 spike.
+    """
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Node(create_tmp_simulation_config_file)
+    sec_variable = "gnabar_hh"
+
+    # setup sim
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+    n.enable_stimulus()
+    n.sim_init()
+    n.solve()
+    nspike_noConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
+
+    # check section variable initial value before modification
+    cell = n._pc.gid2cell(1)
+    for sec in cell.all:
+        assert getattr(sec, sec_variable) > 0
+
+    # append modification to config directly
+    ConfigureAllSections_mod = {
+        "Type": "ConfigureAllSections",
+        "Target": "Mosaic",
+        "SectionConfigure": f"%s.{sec_variable} = 0",
+    }
+    SimConfig.modifications["no_SK_E2"] = ConfigureAllSections_mod
+
+    n.enable_modifications()
+
+    # check section variable value after modifications
+    for sec in cell.all:
+        assert getattr(sec, sec_variable) == 0
+
+    # setup sim again
+    Nd.t = 0.0
+    n._sim_ready = False
+    n.sim_init()
+    n.solve()
+    nspike_ConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
+
+    assert nspike_noConfigureAllSections > 0
+    assert nspike_ConfigureAllSections == 0
