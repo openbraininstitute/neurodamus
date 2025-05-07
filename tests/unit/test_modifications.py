@@ -133,7 +133,7 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
                             "name": "no_SK_E2",
                             "node_set": "RingA_oneCell",
                             "type": "ConfigureAllSections",
-                            "section_configure": "%s.gnabar_hh *= 11",
+                            "section_configure": "%s.gnabar_hh *= 11; %s.e_pas *= 0.1",
                         }
                     ]
                 },
@@ -153,7 +153,9 @@ def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
     soma2 = Nd._pc.gid2cell(2).soma[0]
 
     assert np.isclose(soma1.gnabar_hh, 0.12)
+    assert np.isclose(soma1.e_pas, -70)
     assert np.isclose(soma2.gnabar_hh, 1.32)
+    assert np.isclose(soma2.e_pas, -7)
 
 
 @pytest.mark.parametrize(
@@ -214,11 +216,42 @@ def test_error_unknown_modification():
     ],
     indirect=True,
 )
-def test_error_wrong_SectionConfig_syntax(create_tmp_simulation_config_file):
-    """Test error handling: wrong SectionConfig_syntax"""
+def test_error_wrong_SectionConfigure_syntax(create_tmp_simulation_config_file):
+    """Test error handling: wrong SectionConfigure syntax"""
     with pytest.raises(
         ConfigurationError,
         match="SectionConfigure only supports single assignments of "
         "attributes of the section wildcard %s",
+    ):
+        Neurodamus(create_tmp_simulation_config_file)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "Mosaic",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "print(gSK_E2bar_SK_E2)",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_error_wrong_invalid_operation(create_tmp_simulation_config_file):
+    """Test error handling: wrong operation (neither assign nor aug assign)"""
+    with pytest.raises(
+        ConfigurationError,
+        match="SectionConfigure must consist of one or more semicolon-separated assignments",
     ):
         Neurodamus(create_tmp_simulation_config_file)
