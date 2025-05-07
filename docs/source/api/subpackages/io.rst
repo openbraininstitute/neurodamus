@@ -40,4 +40,4 @@ neurodamus.io.synapse\_reader
    .. rubric:: Exceptions
 
    .. autosummary::
-      FormatNotSupported
+      FormatNotSupportedError
