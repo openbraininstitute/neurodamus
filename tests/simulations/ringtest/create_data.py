@@ -54,7 +54,9 @@ EDGE_TYPES = [
     SonataAttribute("n_rrp_vesicles", type=int, prefix=True),
     SonataAttribute("syn_type_id", type=int, prefix=True),
     SonataAttribute("afferent_junction_id", type=int, prefix=True),
-    SonataAttribute("efferent_junction_id", type=int, prefix=True)
+    SonataAttribute("efferent_junction_id", type=int, prefix=True),
+    SonataAttribute("neuromod_dtc", type=np.float32, prefix=True),
+    SonataAttribute("neuromod_strength", type=np.float32, prefix=True)
 ]
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
@@ -83,6 +85,10 @@ def make_node(filename, name, count, wanted_attributes):
             ds_value = _expand_values(attr, value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
 
+        # virtual population has no attribute
+        # but group "0" is required by libsonata function open_population
+        if "0" not in dg:
+            dg.create_group("0")
 
 def make_edges(filename, edges, wanted_attributes):
     name = f"{edges.src}__{edges.tgt}__{edges.type}"
@@ -195,7 +201,6 @@ def make_ringtest_nodes():
     }
     make_node(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
 
-
 def make_ringtest_edges():
     edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
     wanted_attributes = {
@@ -280,6 +285,42 @@ def make_ringtest_edges():
         "syn_type_id": [60, 104, 77],
     }
     make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
+
+# For neuromodulation test: Create another A->B edge with different afferent_section_pos w.r.t B->B edge
+    edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "conductance": 100.0,
+        "decay_time": 2.0,
+        "delay": 3.0,
+        "depression_time": 4.0,
+        "facilitation_time": 5.0,
+        "u_syn": 6.0,
+        "afferent_section_id": 1,
+        "afferent_section_pos": 0.25,
+        "afferent_segment_id": 1,
+        "afferent_segment_offset": 0,
+        "n_rrp_vesicles": 4,
+        "syn_type_id": 131,
+    }
+    make_edges(filename="neuromodulation/edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
+
+    edges = Edges("virtual_neurons", "RingB", "neuromodulatory", [(0, 0), (1, 0), (1, 0)])
+    wanted_attributes = {
+        "edge_type_id": -1,
+        "afferent_section_id": 1,
+        "afferent_section_pos": [0.22, 0.78, 0.81],
+        "afferent_segment_id": 1,
+        "delay": it.count(44.0),
+        "neuromod_dtc": [50, 75, 75],
+        "neuromod_strength": [0.5, 0.2, 0.2]
+    }
+    make_edges(filename="neuromodulation/projections.h5", edges=edges, wanted_attributes=wanted_attributes)
+
+    wanted = {
+        "node_type_id": -1,
+    }
+    make_node(filename="neuromodulation/virtual_neurons.h5", name="virtual_neurons", count=2, wanted_attributes=wanted)
 
 
 make_ringtest_nodes()
