@@ -7,7 +7,7 @@ from scipy.signal import find_peaks
 from collections import defaultdict
 from collections.abc import Iterable
 
-from neurodamus.core import NeurodamusCore as Nd
+from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 

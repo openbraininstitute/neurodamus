@@ -19,7 +19,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 
 import logging
 
-from .core import NeurodamusCore as Nd, random
+from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose

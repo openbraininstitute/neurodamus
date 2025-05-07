@@ -17,10 +17,10 @@ def get_edges_data(create_tmp_simulation_config_file):
     """ Convenience function to extract some basic info about the circuit """
 
     from neurodamus import Neurodamus
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.extra_circuits["RingB"].nrnPath.split(":")
+    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
     sgid, tgid = 1, 2

@@ -37,16 +37,17 @@ def test_cli_enableshm(create_tmp_simulation_config_file, capsys):
 
     shm_transfer_message_warning = "Unknown SHM directory for model file transfer in CoreNEURON."
     shm_transfer_message_enabled = "SHM file transfer mode for CoreNEURON enabled"
-    shm_deletion_message = "Deleting intermediate SHM data in"
+    coredata_deletion_message = f"Deleting intermediate data in {CoreConfig.datadir}"
 
     if is_linux:
         shmdir = Path(os.environ["SHMDIR"])
         assert Path(CoreConfig.datadir).is_relative_to(shmdir)
         assert shm_transfer_message_enabled in captured.out
-        assert not Path(CoreConfig.datadir).exists()
     else:
         assert shm_transfer_message_warning in captured.out
-        assert shm_deletion_message not in captured.out
+
+    assert coredata_deletion_message in captured.out
+    assert not Path(CoreConfig.datadir).exists()
 
 
 @pytest.mark.parametrize(

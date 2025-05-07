@@ -56,7 +56,11 @@ def neurodamus(args=None):
                                 available for CoreNEURON.
         --restore=<PATH>        Restore and resume simulation from a save point. Only available
                                 for CoreNEURON.
-        --dump-cell-state=<GID> Dump cell state debug files on start, save-restore and at the end
+        --dump-cell-state=<GID(s)>
+                                Dump cell state debug files on tstart and tstop.
+                                For NEURON, accepts a list of GIDs or ranges (e.g., 1,2,3-6,9).
+                                For CoreNEURON, behavior is unchanged and only one GID is accepted.
+                                If a list is provided, only the first GID will be used.
         --enable-shm=[ON, OFF]  Enables the use of /dev/shm for coreneuron_input (available
                                 only on linux) [default: OFF]
         --model-stats           Show model stats in CoreNEURON simulations [default: False]

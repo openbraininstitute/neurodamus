@@ -6,7 +6,7 @@
 
 import logging
 
-from .core import MPI, NeurodamusCore as Nd
+from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
 non_stochastic_mechs = [

@@ -13,6 +13,6 @@ def test_base_h():
 
 # This test shall not be found by pytest since it is supposed to be run with "special -python"
 def neurodamus():
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     rng_conf = Nd.RNGSettings()
     assert rng_conf.getGlobalSeed() == 0

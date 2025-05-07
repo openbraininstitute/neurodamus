@@ -15,7 +15,7 @@ import numpy as np
 from .connection_manager import ConnectionManagerBase
 from .core import (
     MPI,
-    NeurodamusCore as Nd,
+    NeuronWrapper as Nd,
     ProgressBarRank0 as ProgressBar,
     mpi_no_errors,
     run_only_rank0,
@@ -136,7 +136,7 @@ class CellManagerBase(_CellManager):
         self._pc = Nd.pc
         self._conn_managers_per_src_pop = weakref.WeakValueDictionary()
 
-        if type(circuit_conf.CircuitPath) is str:
+        if isinstance(circuit_conf.CellLibraryFile, str):
             self._init_config(circuit_conf, self._target_spec.population)
         else:
             logging.info(" => %s Circuit has been disabled", self.circuit_name or "(default)")

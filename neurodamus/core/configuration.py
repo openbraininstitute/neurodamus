@@ -94,15 +94,14 @@ class CliOptions(ConfigT):
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    CircuitPath = ConfigT.REQUIRED
     nrnPath = ConfigT.REQUIRED
-    CellLibraryFile = None
+    CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
     CircuitTarget = None
-    PopulationID = 0
     DetailedAxon = False
+    PopulationType = None
 
 
 class RNGConfig(ConfigT):
@@ -195,8 +194,6 @@ class _SimConfig:
     cli_options = None
     run_conf = None
     output_root = None
-    base_circuit = None
-    extra_circuits = None
     sonata_circuits = None
     projections = None
     connections = None
@@ -248,7 +245,7 @@ class _SimConfig:
     @classmethod
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.init()
         if not os.path.isfile(config_file):
@@ -261,7 +258,6 @@ class _SimConfig:
         cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.sonata_circuits = cls._config_parser.circuits
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
 
         cls.projections = cls._config_parser.parsedProjections
@@ -547,9 +543,8 @@ def _loadbal_mode(config: _SimConfig):
 @SimConfig.validator
 def _projection_params(config: _SimConfig):
     required_fields = ("Path",)
-    non_negatives = ("PopulationID",)
     for name, proj in config.projections.items():
-        _check_params("Projection " + name, proj, required_fields, (), non_negatives)
+        _check_params("Projection " + name, proj, required_fields, (), ())
         _validate_file_extension(proj.get("Path"))
 
 
@@ -636,9 +631,9 @@ def _modification_params(config: _SimConfig):
         _check_params("Modification " + name, mod_block, required_fields, ())
 
 
-def _make_circuit_config(config_dict, req_morphology=True):
-    if config_dict.get("CircuitPath") == "<NONE>":
-        config_dict["CircuitPath"] = False
+def make_circuit_config(config_dict, req_morphology=True):
+    if config_dict.get("CellLibraryFile") == "<NONE>":
+        config_dict["CellLibraryFile"] = False
         config_dict["nrnPath"] = False
         config_dict["MorphologyPath"] = False
     elif config_dict.get("nrnPath") == "<NONE>":
@@ -679,47 +674,28 @@ def _validate_file_extension(path):
 
 
 @SimConfig.validator
-def _base_circuit(config: _SimConfig):
-    log_verbose("CIRCUIT (default): %s", config.run_conf.get("CircuitPath", "<DISABLED>"))
-    config.base_circuit = _make_circuit_config(config.run_conf)
-
-
-@SimConfig.validator
-def _extra_circuits(config: _SimConfig):
+def _circuits(config: _SimConfig):
     from . import EngineBase
 
-    extra_circuits = {}
+    circuit_configs = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
         log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
-        if "Engine" in circuit_info:
-            # Replace name by actual engine
-            circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
-        else:
-            # Without custom engine, inherit base circuit infos
-            for field in (
-                "CircuitPath",
-                "MorphologyPath",
-                "MorphologyType",
-                "METypePath",
-                "CellLibraryFile",
-            ):
-                if field in config.base_circuit and field not in circuit_info:
-                    log_verbose(" > Inheriting '%s' from base circuit", field)
-                    circuit_info[field] = config.base_circuit[field]
+        # Replace name by actual engine class
+        circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
 
         circuit_info.setdefault("nrnPath", False)
         if config.cli_options.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
-        extra_circuits[name] = _make_circuit_config(circuit_info, req_morphology=False)
-        extra_circuits[name].name = name
+        circuit_configs[name] = make_circuit_config(circuit_info, req_morphology=False)
+        circuit_configs[name].name = name
 
     # Sort so that iteration is deterministic
-    config.extra_circuits = dict(
+    config.sonata_circuits = dict(
         sorted(
-            extra_circuits.items(),
+            circuit_configs.items(),
             key=lambda x: (x[1].Engine.CircuitPrecedence if x[1].Engine else 0, x[0]),
         )
     )
@@ -1134,15 +1110,57 @@ def _coreneuron_direct_mode(config: _SimConfig):
     config.coreneuron_direct_mode = direct_mode
 
 
-def get_debug_cell_gid(cli_options):
-    gid = cli_options.get("dump_cell_state") if cli_options else None
-    if gid is not None:
-        try:
-            # Convert to integer and adjust for sonata mode (0-based to 1-based indexing)
-            gid = int(gid) + 1
-        except ValueError as e:
-            raise ConfigurationError("Cannot parse Gid for dump-cell-state: " + gid) from e
-    return gid
+def get_debug_cell_gids(cli_options):
+    """Parse the --dump-cell-state option from CLI.
+
+    Supports:
+    - A single integer (e.g., "2")
+    - A comma-separated list of integers or ranges (e.g., "1,3-5,7")
+    - A file path containing one GID per line
+
+    Returns:
+        List of 1-based GIDs as integers, or None if not provided.
+
+    Raises:
+        ConfigurationError: if the format is invalid or file doesn't exist.
+    """
+    value = cli_options.get("dump_cell_state") if cli_options else None
+    if value is None:
+        return None
+
+    def parse_gid_token(token):
+        """Parse a single token: an integer or a range (e.g., "3" or "1-4").
+
+        Returns:
+            List of integers parsed from the token.
+
+        Raises:
+            ConfigurationError: if the token is invalid.
+        """
+        token = token.strip()
+        if re.match(r"^\d+-\d+$", token):
+            start, end = map(int, token.split("-"))
+            if start > end:
+                raise ConfigurationError(f"Invalid range in dump-cell-state: {token}")
+            return list(range(start, end + 1))
+        if token.isdigit():
+            return [int(token)]
+        raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
+
+    try:
+        if isinstance(value, int):
+            tokens = [str(value)]
+        else:
+            tokens = value.split(",")
+        gids = []
+        for token in tokens:
+            gids.extend(parse_gid_token(token))
+        gids = [gid + 1 for gid in gids]
+        gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
+    except ValueError as e:
+        raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
+    else:
+        return gids
 
 
 def check_connections_configure(SimConfig, target_manager):

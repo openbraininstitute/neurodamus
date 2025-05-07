@@ -13,7 +13,7 @@ def test_TTX_modification():
 
     We require launching with mpiexec (numprocs=1).
     """
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
     from neurodamus.node import Node
 
@@ -54,7 +54,7 @@ def test_ConfigureAllSections_modification():
 
     We require launching with mpiexec (numprocs=1).
     """
-    from neurodamus.core import NeurodamusCore as Nd
+    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
     from neurodamus.node import Node
 
