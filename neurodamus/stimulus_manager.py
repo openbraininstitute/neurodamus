@@ -652,10 +652,7 @@ class Noise(BaseStim):
         tstep = self.duration - dt
 
         while prev_t < self.delay - dt:
-            if prev_t + tstep < self.delay - dt:  # noqa: SIM108
-                next_t = prev_t + tstep
-            else:
-                next_t = self.delay - dt
+            next_t = min(prev_t + tstep, self.delay - dt)
 
             tvec = Nd.h.Vector()
             tvec.indgen(prev_t, next_t, self.dt)
