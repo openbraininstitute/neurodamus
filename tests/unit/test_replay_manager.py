@@ -1,18 +1,23 @@
-import pytest
-import numpy.testing as npt
-from tests import utils
+import json
+import os
+from tempfile import NamedTemporaryFile
 
-from ..conftest import RINGTEST_DIR
+import numpy.testing as npt
+import pytest
+
+from tests import utils
+from tests.conftest import RINGTEST_DIR
+
+from neurodamus import Neurodamus
+from neurodamus.connection import NetConType
+from neurodamus.core.configuration import ConfigurationError, Feature, SimConfig
+from neurodamus.replay import MissingSpikesPopulationError, SpikeManager
 
 INPUT_SPIKES_FILE = str(RINGTEST_DIR / "input_spikes.h5")
 
 
 @pytest.fixture
 def ringtest_virtual_pop_config():
-    from tempfile import NamedTemporaryFile
-    import os
-    import json
-
     circuit_config_data = {
         "version": 2,
         "networks": {
@@ -60,7 +65,7 @@ def ringtest_virtual_pop_config():
         }
     }
 
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as config_file:
         json.dump(circuit_config_data, config_file)
 
     yield dict(
@@ -84,8 +89,6 @@ def ringtest_virtual_pop_config():
 
 @pytest.mark.forked
 def test_sonata_spikes_reader():
-    from neurodamus.replay import SpikeManager, MissingSpikesPopulationError
-
     timestamps, spike_gids = SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "RingA")
     npt.assert_allclose(timestamps, [0.1, 0.15, 0.175, 2.275, 3.025, 3.45, 4.35, 5.7, 6.975, 7.725])
     npt.assert_equal(spike_gids, [1, 3, 2, 1, 2, 3, 1, 2, 3, 1])
@@ -95,12 +98,26 @@ def test_sonata_spikes_reader():
         SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "wont-exist")
 
 
+def test_sonata_spike_manager_with_delay():
+    spike_manager = SpikeManager(INPUT_SPIKES_FILE, delay=10, population="RingA")
+    spike_events = spike_manager.get_map()
+    spike_gids = spike_events.keys()
+    npt.assert_equal(spike_gids, [1, 2, 3])
+    npt.assert_allclose(spike_events.get(1), [10.1, 12.275, 14.35, 17.725])
+    npt.assert_allclose(spike_manager.filter_map(pre_gids=[2, 3]).get(2), [10.175, 13.025, 15.7])
+
+
+def test_error_replay_format():
+    with pytest.raises(ConfigurationError, match="Spikes input should be a SONATA h5 file"):
+        SpikeManager("out.dat")
+
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "inputs": {
-                "spikeReplay" : {
+                "spikeReplay": {
                     "module": "synapse_replay",
                     "input_type": "spikes",
                     "spike_file": INPUT_SPIKES_FILE,
@@ -114,17 +131,15 @@ def test_sonata_spikes_reader():
 ], indirect=True)
 @pytest.mark.forked
 def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
 
     spikes_replay = SimConfig.stimuli["spikeReplay"]
-    assert spikes_replay['Target'] == 'RingB'
-    assert spikes_replay['Mode'] == 'Current'
-    assert spikes_replay['Pattern'] == 'SynapseReplay'
-    assert spikes_replay['Delay'] == 0.0
-    assert spikes_replay['Duration'] == 50.0
-    assert spikes_replay['SpikeFile'] == INPUT_SPIKES_FILE
+    assert spikes_replay["Target"] == "RingB"
+    assert spikes_replay["Mode"] == "Current"
+    assert spikes_replay["Pattern"] == "SynapseReplay"
+    assert spikes_replay["Delay"] == 0.0
+    assert spikes_replay["Duration"] == 50.0
+    assert spikes_replay["SpikeFile"] == INPUT_SPIKES_FILE
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -132,7 +147,7 @@ def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "inputs": {
-                "spikeReplay" : {
+                "spikeReplay": {
                     "module": "synapse_replay",
                     "input_type": "spikes",
                     "spike_file": INPUT_SPIKES_FILE,
@@ -146,11 +161,9 @@ def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_replay_stim_generated_run(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
+    # the import of neuron must be at function level,
+    # otherwise will impact other tests even done in forked processes
     from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import Feature
-    from neurodamus.connection import NetConType
-
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
@@ -198,7 +211,7 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
         "simconfig_fixture": "ringtest_virtual_pop_config",
         "extra_config": {
             "inputs": {
-                "spikeReplay" : {
+                "spikeReplay": {
                     "module": "synapse_replay",
                     "input_type": "spikes",
                     "spike_file": INPUT_SPIKES_FILE,
@@ -212,10 +225,7 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_replay_virtual_population(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
     from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import Feature
-    from neurodamus.connection import NetConType
 
     nd = Neurodamus(
         create_tmp_simulation_config_file,
