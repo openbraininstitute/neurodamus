@@ -17,8 +17,7 @@ The NGV simulation requires three node populations, each stored in separate file
 
 - **Neocortex_neurons** represent standard neocortex neurons.
 - **Astrocytes** represent glial cells.
-- The **vasculature** file is unique: although it is structured and treated as a node file by Neurodamus and the SONATA convention, each node (row in the table) actually refers to a vasculature segment. The vasculature itself is divided into morphology nodes (used internally for structure reconstruction), sections (optional), and segments. Currently, Neurodamus only reads the file and does not utilize this additional information. For more details, refer to the official documentation:  
-  `https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#fields-for-vasculature-population-model-type-vasculature`.
+- The **vasculature** file is unique: although it is structured and treated as a node file by Neurodamus and the SONATA convention, each node (row in the table) actually refers to a vasculature segment. The vasculature itself is divided into morphology nodes (used internally for structure reconstruction), sections (optional), and segments. Currently, Neurodamus only reads the file and does not utilize this additional information. For more details, refer to the `official documentation <https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#fields-for-vasculature-population-model-type-vasculature>`_.
 
 The diagram also illustrates the various connections among the populations, as described by the edge files (one per connection type):
 
