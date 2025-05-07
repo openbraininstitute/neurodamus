@@ -13,9 +13,9 @@ SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
 def test_applyTTX():
     """
     A test of enabling TTX with a short simulation.
-    As Ringtest cells dont't contain mechanisms that use the TTX concentration
+    As Ringtest cells don't contain mechanisms that use the TTX concentration
     to enable/disable sodium channels, no spike change is expected.
-    Instead, we check that a section contains TTXDynamicsSwitch after modification
+    Instead, we check that all sections contain TTXDynamicsSwitch after modification
     """
 
     # NeuronWrapper needs to be imported at function level
@@ -143,7 +143,7 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
-    """Test the augmented assignment (*=) for ConfigureAllSections"""
+    """Test the augmented assignment (*=) and multiple assignments for ConfigureAllSections"""
 
     # NeuronWrapper needs to be imported at function level
     from neurodamus.core import NeuronWrapper as Nd
