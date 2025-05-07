@@ -101,7 +101,7 @@ def make_nodes(filename, name, count, wanted_attributes):
             ds_name = ("0/" if typ.prefix else "") + typ.name
             ds_value = _expand_values(attr, value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
-    
+
         # virtual population has no attribute
         # but group "0" is required by libsonata function open_population
         if "0" not in dg:

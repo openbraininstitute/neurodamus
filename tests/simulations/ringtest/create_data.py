@@ -101,6 +101,7 @@ def make_ringtest_nodes():
     }
     make_nodes(filename="nodes_C.h5", name="RingC", count=3, wanted_attributes=wanted)
 
+
 def make_ringtest_edges():
     edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
     wanted_attributes = {
@@ -185,9 +186,11 @@ def make_ringtest_edges():
         "n_rrp_vesicles": 4,
         "syn_type_id": [60, 104, 77],
     }
-    make_edges(filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
+    make_edges(
+        filename="local_edges_C.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-# For neuromodulation test: Create another A->B edge with different afferent_section_pos w.r.t B->B edge
+# For neuromodulation test: Create another A->B edge with different afferent_section_pos
+# w.r.t B->B edge
     edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
@@ -204,7 +207,8 @@ def make_ringtest_edges():
         "n_rrp_vesicles": 4,
         "syn_type_id": 131,
     }
-    make_edges(filename="neuromodulation/edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
+    make_edges(
+        filename="neuromodulation/edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
 
     edges = Edges("virtual_neurons", "RingB", "neuromodulatory", [(0, 0), (1, 0), (1, 0)])
     wanted_attributes = {
@@ -216,12 +220,15 @@ def make_ringtest_edges():
         "neuromod_dtc": [50, 75, 75],
         "neuromod_strength": [0.5, 0.2, 0.2]
     }
-    make_edges(filename="neuromodulation/projections.h5", edges=edges, wanted_attributes=wanted_attributes)
+    make_edges(
+        filename="neuromodulation/projections.h5", edges=edges, wanted_attributes=wanted_attributes)
 
     wanted = {
         "node_type_id": -1,
     }
-    make_node(filename="neuromodulation/virtual_neurons.h5", name="virtual_neurons", count=2, wanted_attributes=wanted)
+    make_nodes(
+        filename="neuromodulation/virtual_neurons.h5", name="virtual_neurons",
+        count=2, wanted_attributes=wanted)
 
 
 make_ringtest_nodes()
