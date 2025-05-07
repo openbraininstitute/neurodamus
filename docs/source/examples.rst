@@ -157,46 +157,6 @@ Neurodamus for Developers
 Neurodamus was designed to provide an easy Pythonic API while keeping the same concepts.
 Please see `Module Reference`
 
-Disable / Enable connections during simulation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As an example, the user may want to enable and disable connections at different simulation
-times. (NOTE: this is only possible using the NEURON simulator. CoreNeuron simulations
-cannot be changed interactively).
-
-.. code-block:: python
-
- from neurodamus import Neurodamus
- from neurodamus.utils.logging import log_stage, log_verbose
-
- nd = Neurodamus('simulation_config.json')
-
- log_stage('Run simulation!')
- nd.solve(50)  # Until 50ms
- nd.synapse_manager.disable_group(62977, 62698)
- nd.solve()  # until end
-
-
-Drop connections to not be simulated
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes we may want to drop connections altogether. The user may completely
-avoid them from being instantiated in the simulator (compatible with CoreNeuron)
-
-.. code-block:: python
-
- from neurodamus import Neurodamus
- from neurodamus.utils.logging import log_stage, log_verbose
-
- nd = Neurodamus('simulation_config_for_remove', auto_init=False)
-
- log_stage('Starting edge removal')
- nd.synapse_manager.delete_group(62977, 62698)
-
- nd.init()   # Initialize the simulator (needed because we set auto_init=False)
- nd.run()    # Run all
-
-
 Neurodamus as a High-Level API for neuron
 -----------------------------------------
 
