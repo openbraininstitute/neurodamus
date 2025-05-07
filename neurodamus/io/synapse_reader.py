@@ -198,7 +198,7 @@ class SynapseReader:
                 return cls(fn, population, *args, **kw)
             log_verbose("[SynReader] Using SonataReader.")
             return SonataReader(fn, population, *args, **kw)
-        raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
+        raise FormatNotSupportedError(f"File: {syn_src}. Please provide SONATA edges")
 
 
 class SonataReader(SynapseReader):
@@ -474,5 +474,5 @@ class SonataReader(SynapseReader):
         return {tgid: self._counts.get(tgid, self.EMPTY_DATA) for tgid in tgids}
 
 
-class FormatNotSupported(Exception):
-    """Exception thrown when the circuit requires SynapseTool and it is NOT built-in."""
+class FormatNotSupportedError(Exception):
+    """Edge file that is not supported"""
