@@ -158,21 +158,16 @@ ignore = [
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "BLE001", # blind-except
-    "SIM108", # if-else-block-instead-of-if-exp
     "N805",   # invalid-first-argument-name-for-method
     "S603",   # subprocess-without-shell-equals-true
-    "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
-    "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
     "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
-    "N804",   # invalid-first-argument-name-for-class-method
-    "PERF203",# try-except-in-loop
     "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
     "N818",   # error-suffix-on-exception-name
