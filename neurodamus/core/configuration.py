@@ -1151,10 +1151,7 @@ def get_debug_cell_gids(cli_options):
         raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
 
     try:
-        if isinstance(value, int):
-            tokens = [str(value)]
-        else:
-            tokens = value.split(",")
+        tokens = [str(value)] if isinstance(value, int) else value.split(",")
         gids = []
         for token in tokens:
             gids.extend(parse_gid_token(token))

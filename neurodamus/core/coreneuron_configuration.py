@@ -161,7 +161,7 @@ class _CoreNEURONConfig:
                     parts[9] = f"{new_tend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
                     applied_subs.add(key)
-            except (UnicodeDecodeError, IndexError):
+            except (UnicodeDecodeError, IndexError):  # noqa: PERF203
                 # Ignore lines that cannot be decoded (binary data)
                 continue
 
