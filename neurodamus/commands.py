@@ -183,7 +183,8 @@ def show_exception_abort(err_msg, exc_info):
         f.write(str(MPI.rank) + "\n")
 
     with open(err_file) as f:
-        line0 = open(err_file).readline().strip()
+        line0 = f.readline().strip()
+
     if str(MPI.rank) == line0:
         logging.critical(err_msg, exc_info=exc_info)
 
@@ -235,10 +236,8 @@ def _filter_warnings():
     """
     import warnings
 
-    if MPI.rank == 0:
-        action = "once"
-    else:
-        action = "ignore"
+    action = "once" if MPI.rank == 0 else "ignore"
+
     warnings.filterwarnings(
         action=action,
         message="The value of the smallest subnormal for .* type is zero.",
