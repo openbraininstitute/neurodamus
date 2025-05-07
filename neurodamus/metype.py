@@ -253,15 +253,12 @@ class METypeItem:
 
     __slots__ = (
         "add_params",
-        "combo_name",
         "emodel_tpl",
         "etype",
         "exc_mini_frequency",
         "extra_attrs",
-        "fullmtype",
         "holding_current",
         "inh_mini_frequency",
-        "layer",
         "local_to_global_matrix",
         "morph_name",
         "mtype",
@@ -271,11 +268,8 @@ class METypeItem:
     def __init__(
         self,
         morph_name,
-        layer=None,
-        fullmtype=None,
         etype=None,
         emodel_tpl=None,
-        combo_name=None,
         mtype=None,
         threshold_current=0,
         holding_current=0,
@@ -287,11 +281,8 @@ class METypeItem:
         scale=1.0,
     ):
         self.morph_name = morph_name
-        self.layer = layer
-        self.fullmtype = fullmtype
         self.etype = etype
         self.emodel_tpl = emodel_tpl
-        self.combo_name = combo_name
         self.mtype = mtype
         self.threshold_current = float(threshold_current)
         self.holding_current = float(holding_current)
