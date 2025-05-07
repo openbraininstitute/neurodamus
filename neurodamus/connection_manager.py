@@ -489,7 +489,7 @@ class ConnectionManagerBase:
         all_ranks_total = MPI.allreduce(configured_conns, MPI.SUM)
         if all_ranks_total > 0:
             logging.info(log_msg)
-            logging.info(f" => Configured {all_ranks_total:g} connections")
+            logging.info(" => Configured %s connections", all_ranks_total)
 
     def setup_delayed_connection(self, conn_config):
         raise NotImplementedError(

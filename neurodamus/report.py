@@ -45,7 +45,7 @@ def get_section_index(cell, section):
         index_str = section_name.split("[")[-1].rstrip("]")
         section_index = int(index_str)
     except ValueError:
-        logging.warning(f"Error while getting section index {index_str}")
+        logging.warning("Error while getting section index %s", index_str)
 
     return int(base_offset + section_index)
 
@@ -180,7 +180,9 @@ class Report:
         elif area_at_x:
             self.handle_intrinsic_current(section, x, alu_helper, mechanism, area_at_x)
         else:
-            logging.warning(f"Skipping intrinsic current '{mechanism}' at a location with area = 0")
+            logging.warning(
+                "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+            )
 
     def handle_point_processes(self, section, x, alu_helper, point_processes, variable):
         """Handle point processes for a given mechanism."""
@@ -206,7 +208,7 @@ class Report:
             alu_helper.addvar(var_ref, scalar)
         except AttributeError:
             if variable in self.INTRINSIC_CURRENTS:
-                logging.warning(f"Current '{variable}' does not exist at {obj}")
+                logging.warning("Current '%s' does not exist at %s", variable, obj)
 
     def setup_alu_for_summation(self, alu_x, collapsed):
         """Setup ALU helper for summation."""

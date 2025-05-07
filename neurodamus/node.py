@@ -473,7 +473,9 @@ class Node:
                 )
             for pop, ranks in alloc.items():
                 for rank, gids in ranks.items():
-                    logging.debug(f"Population: {pop}, Rank: {rank}, Number of GIDs: {len(gids)}")
+                    logging.debug(
+                        "Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids)
+                    )
             return alloc
 
         # Build load balancer as per requested options
@@ -1439,7 +1441,7 @@ class Node:
         )
         # Wait for rank0 to write the sim config file
         MPI.barrier()
-        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
+        logging.info(" => Dataset written to '%s'", CoreConfig.datadir)
 
     # -
     def run_all(self):
@@ -1703,7 +1705,7 @@ class Node:
         for file in current_dir.iterdir():
             if file.suffix in {".corenrn", ".nrn", ".nrndat"}:
                 shutil.move(str(file), output_root / file.name)
-                logging.info(f"Moved {file.name} to {output_root}")
+                logging.info("Moved %s to %s", file.name, output_root)
 
 
 class Neurodamus(Node):
@@ -1830,9 +1832,8 @@ class Neurodamus(Node):
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
 
-        logging.info(f" => {ncycles} files merged successfully")
+        logging.info(" => %s files merged successfully", ncycles)
 
-    # -
     def _coreneuron_restore(self):
         """Restore CoreNEURON simulation state.
 
@@ -1940,7 +1941,7 @@ class Neurodamus(Node):
             self._build_single_model()
             return
 
-        logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
+        logging.info("MULTI-CYCLE RUN: %s Cycles", self._n_cycles)
         target = self._target_manager.get_target(self._target_spec)
         TimerManager.archive(archive_name="Before Cycle Loop")
 

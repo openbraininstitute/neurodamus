@@ -199,7 +199,7 @@ class _CoreNEURONConfig:
         import struct
 
         num_gids = len(gids)
-        logging.info(f"Adding report {report_name} for CoreNEURON with {num_gids} gids")
+        logging.info("Adding report %s for CoreNEURON with %s gids", report_name, num_gids)
         report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
         with report_conf.open("ab") as fp:
@@ -255,7 +255,7 @@ class _CoreNEURONConfig:
             enable_reports (bool, optional): Flag to enable reports. Defaults to True.
         """
         simconf = Path(self.sim_config_file)
-        logging.info(f"Writing sim config file: {simconf}")
+        logging.info("Writing sim config file: %s", simconf)
         simconf.parent.mkdir(parents=True, exist_ok=True)
 
         with simconf.open("w") as fp:
@@ -277,7 +277,7 @@ class _CoreNEURONConfig:
                 fp.write(f"report-conf='{self.report_config_file_save}'\n")
             fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
 
-        logging.info(f" => Dataset written to '{simconf}'")
+        logging.info(" => Dataset written to '%s'", simconf)
 
     @run_only_rank0
     def write_report_count(self, count, mode="w"):
