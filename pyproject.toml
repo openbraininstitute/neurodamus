@@ -57,7 +57,7 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.flake8]
-exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox", "tests/simulations/ringtest/create_data.py"]
+exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
 extend-ignore = [
     "E127",  # continuation line over-indented for visual indent
     "E203",  # whitespace before ':'
