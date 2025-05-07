@@ -1,5 +1,5 @@
 import os
-import subprocess
+import shutil
 from pathlib import Path
 
 import psutil
@@ -43,7 +43,7 @@ class SHMUtil:
         SHMUtil.node_id = MPI.py_scatter(node_info, 0)
         SHMUtil.nnodes = MPI.py_broadcast((node_info[-1] + 1) if MPI.rank == 0 else 0, 0)
 
-        subprocess.call(["/bin/rm", "-rf", shmdir])
+        shutil.rmtree(shmdir, ignore_errors=True)
 
     @staticmethod
     def _get_approximate_node_rss():

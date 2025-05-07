@@ -7,7 +7,6 @@ import logging
 import math
 import os
 import shutil
-import subprocess
 import typing
 from collections import defaultdict
 from contextlib import contextmanager
@@ -1348,7 +1347,7 @@ class Node:
 
         # Clean-up any previous simulations in the same output directory
         if self._cycle_i == 0 and corenrn_datadir_shm:
-            subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
+            shutil.rmtree(corenrn_datadir_shm, ignore_errors=True)
 
         # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
         if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
@@ -1666,7 +1665,8 @@ class Node:
             # in restore, coreneuron data is a symbolic link
             data_folder.unlink()
         else:
-            subprocess.call(["/bin/rm", "-rf", str(data_folder)])
+            shutil.rmtree(data_folder, ignore_errors=True)
+
         build_path = Path(SimConfig.build_path())
         if build_path.exists():
             shutil.rmtree(build_path)
