@@ -130,15 +130,15 @@ def test_parse_seeds(create_tmp_simulation_config_file):
             "conditions": {
                 "modifications": [
                     {
-                        "name": "applyTTX",
-                        "node_set": "single",
-                        "type": "TTX"
-                    },
-                    {
                         "name": "no_SK_E2",
                         "node_set": "single",
                         "type": "ConfigureAllSections",
                         "section_configure": "%%s.gSK_E2bar_SK_E2 = 0"
+                    },
+                    {
+                        "name": "applyTTX",
+                        "node_set": "single",
+                        "type": "TTX"
                     }
                 ]
             }
@@ -149,6 +149,7 @@ def test_parse_modifications(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
     SimConfig.init(create_tmp_simulation_config_file, {})
+    assert list(SimConfig.modifications.keys()) == ["no_SK_E2", "applyTTX"]  # order preserved
     TTX_mod = SimConfig.modifications["applyTTX"]
     assert TTX_mod["Type"] == "TTX"
     assert TTX_mod["Target"] == "single"
