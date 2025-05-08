@@ -1,11 +1,10 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
 import logging
-from pathlib import Path
 from itertools import chain
+from pathlib import Path
 
 import libsonata
-import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -19,13 +18,11 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
-from itertools import chain
-
 
 class GlutList:
     """
-    GlutList is a list-like container that combines a standard list
-    (the body) with a separate tail element.
+    GlutList is a list-like container that combines a standard list (the body) with a
+    separate tail element.
 
     It behaves like a normal list with one extra element at the end,
     enabling efficient operations without shifting the tail.
@@ -33,12 +30,16 @@ class GlutList:
     comparison with lists, and conversion to a standard list.
     """
 
-    def __init__(self, body=[], tail=None):
+    __hash__ = None
+
+    def __init__(self, body=None, tail=None):
+        if body is None:
+            body = []
         self._body = list(body)
         self._tail = tail
-    
+
     def __len__(self):
-        return len(self._body)+1
+        return len(self._body) + 1
 
     def _sanitize_index(self, index):
         total_len = len(self)
@@ -51,20 +52,20 @@ class GlutList:
 
     def __getitem__(self, index):
         index = self._sanitize_index(index)
-        return self._body[index] if index != len(self)-1 else self._tail
+        return self._body[index] if index != len(self) - 1 else self._tail
 
     def append(self, item):
         self._body.append(item)
 
     def pop(self, index=-2):
         index = self._sanitize_index(index)
-        if index == len(self)-1:
-            raise IndexError(f"GlutList tail cannot be popped")
+        if index == len(self) - 1:
+            raise IndexError("GlutList tail cannot be popped")
         self._body.pop(index)
 
     def __setitem__(self, index, value):
         index = self._sanitize_index(index)
-        if index == len(self)-1:
+        if index == len(self) - 1:
             self._tail = value
         else:
             self._body.__setitem__(index, value)
@@ -74,12 +75,12 @@ class GlutList:
         yield self._tail
 
     def to_list(self):
-        return self._body + [self._tail]
-    
+        return [*self._body, self._tail]
+
     def __eq__(self, other):
         if isinstance(other, GlutList):
             return self._body == other._body and self._tail == other._tail
-        elif isinstance(other, list):
+        if isinstance(other, list):
             return self.to_list() == other
         return NotImplemented
 
@@ -92,14 +93,14 @@ class GlutList:
         self._tail = value
 
     def __str__(self):
-        return str(self._body + [self._tail])
+        return str(self.to_list())
+
 
 class Astrocyte(BaseCell):
-    __slots__ = ("_glut_list", "_glut_list2", "_nseg_warning", "_secidx2names")
+    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names")
 
     def __init__(self, gid, meinfos, circuit_conf):
-        """
-        Initialize an Astrocyte cell.
+        """Initialize an Astrocyte cell.
 
         - Load and attach morphology to the cell.
         - Insert a GlutReceive point process in every section.
@@ -110,15 +111,17 @@ class Astrocyte(BaseCell):
         super().__init__(gid, meinfos, None)
 
         # Compose the path to the morphology file
-        morph_file = Path(circuit_conf.MorphologyPath) / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+        morph_file = (
+            Path(circuit_conf.MorphologyPath)
+            / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+        )
 
         # Create the cell and load morphology
         self._cellref = Nd.Cell(gid)
         morph = MorphIOWrapper(morph_file)
         self._cellref.AddHocMorph(morph.morph_as_hoc())
 
-        self._glut_list = []
-        self._glut_list2 = GlutList()
+        self._glut_list = GlutList()
         self._nseg_warning = 0
 
         # Recalculate number of segments and sections
@@ -144,10 +147,8 @@ class Astrocyte(BaseCell):
         # Soma-specific glutamate receptor (must be last)
         soma = self._cellref.soma[0]
         soma.insert("cadifus")
-        # TODO
-        glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
-        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
-        self._glut_list.append(glut)
+        self._glut_list.tail = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
+        Nd.setpointer(self._glut_list.tail._ref_glut, "glu2", soma(0.5).cadifus)
 
         self._cellref.gid = gid
         self._secidx2names = morph.section_index2name_dict
@@ -235,21 +236,11 @@ class Astrocyte(BaseCell):
     #            sec(0.5).mcd.er_volume)
     #        )
 
-    # TODO
-    # def set_pointers(self):
-    #     glut_list = self._glut_list
-    #     c = self._cellref
-
-    #     for glut, sec in zip(glut_list, c.all):
-    #         Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-    #     soma = c.soma[0]
-    #     glut = glut_list[-1]
-    #     Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
-
     def set_pointers(self):
         c = self._cellref
         all_secs = chain(c.all, self.endfeet)
 
+        # just a safety check
         assert len(c.all) + len(self.endfeet) + 1 == len(self.glut_list)
 
         for glut, sec in zip(self._glut_list, all_secs):
@@ -257,17 +248,13 @@ class Astrocyte(BaseCell):
         soma = c.soma[0]
         Nd.setpointer(self._glut_list[-1]._ref_glut, "glu2", soma(0.5).cadifus)
 
-    # TODO
     @property
-    def glut_list(self) -> list:
+    def glut_list(self) -> GlutList:
         return self._glut_list
-    # @property
-    # def glut_list(self) -> GlutList:
-    #     return self._glut_list
 
-    # @glut_list.setter
-    # def glut_list(self, value: GlutList):
-    #     self._glut_list = value
+    @glut_list.setter
+    def glut_list(self, value: GlutList):
+        self._glut_list = value
 
     def connect2target(self, target_pp=None):
         return Nd.NetCon(self._cellref.soma[0](1)._ref_v, target_pp, sec=self._cellref.soma[0])
@@ -375,7 +362,6 @@ class NeuroGlialConnection(Connection):
 
             # Soma netcon (last glut_list)
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
-            # TODO
             netcon = pc.gid_connect(syn_gid, glut_list[-1])
             # netcon = pc.gid_connect(syn_gid, glut_list.tail)
             netcon.record(ustate_event_handler2(666))
@@ -624,9 +610,7 @@ class GlioVascularManager(ConnectionManagerBase):
                 glut = Nd.GlutReceive(sec(0.5), sec=sec)
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
                 # because soma glut must be the last
-                # TODO
-                astrocyte._glut_list.insert(len(astrocyte._glut_list) - 1, glut)
-                # astrocyte.glut_list.append(glut)
+                astrocyte.glut_list.append(glut)
                 name = astrocyte._secidx2names[parent_section_id + 1]
                 exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
                 # astrocyte.CellRef.all.append(sec)
