@@ -1,10 +1,10 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
 import logging
-from itertools import chain
-from pathlib import Path
+import os.path
 
 import libsonata
+import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -20,55 +20,18 @@ from .utils.pyutils import append_recarray, bin_search
 
 
 class Astrocyte(BaseCell):
-    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names", "_soma_glut")
+    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names")
 
     def __init__(self, gid, meinfos, circuit_conf):
         """Instantiate a new Cell from node info."""
         super().__init__(gid, meinfos, None)
-
-        # Load morphology file path
-        morph_file = (
-            Path(circuit_conf.MorphologyPath)
-            / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+        morpho_path = circuit_conf.MorphologyPath
+        morph_filename = meinfos.morph_name + "." + circuit_conf.MorphologyType
+        morph_file = os.path.join(morpho_path, morph_filename)
+        self._cellref, self._glut_list, self._secidx2names, self._nseg_warning = self._init_cell(
+            gid, morph_file
         )
-
-        # Create the NEURON cell and load its morphology
-        self._cellref = Nd.Cell(gid)
-        morph_wrapper = MorphIOWrapper(morph_file)
-        self._cellref.AddHocMorph(morph_wrapper.morph_as_hoc())
-
-        # Prepare data structures
-        self._glut_list = []
-        self._nseg_warning = 0  # will be set to 1 if any section had nseg > 1
-        self._secidx2names = morph_wrapper.section_index2name_dict
-
-        # Ensure correct geometry setup
-        self._cellref.geom_nseg_fixed()
-        self._cellref.geom_nsec()
-
-        logging.debug("Instantiating NGV cell gid=%d", gid)
-
-        # Process each section: limit nseg to 1 and insert cadifus + GlutReceive
-        for sec in self._cellref.all:
-            if sec.nseg > 1:
-                self._nseg_warning = 1
-                sec.nseg = 1
-
-            sec.insert("cadifus")
-            glut = Nd.GlutReceive(sec(0.5), sec=sec)
-            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-            self._glut_list.append(glut)
-
-        # Apply extra hoc commands for ER and section parameters
-        self._cellref.execute_commands(self._er_as_hoc(morph_wrapper))
-        self._cellref.execute_commands(self._secparams_as_hoc(morph_wrapper))
-
-        # Special handling for soma: insert GlutReceiveSoma and append last
-        soma = self._cellref.soma[0]
-        soma.insert("cadifus")
-        glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
-        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
-        self._soma_glut = glut
+        self._cellref.gid = gid
 
     @property
     def gid(self) -> int:
@@ -122,6 +85,38 @@ class Astrocyte(BaseCell):
         return cmds
 
     @staticmethod
+    def _truncated_cone_surface_areas(perimeters, seg_lengths):
+        radii = perimeters / (2.0 * np.pi)
+        radii_starts = radii[:-1]
+        radii_ends = radii[1:]
+        slant_heights = np.sqrt(seg_lengths**2 + (radii_ends - radii_starts) ** 2)
+        return np.pi * (radii_starts + radii_ends) * slant_heights
+
+    @staticmethod
+    def _truncated_cone_volumes(diameters, seg_lengths):
+        r_begs = 0.5 * diameters[:-1]
+        r_ends = 0.5 * diameters[1:]
+        return (1.0 / 3.0) * np.pi * (r_begs**2 + r_begs * r_ends + r_ends**2) * seg_lengths
+
+    @staticmethod
+    def _mcd_section_parameters(section):
+        points = section.points
+        diameters = section.diameters
+        perimeters = section.perimeters
+
+        segment_lengths = np.linalg.norm(points[1:] - points[:-1], axis=1)
+        segment_volumes = Astrocyte._truncated_cone_volumes(diameters, segment_lengths)
+        segment_surface_areas = Astrocyte._truncated_cone_surface_areas(perimeters, segment_lengths)
+
+        total_length = segment_lengths.sum()
+
+        # representing the entire section as a single cylinder
+        perimeter = segment_surface_areas.sum() / total_length
+        cross_sectional_area = segment_volumes.sum() / total_length
+
+        return section.id, perimeter, cross_sectional_area
+
+    @staticmethod
     def _secparams_as_hoc(_morph_wrap):
         """Create hoc commands for section parameters (perimeters & cross-sectional area)
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
@@ -138,6 +133,48 @@ class Astrocyte(BaseCell):
         #     for morph_sec_index, sec_perimeter, sec_xsect_area in
         #     (Astrocyte._mcd_section_parameters(sec) for sec in morph_wrap.morph.sections)))
         return cmds
+
+    @staticmethod
+    def _init_cell(gid, morph_file):
+        c = Nd.Cell(gid)
+        m = MorphIOWrapper(morph_file)
+        c.AddHocMorph(m.morph_as_hoc())
+
+        glut_list = []
+        c.geom_nseg_fixed()
+        c.geom_nsec()  # To recount all sections
+
+        # Insert mechanisms and populate holder lists
+        logging.debug("Instantiating NGV cell gid=%d", gid)
+
+        nseg_reduce_instance = 0  # temporary field until proper handling of nseg > 1 implemented
+
+        for sec in c.all:
+            if sec.nseg > 1:
+                nseg_reduce_instance = 1
+                sec.nseg = 1
+            sec.insert("cadifus")
+            glut = Nd.GlutReceive(sec(0.5), sec=sec)
+            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+            glut_list.append(glut)
+
+        # Endoplasmic reticulum
+        c.execute_commands(Astrocyte._er_as_hoc(m))
+
+        # Section parameters (perimeters & cross-sectional area)
+        c.execute_commands(Astrocyte._secparams_as_hoc(m))
+
+        # Print out mcd section parameters
+        # for sec in c.all:
+        #     self._show_mcd()
+
+        # Soma receiver must be last element in the glut_list
+        soma = c.soma[0]
+        soma.insert("cadifus")
+        glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
+        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
+        glut_list.append(glut)
+        return c, glut_list, m.section_index2name_dict, nseg_reduce_instance
 
     def _show_mcd(sec):
         if not hasattr(sec(0.5), "cadfifus"):
@@ -156,19 +193,19 @@ class Astrocyte(BaseCell):
     def set_pointers(self):
         glut_list = self._glut_list
         c = self._cellref
+        index = 0
 
-        for index, sec in enumerate(c.all):
+        for sec in c.all:
             glut = glut_list[index]
+            index += 1
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-
-        # set the soma pointer
         soma = c.soma[0]
-        glut = self._soma_glut
+        glut = glut_list[index]
         Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
 
     @property
     def glut_list(self) -> list:
-        return chain(self._glut_list, [self._soma_glut])
+        return self._glut_list
 
     def connect2target(self, target_pp=None):
         return Nd.NetCon(self._cellref.soma[0](1)._ref_v, target_pp, sec=self._cellref.soma[0])
@@ -276,7 +313,7 @@ class NeuroGlialConnection(Connection):
 
             # Soma netcon (last glut_list)
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
-            netcon = pc.gid_connect(syn_gid, astrocyte._soma_glut)
+            netcon = pc.gid_connect(syn_gid, glut_list[-1])
             netcon.record(ustate_event_handler2(666))
             netcon.delay = 0.05
             self._netcons.append(netcon)
@@ -523,7 +560,7 @@ class GlioVascularManager(ConnectionManagerBase):
                 glut = Nd.GlutReceive(sec(0.5), sec=sec)
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
                 # because soma glut must be the last
-                astrocyte._glut_list.append(glut)
+                astrocyte._glut_list.insert(len(astrocyte._glut_list) - 1, glut)
                 name = astrocyte._secidx2names[parent_section_id + 1]
                 exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
                 # astrocyte.CellRef.all.append(sec)
