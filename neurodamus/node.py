@@ -768,16 +768,8 @@ class Node:
         logging.info("Instantiating Stimulus Injects:")
 
         for name, inject in SimConfig.injects.items():
-            target_spec = (
-                TargetSpec(inject.get("Target"))
-                if isinstance(inject.get("Target"), str)
-                else TargetSpec(inject.get("Target").s)
-            )
-            stim_name = (
-                inject.get("Stimulus")
-                if isinstance(inject.get("Stimulus"), str)
-                else inject.get("Stimulus").s
-            )
+            target_spec = TargetSpec(inject.get("Target"))
+            stim_name = inject.get("Stimulus")
             stim = stim_dict.get(stim_name)
             if stim is None:
                 raise ConfigurationError(
