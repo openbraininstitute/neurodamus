@@ -57,6 +57,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
+from neurodamus.utils.pyutils import rmtree
 
 
 class METypeEngine(EngineBase):
@@ -1347,7 +1348,7 @@ class Node:
 
         # Clean-up any previous simulations in the same output directory
         if self._cycle_i == 0 and corenrn_datadir_shm:
-            shutil.rmtree(corenrn_datadir_shm, ignore_errors=True)
+            rmtree(corenrn_datadir_shm)
 
         # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
         if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
@@ -1665,7 +1666,7 @@ class Node:
             # in restore, coreneuron data is a symbolic link
             data_folder.unlink()
         else:
-            shutil.rmtree(data_folder, ignore_errors=True)
+            rmtree(data_folder)
 
         build_path = Path(SimConfig.build_path())
         if build_path.exists():
