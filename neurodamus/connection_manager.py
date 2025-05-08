@@ -304,10 +304,9 @@ class ConnectionManagerBase:
         self._unlock_all_connections()  # Allow appending synapses from new sources
         return synapse_file
 
-    # - override if needed
     def _open_synapse_file(self, synapse_file, pop_name):
         logging.debug("Opening Synapse file %s, population: %s", synapse_file, pop_name)
-        return self.SynapseReader.create(
+        return self.SynapseReader(
             synapse_file, pop_name, extracellular_calcium=SimConfig.extracellular_calcium
         )
 

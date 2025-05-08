@@ -8,8 +8,8 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 def test_gapjunction_sonata_reader():
     from neurodamus.gap_junction import GapJunctionSynapseReader
-    sonata_file = str(SIM_DIR / "mini_thalamus_sonata/gapjunction/edges.h5")
-    sonata_reader = GapJunctionSynapseReader.create(sonata_file)
+    sonata_file = SIM_DIR / "mini_thalamus_sonata/gapjunction/edges.h5"
+    sonata_reader = GapJunctionSynapseReader(sonata_file)
     syn_params_sonata = sonata_reader._load_synapse_parameters(1)
     ref_junction_id_pre = np.array([10257., 43930., 226003., 298841., 324744.,
                                     1094745., 1167632., 1172523., 1260104.])
@@ -22,7 +22,7 @@ def test_gapjunction_sonata_reader():
 
 def test_syn_read_counts():
     from neurodamus.io.synapse_reader import SonataReader
-    sonata_file = str(SIM_DIR / "usecase3/local_edges_A.h5")
+    sonata_file = SIM_DIR / "usecase3/local_edges_A.h5"
     reader = SonataReader(sonata_file, "NodeA__NodeA__chemical")
 
     full_counts = reader.get_counts(np.array([1, 2, 3], dtype=int))
@@ -57,7 +57,7 @@ def test_conn_manager_syn_stats():
     from neurodamus.target_manager import NodesetTarget
     from neurodamus.utils.memory import DryRunStats
 
-    sonata_file = str(SIM_DIR / "usecase3/local_edges_A.h5")
+    sonata_file = SIM_DIR / "usecase3/local_edges_A.h5"
     cell_manager = Mock(CellDistributor)
     cell_manager.population_name = "pop-A"
 

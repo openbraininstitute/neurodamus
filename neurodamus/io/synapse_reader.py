@@ -7,7 +7,7 @@ import logging
 import libsonata
 import numpy as np
 
-from neurodamus.core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar
+from neurodamus.core import NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import gen_ranges
 
@@ -118,38 +118,15 @@ class SonataReader:
         "conductance_ratio": "conductance_scale_factor",
     }
 
-    def __init__(self, src, population=None, *_, **kw):
+    def __init__(self, edge_file, population=None, *_, **kw):
         self._ca_concentration = kw.get("extracellular_calcium")
         self._syn_params = {}  # Parameters cache by post-gid (previously loadedMap)
-        self._open_file(src, population, kw.get("verbose", False))
+        self._open_file(edge_file, population, kw.get("verbose", False))
         # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
         # while u_hill_coefficient can always be readif avail, conductance reader may not.
         self._uhill_property_avail = self.has_property("u_hill_coefficient")
         self._extra_fields = ()
         self._extra_scale_vars = []
-
-    @staticmethod
-    def _get_sonata_circuit(path):
-        """Returns a SONATA edge file in path if present"""
-        if path.endswith(".h5"):
-            import h5py
-
-            f = h5py.File(path, "r")
-            if "edges" in f:
-                return path
-        return None
-
-    @classmethod
-    def create(cls, syn_src, population=None, *args, **kw):
-        """Instantiates a synapse reader, by default SonataReader.
-        syn_src must point to a SONATA edge file.
-        """
-        kw["verbose"] = MPI.rank == 0
-        if fn := cls._get_sonata_circuit(syn_src):
-            if cls is not SonataReader:
-                return cls(fn, population, *args, **kw)
-            return SonataReader(fn, population, *args, **kw)
-        raise FormatNotSupported(f"File: {syn_src}. Please provide SONATA edges")
 
     def configure_override(self, mod_override):
         if not mod_override:
