@@ -249,6 +249,9 @@ class Astrocyte(BaseCell):
     def set_pointers(self):
         c = self._cellref
         all_secs = chain(c.all, self.endfeet)
+
+        assert len(c.all) + len(self.endfeet) + 1 == len(self.glut_list)
+
         for glut, sec in zip(self._glut_list, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
         soma = c.soma[0]
