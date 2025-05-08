@@ -20,9 +20,8 @@ from .utils.pyutils import append_recarray, bin_search
 
 
 class GlutList:
-    """
-    GlutList is a list-like container that combines a standard list (the body) with a
-    separate tail element.
+    """GlutList is a list-like container that combines a standard
+    list (the body) with a separate tail element.
 
     It behaves like a normal list with one extra element at the end,
     enabling efficient operations without shifting the tail.
