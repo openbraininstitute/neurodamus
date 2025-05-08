@@ -99,7 +99,8 @@ class GapJunctionManager(ConnectionManagerBase):
                     self.seclamp_current_per_gid_recorder[gid] = Nd.h.Vector()
                     self.seclamp_current_per_gid_recorder[gid].record(seclamp._ref_i)
 
-    def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
+    @staticmethod
+    def _finalize_conns(_final_tgid, conns, *_, **_kw):
         for conn in reversed(conns):
             conn.finalize_gap_junctions()
         return len(conns)

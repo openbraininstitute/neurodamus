@@ -142,7 +142,7 @@ class SignalSource:
         return self
 
     def add_sinspec(self, start, dur):
-        raise NotImplementedError
+        raise NotImplementedError("add_sinspec not implemented")
 
     def add_pulses(self, pulse_duration, amp, *more_amps, **kw):
         """Appends a set of pulsed signals without returning to zero

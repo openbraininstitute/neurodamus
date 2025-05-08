@@ -54,11 +54,13 @@ class StimulusManager:
         stim = stim_t(target, stim_info, cell_manager)
         self._stimulus.append(stim)
 
-    def interpret_extracellulars(self, injects, stimuli):
+    @staticmethod
+    def interpret_extracellulars(_injects, _stimuli):
         """Pending for BBPBGLIB-890"""
         raise ConfigurationError("input_type extracellular_stimulation is not implemented")
 
-    def reset_helpers(self):
+    @staticmethod
+    def reset_helpers():
         ShotNoise.stimCount = 0
         Noise.stimCount = 0
         OrnsteinUhlenbeck.stimCount = 0
@@ -172,7 +174,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
         self.mean = float(stim_info["Mean"])  # signal mean [uS]
         if self.mean < 0 and abs(self.mean) > 2 * self.sigma:
-            logging.warning(f"{self.__class__.__name__} signal is mostly zero")
+            logging.warning("%s signal is mostly zero", self.__class__.__name__)
 
         return True
 
@@ -213,7 +215,7 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
 
         self.mean = (self.mean_perc / 100) * rel_prop  # signal mean [nA or uS]
         if self.mean < 0 and abs(self.mean) > 2 * self.sigma:
-            logging.warning(f"{self.__class__.__name__} signal is mostly zero")
+            logging.warning("%s signal is mostly zero", self.__class__.__name__)
 
         return True
 
@@ -398,7 +400,7 @@ class RelativeShotNoise(ShotNoise):
             raise Exception(f"{self.__class__.__name__} stdev percent must be positive")
         if self.sd_perc < 1:
             logging.warning(
-                f"{self.__class__.__name__} stdev percent too small gives a very high event rate"
+                "%s stdev percent too small gives a very high event rate", self.__class__.__name__
             )
 
         # relative skewness of signal as a [0,1] fraction [1]
@@ -510,7 +512,8 @@ class Hyperpolarizing(Linear):
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
 
-    def parse_check_all_parameters(self, stim_info: dict):
+    @staticmethod
+    def parse_check_all_parameters(_stim_info: dict):
         return True
 
     def compute_parameters(self, cell):
@@ -778,4 +781,4 @@ class SEClamp(BaseStim):
         self.vhold = float(stim_info["Voltage"])  # holding voltage [mV]
         self.rs = float(stim_info.get("RS", 0.01))  # series resistance [MOhm]
         if self.delay > 0:
-            logging.warning(f"{self.__class__.__name__} ignores delay")
+            logging.warning("%s ignores delay", self.__class__.__name__)
