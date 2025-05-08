@@ -5,7 +5,7 @@ import numpy.testing as npt
 
 from tests.conftest import NGV_DIR
 from neurodamus import Neurodamus
-from neurodamus.ngv import GlioVascularManager
+from neurodamus.ngv import GlioVascularManager, GlutList
 
 
 def get_Rad(astro_id, manager):
@@ -21,6 +21,21 @@ def get_R0pas(astro_id, manager):
         return []
     return [sec(0.5).vascouplingB.R0pas for sec in astrocyte.endfeet]
 
+def test_glut_list():
+    """Test base functionality of glut_list"""
+    l = GlutList(range(5), -1)
+    assert l == [0, 1, 2, 3, 4, -1]
+    l.pop()
+    assert l == [0, 1, 2, 3, -1]
+    l.append(10)
+    assert l == [0, 1, 2, 3, 10, -1]
+    l[2] = 100
+    assert l == [0, 1, 100, 3, 10, -1]
+    l[-1] = -2
+    assert l == [0, 1, 100, 3, 10, -2]
+    assert l.tail == -2
+    l.tail = -3
+    assert l == [0, 1, 100, 3, 10, -3]
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -65,12 +80,12 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file):
 
     # Check AstrocytesA spikes
     spike_gid_ref = np.array([1, 2])
-    timestamps_ref = np.array([5.475, 6.725])
+    timestamps_ref = np.array([5.25, 6.275])
     astrocyteA_spikes = n._spike_vecs[1]
     timestamps = np.array(astrocyteA_spikes[0])
     spike_gids = np.array(astrocyteA_spikes[1])
-    npt.assert_equal(spike_gid_ref, spike_gids)
-    npt.assert_allclose(timestamps_ref, timestamps)
+    npt.assert_equal(spike_gids, spike_gid_ref)
+    npt.assert_allclose(timestamps, timestamps_ref)
 
     # Check Rad variation
     Rad_ref = np.array(
