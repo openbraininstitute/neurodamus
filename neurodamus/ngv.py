@@ -1,7 +1,8 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
 import logging
-import os.path
+from pathlib import Path
+from itertools import chain
 
 import libsonata
 import numpy as np
@@ -20,18 +21,60 @@ from .utils.pyutils import append_recarray, bin_search
 
 
 class Astrocyte(BaseCell):
-    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names")
+    __slots__ = ("_glut_list", "_soma_glut", "_nseg_warning", "_secidx2names")
 
     def __init__(self, gid, meinfos, circuit_conf):
-        """Instantiate a new Cell from node info."""
+        """
+        Initialize an Astrocyte cell.
+
+        - Load and attach morphology to the cell.
+        - Insert a GlutReceive point process in every section.
+        - Insert the cadifus mechanism in every section.
+        - Connect GlutReceive to cadifus using a pointer.
+        - Insert a GlutReceiveSoma in the soma (used only for recording).
+        """
         super().__init__(gid, meinfos, None)
-        morpho_path = circuit_conf.MorphologyPath
-        morph_filename = meinfos.morph_name + "." + circuit_conf.MorphologyType
-        morph_file = os.path.join(morpho_path, morph_filename)
-        self._cellref, self._glut_list, self._secidx2names, self._nseg_warning = self._init_cell(
-            gid, morph_file
-        )
+
+        # Compose the path to the morphology file
+        morph_file = Path(circuit_conf.MorphologyPath) / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
+
+        # Create the cell and load morphology
+        self._cellref = Nd.Cell(gid)
+        morph = MorphIOWrapper(morph_file)
+        self._cellref.AddHocMorph(morph.morph_as_hoc())
+
+        self._glut_list = []
+        self._nseg_warning = 0
+
+        # Recalculate number of segments and sections
+        self._cellref.geom_nseg_fixed()
+        self._cellref.geom_nsec()
+
+        logging.debug("Instantiating NGV cell gid=%d", gid)
+
+        # Insert mechanisms and glutamate receptors in each section
+        for sec in self._cellref.all:
+            if sec.nseg > 1:
+                self._nseg_warning = 1
+                sec.nseg = 1
+            sec.insert("cadifus")
+            glut = Nd.GlutReceive(sec(0.5), sec=sec)
+            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+            self._glut_list.append(glut)
+
+        # Configure endoplasmic reticulum and section parameters
+        self._cellref.execute_commands(self._er_as_hoc(morph))
+        self._cellref.execute_commands(self._secparams_as_hoc(morph))
+
+        # Soma-specific glutamate receptor (must be last)
+        soma = self._cellref.soma[0]
+        soma.insert("cadifus")
+        self._soma_glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
+        Nd.setpointer(self._soma_glut._ref_glut, "glu2", soma(0.5).cadifus)
+        self._glut_list.append(self._soma_glut)
+
         self._cellref.gid = gid
+        self._secidx2names = morph.section_index2name_dict
 
     @property
     def gid(self) -> int:
@@ -85,38 +128,6 @@ class Astrocyte(BaseCell):
         return cmds
 
     @staticmethod
-    def _truncated_cone_surface_areas(perimeters, seg_lengths):
-        radii = perimeters / (2.0 * np.pi)
-        radii_starts = radii[:-1]
-        radii_ends = radii[1:]
-        slant_heights = np.sqrt(seg_lengths**2 + (radii_ends - radii_starts) ** 2)
-        return np.pi * (radii_starts + radii_ends) * slant_heights
-
-    @staticmethod
-    def _truncated_cone_volumes(diameters, seg_lengths):
-        r_begs = 0.5 * diameters[:-1]
-        r_ends = 0.5 * diameters[1:]
-        return (1.0 / 3.0) * np.pi * (r_begs**2 + r_begs * r_ends + r_ends**2) * seg_lengths
-
-    @staticmethod
-    def _mcd_section_parameters(section):
-        points = section.points
-        diameters = section.diameters
-        perimeters = section.perimeters
-
-        segment_lengths = np.linalg.norm(points[1:] - points[:-1], axis=1)
-        segment_volumes = Astrocyte._truncated_cone_volumes(diameters, segment_lengths)
-        segment_surface_areas = Astrocyte._truncated_cone_surface_areas(perimeters, segment_lengths)
-
-        total_length = segment_lengths.sum()
-
-        # representing the entire section as a single cylinder
-        perimeter = segment_surface_areas.sum() / total_length
-        cross_sectional_area = segment_volumes.sum() / total_length
-
-        return section.id, perimeter, cross_sectional_area
-
-    @staticmethod
     def _secparams_as_hoc(_morph_wrap):
         """Create hoc commands for section parameters (perimeters & cross-sectional area)
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
@@ -133,48 +144,6 @@ class Astrocyte(BaseCell):
         #     for morph_sec_index, sec_perimeter, sec_xsect_area in
         #     (Astrocyte._mcd_section_parameters(sec) for sec in morph_wrap.morph.sections)))
         return cmds
-
-    @staticmethod
-    def _init_cell(gid, morph_file):
-        c = Nd.Cell(gid)
-        m = MorphIOWrapper(morph_file)
-        c.AddHocMorph(m.morph_as_hoc())
-
-        glut_list = []
-        c.geom_nseg_fixed()
-        c.geom_nsec()  # To recount all sections
-
-        # Insert mechanisms and populate holder lists
-        logging.debug("Instantiating NGV cell gid=%d", gid)
-
-        nseg_reduce_instance = 0  # temporary field until proper handling of nseg > 1 implemented
-
-        for sec in c.all:
-            if sec.nseg > 1:
-                nseg_reduce_instance = 1
-                sec.nseg = 1
-            sec.insert("cadifus")
-            glut = Nd.GlutReceive(sec(0.5), sec=sec)
-            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-            glut_list.append(glut)
-
-        # Endoplasmic reticulum
-        c.execute_commands(Astrocyte._er_as_hoc(m))
-
-        # Section parameters (perimeters & cross-sectional area)
-        c.execute_commands(Astrocyte._secparams_as_hoc(m))
-
-        # Print out mcd section parameters
-        # for sec in c.all:
-        #     self._show_mcd()
-
-        # Soma receiver must be last element in the glut_list
-        soma = c.soma[0]
-        soma.insert("cadifus")
-        glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
-        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
-        glut_list.append(glut)
-        return c, glut_list, m.section_index2name_dict, nseg_reduce_instance
 
     def _show_mcd(sec):
         if not hasattr(sec(0.5), "cadfifus"):
