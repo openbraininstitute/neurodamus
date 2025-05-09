@@ -302,6 +302,7 @@ def test_shot_noise(ringtest_stimulus_manager):
     assert np.isclose(stimulus.amp_mean, 20)
     assert np.isclose(stimulus.amp_var, 10)
     assert np.isclose(stimulus.rate, 1000)
+    assert stimulus.seed is None
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
@@ -313,8 +314,10 @@ def test_shot_noise(ringtest_stimulus_manager):
 
     # Conductance Mode
     stim_info["Mode"] = "Conductance"
+    stim_info["Seed"] = 1234
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[1]
+    assert np.isclose(stimulus.seed, 1234)
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.ConductanceSource)
     npt.assert_allclose(
@@ -324,13 +327,13 @@ def test_shot_noise(ringtest_stimulus_manager):
             0,
             0,
             0,
-            10.789501,
-            4.041935,
-            18.436711,
-            6.896693,
-            15.431213,
-            5.763706,
-            2.120934,
+            0,
+            11.314508,
+            4.238611,
+            1.559812,
+            0.573826,
+            13.855738,
+            5.189178,
             0,
         ],
         atol=1e-6,
@@ -839,3 +842,41 @@ def test_errorhandling_absolute_shot_noise(ringtest_stimulus_manager):
     }
     with pytest.raises(Exception, match=r"AbsoluteShotNoise relative skewness must be in \[0,1\]"):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_warning_ornsteinuhlenbeck(caplog, ringtest_stimulus_manager):
+    """Warning on negativte mean + abs(mean)<2*sigma"""
+
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "Mean": -10,
+        "Sigma": 1,
+    }
+    with caplog.at_level(logging.WARNING):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+        assert "OrnsteinUhlenbeck signal is mostly zero" in caplog.text
+
+
+def test_warning_relative_ornsteinuhlenbeck(caplog, ringtest_stimulus_manager):
+    """Warning on negativte mean + abs(mean)<2*sigma"""
+
+    stim_info = {
+        "Pattern": "RelativeOrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "MeanPercent": -10,
+        "SDPercent": 1,
+    }
+    with caplog.at_level(logging.WARNING):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+        assert "RelativeOrnsteinUhlenbeck signal is mostly zero" in caplog.text
