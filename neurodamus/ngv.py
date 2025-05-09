@@ -19,17 +19,6 @@ from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
 
-# removeme
-def inspect(v):
-    print("------------")
-    print(v, type(v))
-    for i in dir(v):
-        if i.startswith("__"):
-            continue
-        print(f"{i}: {getattr(v, i)}")
-    print("------------")
-
-
 class GlutList:
     """GlutList is a list-like container that combines a standard
     list (the body) with a separate tail element.
