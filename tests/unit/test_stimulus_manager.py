@@ -61,8 +61,8 @@ def test_reletive_linear(ringtest_stimulus_manager):
     assert len(ringtest_stimulus_manager._stimulus) == 1
     stimulus = ringtest_stimulus_manager._stimulus[0]
     assert isinstance(stimulus, smng.RelativeLinear)
-    np.isclose(stimulus.amp_start, 6.6)
-    np.isclose(stimulus.amp_end, 6.6)
+    assert np.isclose(stimulus.amp_start, 6.6)
+    assert np.isclose(stimulus.amp_end, 6.6)
     assert len(stimulus.stimList) == 3
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
@@ -135,8 +135,8 @@ def test_subthreshold(ringtest_stimulus_manager):
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[0]
     assert isinstance(stimulus, smng.SubThreshold)
-    np.isclose(stimulus.amp_start, 59.4)
-    np.isclose(stimulus.amp_end, 59.4)
+    assert np.isclose(stimulus.amp_start, 59.4)
+    assert np.isclose(stimulus.amp_end, 59.4)
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(signal_source.stim_vec, [0, 59.4, 59.4, 0])
@@ -153,8 +153,8 @@ def test_hyperpolarizing(ringtest_stimulus_manager):
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[0]
     assert isinstance(stimulus, smng.Hyperpolarizing)
-    np.isclose(stimulus.amp_start, 88)
-    np.isclose(stimulus.amp_end, 88)
+    assert np.isclose(stimulus.amp_start, 88)
+    assert np.isclose(stimulus.amp_end, 88)
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(signal_source.stim_vec, [0, 88, 88, 0])
@@ -166,7 +166,7 @@ def test_seclamp(caplog, ringtest_stimulus_manager):
         "Pattern": "SEClamp",
         "Mode": "Voltage",
         "Voltage": 5.0,
-        "SeriesResistance": 0.1,
+        "RS": 0.1,
         "Duration": 10,
         "Delay": 1,
     }
@@ -179,9 +179,9 @@ def test_seclamp(caplog, ringtest_stimulus_manager):
     assert isinstance(stimulus, smng.SEClamp)
     signal_source = stimulus.stimList[0]
     assert signal_source.hname() == "SEClamp[0]"
-    np.isclose(signal_source.rs, 0.1)
-    np.isclose(signal_source.dur1, 10)
-    np.isclose(signal_source.amp1, 5)
+    assert np.isclose(signal_source.rs, 0.1)
+    assert np.isclose(signal_source.dur1, 10)
+    assert np.isclose(signal_source.amp1, 5)
 
 
 def test_noise(ringtest_stimulus_manager):
@@ -197,9 +197,9 @@ def test_noise(ringtest_stimulus_manager):
     ringtest_stimulus_manager.interpret(target_onecell, stim_info1)
     stimulus = ringtest_stimulus_manager._stimulus[0]
     assert isinstance(stimulus, smng.Noise)
-    np.isclose(stimulus.mean, 5)
-    np.isclose(stimulus.var, 0.1)
-    np.isclose(stimulus.dt, 0.5)  # no Dt in SONATA spec for noise, so always default 0.5
+    assert np.isclose(stimulus.mean, 5)
+    assert np.isclose(stimulus.var, 0.1)
+    assert np.isclose(stimulus.dt, 0.5)  # no Dt in SONATA spec for noise, so always default 0.5
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
@@ -261,3 +261,265 @@ def test_noise(ringtest_stimulus_manager):
     npt.assert_allclose(
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
     )
+
+
+def test_shot_noise(ringtest_stimulus_manager):
+    # Current Mode
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Current",
+        "Duration": 4,
+        "Delay": 1,
+        "Dt": 0.5,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "AmpMean": 20,
+        "AmpVar": 10,
+        "Rate": 1000,
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.ShotNoise)
+    assert np.isclose(stimulus.amp_mean, 20)
+    assert np.isclose(stimulus.amp_var, 10)
+    assert np.isclose(stimulus.rate, 1000)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    npt.assert_allclose(
+        signal_source.stim_vec,
+        [0, 0, 0, 0, 0, 0, 15.809228, 5.922412, 2.179451, 0.80178, 16.902339, 0],
+        atol=1e-6,
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5])
+
+    # Conductance Mode
+    stim_info["Mode"] = "Conductance"
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[1]
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.ConductanceSource)
+    npt.assert_allclose(
+        signal_source.stim_vec,
+        [
+            0,
+            0,
+            0,
+            0,
+            10.789501,
+            4.041935,
+            18.436711,
+            6.896693,
+            15.431213,
+            5.763706,
+            2.120934,
+            0,
+        ],
+        atol=1e-6,
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5])
+
+
+def test_relative_shot_noise(ringtest_stimulus_manager):
+    # Current Mode
+    stim_info = {
+        "Pattern": "RelativeShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "MeanPercent": 20,
+        "SDPercent": 0.5,
+        "RelativeSkew": 0.1,
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.RelativeShotNoise)
+    assert np.isclose(stimulus.amp_mean, 0.011917)
+    assert np.isclose(stimulus.amp_var, 1.57793e-5)
+    assert np.isclose(stimulus.rate, 1481481.48)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    npt.assert_allclose(
+        signal_source.stim_vec,
+        [
+            0,
+            0,
+            0,
+            2.244623,
+            5.828031,
+            8.581348,
+            9.838848,
+            10.419317,
+            11.512229,
+            11.929373,
+            0,
+        ],
+        atol=1e-6,
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2])
+
+    # Conductance Mode, cell must contain attribute input_resistance
+    stim_info["Mode"] = "Conductance"
+    with pytest.raises(AttributeError, match="input_resistance"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    # add dummy "input_resistance" in the target cell, try again
+    cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
+    cell = cell_manager.get_cell(2)
+    cell.extra_attrs["input_resistance"] = 0.01
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[1]
+    assert np.isclose(stimulus.amp_mean, 0.01805599)
+    assert np.isclose(stimulus.amp_var, 3.62243e-05)
+    assert np.isclose(stimulus.rate, 1481481.48)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.ConductanceSource)
+    npt.assert_allclose(
+        signal_source.stim_vec,
+        [
+            0,
+            0,
+            0,
+            3.020382,
+            8.752334,
+            12.78625,
+            15.184817,
+            16.831108,
+            16.9444,
+            17.017716,
+            0,
+        ],
+        atol=1e-6,
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2])
+
+
+def test_absolute_shot_noise(ringtest_stimulus_manager):
+    # Current Mode
+    stim_info = {
+        "Pattern": "AbsoluteShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "Mean": 10,
+        "Sigma": 1,
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.AbsoluteShotNoise)
+    assert np.isclose(stimulus.amp_mean, 0.08024884)
+    assert np.isclose(stimulus.amp_var, 0.0064399)
+    assert np.isclose(stimulus.rate, 166666.67)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0, 0, 0, 2.987401, 5.837131, 7.698501, 0], atol=1e-6
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+    # Conductance Mode
+    stim_info["Mode"] = "Conductance"
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[1]
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.ConductanceSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0, 0, 0, 1.961163, 4.489483, 7.321958, 0], atol=1e-6
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+
+def test_ornstein_uhlenbeck(ringtest_stimulus_manager):
+    # Current Mode
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "Mean": 10,
+        "Sigma": 1,
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.OrnsteinUhlenbeck)
+    assert np.isclose(stimulus.tau, 2.7)
+    assert stimulus.seed is None
+    assert np.isclose(stimulus.mean, 10)
+    assert np.isclose(stimulus.sigma, 1)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0, 10, 10.847061, 11.000316, 10.01365, 9.830591, 0], atol=1e-6
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+    # Conductance Mode
+    stim_info["Mode"] = "Conductance"
+    stim_info["Seed"] = 1234
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[1]
+    assert np.isclose(stimulus.tau, 2.7)
+    assert np.isclose(stimulus.seed, 1234)
+    assert np.isclose(stimulus.mean, 10)
+    assert np.isclose(stimulus.sigma, 1)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.ConductanceSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0.1, 10, 9.637036, 9.793568, 10.338998, 10.374755, 0.1], atol=1e-6
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+
+def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
+    # Current Mode
+    stim_info = {
+        "Pattern": "RelativeOrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "MeanPercent": 10,
+        "SDPercent": 1,
+        "Seed": 5678,
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.RelativeOrnsteinUhlenbeck)
+    assert np.isclose(stimulus.tau, 2.7)
+    assert np.isclose(stimulus.seed, 5678)
+    assert np.isclose(stimulus.mean, 6.6)
+    assert np.isclose(stimulus.sigma, 0.66)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0.0, 6.6, 6.168779, 6.035724, 6.643255, 6.56104, 0.0]
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+    # Conductance Mode, cell must contain attribute input_resistance
+    stim_info["Mode"] = "Conductance"
+    with pytest.raises(AttributeError, match="input_resistance"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    # add dummy "input_resistance" in the target cell, try again
+    cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
+    cell = cell_manager.get_cell(2)
+    cell.extra_attrs["input_resistance"] = 0.02
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    stimulus = ringtest_stimulus_manager._stimulus[1]
+    assert np.isclose(stimulus.tau, 2.7)
+    assert np.isclose(stimulus.mean, 5)
+    assert np.isclose(stimulus.sigma, 0.5)
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.ConductanceSource)
+    npt.assert_allclose(
+        signal_source.stim_vec, [0.1, 5, 4.839424, 5.020966, 5.083812, 4.941851, 0.1]
+    )
+    npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
