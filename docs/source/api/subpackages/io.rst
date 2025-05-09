@@ -37,6 +37,3 @@ neurodamus.io.synapse\_reader
       SonataReader
 
    .. rubric:: Exceptions
-
-   .. autosummary::
-      FormatNotSupported

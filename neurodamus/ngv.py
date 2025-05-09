@@ -430,7 +430,8 @@ class NeuroGliaConnManager(ConnectionManagerBase):
         kw.pop("load_offsets")
         super().__init__(circuit_conf, target_manager, cell_manager, src_cell_manager, **kw)
 
-    def _add_synapses(self, cur_conn, syns_params, syn_type_restrict=None, base_id=0):
+    @staticmethod
+    def _add_synapses(cur_conn, syns_params, _syn_type_restrict=None, _base_id=0):
         for syn_params in syns_params:
             cur_conn.add_synapse(None, syn_params)
 
@@ -467,7 +468,8 @@ class NeuroGliaConnManager(ConnectionManagerBase):
                 "Missing cells to couple Glia to: %d", len(NeuroGlialConnection.neurons_not_found)
             )
 
-    def _create_synapse_ustate_endpoints(self, base_manager):
+    @staticmethod
+    def _create_synapse_ustate_endpoints(base_manager):
         """Creating an endpoint netcon to listen for events in synapse.Ustate
         Netcon ids are directly the synapse id (hence we are limited in number space)
         """
@@ -497,7 +499,8 @@ class NeuroGliaConnManager(ConnectionManagerBase):
 
         return total_created
 
-    def _create_synapse_ustate_endpoints_optimized(self, base_manager):
+    @staticmethod
+    def _create_synapse_ustate_endpoints_optimized(base_manager):
         # This is an optimized version to avoid using the global synapse id
         # as the virtual gid, which would strongly limit the size of the circuits.
         pc = Nd.pc

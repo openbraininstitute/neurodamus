@@ -420,7 +420,3 @@ class SonataReader:
                 self._counts[tgid] = tgid_counts
 
         return {tgid: self._counts.get(tgid, self.EMPTY_DATA) for tgid in tgids}
-
-
-class FormatNotSupported(Exception):
-    """Exception thrown when the circuit requires SynapseTool and it is NOT built-in."""
