@@ -182,8 +182,7 @@ class MorphIOWrapper:
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        self._sec_idx2names = {}
-        self._build_sec_idx2names()
+        self.section_names = list(self.section_names_generator())
         self._build_sec_typeid_distrib()
 
     def _build_morph(self):
@@ -222,21 +221,22 @@ class MorphIOWrapper:
 
         self._morph = Morphology(self._morph)
 
-    def _build_sec_idx2names(self):
-        """Build section index to nrn section names mapping on top of MorphIO section.id"""
-        # soma is not accounted for in sections
-        self._sec_idx2names[0] = "soma"
+    def section_names_generator(self):
+        """Generator yielding (section_name, relative_index), starting with ('soma', 0)."""
+        yield ("soma", 0)
 
-        idx_adjust = 0  # section ids don't restart from 0 for each type in MorphIO
-        current_type = -1  # used for index adjustment
-        for i, sec in enumerate(self._morph.sections):
-            index = i + 1
-            # When we have a new type, update idx_adjust
-            if self._morph.section_types[sec.id] != current_type:
-                current_type = self._morph.section_types[sec.id]
-                idx_adjust = i
+        last_type = None
+        type_start_index = 0
 
-            self._sec_idx2names[index] = self.name(current_type, i - idx_adjust)
+        for i, sec in enumerate(self._morph.sections, start=1):
+            sec_type = self._morph.section_types[sec.id]
+
+            if sec_type != last_type:
+                last_type = sec_type
+                type_start_index = i
+
+            relative_index = i - type_start_index
+            yield (MorphIOWrapper.type2name(sec_type), relative_index)
 
     def _build_sec_typeid_distrib(self):
         """Build typeid distribution on top of MorphIO section_types"""
@@ -303,12 +303,12 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = self._sec_idx2names[index]
+            tstr = MorphIOWrapper.combined_name(*self.section_names[index])
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = self._sec_idx2names[parent_index]
+                    tstr1 = MorphIOWrapper.combined_name(*self.section_names[parent_index])
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
@@ -363,8 +363,8 @@ class MorphIOWrapper:
         return tstr1
 
     @classmethod
-    def name(cls, type_id, index):
-        return f"{cls.type2name(type_id)}[{index}]"
+    def combined_name(cls, name, index):
+        return f"{name}[{index}]"
 
     """
         [END] Python versions of import3d_gui.hoc helper functions
