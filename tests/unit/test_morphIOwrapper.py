@@ -13,7 +13,7 @@ def test_section_names():
     c = Nd.Cell(0)
     c.AddHocMorph(morph.morph_as_hoc())
 
-    morph_section_names = [f"Cell[0].{MorphIOWrapper.combined_name(*i)}"    
+    morph_section_names = [f"Cell[0].{MorphIOWrapper.combined_name(*i)}"
                            for i in morph.section_names]
     nrn_section_names = [i.name() for i in c.all]
 
