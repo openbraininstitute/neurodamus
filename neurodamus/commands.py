@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import time
-from os.path import abspath
 from pathlib import Path
 
 from docopt import docopt
@@ -12,7 +11,6 @@ from docopt import docopt
 from . import Neurodamus
 from .core import MPI, OtherRankError
 from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
-from .hocify import Hocify, process_file as hocify_process_file
 from .utils.pyutils import docopt_sanitize
 from neurodamus.utils.timeit import TimerManager
 
@@ -107,50 +105,6 @@ def neurodamus(args=None):
     return 0
 
 
-def hocify(args=None):
-    """Hocify
-
-    Usage:
-        hocify <MorphologyPath> [options]
-        hocify --help
-
-    Options:
-        -v --verbose            Increase verbosity level.
-        --nframe=<number>       NEURON_NFRAME value [default: 1000].
-        --output-dir=<PATH>     Output directory for hoc files.
-    """
-    options = docopt_sanitize(docopt(hocify.__doc__, args))
-    morph_path = abspath(options.pop("MorphologyPath"))
-    log_level = _pop_log_level(options)
-    neuron_nframe = options.pop("nframe")
-    options.pop("help")  # never pass to the library
-
-    # first check if it is a file
-    if os.path.isfile(morph_path):
-        os.environ["NEURON_NFRAME"] = str(neuron_nframe)
-        # the dest file is the same as the morph file but with .hoc extension
-        dest_file = Path(morph_path).with_suffix(".hoc")
-
-        print(f"Hocifying {morph_path} -> {dest_file}")
-        result = hocify_process_file((morph_path, str(dest_file)))
-        if isinstance(result, Exception):
-            logging.critical(str(result))
-            return 1
-        print("Done.")
-        return 0
-
-    # otherwise it is a directory, use multiprocessing
-    try:
-        Hocify(morph_path, neuron_nframe, log_level, **options).convert()
-    except Exception as e:
-        logging.critical(str(e), exc_info=True)
-        return 1
-    from neuron import version as nrn_version
-
-    logging.info("Neuron version used for hocifying: %s", nrn_version)
-    return 0
-
-
 def _pop_log_level(options):
     log_level = LogLevel.DEFAULT
     if options.pop("debug", False):
@@ -197,7 +151,7 @@ def _attempt_launch_special(config_file):
 
     special = shutil.which("special")
     if os.path.isfile("x86_64/special"):  # prefer locally compiled special
-        special = abspath("x86_64/special")
+        special = os.path.abspath("x86_64/special")
     if special is None:
         logging.warning(
             "special not found. Running neurodamus from Python with libnrnmech. "
