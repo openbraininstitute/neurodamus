@@ -161,16 +161,16 @@ class _NodeSetBase:
         PopulationNodes.reset()
 
     def __len__(self):
-        return NotImplemented
+        raise NotImplementedError("__len__ not implemented")
 
     def raw_gids(self):
-        return NotImplemented
+        raise NotImplementedError("raw_gids not implemented")
 
     def final_gids(self):
         return np.add(self.raw_gids(), self._offset, dtype="uint32")
 
     def intersection(self, _other, _raw_gids=False):
-        return NotImplemented
+        raise NotImplementedError("intersection not implemented")
 
     def intersects(self, other):
         """Check if the current nodeset intersects another

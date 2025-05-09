@@ -1,8 +1,9 @@
 import os
-import subprocess
 from pathlib import Path
 
 import psutil
+
+from neurodamus.utils.pyutils import rmtree
 
 SHM = "/dev/shm"  # noqa: S108
 
@@ -43,7 +44,7 @@ class SHMUtil:
         SHMUtil.node_id = MPI.py_scatter(node_info, 0)
         SHMUtil.nnodes = MPI.py_broadcast((node_info[-1] + 1) if MPI.rank == 0 else 0, 0)
 
-        subprocess.call(["/bin/rm", "-rf", shmdir])
+        rmtree(shmdir)
 
     @staticmethod
     def _get_approximate_node_rss():

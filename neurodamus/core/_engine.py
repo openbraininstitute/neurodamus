@@ -81,13 +81,13 @@ class EngineBase(metaclass=_EngineMeta):
     @classmethod
     def new_cell_manager(cls, circuit_conf, target_parser, run_conf):
         if not cls.CellManagerCls:
-            return NotImplemented
+            raise RuntimeError("missing CellManagerCls")
         return cls.CellManagerCls(circuit_conf, target_parser, run_conf)
 
     def new_synapse_manager(cls, circuit_conf, target_manager, cell_manager):
         """Routine responsible for creating connection managers."""
         if not cls.SynapseManagerCls:
-            return NotImplemented
+            raise RuntimeError("missing SynapseManagerCls")
         if cell_manager is None:
             raise RuntimeError("Circuit Not Initialized. Please load_nodes() first")
         return cls.SynapseManagerCls(circuit_conf, target_manager, cell_manager)
@@ -96,4 +96,4 @@ class EngineBase(metaclass=_EngineMeta):
         """Create reports for this type of engine."""
         if cell_manager is None:
             raise RuntimeError("Circuit Not Initialized. Please load_nodes() first")
-        return NotImplemented
+        raise NotImplementedError("report not implemented")

@@ -133,7 +133,8 @@ class ConfigureAllSections:
         def visit_Attribute(self, node):
             self.attrs.add(node.attr)
 
-    def assignment_targets(self, node):
+    @staticmethod
+    def assignment_targets(node):
         if isinstance(node, ast.Assign):
             return node.targets
         if isinstance(node, ast.AugAssign):
