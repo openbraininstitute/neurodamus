@@ -1,3 +1,5 @@
+"""Unit tests for StimulusManager to handline various stimulus types"""
+
 import logging
 
 import numpy as np
@@ -8,6 +10,7 @@ from tests.conftest import RINGTEST_DIR
 
 import neurodamus.core.stimuli as st
 import neurodamus.stimulus_manager as smng
+from neurodamus.core.configuration import ConfigurationError
 from neurodamus.node import Node
 
 target_name = "RingA"
@@ -27,6 +30,8 @@ def ringtest_stimulus_manager():
 
 
 def test_linear(ringtest_stimulus_manager):
+    """Linear Stimulus"""
+
     stim_info = {
         "Pattern": "Linear",
         "Mode": "Current",
@@ -48,6 +53,8 @@ def test_linear(ringtest_stimulus_manager):
 
 
 def test_reletive_linear(ringtest_stimulus_manager):
+    """RelativeLinear Stimulus"""
+
     target_name = "RingA"
     stim_info = {
         "Pattern": "RelativeLinear",
@@ -71,6 +78,8 @@ def test_reletive_linear(ringtest_stimulus_manager):
 
 
 def test_pulse(ringtest_stimulus_manager):
+    """Pulse Stimulus"""
+
     stim_info = {
         "Pattern": "Pulse",
         "Mode": "Current",
@@ -100,6 +109,8 @@ def test_pulse(ringtest_stimulus_manager):
 
 
 def test_sinusoidal(ringtest_stimulus_manager):
+    """Sinusoidal Stimulus"""
+
     stim_info = {
         "Pattern": "Sinusoidal",
         "Mode": "Current",
@@ -125,6 +136,8 @@ def test_sinusoidal(ringtest_stimulus_manager):
 
 
 def test_subthreshold(ringtest_stimulus_manager):
+    """SubThreshold Stimulus"""
+
     stim_info = {
         "Pattern": "SubThreshold",
         "Mode": "Current",
@@ -144,6 +157,8 @@ def test_subthreshold(ringtest_stimulus_manager):
 
 
 def test_hyperpolarizing(ringtest_stimulus_manager):
+    """Hyperpolarizing Stimulus"""
+
     stim_info = {
         "Pattern": "Hyperpolarizing",
         "Mode": "Current",
@@ -162,6 +177,8 @@ def test_hyperpolarizing(ringtest_stimulus_manager):
 
 
 def test_seclamp(caplog, ringtest_stimulus_manager):
+    """SECLamp Stimlus"""
+
     stim_info = {
         "Pattern": "SEClamp",
         "Mode": "Voltage",
@@ -264,6 +281,8 @@ def test_noise(ringtest_stimulus_manager):
 
 
 def test_shot_noise(ringtest_stimulus_manager):
+    """Test ShotNoise Current and Conductance Modes"""
+
     # Current Mode
     stim_info = {
         "Pattern": "ShotNoise",
@@ -320,6 +339,8 @@ def test_shot_noise(ringtest_stimulus_manager):
 
 
 def test_relative_shot_noise(ringtest_stimulus_manager):
+    """Test RelativeShotNoise Current and Conductance Modes"""
+
     # Current Mode
     stim_info = {
         "Pattern": "RelativeShotNoise",
@@ -338,6 +359,7 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
     assert np.isclose(stimulus.amp_mean, 0.011917)
     assert np.isclose(stimulus.amp_var, 1.57793e-5)
     assert np.isclose(stimulus.rate, 1481481.48)
+    assert np.isclose(stimulus.rel_skew, 0.1)
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
@@ -395,6 +417,8 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
 
 
 def test_absolute_shot_noise(ringtest_stimulus_manager):
+    """Test AbsoluteShotNoise Current and Conductance Modes"""
+
     # Current Mode
     stim_info = {
         "Pattern": "AbsoluteShotNoise",
@@ -433,6 +457,8 @@ def test_absolute_shot_noise(ringtest_stimulus_manager):
 
 
 def test_ornstein_uhlenbeck(ringtest_stimulus_manager):
+    """Test OrnsteinUhlenbeck Current and Conductance Modes"""
+
     # Current Mode
     stim_info = {
         "Pattern": "OrnsteinUhlenbeck",
@@ -477,6 +503,8 @@ def test_ornstein_uhlenbeck(ringtest_stimulus_manager):
 
 
 def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
+    """Test RelativeOrnsteinUhlenbeck Current and Conductance Modes"""
+
     # Current Mode
     stim_info = {
         "Pattern": "RelativeOrnsteinUhlenbeck",
@@ -523,3 +551,291 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
         signal_source.stim_vec, [0.1, 5, 4.839424, 5.020966, 5.083812, 4.941851, 0.1]
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+
+def test_error_unknown_pattern(ringtest_stimulus_manager):
+    stim_info = {
+        "Pattern": "Unknown",
+    }
+    with pytest.raises(ConfigurationError, match="No implementation for Stimulus Unknow"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_ornsteinuhlenbeck(ringtest_stimulus_manager):
+    """Test various checks on OrnsteinUhlenbeck parameters"""
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "Mean": 10,
+        "Sigma": 1,
+        "Dt": -1,
+    }
+    with pytest.raises(Exception, match="OrnsteinUhlenbeck time-step must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Voltage",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "Mean": 10,
+        "Sigma": 1,
+    }
+    with pytest.raises(
+        Exception, match="OrnsteinUhlenbeck must be used with mode Current or Conductance"
+    ):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": -2.7,
+        "Reversal": 0.1,
+        "Mean": 10,
+        "Sigma": 1,
+    }
+    with pytest.raises(Exception, match="OrnsteinUhlenbeck relaxation time must be non-negative"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "OrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "Mean": 10,
+        "Sigma": -1,
+    }
+    with pytest.raises(Exception, match="OrnsteinUhlenbeck standard deviation must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_relative_ornsteinuhlenbeck(ringtest_stimulus_manager):
+    """Test various checks on RelativeOrnsteinUhlenbeck parameters"""
+
+    stim_info = {
+        "Pattern": "RelativeOrnsteinUhlenbeck",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "Tau": 2.7,
+        "Reversal": 0.1,
+        "MeanPercent": 10,
+        "SDPercent": -1,
+        "Seed": 5678,
+    }
+    with pytest.raises(
+        Exception, match="RelativeOrnsteinUhlenbeck standard deviation must be positive"
+    ):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_sinusoidal(ringtest_stimulus_manager):
+    """Test various checks on Sinusoidal parameters"""
+
+    stim_info = {
+        "Pattern": "Sinusoidal",
+        "Mode": "Current",
+        "AmpStart": 20,
+        "Frequency": 1 / (2 * np.pi),
+        "Duration": 10,
+        "Delay": 0,
+        "Dt": -1,
+    }
+    with pytest.raises(Exception, match="Sinusoidal time-step must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_noise(ringtest_stimulus_manager):
+    """Test various checks on Noise parameters"""
+
+    stim_info = {
+        "Pattern": "Noise",
+        "Mode": "Current",
+        "Mean": 5.0,
+        "Variance": 0.1,
+        "Duration": 5,
+        "Delay": 1,
+        "Dt": -1,
+    }
+    with pytest.raises(Exception, match="Noise time-step must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "Noise",
+        "Mode": "Current",
+        "Mean": 5.0,
+        "Variance": -0.1,
+        "Duration": 5,
+        "Delay": 1,
+        "Dt": 1,
+    }
+    with pytest.raises(Exception, match="Noise variance must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "Noise",
+        "Mode": "Current",
+        "MeanPercent": 5.0,
+        "Variance": -0.1,
+        "Duration": 5,
+        "Delay": 1,
+        "Dt": 1,
+    }
+    with pytest.raises(Exception, match="Noise variance percent must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_shotnoise(ringtest_stimulus_manager):
+    """Test various checks on ShotNoise parameters"""
+
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Current",
+        "Duration": 4,
+        "Delay": 1,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "AmpMean": 20,
+        "AmpVar": 10,
+        "Rate": 1000,
+        "Dt": -1,
+    }
+    with pytest.raises(Exception, match="ShotNoise time-step must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Voltage",
+        "Duration": 4,
+        "Delay": 1,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "AmpMean": 20,
+        "AmpVar": 10,
+        "Rate": 1000,
+        "Dt": -1,
+    }
+    with pytest.raises(Exception, match="ShotNoise must be used with mode Current or Conductance"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Current",
+        "Duration": 4,
+        "Delay": 1,
+        "RiseTime": 0.5,
+        "DecayTime": 0.1,
+        "AmpMean": 20,
+        "AmpVar": 10,
+        "Rate": 1000,
+    }
+    with pytest.raises(
+        Exception, match="ShotNoise bi-exponential rise time must be smaller than decay time"
+    ):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Current",
+        "Duration": 4,
+        "Delay": 1,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "AmpMean": 0,
+        "AmpVar": 10,
+        "Rate": 1000,
+    }
+    with pytest.raises(Exception, match="ShotNoise amplitude mean must be non-zero"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "ShotNoise",
+        "Mode": "Current",
+        "Duration": 4,
+        "Delay": 1,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "AmpMean": 20,
+        "AmpVar": -10,
+        "Rate": 1000,
+    }
+    with pytest.raises(Exception, match="ShotNoise amplitude variance must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_relative_shotnoise(ringtest_stimulus_manager):
+    """Test various checks on RelativeShotNoise parameters"""
+
+    stim_info = {
+        "Pattern": "RelativeShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "MeanPercent": 20,
+        "SDPercent": -0.5,
+    }
+    with pytest.raises(Exception, match="RelativeShotNoise stdev percent must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "RelativeShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "MeanPercent": 20,
+        "SDPercent": 0.5,
+        "RelativeSkew": 1.5,
+    }
+    with pytest.raises(Exception, match=r"RelativeShotNoise relative skewness must be in \[0,1\]"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+
+def test_errorhandling_absolute_shot_noise(ringtest_stimulus_manager):
+    """Test various checks on AbsoluteShotNoise parameters"""
+
+    stim_info = {
+        "Pattern": "AbsoluteShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "Mean": 10,
+        "Sigma": -1,
+    }
+    with pytest.raises(Exception, match="AbsoluteShotNoise stdev must be positive"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+
+    stim_info = {
+        "Pattern": "AbsoluteShotNoise",
+        "Mode": "Current",
+        "Duration": 2,
+        "Delay": 0,
+        "Dt": 0.5,
+        "RiseTime": 0.1,
+        "DecayTime": 0.5,
+        "Mean": 10,
+        "Sigma": 1,
+        "RelativeSkew": 1.5,
+    }
+    with pytest.raises(Exception, match=r"AbsoluteShotNoise relative skewness must be in \[0,1\]"):
+        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
