@@ -18,6 +18,13 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
+# removeme
+def inspect(v):
+    print(v, type(v))
+    for i in dir(v):
+        if i.startswith("__"):
+            continue
+        print(f"{i}: {getattr(v, i)}")
 
 class GlutList:
     """GlutList is a list-like container that combines a standard
@@ -120,7 +127,7 @@ class Astrocyte(BaseCell):
         morph = MorphIOWrapper(morph_file)
         self._cellref.AddHocMorph(morph.morph_as_hoc())
 
-        self._glut_list = GlutList()
+        self.glut_list = GlutList()
         self._nseg_warning = 0
 
         # Recalculate number of segments and sections
@@ -137,7 +144,7 @@ class Astrocyte(BaseCell):
             sec.insert("cadifus")
             glut = Nd.GlutReceive(sec(0.5), sec=sec)
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-            self._glut_list.append(glut)
+            self.glut_list.append(glut)
 
         # Configure endoplasmic reticulum and section parameters
         self._cellref.execute_commands(self._er_as_hoc(morph))
@@ -145,9 +152,7 @@ class Astrocyte(BaseCell):
 
         # Soma-specific glutamate receptor (must be last)
         soma = self._cellref.soma[0]
-        soma.insert("cadifus")
-        self._glut_list.tail = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
-        Nd.setpointer(self._glut_list.tail._ref_glut, "glu2", soma(0.5).cadifus)
+        self.glut_list.tail = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
 
         self._cellref.gid = gid
         self._secidx2names = morph.section_index2name_dict
@@ -242,10 +247,10 @@ class Astrocyte(BaseCell):
         # just a safety check
         assert len(c.all) + len(self.endfeet) + 1 == len(self.glut_list)
 
-        for glut, sec in zip(self._glut_list, all_secs):
+        for glut, sec in zip(self.glut_list, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
         soma = c.soma[0]
-        Nd.setpointer(self._glut_list[-1]._ref_glut, "glu2", soma(0.5).cadifus)
+        Nd.setpointer(self.glut_list[-1]._ref_glut, "glu2", soma(0.5).cadifus)
 
     @property
     def glut_list(self) -> GlutList:
@@ -350,8 +355,11 @@ class NeuroGlialConnection(Connection):
                 syn_gid = self._find_neuron_endpoint_id(syn_params, tgid_conns)
                 if syn_gid is None:
                     continue
-
-            glut_obj = glut_list[int(syn_params.astrocyte_section_id)]
+            
+            glut_idx = int(syn_params.astrocyte_section_id)
+            # check that we do not connect to the GlutSynapseSoma
+            assert glut_idx < len(glut_list)-1
+            glut_obj = glut_list[glut_idx]
             netcon = pc.gid_connect(syn_gid, glut_obj)
             netcon.delay = 0.05
 
@@ -359,10 +367,9 @@ class NeuroGlialConnection(Connection):
 
             self._netcons.append(netcon)
 
-            # Soma netcon (last glut_list)
+            # Connect also to GlutReceiveSoma for metabolism
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
-            netcon = pc.gid_connect(syn_gid, glut_list[-1])
-            # netcon = pc.gid_connect(syn_gid, glut_list.tail)
+            netcon = pc.gid_connect(syn_gid, glut_list.tail)
             netcon.record(ustate_event_handler2(666))
             netcon.delay = 0.05
             self._netcons.append(netcon)
@@ -611,9 +618,14 @@ class GlioVascularManager(ConnectionManagerBase):
                 # sec(0.5).mcd.perimeter = p
                 glut = Nd.GlutReceive(sec(0.5), sec=sec)
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-                # because soma glut must be the last
                 astrocyte.glut_list.append(glut)
                 name = astrocyte._secidx2names[parent_section_id + 1]
+
+                # parent_sec = astrocyte.CellRef.all(int(parent_section_id + 1))
+                # sec.connect(parent_sec)
+                print("AAA", parent_section_id+1, name)
+                inspect(astrocyte.CellRef.all)
+                assert False
                 exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
                 # astrocyte.CellRef.all.append(sec)
             # Some useful debug lines:
