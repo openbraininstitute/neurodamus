@@ -1,10 +1,10 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
 import logging
-import os.path
+from itertools import chain
+from pathlib import Path
 
 import libsonata
-import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -19,19 +19,136 @@ from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
 
+class GlutList:
+    """GlutList is a list-like container that combines a standard
+    list (the body) with a separate tail element.
+
+    It behaves like a normal list with one extra element at the end,
+    enabling efficient operations without shifting the tail.
+    Supports indexing (including negative), iteration, equality
+    comparison with lists, and conversion to a standard list.
+    """
+
+    __hash__ = None
+
+    def __init__(self, body=None, tail=None):
+        if body is None:
+            body = []
+        self._body = list(body)
+        self._tail = tail
+
+    def __len__(self):
+        return len(self._body) + 1
+
+    def _sanitize_index(self, index):
+        total_len = len(self)
+        og_index = index
+        if index < 0:
+            index += total_len
+        if index < 0 or index >= total_len:
+            raise IndexError(f"GlutList index {og_index} out of range")
+        return index
+
+    def __getitem__(self, index):
+        index = self._sanitize_index(index)
+        return self._body[index] if index != len(self) - 1 else self._tail
+
+    def append(self, item):
+        self._body.append(item)
+
+    def pop(self, index=-2):
+        index = self._sanitize_index(index)
+        if index == len(self) - 1:
+            raise IndexError("GlutList tail cannot be popped")
+        self._body.pop(index)
+
+    def __setitem__(self, index, value):
+        index = self._sanitize_index(index)
+        if index == len(self) - 1:
+            self._tail = value
+        else:
+            self._body.__setitem__(index, value)
+
+    def __iter__(self):
+        yield from self._body
+        yield self._tail
+
+    def to_list(self):
+        return [*self._body, self._tail]
+
+    def __eq__(self, other):
+        if isinstance(other, GlutList):
+            return self._body == other._body and self._tail == other._tail
+        if isinstance(other, list):
+            return self.to_list() == other
+        return NotImplemented
+
+    @property
+    def tail(self):
+        return self._tail
+
+    @tail.setter
+    def tail(self, value):
+        self._tail = value
+
+    def __str__(self):
+        return str(self.to_list())
+
+
 class Astrocyte(BaseCell):
-    __slots__ = ("_glut_list", "_nseg_warning", "_secidx2names")
+    __slots__ = ("_glut_list", "_nseg_warning", "section_names")
 
     def __init__(self, gid, meinfos, circuit_conf):
-        """Instantiate a new Cell from node info."""
+        """Initialize an Astrocyte cell.
+
+        - Load and attach morphology to the cell.
+        - Insert a GlutReceive point process in every section.
+        - Insert the cadifus mechanism in every section.
+        - Connect GlutReceive to cadifus using a pointer.
+        - Insert a GlutReceiveSoma in the soma (used only for recording).
+        """
         super().__init__(gid, meinfos, None)
-        morpho_path = circuit_conf.MorphologyPath
-        morph_filename = meinfos.morph_name + "." + circuit_conf.MorphologyType
-        morph_file = os.path.join(morpho_path, morph_filename)
-        self._cellref, self._glut_list, self._secidx2names, self._nseg_warning = self._init_cell(
-            gid, morph_file
+
+        # Compose the path to the morphology file
+        morph_file = (
+            Path(circuit_conf.MorphologyPath)
+            / f"{meinfos.morph_name}.{circuit_conf.MorphologyType}"
         )
+
+        # Create the cell and load morphology
+        self._cellref = Nd.Cell(gid)
+        morph = MorphIOWrapper(morph_file)
+        self._cellref.AddHocMorph(morph.morph_as_hoc())
+
+        self.glut_list = GlutList()
+        self._nseg_warning = 0
+
+        # Recalculate number of segments and sections
+        self._cellref.geom_nseg_fixed()
+        self._cellref.geom_nsec()
+
+        logging.debug("Instantiating NGV cell gid=%d", gid)
+
+        # Insert mechanisms and glutamate receptors in each section
+        for sec in self._cellref.all:
+            if sec.nseg > 1:
+                self._nseg_warning = 1
+                sec.nseg = 1
+            sec.insert("cadifus")
+            glut = Nd.GlutReceive(sec(0.5), sec=sec)
+            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+            self.glut_list.append(glut)
+
+        # Configure endoplasmic reticulum and section parameters
+        self._cellref.execute_commands(self._er_as_hoc(morph))
+        self._cellref.execute_commands(self._secparams_as_hoc(morph))
+
+        # Soma-specific glutamate receptor (must be last)
+        soma = self._cellref.soma[0]
+        self.glut_list.tail = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
+
         self._cellref.gid = gid
+        self.section_names = morph.section_names
 
     @property
     def gid(self) -> int:
@@ -85,38 +202,6 @@ class Astrocyte(BaseCell):
         return cmds
 
     @staticmethod
-    def _truncated_cone_surface_areas(perimeters, seg_lengths):
-        radii = perimeters / (2.0 * np.pi)
-        radii_starts = radii[:-1]
-        radii_ends = radii[1:]
-        slant_heights = np.sqrt(seg_lengths**2 + (radii_ends - radii_starts) ** 2)
-        return np.pi * (radii_starts + radii_ends) * slant_heights
-
-    @staticmethod
-    def _truncated_cone_volumes(diameters, seg_lengths):
-        r_begs = 0.5 * diameters[:-1]
-        r_ends = 0.5 * diameters[1:]
-        return (1.0 / 3.0) * np.pi * (r_begs**2 + r_begs * r_ends + r_ends**2) * seg_lengths
-
-    @staticmethod
-    def _mcd_section_parameters(section):
-        points = section.points
-        diameters = section.diameters
-        perimeters = section.perimeters
-
-        segment_lengths = np.linalg.norm(points[1:] - points[:-1], axis=1)
-        segment_volumes = Astrocyte._truncated_cone_volumes(diameters, segment_lengths)
-        segment_surface_areas = Astrocyte._truncated_cone_surface_areas(perimeters, segment_lengths)
-
-        total_length = segment_lengths.sum()
-
-        # representing the entire section as a single cylinder
-        perimeter = segment_surface_areas.sum() / total_length
-        cross_sectional_area = segment_volumes.sum() / total_length
-
-        return section.id, perimeter, cross_sectional_area
-
-    @staticmethod
     def _secparams_as_hoc(_morph_wrap):
         """Create hoc commands for section parameters (perimeters & cross-sectional area)
         :param morph_wrap: MorphIOWrapper object holding MorphIO morphology object
@@ -134,48 +219,6 @@ class Astrocyte(BaseCell):
         #     (Astrocyte._mcd_section_parameters(sec) for sec in morph_wrap.morph.sections)))
         return cmds
 
-    @staticmethod
-    def _init_cell(gid, morph_file):
-        c = Nd.Cell(gid)
-        m = MorphIOWrapper(morph_file)
-        c.AddHocMorph(m.morph_as_hoc())
-
-        glut_list = []
-        c.geom_nseg_fixed()
-        c.geom_nsec()  # To recount all sections
-
-        # Insert mechanisms and populate holder lists
-        logging.debug("Instantiating NGV cell gid=%d", gid)
-
-        nseg_reduce_instance = 0  # temporary field until proper handling of nseg > 1 implemented
-
-        for sec in c.all:
-            if sec.nseg > 1:
-                nseg_reduce_instance = 1
-                sec.nseg = 1
-            sec.insert("cadifus")
-            glut = Nd.GlutReceive(sec(0.5), sec=sec)
-            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-            glut_list.append(glut)
-
-        # Endoplasmic reticulum
-        c.execute_commands(Astrocyte._er_as_hoc(m))
-
-        # Section parameters (perimeters & cross-sectional area)
-        c.execute_commands(Astrocyte._secparams_as_hoc(m))
-
-        # Print out mcd section parameters
-        # for sec in c.all:
-        #     self._show_mcd()
-
-        # Soma receiver must be last element in the glut_list
-        soma = c.soma[0]
-        soma.insert("cadifus")
-        glut = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
-        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
-        glut_list.append(glut)
-        return c, glut_list, m.section_index2name_dict, nseg_reduce_instance
-
     def _show_mcd(sec):
         if not hasattr(sec(0.5), "cadfifus"):
             logging.info("No cadifus mechanism found")
@@ -191,21 +234,27 @@ class Astrocyte(BaseCell):
     #        )
 
     def set_pointers(self):
-        glut_list = self._glut_list
         c = self._cellref
-        index = 0
+        # the endfeet are not included in all as they are added later.
+        # I still do not know exactly when the pointers need to be
+        # reassigned and which ones are stale. This chain may be superfluous
+        all_secs = chain(c.all, self.endfeet)
 
-        for sec in c.all:
-            glut = glut_list[index]
-            index += 1
+        # just a safety check
+        assert len(c.all) + len(self.endfeet) + 1 == len(self.glut_list)
+
+        for glut, sec in zip(self.glut_list, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
         soma = c.soma[0]
-        glut = glut_list[index]
-        Nd.setpointer(glut._ref_glut, "glu2", soma(0.5).cadifus)
+        Nd.setpointer(self.glut_list[-1]._ref_glut, "glu2", soma(0.5).cadifus)
 
     @property
-    def glut_list(self) -> list:
+    def glut_list(self) -> GlutList:
         return self._glut_list
+
+    @glut_list.setter
+    def glut_list(self, value: GlutList):
+        self._glut_list = value
 
     def connect2target(self, target_pp=None):
         return Nd.NetCon(self._cellref.soma[0](1)._ref_v, target_pp, sec=self._cellref.soma[0])
@@ -303,7 +352,10 @@ class NeuroGlialConnection(Connection):
                 if syn_gid is None:
                     continue
 
-            glut_obj = glut_list[int(syn_params.astrocyte_section_id)]
+            glut_idx = int(syn_params.astrocyte_section_id)
+            # check that we do not connect to the GlutSynapseSoma
+            assert glut_idx < len(glut_list) - 1
+            glut_obj = glut_list[glut_idx]
             netcon = pc.gid_connect(syn_gid, glut_obj)
             netcon.delay = 0.05
 
@@ -311,9 +363,9 @@ class NeuroGlialConnection(Connection):
 
             self._netcons.append(netcon)
 
-            # Soma netcon (last glut_list)
+            # Connect also to GlutReceiveSoma for metabolism
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
-            netcon = pc.gid_connect(syn_gid, glut_list[-1])
+            netcon = pc.gid_connect(syn_gid, glut_list.tail)
             netcon.record(ustate_event_handler2(666))
             netcon.delay = 0.05
             self._netcons.append(netcon)
@@ -527,8 +579,10 @@ class GlioVascularManager(ConnectionManagerBase):
             self._vasculature = storage.open_population(pop_name)
 
     def create_connections(self, *_, **__):
+        # it also creates endfeet
         logging.info("Creating GlioVascular virtual connections")
         # Retrieve endfeet selections for GLIA gids on the current processor
+
         for astro_id in self._astro_ids:
             self._connect_endfeet(astro_id)
 
@@ -536,6 +590,7 @@ class GlioVascularManager(ConnectionManagerBase):
         endfeet = self._gliovascular.afferent_edges(astro_id - 1)  # 0-based for libsonata API
         if endfeet.flat_size > 0:
             # Get endfeet input
+
             parent_section_ids = self._gliovascular.get_attribute("astrocyte_section_id", endfeet)
             lengths = self._gliovascular.get_attribute("endfoot_compartment_length", endfeet)
             diameters = self._gliovascular.get_attribute("endfoot_compartment_diameter", endfeet)
@@ -562,11 +617,13 @@ class GlioVascularManager(ConnectionManagerBase):
                 # sec(0.5).mcd.perimeter = p
                 glut = Nd.GlutReceive(sec(0.5), sec=sec)
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-                # because soma glut must be the last
-                astrocyte._glut_list.insert(len(astrocyte._glut_list) - 1, glut)
-                name = astrocyte._secidx2names[parent_section_id + 1]
-                exec(f"parent_sec = astrocyte.CellRef.{name}; sec.connect(parent_sec)")
-                # astrocyte.CellRef.all.append(sec)
+                astrocyte.glut_list.append(glut)
+
+                name, rel_idx = astrocyte.section_names[parent_section_id + 1]
+                parent_sec_list = getattr(astrocyte.CellRef, name)
+                parent_sec = parent_sec_list[rel_idx]
+                sec.connect(parent_sec)
+
             # Some useful debug lines:
             # cell = astrocyte.CellRef
             # logging.warn(str(cell.endfeet.printnames()))  # print endfeet section list names

@@ -65,12 +65,12 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file):
 
     # Check AstrocytesA spikes
     spike_gid_ref = np.array([1, 2])
-    timestamps_ref = np.array([5.475, 6.725])
+    timestamps_ref = np.array([5.25, 6.275])
     astrocyteA_spikes = n._spike_vecs[1]
     timestamps = np.array(astrocyteA_spikes[0])
     spike_gids = np.array(astrocyteA_spikes[1])
-    npt.assert_equal(spike_gid_ref, spike_gids)
-    npt.assert_allclose(timestamps_ref, timestamps)
+    npt.assert_equal(spike_gids, spike_gid_ref)
+    npt.assert_allclose(timestamps, timestamps_ref)
 
     # Check Rad variation
     Rad_ref = np.array(
