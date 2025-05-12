@@ -198,7 +198,6 @@ class _SimConfig:
     projections = None
     connections = None
     stimuli = None
-    injects = None
     reports = None
     modifications = None
     beta_features = None
@@ -263,7 +262,6 @@ class _SimConfig:
         cls.projections = cls._config_parser.parsedProjections
         cls.connections = cls._config_parser.parsedConnects
         cls.stimuli = cls._config_parser.parsedStimuli
-        cls.injects = cls._config_parser.parsedInjects
         cls.reports = cls._config_parser.parsedReports
         cls.modifications = cls._config_parser.parsedModifications or {}
         cls.beta_features = cls._config_parser.beta_features
@@ -413,13 +411,6 @@ class _SimConfig:
     @classmethod
     def check_connections_configure(cls, target_manager):
         check_connections_configure(cls, target_manager)  # top_level
-
-    @classmethod
-    def get_stim_inject(cls, stim_name):
-        for inject in cls.injects.values():
-            if stim_name == inject["Stimulus"]:
-                return inject
-        return None
 
     @classmethod
     def check_cell_requirements(cls, target_manager):
@@ -609,9 +600,9 @@ def _stimulus_params(config: _SimConfig):
         },
     }
     deprecated_values = {"Pattern": ("NPoisson", "NPoissonInhomogeneous", "ReplayVoltageTrace")}
-    for name, stim in config.stimuli.items():
+    for stim in config.stimuli:
         _check_params(
-            "Stimulus " + name,
+            "Stimulus " + stim["Name"],
             stim,
             required_fields,
             numeric_fields,
@@ -1279,11 +1270,8 @@ def check_connections_configure(SimConfig, target_manager):
 
 def _input_resistance(config: _SimConfig, target_manager):
     prop = "@dynamics:input_resistance"
-    for stim_name, stim in config.stimuli.items():
-        stim_inject = config.get_stim_inject(stim_name)
-        if stim_inject is None:
-            continue  # not injected, do not care
-        target_name = stim_inject["Target"]
+    for stim in config.stimuli:
+        target_name = stim["Target"]
         if stim["Mode"] == "Conductance" and stim["Pattern"] in {
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",

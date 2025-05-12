@@ -361,7 +361,7 @@ class SonataConfig:
         }
 
     @property
-    def parsedStimuli(self):
+    def parsedStimuli(self) -> list:
         input_type_translation = {
             "spikes": "Current",
             "current_clamp": "Current",
@@ -371,27 +371,20 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
-        stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        stimuli = []
+        # TODO: loop over self._sim_conf.list_input_names,
+        # The order of stimulus injection could lead to minor difference on the results
+        # so need to preserve it as in the config file, libsonata API
+        for name in self._sections["inputs"]:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
                 stimulus["Pattern"], snake_to_camel(stimulus["Pattern"])
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
-            stimuli[name] = stimulus
+            stimulus["Name"] = name
+            stimuli.append(stimulus)
         return stimuli
-
-    @property
-    def parsedInjects(self):
-        injects = {}
-        # the order of stimulus injection could lead to minor difference on the results
-        # so better to preserve it as in the config file
-        for name in self._sections["inputs"]:
-            inj = self._translate_dict("inputs", self._sim_conf.input(name))
-            inj.setdefault("Stimulus", name)
-            injects["inject" + name] = inj
-        return injects
 
     @property
     def parsedReports(self):
