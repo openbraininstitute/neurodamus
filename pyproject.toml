@@ -50,7 +50,6 @@ local_scheme = "no-local-version"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
-    "--import-mode=importlib",
     "-vv",
     "-ra",
 ]
