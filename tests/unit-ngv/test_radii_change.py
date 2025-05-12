@@ -11,7 +11,7 @@ from tests.conftest import NGV_DIR
 
 def get_vascouplingB_attribute(astro_id, manager, attr):
     """
-    Retrieve a specified attribute from all endfeet sections of an astrocyte's vascouplingB mechanism.
+    Retrieve a specified attribute from all endfeet of an astrocyte's vascouplingB mechanism.
 
     Parameters:
         astro_id (int): The ID of the astrocyte.
