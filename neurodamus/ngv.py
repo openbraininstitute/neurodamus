@@ -246,8 +246,6 @@ class Astrocyte(BaseCell):
 
         for glut, sec in zip(self.glut_list, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-        soma = c.soma[0]
-        Nd.setpointer(self.glut_list[-1]._ref_glut, "glu2", soma(0.5).cadifus)
 
     @property
     def glut_list(self) -> GlutList:
