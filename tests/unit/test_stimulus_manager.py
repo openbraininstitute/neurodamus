@@ -114,11 +114,11 @@ def test_sinusoidal(ringtest_stimulus_manager):
     stim_info = {
         "Pattern": "Sinusoidal",
         "Mode": "Current",
-        "AmpStart": 20,
-        "Frequency": 1 / (2 * np.pi),
-        "Duration": 10,
+        "AmpStart": 1,
+        "Frequency": 10000,
+        "Duration": 0.1,
         "Delay": 0,
-        "Dt": 1,
+        "Dt": 0.025,
         "RepresentsPhysicalElectrode": True,
     }
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
@@ -127,12 +127,8 @@ def test_sinusoidal(ringtest_stimulus_manager):
     assert len(stimulus.stimList) == 1
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
-    npt.assert_allclose(
-        signal_source.stim_vec,
-        [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0],
-        atol=1e-5,
-    )
-    npt.assert_allclose(signal_source.time_vec, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10])
+    npt.assert_allclose(signal_source.stim_vec, [0, 1, 0, -1, 0, 0], atol=1e-7)
+    npt.assert_allclose(signal_source.time_vec, [0, 0.025, 0.05, 0.075, 0.1, 0.1])
 
 
 def test_subthreshold(ringtest_stimulus_manager):
