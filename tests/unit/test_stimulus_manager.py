@@ -1,4 +1,4 @@
-"""Unit tests for StimulusManager to handline various stimulus types"""
+"""Unit tests for StimulusManager to handle various stimulus types"""
 
 import logging
 
@@ -199,6 +199,8 @@ def test_seclamp(caplog, ringtest_stimulus_manager):
 
 def test_noise(ringtest_stimulus_manager):
     """Test two Noise stimulus settings, one is Mean, the other is MeanPercent"""
+
+    # Mean
     stim_info1 = {
         "Pattern": "Noise",
         "Mode": "Current",
@@ -238,6 +240,7 @@ def test_noise(ringtest_stimulus_manager):
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
     )
 
+    # MeanPercent
     stim_info2 = {
         "Pattern": "Noise",
         "Mode": "Current",
@@ -556,11 +559,11 @@ def test_error_unknown_pattern(ringtest_stimulus_manager):
     stim_info = {
         "Pattern": "Unknown",
     }
-    with pytest.raises(ConfigurationError, match="No implementation for Stimulus Unknow"):
+    with pytest.raises(ConfigurationError, match="No implementation for Stimulus Unknown"):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_ornsteinuhlenbeck(ringtest_stimulus_manager):
+def test_error_ornsteinuhlenbeck(ringtest_stimulus_manager):
     """Test various checks on OrnsteinUhlenbeck parameters"""
     stim_info = {
         "Pattern": "OrnsteinUhlenbeck",
@@ -621,7 +624,7 @@ def test_errorhandling_ornsteinuhlenbeck(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_relative_ornsteinuhlenbeck(ringtest_stimulus_manager):
+def test_error_relative_ornsteinuhlenbeck(ringtest_stimulus_manager):
     """Test various checks on RelativeOrnsteinUhlenbeck parameters"""
 
     stim_info = {
@@ -642,7 +645,7 @@ def test_errorhandling_relative_ornsteinuhlenbeck(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_sinusoidal(ringtest_stimulus_manager):
+def test_error_sinusoidal(ringtest_stimulus_manager):
     """Test various checks on Sinusoidal parameters"""
 
     stim_info = {
@@ -658,7 +661,7 @@ def test_errorhandling_sinusoidal(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_noise(ringtest_stimulus_manager):
+def test_error_noise(ringtest_stimulus_manager):
     """Test various checks on Noise parameters"""
 
     stim_info = {
@@ -698,7 +701,7 @@ def test_errorhandling_noise(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_shotnoise(ringtest_stimulus_manager):
+def test_error_shotnoise(ringtest_stimulus_manager):
     """Test various checks on ShotNoise parameters"""
 
     stim_info = {
@@ -776,7 +779,7 @@ def test_errorhandling_shotnoise(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_relative_shotnoise(ringtest_stimulus_manager):
+def test_error_relative_shotnoise(ringtest_stimulus_manager):
     """Test various checks on RelativeShotNoise parameters"""
 
     stim_info = {
@@ -807,7 +810,7 @@ def test_errorhandling_relative_shotnoise(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
 
 
-def test_errorhandling_absolute_shot_noise(ringtest_stimulus_manager):
+def test_error_absolute_shot_noise(ringtest_stimulus_manager):
     """Test various checks on AbsoluteShotNoise parameters"""
 
     stim_info = {

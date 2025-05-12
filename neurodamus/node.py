@@ -786,7 +786,6 @@ class Node:
             target = stim["Target"]
             source = stim.get("Source")
             stim_name = stim["Name"]
-            connectivity_type = stim.get("Type")
 
             # Since saveUpdate merge there are two delay concepts:
             #  - shift: times are shifted (previous delay)
@@ -800,7 +799,7 @@ class Node:
                 tshift,
                 delay,
             )
-            self._enable_replay(source, target, stim, tshift, delay, connectivity_type)
+            self._enable_replay(source, target, stim, tshift, delay)
 
     # -
     def _enable_replay(
