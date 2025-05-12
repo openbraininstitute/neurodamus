@@ -70,6 +70,12 @@ Each astrocyte is composed of multiple sections:
     - A ``cadifus`` mechanism that diffuses calcium based on this counter and resets the glutamate count.
     - A ``vascCouplingB`` mechanism that modulates the blood vessel radius in response to local calcium concentration.
 
+  - Each endfoot is instantiated as a new neuron section and added to the ``endfeet`` SectionList. They are not connected to each other but are connected to the ``source_node_id``.
+
+    Contrary to the `documentation <https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#fields-for-endfoot-connection-type-edges>`_, the fields ``vasculature_section_id`` and ``vasculature_segment_id`` are not mandatory. In practice, they are unused by both the SONATA reader and Neurodamus.
+
+    Only the ``source_node_id`` field is required, as the ``section_id`` and ``segment_id`` can be used to infer it. Including these additional fields may introduce inconsistencies.
+
 Signal Processing and Vascular Modulation Chain
 -----------------------------------------------
 
