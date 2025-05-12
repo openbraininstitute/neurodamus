@@ -237,7 +237,8 @@ class Astrocyte(BaseCell):
         c = self._cellref
         # the endfeet are not included in all as they are added later.
         # I still do not know exactly when the pointers need to be
-        # reassigned and which ones are stale. This chain may be superfluous
+        # reassigned and which ones are stale. the endfeet may be already
+        # up-to-date
         all_secs = chain(c.all, self.endfeet)
 
         # just a safety check

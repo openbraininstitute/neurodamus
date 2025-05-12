@@ -1,25 +1,49 @@
 
-import pytest
+import libsonata
 import numpy as np
 import numpy.testing as npt
+import pytest
 
-from tests.conftest import NGV_DIR
 from neurodamus import Neurodamus
 from neurodamus.ngv import GlioVascularManager
+from tests.conftest import NGV_DIR
 
 
-def get_Rad(astro_id, manager):
+def get_vascouplingB_attribute(astro_id, manager, attr):
+    """
+    Retrieve a specified attribute from all endfeet sections of an astrocyte's vascouplingB mechanism.
+
+    Parameters:
+        astro_id (int): The ID of the astrocyte.
+        manager: The cell/edge manager containing astrocyte and connectivity data.
+        attr (str): The name of the attribute to retrieve (e.g., "Rad", "R0pas").
+
+    Returns:
+        list: Attribute values from each endfoot, or an empty list if none exist.
+    """
     astrocyte = manager._cell_manager.gid2cell[astro_id + manager._gid_offset]
     if astrocyte.endfeet is None:
         return []
-    return [sec(0.5).vascouplingB.Rad for sec in astrocyte.endfeet]
+    return [getattr(sec(0.5).vascouplingB, attr) for sec in astrocyte.endfeet]
 
 
-def get_R0pas(astro_id, manager):
-    astrocyte = manager._cell_manager.gid2cell[astro_id + manager._gid_offset]
-    if astrocyte.endfeet is None:
-        return []
-    return [sec(0.5).vascouplingB.R0pas for sec in astrocyte.endfeet]
+def compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop):
+    """
+    Compute the expected R0pas value for an astrocyte based on afferent vascular diameters.
+
+    Parameters:
+        astro_id (int): The ID of the astrocyte.
+        manager_gliovasc: The manager handling glio-vascular connections.
+        vasculature_pop: The vasculature population object.
+
+    Returns:
+        float or ndarray: Average of (start_diameter + end_diameter) / 4 for afferent vessels.
+    """
+    endfeet = manager_gliovasc._gliovascular.afferent_edges(astro_id-1)
+    vasc_node_ids = libsonata.Selection(manager_gliovasc._gliovascular.source_nodes(endfeet))
+    d_starts = vasculature_pop.get_attribute("start_diameter", vasc_node_ids)
+    d_ends = vasculature_pop.get_attribute("end_diameter", vasc_node_ids)
+    return (d_starts+d_ends)/4
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -29,23 +53,36 @@ def get_R0pas(astro_id, manager):
     }
 ], indirect=True)
 def test_vasccouplingB_radii(create_tmp_simulation_config_file):
+    """
+    Test function to validate vascouplingB mechanism attributes and related spike activity.
+
+    This includes:
+    - Checking initial Rad values.
+    - Computing and verifying R0pas against expected values.
+    - Validating spike timings of RingA and AstrocyteA neurons.
+    - Ensuring Rad values evolve as expected during simulation.
+    - Confirming R0pas remains stable after the simulation.
+    """
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
 
+    astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
+
     manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
     vasculature_pop = manager_gliovasc._vasculature
 
-    # Compute of vascouplingB.R0Pas ref from vasculature section start and end diameters
-    vessel_start_ref = vasculature_pop.get_attribute("start_diameter", 2)
-    vessel_end_ref = vasculature_pop.get_attribute("end_diameter", 2)
-    R0pas_ref = (vessel_start_ref + vessel_end_ref) / 4
-    base_rad_in_vasccouplingBmod = 14.7
+    R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
+                  for astro_id in astro_ids]
 
-    Rad_base = get_Rad(1, manager_gliovasc)[0]
-    assert Rad_base == base_rad_in_vasccouplingBmod
-    R0pas_old = get_R0pas(1, manager_gliovasc)[0]
-    npt.assert_allclose(R0pas_old, R0pas_ref)
+    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
+        # check Rad
+        Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
+        npt.assert_allclose(Rads, [14.7]*len(Rads))
+
+        # check R0pas
+        R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
+        npt.assert_allclose(R0pas, R0pas_ref)
 
     astrocyte = manager_gliovasc._cell_manager.gid2cell[1 + manager_gliovasc._gid_offset]
     Rad_vec = Nd.Vector()
@@ -81,5 +118,5 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file):
     npt.assert_allclose(Rad_ref, Rad_vec[::20])
 
     # Check R0pas stability
-    R0pas_new = get_R0pas(1, manager_gliovasc)
-    npt.assert_allclose(R0pas_new, R0pas_ref)
+    R0pas_new = get_vascouplingB_attribute(1, manager_gliovasc, "R0pas")
+    npt.assert_allclose(R0pas_new, R0pas_refs[0])
