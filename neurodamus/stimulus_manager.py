@@ -54,7 +54,8 @@ class StimulusManager:
         stim = stim_t(target, stim_info, cell_manager)
         self._stimulus.append(stim)
 
-    def reset_helpers(self):
+    @staticmethod
+    def reset_helpers():
         ShotNoise.stimCount = 0
         Noise.stimCount = 0
         OrnsteinUhlenbeck.stimCount = 0
