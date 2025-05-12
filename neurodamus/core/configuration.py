@@ -508,7 +508,10 @@ def _check_params(
         val = data.get(param)
         if val and val in deprecated:
             logging.warning(
-                f"simulation config param value is deprecated: [{section_name}] {param} = {val}"
+                "simulation config param value is deprecated: [%s] %s = %s",
+                section_name,
+                param,
+                val,
             )
 
 

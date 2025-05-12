@@ -7,7 +7,6 @@ import logging
 import math
 import os
 import shutil
-import subprocess
 import typing
 from collections import defaultdict
 from contextlib import contextmanager
@@ -58,6 +57,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
+from neurodamus.utils.pyutils import rmtree
 
 
 class METypeEngine(EngineBase):
@@ -183,8 +183,9 @@ class CircuitManager:
     def all_synapse_managers(self):
         return itertools.chain.from_iterable(self.edge_managers.values())
 
+    @staticmethod
     @run_only_rank0
-    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
+    def write_population_offsets(pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
 
         It is needed for retrieving population offsets for reporting and replay at restore time.
@@ -472,7 +473,9 @@ class Node:
                 )
             for pop, ranks in alloc.items():
                 for rank, gids in ranks.items():
-                    logging.debug(f"Population: {pop}, Rank: {rank}, Number of GIDs: {len(gids)}")
+                    logging.debug(
+                        "Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids)
+                    )
             return alloc
 
         # Build load balancer as per requested options
@@ -640,7 +643,8 @@ class Node:
         manager = self._circuits.get_create_edge_manager(
             ctype, src, dst, c_target, (conf, *args), **kwargs
         )
-        self._load_connections(conf, manager)  # load internal connections right away
+        if manager.is_file_open:  # Base connectivity
+            manager.create_connections()
 
     def _process_connection_configure(self, conn_conf):
         source_t = TargetSpec(conn_conf["Source"])
@@ -658,12 +662,6 @@ class Node:
                     logging.debug("Using connection manager: %s", conn_manager)
                     conn_manager.configure_connections(conn_conf)
 
-    # -
-    def _load_connections(self, circuit_conf, conn_manager):
-        if conn_manager.is_file_open:  # Base connectivity
-            conn_manager.create_connections()
-
-    # -
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
@@ -1040,8 +1038,9 @@ class Node:
             rep_conf.get("Scaling"),
         )
 
+    @staticmethod
     @run_only_rank0
-    def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
+    def _coreneuron_write_report_config(rep_conf, target, rep_params):
         """Configure CoreNEURON reporting based on the provided configuration.
 
         Computes the target type (if "Sections" and "Compartments" are specified)
@@ -1308,7 +1307,7 @@ class Node:
 
         # Clean-up any previous simulations in the same output directory
         if self._cycle_i == 0 and corenrn_datadir_shm:
-            subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
+            rmtree(corenrn_datadir_shm)
 
         # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
         if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
@@ -1401,7 +1400,7 @@ class Node:
         )
         # Wait for rank0 to write the sim config file
         MPI.barrier()
-        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
+        logging.info(" => Dataset written to '%s'", CoreConfig.datadir)
 
     # -
     def run_all(self):
@@ -1430,8 +1429,8 @@ class Node:
         self.solve()
         logging.info("Simulation finished.")
 
-    # -
-    def _run_coreneuron(self):
+    @staticmethod
+    def _run_coreneuron():
         logging.info("Launching simulation with CoreNEURON")
         CoreConfig.psolve_core(
             SimConfig.coreneuron_direct_mode,
@@ -1615,8 +1614,9 @@ class Node:
 
         self._last_cell_state_dump_t = Nd.t
 
+    @staticmethod
     @run_only_rank0
-    def coreneuron_cleanup(self):
+    def coreneuron_cleanup():
         """Clean coreneuron save files after running"""
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
@@ -1625,7 +1625,8 @@ class Node:
             # in restore, coreneuron data is a symbolic link
             data_folder.unlink()
         else:
-            subprocess.call(["/bin/rm", "-rf", str(data_folder)])
+            rmtree(data_folder)
+
         build_path = Path(SimConfig.build_path())
         if build_path.exists():
             shutil.rmtree(build_path)
@@ -1650,8 +1651,9 @@ class Node:
                 self.coreneuron_cleanup()
                 MPI.barrier()
 
+    @staticmethod
     @run_only_rank0
-    def move_dumpcellstates_to_output_root(self):
+    def move_dumpcellstates_to_output_root():
         """Check for .corenrn or .nrn files in the current directory
         and move them to CoreConfig.output_root_path(create=True).
         """
@@ -1662,11 +1664,9 @@ class Node:
         for file in current_dir.iterdir():
             if file.suffix in {".corenrn", ".nrn", ".nrndat"}:
                 shutil.move(str(file), output_root / file.name)
-                logging.info(f"Moved {file.name} to {output_root}")
+                logging.info("Moved %s to %s", file.name, output_root)
 
 
-# Helper class
-# ------------
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
@@ -1770,8 +1770,8 @@ class Neurodamus(Node):
         self.sim_init()
         assert self._sim_ready, "sim_init should have set this"
 
-    # -
-    def _merge_filesdat(self, ncycles):
+    @staticmethod
+    def _merge_filesdat(ncycles):
         log_stage("Generating merged CoreNeuron files.dat")
         coreneuron_datadir = CoreConfig.datadir
         cn_entries = []
@@ -1791,9 +1791,8 @@ class Neurodamus(Node):
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
 
-        logging.info(f" => {ncycles} files merged successfully")
+        logging.info(" => %s files merged successfully", ncycles)
 
-    # -
     def _coreneuron_restore(self):
         """Restore CoreNEURON simulation state.
 
@@ -1901,7 +1900,7 @@ class Neurodamus(Node):
             self._build_single_model()
             return
 
-        logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
+        logging.info("MULTI-CYCLE RUN: %s Cycles", self._n_cycles)
         target = self._target_manager.get_target(self._target_spec)
         TimerManager.archive(archive_name="Before Cycle Loop")
 
@@ -2015,14 +2014,16 @@ class Neurodamus(Node):
         if cleanup:
             self.cleanup()
 
+    @staticmethod
     @run_only_rank0
-    def _remove_file(self, file_name):
+    def _remove_file(file_name):
         import contextlib
 
         with contextlib.suppress(FileNotFoundError):
             os.remove(file_name)
 
+    @staticmethod
     @run_only_rank0
-    def _touch_file(self, file_name):
+    def _touch_file(file_name):
         with open(file_name, "a"):
             os.utime(file_name, None)

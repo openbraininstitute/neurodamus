@@ -308,7 +308,7 @@ class SonataConfig:
             for edge_pop_name, edge_pop_config in edge_config["populations"].items():
                 edge_pop = self._circuit_conf.edge_population(edge_pop_name)
                 pop_type = edge_pop_config.get("type", "chemical")
-                # skip unhandled synapse type
+
                 if pop_type not in projection_type_convert:
                     logging.warning("Unhandled synapse type: %s", pop_type)
                     continue
@@ -410,10 +410,12 @@ class SonataConfig:
             result[modification.name] = setting
         return result
 
-    def _dir(self, obj):
+    @staticmethod
+    def _dir(obj):
         return [x for x in dir(obj) if not x.startswith("__") and not callable(getattr(obj, x))]
 
-    def _adapt_libsonata_fields(self, rep):
+    @staticmethod
+    def _adapt_libsonata_fields(rep):
         for key in rep:
             # Convert enums to its string representation
             if key in {
