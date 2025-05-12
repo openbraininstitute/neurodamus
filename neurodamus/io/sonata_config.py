@@ -103,7 +103,6 @@ class SonataConfig:
         "Run": "run",
         "Conditions": "conditions",
         "Projection": None,
-        "StimulusInject": "inputs",
         "Connection": "connection_overrides",
         # Section fields
         # --------------
@@ -132,8 +131,7 @@ class SonataConfig:
             "input_type": "Mode",
             "random_seed": "Seed",
             "series_resistance": "RS",
-            "node_set": "Target",  # for StimulusInject
-            "source": "Source",  # for StimulusInject
+            "node_set": "Target",
             "sd_percent": "SDPercent",
             "relative_skew": "RelativeSkew",
         },

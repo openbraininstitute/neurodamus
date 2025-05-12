@@ -732,10 +732,9 @@ class Node:
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
     def enable_stimulus(self):
-        """Iterate over any stimuli/stim injects defined in the config file given to the simulation
+        """Iterate over any stimulus defined in the config file given to the simulation
         and instantiate them.
-        This iterates over the injects, getting the stim/target combinations
-        and passes the raw text in field/value pairs to a StimulusManager object to interpret the
+        This passes the raw text in field/value pairs to a StimulusManager object to interpret the
         text and instantiate an actual stimulus object.
         """
         if Feature.Stimulus not in SimConfig.cli_options.restrict_features:
@@ -744,12 +743,10 @@ class Node:
 
         log_stage("Stimulus Apply.")
 
-        # for each stimulus defined in the config file, request the stimmanager to
+        # for each stimulus defined in the config file, request the StimulusManager to
         # instantiate
         self._stim_manager = StimulusManager(self._target_manager)
 
-        # build a dictionary of stims for faster lookup : useful when applying 10k+ stims
-        # while we are at it, check if any stims are using extracellular
         for stim in SimConfig.stimuli:
             if stim.get("Mode") == "Extracellular":
                 raise ConfigurationError("input_type extracellular_stimulation is not supported")
