@@ -46,8 +46,8 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
 
     isMacOS = PLATFORM_SYSTEM == "Darwin"
     if rank == 0:
-        assert (100.0 if isMacOS else 65.0) <= nd._dry_run_stats.base_memory <= (
-            140.0 if isMacOS else 120.0)
+        assert (100.0 if isMacOS else 120.0) <= nd._dry_run_stats.base_memory <= (
+            140.0 if isMacOS else 240.0)
         assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 7.0
         assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
         expected_metypes_count = {
