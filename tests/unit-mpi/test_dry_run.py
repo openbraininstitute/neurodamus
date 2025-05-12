@@ -1,18 +1,16 @@
-from neurodamus.core.configuration import SimConfig
 import pytest
-import numpy as np
-import numpy.testing as npt
 import tempfile
 from pathlib import Path
 from mpi4py import MPI
 
 
 from tests.utils import defaultdict_to_standard_types
-from ..conftest import RINGTEST_DIR, PLATFORM_SYSTEM
+from ..conftest import PLATFORM_SYSTEM
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
+
 
 @pytest.fixture(scope="session")
 def tmp_folder():
@@ -23,6 +21,7 @@ def tmp_folder():
     # Broadcast to all ranks
     path = comm.bcast(path, root=0)
     return path
+
 
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_folder):
@@ -78,11 +77,11 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     # neuron 1 always in rank 0, neuron 2 always in rank 1. neuron 3 allocation can not be predicted
     if rank == 0:
         expected_allocation = 1
-        assert expected_allocation in rank_allocation_standard['RingA'][(0, 0)] 
+        assert expected_allocation in rank_allocation_standard['RingA'][(0, 0)]
         expected_allocation = {(0, 0): [1]}
     elif rank == 1:
         expected_allocation = 2
-        assert expected_allocation in rank_allocation_standard['RingA'][(1, 0)] 
+        assert expected_allocation in rank_allocation_standard['RingA'][(1, 0)]
         expected_allocation = {(1, 0): [2]}
     assert rank_allocation_standard['RingB'] == expected_allocation
 
@@ -107,7 +106,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
         expected_allocation = {
             'RingA': {},
             'RingB': {}
-        }    
+        }
     assert rank_allocation_standard == expected_allocation
 
     Path(("allocation_r1_c1.pkl.gz")).unlink(missing_ok=True)
@@ -132,10 +131,10 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     print(rank_allocation_standard)
     # Test allocation
-    # neuron 1 always in rank 0, neuron 2 always in rank 1. neuron 3 allocation can not be predicted 
+    # neuron 1 always in rank 0, neuron 2 always in rank 1. neuron 3 allocation can not be predicted
     if rank == 0:
         expected_allocation = 1
-        assert expected_allocation in rank_allocation_standard['RingA'][(0, 0)] 
+        assert expected_allocation in rank_allocation_standard['RingA'][(0, 0)]
     elif rank == 1:
         expected_allocation = 2
-        assert expected_allocation in rank_allocation_standard['RingA'][(1, 0)] 
+        assert expected_allocation in rank_allocation_standard['RingA'][(1, 0)]
