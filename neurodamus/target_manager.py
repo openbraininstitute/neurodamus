@@ -6,7 +6,7 @@ from functools import lru_cache
 import libsonata
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, find_input_file
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
@@ -354,7 +354,7 @@ class NodeSetReader:
                 logging.warning(msg)
                 return None
             if node_selection:
-                logging.debug("Nodeset %s: Appending gis from %s", nodeset_name, pop_name)
+                logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
                 ns = SelectionNodeSet(node_selection)
                 ns.register_global(pop_name)
                 return ns

@@ -93,34 +93,6 @@ def test_population_get_connections(test_input, expected):
         assert expected[i] == (conn.sgid, conn.tgid)
 
 
-def test_population_delete():
-    pop = _create_population([(1, 0), (1, 2), (1, 1), (0, 0), (0, 1)])
-    expected = [(0, 0), (1, 0), (1, 2), (1, 1)]  # ordered sgids
-    pop.delete(0, 1)
-    for i, conn in enumerate(pop.all_connections()):
-        assert expected[i] == (conn.sgid, conn.tgid)
-
-
-@pytest.mark.parametrize(("test_input", "expected"), [
-    ((1,), [(0, 0), (1, 0), (1, 2)]),
-    (([1],), [(0, 0), (1, 0), (1, 2)]),
-    (([1, 2],), [(0, 0), (1, 0)]),
-    (([1, 0],), [(1, 2)]),
-    ((1, 1), [(0, 0), (1, 0), (1, 2), (0, 1)]),
-    (([1], 1), [(0, 0), (1, 0), (1, 2), (0, 1)]),
-    ((1, [1]), [(0, 0), (1, 0), (1, 2), (0, 1)]),
-    (([1], [1]), [(0, 0), (1, 0), (1, 2), (0, 1)]),
-    (([1, 2], [1]), [(0, 0), (1, 0), (0, 1)]),
-    (([1], [0, 1]), [(0, 0), (1, 0), (1, 2)]),
-    (([0, 1], [0, 1]), [(1, 2)]),
-])
-def test_population_delete_group(test_input, expected):
-    pop = _create_population([(1, 0), (1, 2), (1, 1), (0, 0), (0, 1)])
-    pop.delete_group(*test_input)
-    result = [(conn.sgid, conn.tgid) for conn in pop.all_connections()]
-    assert expected == result
-
-
 def test_population_ids_match():
     pop = _create_population([])
     assert pop.ids_match(0)

@@ -185,7 +185,8 @@ class Simulation:
             setattr(Neuron.h, key, val)
         Neuron.h.run()
 
-    def run_continue(self, t_stop):
+    @staticmethod
+    def run_continue(t_stop):
         Neuron.h.continuerun(t_stop)
 
     def record_activity(self, section, rel_pos=0.5):

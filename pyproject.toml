@@ -57,7 +57,7 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.flake8]
-exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox", "tests/simulations/ringtest/create_data.py"]
+exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
 extend-ignore = [
     "E127",  # continuation line over-indented for visual indent
     "E203",  # whitespace before ':'
@@ -115,6 +115,7 @@ ignore = [
     "PTH",     # use of os.path, will move to pathlib at some point
     "S101",    # Use of `assert` detected
     "RET504", # unnecessary-assign
+    "S606",   # start-process-with-no-shell
 
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
@@ -143,10 +144,8 @@ ignore = [
     "RUF012", # mutable-class-default
     "TRY002", # raise-vanilla-class
     "N806",   # non-lowercase-variable-in-function
-    "PLR6301",# no-self-use
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
-    "G004",   # logging-f-string
     "PLW1514",# unspecified-encoding
     "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
@@ -158,26 +157,16 @@ ignore = [
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "BLE001", # blind-except
-    "SIM108", # if-else-block-instead-of-if-exp
     "N805",   # invalid-first-argument-name-for-method
     "S603",   # subprocess-without-shell-equals-true
-    "SIM115", # open-file-with-context-handler
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
-    "E731",   # lambda-assignment
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
-    "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
-    "N804",   # invalid-first-argument-name-for-class-method
-    "PERF203",# try-except-in-loop
-    "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
-    "N818",   # error-suffix-on-exception-name
-    "PLR0913",# too-many-arguments
-    "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
 ]
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, NeurodamusCore as Nd
+from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 from .gap_junction_user_corrections import load_user_modifications
 from .io.sonata_config import ConnectionTypes
@@ -99,7 +99,8 @@ class GapJunctionManager(ConnectionManagerBase):
                     self.seclamp_current_per_gid_recorder[gid] = Nd.h.Vector()
                     self.seclamp_current_per_gid_recorder[gid].record(seclamp._ref_i)
 
-    def _finalize_conns(self, _final_tgid, conns, *_, **_kw):
+    @staticmethod
+    def _finalize_conns(_final_tgid, conns, *_, **_kw):
         for conn in reversed(conns):
             conn.finalize_gap_junctions()
         return len(conns)

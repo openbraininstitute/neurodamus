@@ -15,7 +15,7 @@ import numpy as np
 from .connection_manager import ConnectionManagerBase
 from .core import (
     MPI,
-    NeurodamusCore as Nd,
+    NeuronWrapper as Nd,
     ProgressBarRank0 as ProgressBar,
     mpi_no_errors,
     run_only_rank0,
@@ -179,8 +179,8 @@ class CellManagerBase(_CellManager):
         self._population_name = pop
         self._local_nodes = NodeSet().register_global(pop)
 
-    @classmethod
-    def _get_sonata_population_name(self, node_file):
+    @staticmethod
+    def _get_sonata_population_name(node_file):
         import libsonata  # only for SONATA
 
         pop_names = libsonata.NodeStorage(node_file).population_names
@@ -281,10 +281,10 @@ class CellManagerBase(_CellManager):
 
     @mpi_no_errors
     def _instantiate_cells(self, _CellType=None, **_opts):
+        CellType = _CellType or self.CellType
         if SimConfig.crash_test_mode:
             CellType = PointCell
-        else:
-            CellType = _CellType or self.CellType
+
         assert CellType is not None, "Undefined CellType in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 

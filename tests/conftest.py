@@ -2,6 +2,16 @@ import json
 import pytest
 from pathlib import Path
 import platform
+from neurodamus.core._utils import run_only_rank0
+
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except ImportError:
+    MPI = False
+    comm = None
+    rank = 0  # fallback to single-process logic
 
 # utils needs to be registered to let pytest rewrite
 # properly the assert errors. Either import it or use:
@@ -79,7 +89,8 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-def _create_simulation_config_file(params, dst_dir, sim_config_data=None):
+@run_only_rank0
+def _create_simulation_config_file(params, dst_dir, sim_config_data=None) -> str:
     """create simulation config file in dst_dir from
         1. simconfig_data: dict
         2. or copy of simconfig_file in params, and attach relative paths to src_dir
@@ -127,7 +138,7 @@ def _is_valid_relative_path(filepath: str):
 
 
 @pytest.fixture
-def create_tmp_simulation_config_file(request, tmp_path):
+def create_tmp_simulation_config_file(request):
     """create simulation config file in tmp_path from
         1. simconfig_fixture in request: fixture's name (str)
         2. or simconfig_data in request: dict
@@ -135,6 +146,10 @@ def create_tmp_simulation_config_file(request, tmp_path):
     Updates the config file with extra_config
     Returns the tmp file path
     """
+    try:
+        tmp_path = request.getfixturevalue("mpi_tmp_path")
+    except pytest.FixtureLookupError:
+        tmp_path = request.getfixturevalue("tmp_path")
     # import locally to register it in the pytests.
     # check the explanation about
     # pytest.register_assert_rewrite("tests.utils")

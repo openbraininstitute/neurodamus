@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 
 
@@ -53,7 +53,8 @@ class LFPManager:
                 f"in any of the populations {population_list}."
             )
 
-    def get_sonata_node_id(self, gid, population_info):
+    @staticmethod
+    def get_sonata_node_id(gid, population_info):
         return population_info[0], gid - population_info[1] - 1
 
     def get_node_id_subsets(self, node_id, population_name):

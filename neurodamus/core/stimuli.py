@@ -3,7 +3,7 @@
 import logging
 
 from .random import RNG, gamma
-from neurodamus.core import NeurodamusCore as Nd
+from neurodamus.core import NeuronWrapper as Nd
 
 
 class SignalSource:
@@ -142,7 +142,7 @@ class SignalSource:
         return self
 
     def add_sinspec(self, start, dur):
-        raise NotImplementedError
+        raise NotImplementedError("add_sinspec not implemented")
 
     def add_pulses(self, pulse_duration, amp, *more_amps, **kw):
         """Appends a set of pulsed signals without returning to zero

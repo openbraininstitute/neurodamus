@@ -245,7 +245,7 @@ class _SimConfig:
     @classmethod
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
-        from . import NeurodamusCore as Nd
+        from . import NeuronWrapper as Nd
 
         Nd.init()
         if not os.path.isfile(config_file):
@@ -517,7 +517,10 @@ def _check_params(
         val = data.get(param)
         if val and val in deprecated:
             logging.warning(
-                f"simulation config param value is deprecated: [{section_name}] {param} = {val}"
+                "simulation config param value is deprecated: [%s] %s = %s",
+                section_name,
+                param,
+                val,
             )
 
 
@@ -1146,10 +1149,7 @@ def get_debug_cell_gids(cli_options):
         raise ConfigurationError(f"Invalid token in dump-cell-state: {token}")
 
     try:
-        if isinstance(value, int):
-            tokens = [str(value)]
-        else:
-            tokens = value.split(",")
+        tokens = [str(value)] if isinstance(value, int) else value.split(",")
         gids = []
         for token in tokens:
             gids.extend(parse_gid_token(token))

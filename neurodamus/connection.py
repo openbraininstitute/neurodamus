@@ -7,7 +7,7 @@ from enum import Enum
 
 import numpy as np
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .utils import compat
 from .utils.logging import log_all

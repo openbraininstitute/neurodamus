@@ -1,6 +1,6 @@
 import logging
 
-from .core import NeurodamusCore as Nd
+from .core import NeuronWrapper as Nd
 
 
 def get_section_index(cell, section):
@@ -45,7 +45,7 @@ def get_section_index(cell, section):
         index_str = section_name.split("[")[-1].rstrip("]")
         section_index = int(index_str)
     except ValueError:
-        logging.warning(f"Error while getting section index {index_str}")
+        logging.warning("Error while getting section index %s", index_str)
 
     return int(base_offset + section_index)
 
@@ -79,7 +79,8 @@ class Report:
         )
         Nd.BBSaveState().ignore(self.report)
 
-    def determine_scaling_mode(self, scaling_option):
+    @staticmethod
+    def determine_scaling_mode(scaling_option):
         if scaling_option is None or scaling_option == "Area":
             return 1  # SCALING_AREA
         if scaling_option == "None":
@@ -158,12 +159,12 @@ class Report:
         if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
-            for synapse in synapse_list:
-                try:
+            try:
+                for synapse in synapse_list:
                     var_ref = getattr(synapse, "_ref_" + variable)
                     self.report.AddVar(var_ref, synapse.synapseID, gid, pop_name)
-                except AttributeError:
-                    raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
+            except AttributeError:
+                raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
 
     def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
         """Handle both intrinsic currents and point processes for summation report."""
@@ -179,7 +180,9 @@ class Report:
         elif area_at_x:
             self.handle_intrinsic_current(section, x, alu_helper, mechanism, area_at_x)
         else:
-            logging.warning(f"Skipping intrinsic current '{mechanism}' at a location with area = 0")
+            logging.warning(
+                "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+            )
 
     def handle_point_processes(self, section, x, alu_helper, point_processes, variable):
         """Handle point processes for a given mechanism."""
@@ -205,7 +208,7 @@ class Report:
             alu_helper.addvar(var_ref, scalar)
         except AttributeError:
             if variable in self.INTRINSIC_CURRENTS:
-                logging.warning(f"Current '{variable}' does not exist at {obj}")
+                logging.warning("Current '%s' does not exist at %s", variable, obj)
 
     def setup_alu_for_summation(self, alu_x, collapsed):
         """Setup ALU helper for summation."""
@@ -215,7 +218,8 @@ class Report:
         bbss.ignore(alu_helper)
         return alu_helper
 
-    def enable_fast_imem(self, mechanism):
+    @staticmethod
+    def enable_fast_imem(mechanism):
         """Adjust the mechanism name for fast membrane current calculation if necessary.
 
         If the mechanism is 'i_membrane', enables fast membrane current calculation in NEURON
@@ -229,7 +233,8 @@ class Report:
             mechanism = "i_membrane_"
         return mechanism
 
-    def is_point_process_at_location(self, point_process, section, x):
+    @staticmethod
+    def is_point_process_at_location(point_process, section, x):
         """Check if a point process is located at a specific position within a section.
 
         :param point_process: The point process to check.
@@ -244,7 +249,8 @@ class Report:
         # Check if the compartment ID matches the desired location
         return compartment_id == int(x * section.nseg)
 
-    def get_point_processes(self, section, mechanism):
+    @staticmethod
+    def get_point_processes(section, mechanism):
         """Retrieve all synapse objects attached to a given section.
 
         :param section: The NEURON section object to search for synapses.

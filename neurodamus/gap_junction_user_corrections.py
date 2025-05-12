@@ -6,7 +6,7 @@
 
 import logging
 
-from .core import MPI, NeurodamusCore as Nd
+from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
 non_stochastic_mechs = [
@@ -71,7 +71,7 @@ def load_user_modifications(gj_manager):
     if settings.get("procedure_type") in {"validation_sim", "find_holding_current"}:
         process_gap_conns = _update_conductance(gjc, gj_manager)
         all_ranks_total = int(MPI.py_sum(process_gap_conns, 0))
-        logging.info(f"Set GJc = {gjc} for {all_ranks_total} gap synapses")
+        logging.info("Set GJc = %s for %s gap synapses", gjc, all_ranks_total)
 
     # remove active channels
     remove_channels = settings.get("remove_channels")
@@ -95,7 +95,9 @@ def load_user_modifications(gj_manager):
             node_manager, filename, gjc, settings.get("correction_iteration_load", -1)
         )
         all_ranks_total = int(MPI.py_sum(processed_cells, 0))
-        logging.info(f"Update g_pas to fit {gjc} - file {filename} for {all_ranks_total} cells")
+        logging.info(
+            "Update g_pas to fit %s - file %s for %s cells", gjc, filename, all_ranks_total
+        )
 
     # load current clamps
     holding_ic_per_gid = {}
@@ -107,7 +109,7 @@ def load_user_modifications(gj_manager):
         holding_ic_per_gid = _load_holding_ic(node_manager, filename, gjc=gjc)
         all_ranks_total = int(MPI.py_sum(len(holding_ic_per_gid), 0))
         logging.info(
-            f"Load holding_ic from manual_MEComboInfoFile {filename} for {all_ranks_total} cells"
+            "Load holding_ic from manual_MEComboInfoFile %s for %s cells", filename, all_ranks_total
         )
 
     seclamp_per_gid = {}
@@ -115,7 +117,9 @@ def load_user_modifications(gj_manager):
         seclamp_per_gid = _find_holding_current(node_manager, settings.get("vc_amp"))
         all_ranks_total = int(MPI.py_sum(len(seclamp_per_gid), 0))
         logging.info(
-            f"Inject holding voltages from file {settings['vc_amp']} for {all_ranks_total} cells"
+            "Inject holding voltages from file %s for %s cells",
+            settings["vc_amp"],
+            all_ranks_total,
         )
 
     return holding_ic_per_gid, seclamp_per_gid
@@ -165,7 +169,7 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
     if f"g_pas/{gjc}" not in g_pas_file:
-        logging.warning(f"Data for g_pas/{gjc} not found in {filename}")
+        logging.warning("Data for g_pas/%s not found in %s", gjc, filename)
         return 0
     for agid in g_pas_file[f"g_pas/{gjc}/"]:
         gid = int(agid[1:])
@@ -199,7 +203,7 @@ def _load_holding_ic(node_manager, filename, gjc):
     except OSError:
         raise ConfigurationError(f"Error opening MEComboInfo file {filename}")
     if f"holding_per_gid/{gjc}" not in holding_per_gid:
-        logging.warning(f"Data for holding_per_gid/{gjc} not found in {holding_per_gid}")
+        logging.warning("Data for holding_per_gid/%s not found in %s", gjc, holding_per_gid)
         return holding_ic_per_gid
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset

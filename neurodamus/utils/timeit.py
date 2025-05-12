@@ -113,7 +113,7 @@ from itertools import chain
 from math import floor, log
 
 from .logging import log_verbose
-from neurodamus.core import MPI, NeurodamusCore as Nd, run_only_rank0
+from neurodamus.core import MPI, NeuronWrapper as Nd, run_only_rank0
 
 
 def human_readable(num):
@@ -216,12 +216,13 @@ class _TimerManager:
 
             self._log_stats(timers_name, timers, avg_times, min_times, max_times, nof_hits)
 
+    @staticmethod
     @run_only_rank0
-    def _log_stats(self, timers_name, timers, avg_times, min_times, max_times, nof_hits):
+    def _log_stats(timers_name, timers, avg_times, min_times, max_times, nof_hits):
         stats_name = " TIMEIT STATS {}".format(
             "(" + timers_name + ") " if timers_name else timers_name
         )
-        logging.info(f"+{stats_name:=^111s}+")
+        logging.info(f"+{stats_name:=^111s}+")  # noqa: G004
         logging.info(
             "|{:^58s}|{:^10s}|{:^10s}|{:^10s}|{:^19s}|".format(
                 "Event Label", "Avg.Time", "Min.Time", "Max.Time", "Hits R0 / Total "
@@ -232,7 +233,8 @@ class _TimerManager:
         for t, (name, tinfo) in enumerate(timers.items()):
             base_name = delim.join("  ") * name.count(delim) + name.split(delim)[-1]
             logging.info(
-                f"| {base_name:<56s} | {avg_times.x[t] / MPI.size:8.2f} | {min_times.x[t]:8.2f} | "
+                f"| {base_name:<56s} | {avg_times.x[t] / MPI.size:8.2f} | "  # noqa: G004
+                f"{min_times.x[t]:8.2f} | "
                 f"{max_times.x[t]:8.2f} | {human_readable(tinfo.hits):>7s} / "
                 f"{human_readable(nof_hits.x[t]):<7s} |"
             )
