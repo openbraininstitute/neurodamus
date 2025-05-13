@@ -26,6 +26,7 @@ class SonataConfig:
         # recover the order defined in the json file: this assumes that `json.load`
         # keeps it; *which is not guaranteed* see the discussion:
         # https://github.com/openbraininstitute/neurodamus/issues/217#issuecomment-2827930163
+        # the SONATA specification should be updated to be a list
         "_stable_inputs_order",
     )
 
@@ -329,8 +330,7 @@ class SonataConfig:
     @property
     def parsedInjects(self):
         injects = {}
-        # the order of stimulus injection could lead to minor difference on the results
-        # so better to preserve it as in the config file
+        # TODO: see comment on `_stable_inputs_order`
         for name in self._stable_inputs_order:
             inj = self._translate_dict("inputs", self._sim_conf.input(name))
             inj.setdefault("Stimulus", name)

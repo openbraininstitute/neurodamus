@@ -74,7 +74,6 @@ def make_ringtest_nodes():
         "y": it.count(1),
         "z": it.count(2),
         "morphology": "cell_small",
-        "synapse_class": ['EXC', 'EXC', 'EXC']
     }
     make_nodes(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
 
@@ -87,7 +86,6 @@ def make_ringtest_nodes():
         "y": it.count(4),
         "z": it.count(5),
         "morphology": "cell_small",
-        "synapse_class": ['EXC', 'INH']
     }
     make_nodes(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 
