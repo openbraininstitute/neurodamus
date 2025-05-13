@@ -77,8 +77,10 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
                                                             + "_r2_c1.pkl.gz", 0)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+
     # Test allocation
-    # RingA neuron 1 always in rank 0, neuron 2 always in rank 1 but neuron 3 can be in  either of the two  
+    # RingA neuron 1 always in rank 0, neuron 2 always in rank 1
+    # but neuron 3 can be in  either of the two
     if rank == 0:
         assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [1, 3])
         assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [1])
@@ -130,10 +132,10 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
                                                             + "_r2_c1.pkl.gz", 0)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
-    print(rank_allocation_standard)
-     # Test allocation
-    # RingA neuron 1 always in rank 0, neuron 2 always in rank 1 but neuron 3 can be in  either of the two  
-    print(f"------{rank_allocation_standard}")
+
+    # Test allocation
+    # RingA neuron 1 always in rank 0, neuron 2 always in rank 1
+    # but neuron 3 can be in  either of the two
     if rank == 0:
         assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [1, 3])
     elif rank == 1:
