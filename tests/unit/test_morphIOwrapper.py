@@ -10,11 +10,11 @@ def test_section_names():
     from neurodamus.core import NeuronWrapper as Nd
     morph_file = NGV_DIR / "morphologies" / "h5" / "glia.h5"
     morph = MorphIOWrapper(morph_file)
-    c = Nd.Cell(0)
-    c.AddHocMorph(morph.morph_as_hoc())
+    cell = Nd.Cell(0)
+    cell.AddHocMorph(morph.morph_as_hoc())
 
-    morph_section_names = [f"Cell[0].{MorphIOWrapper.combined_name(*i)}"
+    morph_section_names = [f"Cell[0].{MorphIOWrapper.combined_name(i[0], i[1])}"
                            for i in morph.section_names]
-    nrn_section_names = [i.name() for i in c.all]
+    nrn_section_names = [i.name() for i in cell.all]
 
     assert morph_section_names == nrn_section_names

@@ -182,7 +182,7 @@ class MorphIOWrapper:
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        self.section_names = list(self.section_names_generator())
+        self.section_names = self._get_section_names()
         self._build_sec_typeid_distrib()
 
     def _build_morph(self):
@@ -221,9 +221,17 @@ class MorphIOWrapper:
 
         self._morph = Morphology(self._morph)
 
-    def section_names_generator(self):
-        """Generator yielding (section_name, relative_index), starting with ('soma', 0)."""
-        yield ("soma", 0)
+    def _get_section_names(self) -> list[tuple[str, int]]:
+        """Returns a list of (section_name, relative_index)
+
+        Relative_index is the index of the section within its type group,
+        as expected by the NEURON simulator. NEURON organizes mechanisms
+        and pointers (e.g., for synapses or diffusion) into arrays grouped
+        by section type (e.g., axon, dendrite), so this relative index
+        identifies the section position within its group.
+        The list starts with ('soma', 0).
+        """
+        result = [("soma", 0)]
 
         last_type = None
         type_start_index = 0
@@ -236,7 +244,9 @@ class MorphIOWrapper:
                 type_start_index = i
 
             relative_index = i - type_start_index
-            yield (MorphIOWrapper.type2name(sec_type), relative_index)
+            result.append((MorphIOWrapper.type2name(sec_type), relative_index))
+
+        return result
 
     def _build_sec_typeid_distrib(self):
         """Build typeid distribution on top of MorphIO section_types"""
@@ -303,12 +313,16 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = MorphIOWrapper.combined_name(*self.section_names[index])
+            tstr = MorphIOWrapper.combined_name(
+                self.section_names[index][0], self.section_names[index][1]
+            )
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = MorphIOWrapper.combined_name(*self.section_names[parent_index])
+                    tstr1 = MorphIOWrapper.combined_name(
+                        self.section_names[parent_index][0], self.section_names[parent_index][1]
+                    )
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
