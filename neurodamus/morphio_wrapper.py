@@ -4,6 +4,7 @@ features on top of MorphIO basic morphology handling.
 
 import logging
 import os
+from dataclasses import dataclass
 
 import numpy as np
 from numpy.linalg import eig, norm
@@ -171,6 +172,33 @@ def single_point_sphere_to_circular_contour(neuron):
 """
 
 
+@dataclass
+class SectionName:
+    """A simple container to uniquely identify a NEURON Section by name and ID.
+
+    Attributes:
+        name (str): The name of the section (e.g., "soma", "dend", etc.).
+                    This corresponds to the section's logical type or label.
+        id (int): The index of the section among all sections with the same name.
+                  For example, in a list of dendrites, this would identify
+                  dend[0], dend[1], etc.
+
+    Example:
+        For NEURON's `soma[0]`, the corresponding SectionName would be:
+
+            SectionName(name="soma", id=0)
+
+        This allows unique referencing even in models where multiple sections
+        have the same base name.
+    """
+
+    name: str
+    id: int
+
+    def __str__(self):
+        return f"{self.name}[{self.id}]"
+
+
 class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
 
@@ -182,8 +210,7 @@ class MorphIOWrapper:
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        self._sec_idx2names = {}
-        self._build_sec_idx2names()
+        self.section_names = self._get_section_names()
         self._build_sec_typeid_distrib()
 
     def _build_morph(self):
@@ -222,21 +249,32 @@ class MorphIOWrapper:
 
         self._morph = Morphology(self._morph)
 
-    def _build_sec_idx2names(self):
-        """Build section index to nrn section names mapping on top of MorphIO section.id"""
-        # soma is not accounted for in sections
-        self._sec_idx2names[0] = "soma"
+    def _get_section_names(self) -> list[SectionName]:
+        """Returns a list of SectioName
 
-        idx_adjust = 0  # section ids don't restart from 0 for each type in MorphIO
-        current_type = -1  # used for index adjustment
-        for i, sec in enumerate(self._morph.sections):
-            index = i + 1
-            # When we have a new type, update idx_adjust
-            if self._morph.section_types[sec.id] != current_type:
-                current_type = self._morph.section_types[sec.id]
-                idx_adjust = i
+        Relative_index is the index of the section within its type group,
+        as expected by the NEURON simulator. NEURON organizes mechanisms
+        and pointers (e.g., for synapses or diffusion) into arrays grouped
+        by section type (e.g., axon, dendrite), so this relative index
+        identifies the section position within its group.
+        The list starts with ('soma', 0).
+        """
+        result = [SectionName("soma", 0)]
 
-            self._sec_idx2names[index] = self.name(current_type, i - idx_adjust)
+        last_type = None
+        type_start_index = 0
+
+        for i, sec in enumerate(self._morph.sections, start=1):
+            sec_type = self._morph.section_types[sec.id]
+
+            if sec_type != last_type:
+                last_type = sec_type
+                type_start_index = i
+
+            relative_index = i - type_start_index
+            result.append(SectionName(MorphIOWrapper.type2name(sec_type), relative_index))
+
+        return result
 
     def _build_sec_typeid_distrib(self):
         """Build typeid distribution on top of MorphIO section_types"""
@@ -303,12 +341,12 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = self._sec_idx2names[index]
+            tstr = self.section_names[index]
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = self._sec_idx2names[parent_index]
+                    tstr1 = self.section_names[parent_index]
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
@@ -361,11 +399,3 @@ class MorphIOWrapper:
 
         tstr1 = f'forsec "{type_name}" {tstr}.append'
         return tstr1
-
-    @classmethod
-    def name(cls, type_id, index):
-        return f"{cls.type2name(type_id)}[{index}]"
-
-    """
-        [END] Python versions of import3d_gui.hoc helper functions
-    """

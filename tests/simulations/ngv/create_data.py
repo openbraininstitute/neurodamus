@@ -85,10 +85,10 @@ def make_ngv_edges():
     }
     make_edges(filename="neuroglia.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    edges = Edges("vasculature", "AstrocyteA", "endfoot", [(2, 0), (4, 1)])
+    edges = Edges("vasculature", "AstrocyteA", "endfoot", [(2, 0), (4, 1), (3, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
-        "astrocyte_section_id" : [5, 28],
+        "astrocyte_section_id" : [5, 28, 10],
         "endfoot_compartment_length": 10.,
         "endfoot_compartment_diameter": 5.,
         "endfoot_compartment_perimeter": 7.
