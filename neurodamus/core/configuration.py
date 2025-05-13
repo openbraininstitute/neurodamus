@@ -773,8 +773,6 @@ _condition_checks = {
 
 @SimConfig.validator
 def _simulator_globals(config: _SimConfig):
-    if not hasattr(config._simulation_config, "Conditions"):
-        return
     from neuron import h
 
     # Hackish but some constants only live in the helper
