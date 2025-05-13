@@ -385,7 +385,8 @@ class SonataConfig:
 
     def _translate_dict(self, section_name, libsonata_obj=None) -> dict:
         """Translate SONATA/libsonata key names (snake_case) to
-        Neurodamus internal paramters (rename w.r.t _translation[section_name] or CamelCase)"""
+        Neurodamus internal paramters (rename w.r.t _translation[section_name] or CamelCase)
+        """
         item_translation = self._translation[section_name]
         result = {}
         for att in self._dir(libsonata_obj):
