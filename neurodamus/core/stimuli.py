@@ -26,10 +26,6 @@ class SignalSource:
             self._add_point(base_amp)
             self._cur_t = delay
 
-    def reset(self):
-        self.stim_vec.resize(0)
-        self.time_vec.resize(0)
-
     def _add_point(self, amp):
         """Appends a single point to the time-signal source.
         Note: It doesnt advance time, not supposed to be called directly
@@ -139,29 +135,6 @@ class SignalSource:
         stim.mul(amp)
         self.stim_vec.append(stim)
         self._add_point(base_amp)  # Last point
-        return self
-
-    def add_sinspec(self, start, dur):
-        raise NotImplementedError("add_sinspec not implemented")
-
-    def add_pulses(self, pulse_duration, amp, *more_amps, **kw):
-        """Appends a set of pulsed signals without returning to zero
-           Each pulse is applied 'dur' time.
-
-        Args:
-          pulse_duration: The duration of each pulse
-          amp: The amplitude of the first pulse
-          *more_amps: 2nd, 3rd, ... pulse amplitudes
-          **kw: Additional params:
-            - base_amp [default: 0]
-        """
-        # First and last are base_amp
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
-        self.add_segment(amp, pulse_duration)
-        for more_amp in more_amps:
-            self.add_segment(more_amp, pulse_duration)
-        self._add_point(base_amp)
         return self
 
     def add_noise(self, mean, variance, duration, dt=0.5):
@@ -369,11 +342,6 @@ class SignalSource:
     @classmethod
     def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
-
-    # Operations
-    def __add__(self, other):
-        """# Adds signals. Two added signals sum amplitudes"""
-        raise NotImplementedError("Adding signals is not available yet")
 
 
 class CurrentSource(SignalSource):
