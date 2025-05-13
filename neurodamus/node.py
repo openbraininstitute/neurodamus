@@ -784,19 +784,15 @@ class Node:
             source = stim.get("Source")
             stim_name = stim["Name"]
 
-            # Since saveUpdate merge there are two delay concepts:
-            #  - shift: times are shifted (previous delay)
             #  - delay: Spike replays are suppressed until a certain time
-            tshift = Nd.t if stim.get("Timing") == "Relative" else 0.0
             delay = stim.get("Delay", 0.0)
             logging.info(
-                " * [SYN REPLAY] %s -> %s (time shift: %d, delay: %d)",
+                " * [SYN REPLAY] %s -> %s (delay: %d)",
                 stim_name,
                 target,
-                tshift,
                 delay,
             )
-            self._enable_replay(source, target, stim, tshift, delay)
+            self._enable_replay(source, target, stim, delay=delay)
 
     # -
     def _enable_replay(
