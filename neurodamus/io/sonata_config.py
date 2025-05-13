@@ -333,6 +333,7 @@ class SonataConfig:
 
         return stimuli
 
+    @property
     def parsedReports(self):
         report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
         reports = {}
