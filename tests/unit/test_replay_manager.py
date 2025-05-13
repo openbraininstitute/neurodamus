@@ -133,7 +133,8 @@ def test_error_replay_format():
 def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
 
-    spikes_replay = SimConfig.stimuli["spikeReplay"]
+    assert len(SimConfig.stimuli) == 1
+    spikes_replay = SimConfig.stimuli[0]
     assert spikes_replay["Target"] == "RingB"
     assert spikes_replay["Mode"] == "Current"
     assert spikes_replay["Pattern"] == "SynapseReplay"

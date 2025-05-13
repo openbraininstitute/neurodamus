@@ -1,16 +1,19 @@
-import pytest
-from pathlib import Path
 import logging
-from tests import utils
+from pathlib import Path
 
-from ..conftest import RINGTEST_DIR
+import pytest
+
+from tests import utils
+from tests.conftest import RINGTEST_DIR
+
+from neurodamus.core.configuration import SimConfig
+from neurodamus.io.sonata_config import SonataConfig
+from neurodamus.utils.logging import setup_logging
 
 
 def test_parse_base():
-    from neurodamus.io.sonata_config import SonataConfig
-
     raw_conf = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
-    assert raw_conf.run["random_seed"] == 1122
+    assert raw_conf._sim_conf.run.random_seed == 1122
     assert raw_conf.parsedRun["BaseSeed"] == 1122
 
 
@@ -25,20 +28,19 @@ def test_parse_base():
     },
 ], indirect=True)
 def test_parse_run(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
     SimConfig.init(create_tmp_simulation_config_file, {})
     # RNGSettings in hoc correctly initialized from Sonata
     assert SimConfig.rng_info.getGlobalSeed() == 1122
 
     expected_conf = {
-        'CircuitTarget': 'Mosaic',
-        'Simulator': 'NEURON',
-        'Duration': 50.0,
-        'Dt': 0.1,
-        'Celsius': 35,
-        'V_Init': -65,
-        'SpikeLocation': 'soma',
-        'ExtracellularCalcium': 1.2
+        "CircuitTarget": "Mosaic",
+        "Simulator": "NEURON",
+        "Duration": 50.0,
+        "Dt": 0.1,
+        "Celsius": 35,
+        "V_Init": -65,
+        "SpikeLocation": "soma",
+        "ExtracellularCalcium": 1.2
     }
 
     utils.check_is_subset(SimConfig.run_conf, expected_conf)
@@ -60,9 +62,6 @@ def test_parse_run(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_extracellular_calcium_warning(create_tmp_simulation_config_file, caplog):
-    from neurodamus.core.configuration import SimConfig
-    from neurodamus.utils.logging import setup_logging
-
     setup_logging.logging_initted = True
     with caplog.at_level(logging.WARNING):
         SimConfig.init(create_tmp_simulation_config_file, {})
@@ -87,16 +86,15 @@ def test_extracellular_calcium_warning(create_tmp_simulation_config_file, caplog
     },
 ], indirect=True)
 def test_parse_conditions(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
     SimConfig.init(create_tmp_simulation_config_file, {})
 
     expected_conditions = {
-        'init_depleted_ProbAMPANMDA_EMS': False,
-        'minis_single_vesicle_ProbAMPANMDA_EMS': True,
-        'randomize_Gaba_risetime': 'False'
+        "init_depleted_ProbAMPANMDA_EMS": False,
+        "minis_single_vesicle_ProbAMPANMDA_EMS": True,
+        "randomize_Gaba_risetime": "False"
     }
 
-    utils.check_is_subset(list(SimConfig._simulation_config.Conditions.values())[0],
+    utils.check_is_subset(next(iter(SimConfig._simulation_config.Conditions.values())),
                           expected_conditions)
     assert SimConfig.run_conf["SpikeLocation"] == "AIS"
 
@@ -113,8 +111,6 @@ def test_parse_conditions(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_seeds(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
     assert SimConfig.rng_info.getGlobalSeed() == 12345
     assert SimConfig.rng_info.getStimulusSeed() == 1122
@@ -146,8 +142,6 @@ def test_parse_seeds(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_modifications(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
     assert list(SimConfig.modifications.keys()) == ["no_SK_E2", "applyTTX"]  # order preserved
     TTX_mod = SimConfig.modifications["applyTTX"]
@@ -179,8 +173,6 @@ def test_parse_modifications(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_connections(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
     conn = SimConfig.connections["GABAB_erev"]
     expected_conn = {
@@ -212,12 +204,10 @@ def test_parse_connections(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_ouput(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
     # output section
-    assert SimConfig.run_conf['SpikesFile'] == 'spikes.h5'
-    assert SimConfig.run_conf['SpikesSortOrder'] == 'by_time'
+    assert SimConfig.run_conf["SpikesFile"] == "spikes.h5"
+    assert SimConfig.run_conf["SpikesSortOrder"] == "by_time"
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -257,8 +247,6 @@ def test_parse_ouput(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_inputs(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
 
     expected_input_hp = {
@@ -268,9 +256,9 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "Delay": 0.,
         "Duration": 10000.0
     }
-    utils.check_is_subset(SimConfig.stimuli["hypamp_mosaic"], expected_input_hp)
+    utils.check_is_subset(SimConfig.stimuli[0], expected_input_hp)
 
-    input_RSN = SimConfig.stimuli["RelativeShotNoise_L5E_inject"]
+    input_RSN = SimConfig.stimuli[1]
     expected_input_RSN = {
         "Pattern": "RelativeShotNoise",
         "Mode": "Current",
@@ -290,7 +278,7 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "Pattern": "SubThreshold",
         "PercentLess": 50.0
     }
-    utils.check_is_subset(SimConfig.stimuli["subthreshould_mosaic"], expected_input_subthreshold)
+    utils.check_is_subset(SimConfig.stimuli[2], expected_input_subthreshold)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -322,37 +310,35 @@ def test_parse_inputs(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_parse_reports(create_tmp_simulation_config_file):
-    from neurodamus.core.configuration import SimConfig
-
     SimConfig.init(create_tmp_simulation_config_file, {})
     expected_soma_report = {
-        'Target': 'l4pc',
-        'Type': 'compartment',
-        'ReportOn': 'v',
-        'Compartments': 'center',
-        'Sections': 'soma',
-        'Scaling': 'Area',
-        'StartTime': 0.0,
-        'EndTime': 50.0,
-        'Dt': 0.1,
-        'Enabled': True,
-        'FileName': str(Path(SimConfig.run_conf["OutputRoot"]) / "soma_report.h5")
+        "Target": "l4pc",
+        "Type": "compartment",
+        "ReportOn": "v",
+        "Compartments": "center",
+        "Sections": "soma",
+        "Scaling": "Area",
+        "StartTime": 0.0,
+        "EndTime": 50.0,
+        "Dt": 0.1,
+        "Enabled": True,
+        "FileName": str(Path(SimConfig.run_conf["OutputRoot"]) / "soma_report.h5")
     }
-    utils.check_is_subset(SimConfig.reports['soma_report'], expected_soma_report)
+    utils.check_is_subset(SimConfig.reports["soma_report"], expected_soma_report)
 
     expected_compartment_report = {
-        'Target': 'l4pc',
-        'Type': 'compartment',
-        'ReportOn': 'v',
-        'Compartments': 'all',
-        'Sections': 'all',
-        'Scaling': 'Area',
-        'StartTime': 0.0,
-        'EndTime': 10.0,
-        'Dt': 0.1,
-        'Enabled': True,
-        'FileName': str(
+        "Target": "l4pc",
+        "Type": "compartment",
+        "ReportOn": "v",
+        "Compartments": "all",
+        "Sections": "all",
+        "Scaling": "Area",
+        "StartTime": 0.0,
+        "EndTime": 10.0,
+        "Dt": 0.1,
+        "Enabled": True,
+        "FileName": str(
             Path(SimConfig.run_conf["OutputRoot"]) / "my_compartment_report.h5"
         )
     }
-    utils.check_is_subset(SimConfig.reports['compartment_report'], expected_compartment_report)
+    utils.check_is_subset(SimConfig.reports["compartment_report"], expected_compartment_report)

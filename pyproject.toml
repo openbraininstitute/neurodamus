@@ -29,7 +29,6 @@ docs=['sphinx', 'sphinx-bluebrain-theme']
 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
-hocify = "neurodamus.commands:hocify"
 
 [project.urls]
 Homepage = "https://github.com/BlueBrain/neurodamus"
