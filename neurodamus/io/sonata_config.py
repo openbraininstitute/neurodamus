@@ -360,6 +360,9 @@ class SonataConfig:
 
     @property
     def parsedStimuli(self) -> list:
+        """Read the inputs information parsed by libsonata,
+        and convert them to the internal parameters used by StimulusManager
+        """
         input_type_translation = {
             "spikes": "Current",
             "current_clamp": "Current",
@@ -434,6 +437,8 @@ class SonataConfig:
                 rep[key] = int(rep[key])
 
     def _translate_dict(self, section_name, libsonata_obj=None) -> dict:
+        """Translate SONATA/libsonata key names (snake_case) to
+        Neurodamus internal paramters (rename w.r.t _translation[section_name] or CamelCase)"""
         item_translation = self._translation[section_name]
         result = {}
         for att in self._dir(libsonata_obj):
