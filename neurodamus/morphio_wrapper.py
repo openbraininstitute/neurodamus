@@ -5,6 +5,7 @@ features on top of MorphIO basic morphology handling.
 import logging
 import os
 
+from dataclasses import dataclass
 import numpy as np
 from numpy.linalg import eig, norm
 
@@ -170,6 +171,30 @@ def single_point_sphere_to_circular_contour(neuron):
     [END] Implementations retrieved from nse/morph-tool (!= hpc/morpho-tool !!!)
 """
 
+@dataclass
+class SectionName:
+    """
+    A simple container to uniquely identify a NEURON Section by name and ID.
+
+    Attributes:
+        name (str): The name of the section (e.g., "soma", "dend", etc.).
+                    This corresponds to the section's logical type or label.
+        id (int): The index of the section among all sections with the same name.
+                  For example, in a list of dendrites, this would identify
+                  dend[0], dend[1], etc.
+
+    Example:
+        For NEURON's `soma[0]`, the corresponding SectionName would be:
+
+            SectionName(name="soma", id=0)
+
+        This allows unique referencing even in models where multiple sections
+        have the same base name.
+    """
+    name: str
+    id: int
+    def __str__(self):
+        return f"{self.name}[{self.id}]"
 
 class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
@@ -221,8 +246,8 @@ class MorphIOWrapper:
 
         self._morph = Morphology(self._morph)
 
-    def _get_section_names(self) -> list[tuple[str, int]]:
-        """Returns a list of (section_name, relative_index)
+    def _get_section_names(self) -> list[SectionName]:
+        """Returns a list of SectioName
 
         Relative_index is the index of the section within its type group,
         as expected by the NEURON simulator. NEURON organizes mechanisms
@@ -231,7 +256,7 @@ class MorphIOWrapper:
         identifies the section position within its group.
         The list starts with ('soma', 0).
         """
-        result = [("soma", 0)]
+        result = [SectionName("soma", 0)]
 
         last_type = None
         type_start_index = 0
@@ -244,7 +269,7 @@ class MorphIOWrapper:
                 type_start_index = i
 
             relative_index = i - type_start_index
-            result.append((MorphIOWrapper.type2name(sec_type), relative_index))
+            result.append(SectionName(MorphIOWrapper.type2name(sec_type), relative_index))
 
         return result
 
@@ -313,16 +338,12 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = MorphIOWrapper.combined_name(
-                self.section_names[index][0], self.section_names[index][1]
-            )
+            tstr = self.section_names[index]
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = MorphIOWrapper.combined_name(
-                        self.section_names[parent_index][0], self.section_names[parent_index][1]
-                    )
+                    tstr1 = self.section_names[parent_index]
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
@@ -375,11 +396,3 @@ class MorphIOWrapper:
 
         tstr1 = f'forsec "{type_name}" {tstr}.append'
         return tstr1
-
-    @classmethod
-    def combined_name(cls, name, index):
-        return f"{name}[{index}]"
-
-    """
-        [END] Python versions of import3d_gui.hoc helper functions
-    """

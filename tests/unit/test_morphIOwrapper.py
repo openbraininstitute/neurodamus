@@ -1,4 +1,4 @@
-from neurodamus.morphio_wrapper import MorphIOWrapper
+from neurodamus.morphio_wrapper import MorphIOWrapper, SectionName
 from tests.conftest import NGV_DIR
 
 
@@ -13,7 +13,7 @@ def test_section_names():
     cell = Nd.Cell(0)
     cell.AddHocMorph(morph.morph_as_hoc())
 
-    morph_section_names = [f"Cell[0].{MorphIOWrapper.combined_name(i[0], i[1])}"
+    morph_section_names = [f"Cell[0].{i}"
                            for i in morph.section_names]
     nrn_section_names = [i.name() for i in cell.all]
 

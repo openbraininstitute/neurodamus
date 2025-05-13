@@ -535,9 +535,9 @@ class GlioVascularManager(ConnectionManagerBase):
                 Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
                 astrocyte.sections_glut.append(glut)
 
-                name, rel_idx = astrocyte.section_names[parent_section_id + 1]
-                parent_sec_list = getattr(astrocyte.CellRef, name)
-                parent_sec = parent_sec_list[rel_idx]
+                section_name = astrocyte.section_names[parent_section_id + 1]
+                parent_sec_list = getattr(astrocyte.CellRef, section_name.name)
+                parent_sec = parent_sec_list[section_name.id]
                 sec.connect(parent_sec)
 
             # Some useful debug lines:
