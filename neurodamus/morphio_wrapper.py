@@ -4,8 +4,8 @@ features on top of MorphIO basic morphology handling.
 
 import logging
 import os
-
 from dataclasses import dataclass
+
 import numpy as np
 from numpy.linalg import eig, norm
 
@@ -171,10 +171,10 @@ def single_point_sphere_to_circular_contour(neuron):
     [END] Implementations retrieved from nse/morph-tool (!= hpc/morpho-tool !!!)
 """
 
+
 @dataclass
 class SectionName:
-    """
-    A simple container to uniquely identify a NEURON Section by name and ID.
+    """A simple container to uniquely identify a NEURON Section by name and ID.
 
     Attributes:
         name (str): The name of the section (e.g., "soma", "dend", etc.).
@@ -191,10 +191,13 @@ class SectionName:
         This allows unique referencing even in models where multiple sections
         have the same base name.
     """
+
     name: str
     id: int
+
     def __str__(self):
         return f"{self.name}[{self.id}]"
+
 
 class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""

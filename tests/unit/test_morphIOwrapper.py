@@ -1,4 +1,4 @@
-from neurodamus.morphio_wrapper import MorphIOWrapper, SectionName
+from neurodamus.morphio_wrapper import MorphIOWrapper
 from tests.conftest import NGV_DIR
 
 
