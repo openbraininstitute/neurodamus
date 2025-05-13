@@ -940,14 +940,13 @@ class ConnectionManagerBase:
         for conn in self.all_connections():
             conn.locked = False
 
-    def finalize(self, base_seed=0, sim_corenrn=False, *, _conn_type="synapses", **conn_params):
+    def finalize(self, base_seed=0, *, _conn_type="synapses", **conn_params):
         """Instantiates the netcons and Synapses for all connections.
 
         Note: All weight scalars should have their final values.
 
         Args:
             base_seed: optional argument to adjust synapse RNGs (default=0)
-            sim_corenrn: Finalize accordingly in case we target CoreNeuron
             _conn_type: (Internal) A string repr of the connectivity type
             conn_params: Additional finalize parameters for the specific _finalize_conns
                 E.g. replay_mode (Default: Auto-Detect) Use DISABLED to skip replay
@@ -969,15 +968,13 @@ class ConnectionManagerBase:
             )
 
             for tgid, conns in ProgressBar.iter(pop.items(), name="Pop:" + str(popid)):
-                n_created_conns += self._finalize_conns(
-                    tgid, conns, base_seed, sim_corenrn, **conn_params
-                )
+                n_created_conns += self._finalize_conns(tgid, conns, base_seed, **conn_params)
 
         all_ranks_total = MPI.allreduce(n_created_conns, MPI.SUM)
         logging.info(" => Created %d %s", all_ranks_total, _conn_type)
         return all_ranks_total
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, *, reverse=False, **kwargs):
+    def _finalize_conns(self, tgid, conns, base_seed, *, reverse=False, **kwargs):
         """Low-level handling of finalizing connections belonging to a target gid.
         By default it calls finalize on each cell.
         """
@@ -987,7 +984,7 @@ class ConnectionManagerBase:
         if reverse:
             conns = reversed(conns)
         for conn in conns:  # type: Connection
-            syn_count = conn.finalize(metype, base_seed, skip_disabled=sim_corenrn, **kwargs)
+            syn_count = conn.finalize(metype, base_seed, **kwargs)
             logging.debug("Instantiated conn %s: %d synapses", conn, syn_count)
             n_created_conns += syn_count
         return n_created_conns
@@ -1069,14 +1066,14 @@ class SynapseRuleManager(ConnectionManagerBase):
             logging.info("Init %s. Options: %s", type(self).__name__, kw)
             self.open_edge_location(syn_source, circuit_conf, **kw)
 
-    def finalize(self, base_seed=0, sim_corenrn=False, **kwargs):
+    def finalize(self, base_seed=0, **kwargs):
         """Create the actual synapses and netcons. See super() docstring"""
         kwargs.setdefault("replay_mode", ReplayMode.AS_REQUIRED)
-        super().finalize(base_seed, sim_corenrn, **kwargs)
+        super().finalize(base_seed, **kwargs)
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kw):
+    def _finalize_conns(self, tgid, conns, base_seed, **kw):
         # Note: (Compat) neurodamus hoc finalizes connections in reversed order.
-        return super()._finalize_conns(tgid, conns, base_seed, sim_corenrn, reverse=True, **kw)
+        return super()._finalize_conns(tgid, conns, base_seed, reverse=True, **kw)
 
     def setup_delayed_connection(self, conn_config):
         """Setup delayed connection weights for synapse initialization.
