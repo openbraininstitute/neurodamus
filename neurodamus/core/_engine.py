@@ -61,13 +61,13 @@ class EngineBase(metaclass=_EngineMeta):
     Without any customization an engine will default to use:
 
       CellManagerCls = None   # Use existing instance of CellDistributor
-      SynapseManagerCls = None  # Use existing instance of SynapseRuleManager
+      InnerConnectivityCls = None  # Use existing instance of SynapseRuleManager
 
     Such setup is equivalent to not specifying the Engine for a given circuit,
     effectively handling additional circuits by the built-in Engine.
     Specifying CellManagerCls will instantiate cells with the new Engine. If a
-    SynapseManagerCls is not provided then only cell creation happens.
-    Specifying SynapseManagerCls alone is not supported.
+    InnerConnectivityCls is not provided then only cell creation happens.
+    Specifying InnerConnectivityCls alone is not supported.
 
     """
 
