@@ -83,10 +83,10 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     # but neuron 3 can be in  either of the two
     if rank == 0:
         assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [1, 3])
-        assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [1])
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
         assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [2, 3])
-        assert is_subset(rank_allocation_standard['RingB'][(1, 0)], [2])
+        assert rank_allocation_standard['RingB'][(1, 0)] == [2]
 
     # Test redistribution
     rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
