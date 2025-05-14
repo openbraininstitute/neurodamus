@@ -1,55 +1,76 @@
-import pytest
-
-from neurodamus import Neurodamus
+import numpy.testing as npt
+from neurodamus.ngv import Astrocyte
 from tests.conftest import NGV_DIR
+from unittest.mock import MagicMock
+from itertools import chain
 
 
-def _check_seg(seg, glut):
-    """Verify the GlutReceive mechanism is correctly attached and linked to the segment."""
-    assert hasattr(seg, "cadifus")
-    assert len(seg.point_processes()) == (2 if "soma" in str(seg) else 1)
-    # comparison between hocObjects. -1 because in the soma the
-    # first one is GlutReceiveSoma
-    assert glut.same(seg.point_processes()[-1])
-    # Ensure cadifus.glu2 pointer is synchronized with glut.glut
-    assert glut.glut == seg.cadifus.glu2
-    v = glut.glut+1
-    glut.glut = v
-    assert glut.glut == v
-    assert glut.glut == seg.cadifus.glu2
+meinfos = MagicMock()
+meinfos.morph_name = "glia"
+circuit_conf = MagicMock()
+circuit_conf.MorphologyPath = NGV_DIR / "morphologies" / "h5"
+circuit_conf.MorphologyType = "h5"
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "src_dir": str(NGV_DIR),
-        "simconfig_file": "simulation_config.json"
-    }
-], indirect=True)
-def test_astrocyte_point_processes_and_mechanisms(create_tmp_simulation_config_file):
-    """Check consistency among glut_list, cell point processes, and mechanisms"""
-    n = Neurodamus(create_tmp_simulation_config_file)
-    astro_manager = n.circuits.get_node_manager("AstrocyteA")
-    for idx, cell in enumerate(astro_manager.cells):
-        # Check that GlutList length matches section_names + endfeet
-        glut_list = list(cell.glut_list)
-        section_names = cell.section_names
-        endfeet = cell.endfeet
-        assert len(glut_list) == len(section_names) + len(endfeet) + 1
+# def inspect(v):
+#     print("----")
+#     print(v, type(v))
+#     for i in dir(v):
+#         if not i.startswith("__"):
+#             try:
+#                 attr = getattr(v, i)
+#             except Exception as e:
+#                 attr = f"<error: {e}>"
+#             print(f"{i}: {attr}")
+#     print("----")
 
-        # Get the runtime types of GlutReceive and GlutReceiveSoma
-        glut_receive_type = type(glut_list[0])  # Assuming the first element is GlutReceive
-        glut_receive_soma_type = type(glut_list[-1])  # Assuming the last element is GlutReceiveSoma
 
-        # Check that all elements in GlutList are GlutReceive except the last one
-        assert all(isinstance(glut, glut_receive_type) for glut in glut_list[:-1])
-        assert isinstance(glut_list[-1], glut_receive_soma_type)
+def check_cadifus_pointer(sec, glut):
+    """
+    Check the pointer by changing the value in GlutReceive
+    and checking the change in cadifus
+    """
+    assert sec(0.5).cadifus.glu2 == glut.glut
+    glut.glut += 1
+    assert sec(0.5).cadifus.glu2 == glut.glut
 
-        for sec, glut in zip(cell.CellRef.all, glut_list):
-            _check_seg(sec(0.5), glut)
 
-        for sec, glut in zip(cell.endfeet, glut_list[len(cell.CellRef.all):]):
-            _check_seg(sec(0.5), glut)
-            assert hasattr(sec(0.5), "vascouplingB")
+def test_init_and_add_endfeet():
+    """ Test the basic instantiation of an astrocyte including
+    endfeet connections """
+    parent_ids = [3, 8, 9]
+    lengths = [1.1, 1.2, 1.3]
+    diameters = [2.1, 2.2, 2.3]
+    R0passes = [3.1, 3.2, 3.3]
 
-        # check GlutReceiveSoma
-        assert cell.CellRef.soma[0](0.5).point_processes()[0].hname() == f"GlutReceiveSoma[{idx}]"
+    astro = Astrocyte(gid=0, meinfos=meinfos, circuit_conf=circuit_conf)
+    astro.add_endfeet(parent_ids, lengths, diameters, R0passes)
+    astro.set_pointers()
+
+    assert all(hasattr(sec(0.5), "cadifus") for sec in astro.all)
+    assert all(hasattr(sec(0.5), "cadifus") for sec in astro.endfeet)
+
+    # endfeet tests
+    assert all(hasattr(sec(0.5), "vascouplingB") for sec in astro.endfeet)
+    assert not any(hasattr(sec(0.5), "vascouplingB") for sec in astro.all)
+
+    npt.assert_allclose(lengths, [sec.L for sec in astro.endfeet])
+    npt.assert_allclose(diameters, [sec.diam for sec in astro.endfeet])
+    npt.assert_allclose(R0passes, [sec(0.5).vascouplingB.R0pas for sec in astro.endfeet])
+
+    # glut_list tests
+    glut_list = astro.glut_list
+    len(glut_list) == len(astro.glut_all) + len(astro.glut_endfeet) + 1
+    glut_receive_type = type(glut_list[0])  # Assuming the first element is GlutReceive
+    glut_receive_soma_type = type(glut_list[-1])  # Assuming the last element is GlutReceiveSoma
+
+    # Check that all elements in GlutList are GlutReceive except the last one
+    assert all(isinstance(glut, glut_receive_type) for glut in glut_list[:-1])
+    assert isinstance(glut_list[-1], glut_receive_soma_type)
+
+    for glut, sec in zip(astro.glut_list, chain(astro.all, astro.endfeet)):
+        sec_glut = sec(0.5).point_processes()[-1]
+        assert glut.same(sec_glut)
+        check_cadifus_pointer(sec, glut)
+
+    assert astro._cellref.soma[0](0.5).point_processes()[0].hname() == "GlutReceiveSoma[0]"
