@@ -7,7 +7,6 @@ import os
 import weakref
 from contextlib import contextmanager
 from io import StringIO
-from os import path as ospath
 from pathlib import Path
 
 import numpy as np
@@ -44,8 +43,6 @@ class VirtualCellPopulation:
     It is mostly used as source of projections
     """
 
-    _total_count = 0
-
     def __init__(self, population_name, gids=None, circuit_target=None):
         """Initializes a VirtualCellPopulation
 
@@ -55,11 +52,6 @@ class VirtualCellPopulation:
         self.population_name = population_name
         self.circuit_target = circuit_target
         self.local_nodes = NodeSet(gids).register_global(population_name)
-        VirtualCellPopulation._total_count += 1
-        if VirtualCellPopulation._total_count > 1:
-            logging.warning(
-                "For non-sonata circuit, only a single Virtual Cell Population works with REPLAY"
-            )
 
     is_virtual = property(lambda _self: True)
 
@@ -171,7 +163,7 @@ class CellManagerBase(_CellManager):
         return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
-        if not ospath.isabs(circuit_conf.CellLibraryFile):
+        if not os.path.isabs(circuit_conf.CellLibraryFile):
             circuit_conf.CellLibraryFile = find_input_file(circuit_conf.CellLibraryFile)
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
