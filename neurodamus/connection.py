@@ -47,7 +47,6 @@ class ConnectionBase:
     __slots__ = (
         "_delay_vec",
         "_delayweight_vec",
-        "_disabled",
         "_dst_pop_id",
         "_netcons",
         "_src_pop_id",
@@ -87,7 +86,6 @@ class ConnectionBase:
         self.weight_factor = weight_factor
         self.syndelay_override = syndelay_override
         self.locked = False
-        self._disabled = False
         self._syn_offset = synapses_offset
         self._src_pop_id = src_pop_id
         self._dst_pop_id = dst_pop_id
@@ -137,24 +135,6 @@ class ConnectionBase:
         self._delay_vec.append(delay)
         self._delayweight_vec.append(weight)
 
-    def disable(self):
-        """Deactivates a connection.
-        The connection synapses are inhibited by disabling the netcons.
-        """
-        self._disabled = True
-        if self._netcons is None:
-            return
-        for nc in self._netcons:
-            nc.active(False)
-
-    def enable(self):
-        """(Re)enables connections, by activating all netcons"""
-        self._disabled = False
-        if self._netcons is None:
-            return
-        for nc in self._netcons:
-            nc.active(True)
-
     # Recent synapses accept a signal type (synapse, replay, etc...)
     # The index at which we set it (in `.weight` array) is a top-level Neuron var
     # However checking/getting it is slow. So we cache globally
@@ -182,9 +162,6 @@ class ConnectionBase:
         return f"[{self.sgid}->{self.tgid}]"
 
 
-# ----------------------------------------------------------------------
-# Connection class
-# ----------------------------------------------------------------------
 class Connection(ConnectionBase):
     """A Connection object serves as a container for synapses formed from
     a presynaptic and a postsynaptic gid, including Points where those
@@ -192,7 +169,6 @@ class Connection(ConnectionBase):
     """
 
     __slots__ = (
-        "_conductances_bk",
         "_configurations",
         "_mod_override",
         "_replay",
@@ -218,7 +194,6 @@ class Connection(ConnectionBase):
         cls.ConnUtils = h.ConnectionUtils()
         cls._pc = Nd.pc
 
-    # -
     def __init__(
         self,
         sgid,
@@ -250,12 +225,10 @@ class Connection(ConnectionBase):
         self._synapse_points_x = compat.array("d")
         self._synapse_ids = compat.array("i")  # replaced by np.array for bulk add syn
         self._configurations = [configuration] if configuration is not None else []
-        self._conductances_bk = None  # Store for re-enabling
         # Artificial stimulus sources
         self._spont_minis = None
         self._replay = None
 
-    # -
     def add_synapse_configuration(self, configuration):
         """Add a synapse configuration command to the list.
         All commands are executed on synapse creation
@@ -286,7 +259,6 @@ class Connection(ConnectionBase):
                 continue
             yield syn_i, sc.sec
 
-    # -
     def add_synapses(self, target_manager, synapses_params, base_id=0):
         """Adds synapses in bulk.
 
@@ -336,7 +308,6 @@ class Connection(ConnectionBase):
             )
             self._synapse_ids = np.concatenate((self._synapse_ids, synapse_ids))
 
-    # -
     def add_synapse(self, syn_tpoints, params_obj, syn_id=None):
         """Adds a synapse in given location to this Connection.
         NOTE: This procedure can have a significant impact when called multiple
@@ -376,7 +347,6 @@ class Connection(ConnectionBase):
         else:
             self._synapse_params.append(syn_params)
 
-    # -
     def replay(self, tvec, start_delay=0.0):
         """The synapses connecting these gids are to be activated using
         predetermined timings.
@@ -395,13 +365,11 @@ class Connection(ConnectionBase):
         self._replay.add_spikes(hoc_tvec)
         return len(self._replay)
 
-    # -
     def finalize(
         self,
         cell,
         base_seed=0,
         *,
-        skip_disabled=False,
         replay_mode=ReplayMode.AS_REQUIRED,
         attach_src_cell=True,
     ):
@@ -410,14 +378,9 @@ class Connection(ConnectionBase):
         Args:
             cell: The cell to create synapses and netcons on.
             base_seed: base seed value (Default: None - no adjustment)
-            skip_disabled: Dont instantiate at all if conn was disabled. Mostly
-                useful for CoreNeuron
             replay_mode: Policy to initialize replay in this conection
 
         """
-        if skip_disabled and self._disabled:
-            return 0
-
         # Initialize member lists
         self._synapses = compat.List()  # Used by ConnUtils
         self._netcons = []
@@ -505,7 +468,6 @@ class Connection(ConnectionBase):
         self._netcons.append(nc)
         return nc
 
-    # -
     def _create_synapse(self, cell, params_obj, x, syn_id, base_seed):
         """Instantiate synapses (GABBAB inhibitory, AMPANMDA excitatory, etc)
         passing the creation helper the synapse params.
@@ -550,7 +512,6 @@ class Connection(ConnectionBase):
         cell.CellRef.synlist.append(syn_helper.synapse)
         return syn_helper.synapse
 
-    # -
     def finalize_gap_junctions(self):
         """When all parameters are set, create synapses and netcons
 
@@ -651,32 +612,6 @@ class Connection(ConnectionBase):
             self._spont_minis.restart_events()
         if self._replay is not None:
             self._replay.restart_events()
-
-    def disable(self, set_zero_conductance=False):
-        """Deactivates a connection.
-
-        The connection synapses are inhibited by disabling the netcons.
-        Additionally can also set conductance to zero so that the point
-        process has no contribution whatsoever to the simulation.
-
-        Args:
-            set_zero_conductance: (bool) Sets synapses' conductance
-                to zero [default: False]
-        """
-        super().disable()
-        if set_zero_conductance:
-            self._conductances_bk = compat.Vector("d", (syn.g for syn in self._synapses))
-            self.update_conductance(0.0)
-
-    def enable(self):
-        """(Re)enables connections. It will activate all netcons and restore
-        conductance values had they been set to zero
-        """
-        super().enable()
-        if self._conductances_bk:
-            for syn, cond in zip(self._synapses, self._conductances_bk):
-                syn.g = cond
-            self._conductances_bk = None
 
     def __del__(self):
         """Clear Random123 objects when connection is deleted"""

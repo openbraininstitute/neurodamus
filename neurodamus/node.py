@@ -1748,7 +1748,7 @@ class Neurodamus(Node):
         log_stage("Creating connections in the simulator")
         base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
-            syn_manager.finalize(base_seed, SimConfig.use_coreneuron)
+            syn_manager.finalize(base_seed)
         print_mem_usage()
 
         self.enable_stimulus()
