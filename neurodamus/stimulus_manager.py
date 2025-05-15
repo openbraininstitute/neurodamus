@@ -55,11 +55,6 @@ class StimulusManager:
         self._stimulus.append(stim)
 
     @staticmethod
-    def interpret_extracellulars(_injects, _stimuli):
-        """Pending for BBPBGLIB-890"""
-        raise ConfigurationError("input_type extracellular_stimulation is not implemented")
-
-    @staticmethod
     def reset_helpers():
         ShotNoise.stimCount = 0
         Noise.stimCount = 0

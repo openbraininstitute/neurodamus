@@ -51,7 +51,6 @@ class NeuroModulationConnection(Connection):
         cell,
         base_seed=0,
         *,
-        skip_disabled=False,
         replay_mode=ReplayMode.AS_REQUIRED,
         base_managers=None,
         **_kwargs,
@@ -64,8 +63,6 @@ class NeuroModulationConnection(Connection):
         neuromod_dtc, and nc_type NC_MODULATOR
         """
         logging.debug("Finalize neuromodulation connection")
-        if skip_disabled and self._disabled:
-            return 0
 
         self._netcons = []
         # Initialize member lists
@@ -155,7 +152,7 @@ class NeuroModulationManager(SynapseRuleManager):
     conn_factory = NeuroModulationConnection
     SynapseReader = NeuroModulationSynapseReader
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kwargs):
+    def _finalize_conns(self, tgid, conns, base_seed, **kwargs):
         """Override the function from the base class.
         Retrieve the base synapse connections with the same tgid.
         Pass the base connection managers (from all src populations except the neuromodulatory one)
@@ -167,5 +164,5 @@ class NeuroModulationManager(SynapseRuleManager):
             if src_pop != self.src_node_population
         ]
         return super()._finalize_conns(
-            tgid, conns, base_seed, sim_corenrn, base_managers=base_managers, **kwargs
+            tgid, conns, base_seed, base_managers=base_managers, **kwargs
         )

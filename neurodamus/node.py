@@ -732,10 +732,9 @@ class Node:
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
     def enable_stimulus(self):
-        """Iterate over any stimuli/stim injects defined in the config file given to the simulation
+        """Iterate over any stimulus defined in the config file given to the simulation
         and instantiate them.
-        This iterates over the injects, getting the stim/target combinations
-        and passes the raw text in field/value pairs to a StimulusManager object to interpret the
+        This passes the raw text in field/value pairs to a StimulusManager object to interpret the
         text and instantiate an actual stimulus object.
         """
         if Feature.Stimulus not in SimConfig.cli_options.restrict_features:
@@ -744,51 +743,20 @@ class Node:
 
         log_stage("Stimulus Apply.")
 
-        # for each stimulus defined in the config file, request the stimmanager to
+        # for each stimulus defined in the config file, request the StimulusManager to
         # instantiate
         self._stim_manager = StimulusManager(self._target_manager)
 
-        # build a dictionary of stims for faster lookup : useful when applying 10k+ stims
-        # while we are at it, check if any stims are using extracellular
-        has_extra_cellular = False
-        stim_dict = {}
-        for stim_name, stim in SimConfig.stimuli.items():
-            if stim_name in stim_dict:
-                raise ConfigurationError("Stimulus declared more than once: %s", stim_name)
-            stim_dict[stim_name] = stim
+        for stim in SimConfig.stimuli:
             if stim.get("Mode") == "Extracellular":
-                has_extra_cellular = True
-
-        # Treat extracellular stimuli
-        if has_extra_cellular:
-            self._stim_manager.interpret_extracellulars(SimConfig.injects, SimConfig.stimuli)
-
-        logging.info("Instantiating Stimulus Injects:")
-
-        for name, inject in SimConfig.injects.items():
-            target_spec = (
-                TargetSpec(inject.get("Target"))
-                if isinstance(inject.get("Target"), str)
-                else TargetSpec(inject.get("Target").s)
-            )
-            stim_name = (
-                inject.get("Stimulus")
-                if isinstance(inject.get("Stimulus"), str)
-                else inject.get("Stimulus").s
-            )
-            stim = stim_dict.get(stim_name)
-            if stim is None:
-                raise ConfigurationError(
-                    "Stimulus Inject %s uses non-existing Stim %s", name, stim_name
-                )
-
+                raise ConfigurationError("input_type extracellular_stimulation is not supported")
+            target_spec = TargetSpec(stim.get("Target"))
+            stim_name = stim["Name"]
             stim_pattern = stim["Pattern"]
             if stim_pattern == "SynapseReplay":
                 continue  # Handled by enable_replay
-
             logging.info(
-                " * [STIM] %s: %s (%s) -> %s",
-                name,
+                " * [STIM] %s (%s): -> %s",
                 stim_name,
                 stim_pattern,
                 target_spec,
@@ -809,39 +777,22 @@ class Node:
             logging.info(" -> [REPLAY] Reusing stim file from previous cycle")
             return
 
-        replay_dict = {}
-        for stim_name, stim in SimConfig.stimuli.items():
-            pattern = (
-                stim.get("Pattern")
-                if isinstance(stim.get("Pattern"), str)
-                else stim.get("Pattern").s
-            )
-            if pattern == "SynapseReplay":
-                replay_dict[stim_name] = stim
-
-        for name, inject in SimConfig.injects.items():
-            target = inject["Target"]
-            source = inject.get("Source")
-            stim_name = inject["Stimulus"]
-            connectivity_type = inject.get("Type")
-            stim = replay_dict.get(stim_name)
-            if stim is None:  # It's a non-replay inject. Injects are checked in enable_stimulus
+        for stim in SimConfig.stimuli:
+            if stim.get("Pattern") != "SynapseReplay":
                 continue
+            target = stim["Target"]
+            source = stim.get("Source")
+            stim_name = stim["Name"]
 
-            # Since saveUpdate merge there are two delay concepts:
-            #  - shift: times are shifted (previous delay)
             #  - delay: Spike replays are suppressed until a certain time
-            tshift = Nd.t if stim.get("Timing") == "Relative" else 0.0
             delay = stim.get("Delay", 0.0)
             logging.info(
-                " * [SYN REPLAY] %s (%s -> %s, time shift: %d, delay: %d)",
-                name,
+                " * [SYN REPLAY] %s -> %s (delay: %d)",
                 stim_name,
                 target,
-                tshift,
                 delay,
             )
-            self._enable_replay(source, target, stim, tshift, delay, connectivity_type)
+            self._enable_replay(source, target, stim, delay=delay)
 
     # -
     def _enable_replay(
@@ -1797,7 +1748,7 @@ class Neurodamus(Node):
         log_stage("Creating connections in the simulator")
         base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
-            syn_manager.finalize(base_seed, SimConfig.use_coreneuron)
+            syn_manager.finalize(base_seed)
         print_mem_usage()
 
         self.enable_stimulus()

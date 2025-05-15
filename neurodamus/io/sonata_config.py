@@ -73,8 +73,7 @@ class SonataConfig:
             "input_type": "Mode",
             "random_seed": "Seed",
             "series_resistance": "RS",
-            "node_set": "Target",  # for StimulusInject
-            "source": "Source",  # for StimulusInject
+            "node_set": "Target",
             "sd_percent": "SDPercent",
             "relative_skew": "RelativeSkew",
         },
@@ -305,7 +304,10 @@ class SonataConfig:
         return connects
 
     @property
-    def parsedStimuli(self):
+    def parsedStimuli(self) -> list:
+        """Read the inputs information parsed by libsonata,
+        and convert them to the internal parameters used by StimulusManager
+        """
         input_type_translation = {
             "spikes": "Current",
             "current_clamp": "Current",
@@ -315,28 +317,21 @@ class SonataConfig:
         }
         module_translation = {"seclamp": "SEClamp", "subthreshold": "SubThreshold"}
 
-        stimuli = {}
-        for name in self._sim_conf.list_input_names:
+        stimuli = []
+        # TODO: loop over self._sim_conf.inputs() list after updating SONATA SPEC and libsonata API,
+        # The order of stimulus injection could lead to minor difference on the results
+        # so need to preserve it as in the config file
+        for name in self._stable_inputs_order:
             stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
                 stimulus["Pattern"], snake_to_camel(stimulus["Pattern"])
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
-            stimuli[name] = stimulus
+            stimulus["Name"] = name
+            stimuli.append(stimulus)
 
         return stimuli
-
-    @property
-    def parsedInjects(self):
-        injects = {}
-        # TODO: see comment on `_stable_inputs_order`
-        for name in self._stable_inputs_order:
-            inj = self._translate_dict("inputs", self._sim_conf.input(name))
-            inj.setdefault("Stimulus", name)
-            injects["inject" + name] = inj
-
-        return injects
 
     @property
     def parsedReports(self):
@@ -390,6 +385,9 @@ class SonataConfig:
                 rep[key] = int(rep[key])
 
     def _translate_dict(self, section_name, libsonata_obj=None) -> dict:
+        """Translate SONATA/libsonata key names (snake_case) to
+        Neurodamus internal paramters (rename w.r.t _translation[section_name] or CamelCase)
+        """
         item_translation = self._translation[section_name]
         result = {}
         for att in self._dir(libsonata_obj):

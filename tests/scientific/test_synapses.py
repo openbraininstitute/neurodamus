@@ -51,7 +51,7 @@ def test_synapses_params():
     # init
     base_seed = n._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
     for syn_manager in n._circuits.all_synapse_managers():
-        syn_manager.finalize(base_seed, False)
+        syn_manager.finalize(base_seed)
     n.sim_init()
 
     # 1) get synapse parameters from libsonata
