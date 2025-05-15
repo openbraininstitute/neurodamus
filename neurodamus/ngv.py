@@ -143,7 +143,7 @@ class Astrocyte(BaseCell):
     def set_pointers(self):
         """Set cadifus pointers to the respective GlutReceive
 
-        Call this after stdinit otherwise pointers may change
+        Note: call this after stdinit otherwise pointers may change
         """
         for glut, sec in zip(self.glut_all, self.all):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
@@ -169,28 +169,37 @@ class Astrocyte(BaseCell):
 
 
 class AstrocyteManager(CellDistributor):
-    # Cell Manager is the same as CellDistributor, so it's able to handle
-    # the same Node formats and Cell morphologies.
-    # The difference lies only in the Cell Type
+    """
+    Manages Astrocyte cells, extending CellDistributor with post-stdinit handling.
+
+    Behaves like CellDistributor but uses the Astrocyte cell type and resets
+    NEURON pointers after stdinit due to possible memory relocation.
+    The difference lies only in the Cell Type and in the post_stdinit
+    """
     CellType = Astrocyte
     _sonata_with_extra_attrs = False
 
     def post_stdinit(self):
-        """Set cadifus pointers after stdinit"""
+        """
+        Establish pointers after stdinit, as NEURON may relocate data.
+
+        Also warns if sections were reduced to a single compartment,
+        which is currently unsupported.
+        """
         for cell in self.cells:
             cell.set_pointers()
 
         resized_secs_gids = [cell.gid for cell in self.cells if cell.has_resized_secs]
 
-        counts = MPI.py_gather(resized_secs_gids, 0)
+        resized_secs_gids = MPI.py_gather(resized_secs_gids, 0)
         # flatten
-        counts = [item for sublist in counts for item in sublist]
-        if len(counts):
+        resized_secs_gids = [item for sublist in resized_secs_gids for item in sublist]
+        if len(resized_secs_gids):
             logging.warning(
                 "The following astrocytes had some of their sections "
                 "reduced to 1 compartment: %s. More than one compartment "
-                "sections are supported at the moment.",
-                counts,
+                "sections are not supported at the moment.",
+                resized_secs_gids,
             )
 
 
@@ -220,6 +229,7 @@ optimization. This is still required when nrank > 1
 class NeuroGlialConnection(Connection):
     neurons_not_found = set()
     neurons_attached = set()
+    netcon_delay = 0.05
 
     def add_synapse(self, syn_tpoints, params_obj, syn_id=None):
         # Only store params. Glia have mechanisms pre-created
@@ -260,7 +270,7 @@ class NeuroGlialConnection(Connection):
             glut_idx = int(syn_params.astrocyte_section_id)
             glut_obj = glut_all[glut_idx]
             netcon = pc.gid_connect(syn_gid, glut_obj)
-            netcon.delay = 0.05
+            netcon.delay = self.netcon_delay
 
             netcon.record(ustate_event_handler2(syn_gid))
 
@@ -270,7 +280,7 @@ class NeuroGlialConnection(Connection):
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
             netcon = pc.gid_connect(syn_gid, astrocyte.glut_soma)
             netcon.record(ustate_event_handler2(666))
-            netcon.delay = 0.05
+            netcon.delay = self.netcon_delay
             self._netcons.append(netcon)
 
             n_bindings += 1
@@ -476,10 +486,9 @@ class GlioVascularManager(ConnectionManagerBase):
         pop_name = pop[0] if pop else next(iter(storage.population_names))
         self._gliovascular = storage.open_population(pop_name)
 
-        if "VasculaturePath" in circuit_conf:
-            storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"])
-            pop_name = next(iter(storage.population_names))
-            self._vasculature = storage.open_population(pop_name)
+        storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"])
+        pop_name = next(iter(storage.population_names))
+        self._vasculature = storage.open_population(pop_name)
 
     def create_connections(self, *_, **__):
         # it also creates endfeet
