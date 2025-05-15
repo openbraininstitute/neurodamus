@@ -25,11 +25,10 @@ def test_input_resistance():
         "Tau": 2.8,
         "MeanPercent": 20,
         "SDPercent": 20,
+        "Name": "relativeOU",
+        "Target": "L5_5cells"
     }
-    SimConfig.stimuli["relativeOU"] = STIM_relativeOU
-    # inject_relativeOU
-    INJECT_relativeOU = {"Stimulus": "relativeOU", "Target": "L5_5cells"}
-    SimConfig.injects["inject_relativeOU"] = INJECT_relativeOU
+    SimConfig.stimuli.append(STIM_relativeOU)
 
     # setup sim
     n.load_targets()
@@ -51,7 +50,7 @@ def test_input_resistance():
 
     # manually finalize synapse managers (otherwise netcons are not created)
     for syn_manager in n._circuits.all_synapse_managers():
-        syn_manager.finalize(n._run_conf.get("BaseSeed", 0), SimConfig.use_coreneuron)
+        syn_manager.finalize(n._run_conf.get("BaseSeed", 0))
     n.sim_init()
     n.solve()
 
@@ -80,11 +79,11 @@ def test_input_resistance_2():
         "DecayTime": 28,
         "RelativeSkew": 0.5,
         "MeanPercent": 20,
-        "SDPercent": 20
+        "SDPercent": 20,
+        "Name": "relativeSN",
+        "Target": "L5_5cells"
     }
-    SimConfig.stimuli["relativeSN"] = STIM_relativeSN
-    INJECT_relativeSN = {"Stimulus": "relativeSN", "Target": "L5_5cells"}
-    SimConfig.injects["inject_relativeSN"] = INJECT_relativeSN
+    SimConfig.stimuli.append(STIM_relativeSN)
 
     # setup sim
     n.load_targets()
@@ -93,7 +92,7 @@ def test_input_resistance_2():
     n.enable_stimulus()
     # manually finalize synapse managers (otherwise netcons are not created)
     for syn_manager in n._circuits.all_synapse_managers():
-        syn_manager.finalize(n._run_conf.get("BaseSeed", 0), SimConfig.use_coreneuron)
+        syn_manager.finalize(n._run_conf.get("BaseSeed", 0))
     n.sim_init()
     n.solve()
 

@@ -7,6 +7,9 @@
         "tstop": 10,
         "dt": 0.025
     },
+    "conditions": {
+        "v_init": -65.0
+    },
     "inputs": {
         "ThresholdIntoExc": {
             "node_set": "RingA",

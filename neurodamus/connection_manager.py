@@ -15,7 +15,7 @@ from .connection import Connection, ReplayMode
 from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
 from .io.sonata_config import ConnectionTypes
-from .io.synapse_reader import SynapseReader
+from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
 from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
@@ -42,14 +42,8 @@ class ConnectionSet:
         self._connections_map = defaultdict(list)
         self._conn_count = 0
 
-    def __contains__(self, item):
-        return item in self._connections_map
-
     def __getitem__(self, item):
         return self._connections_map[item]
-
-    def get(self, item):
-        return self._connections_map.get(item)
 
     def items(self):
         """Iterate over the population as tuples (dst_gid, [connections])"""
@@ -154,40 +148,8 @@ class ConnectionSet:
         pre_gids = set(pre_gids)
         return (c for conns in post_gid_conn_lists for c in conns if c.sgid in pre_gids)
 
-    def get_synapse_params_gid(self, target_gid):
-        """Get an iterator over all the synapse parameters of a target
-        cell connections.
-        """
-        conns = self._connections_map[target_gid]
-        return chain.from_iterable(c.synapse_params for c in conns)
-
     def count(self):
         return self._conn_count
-
-    def _find_connections(self, post_gids, pre_gids=None):
-        """Get the indices of the connections between groups of gids"""
-        post_gid_conn_lists = (
-            self._connections_map.values()
-            if post_gids is None
-            else (self._connections_map[post_gids],)
-            if isinstance(post_gids, int)
-            else (self._connections_map[tgid] for tgid in post_gids)
-        )
-
-        if pre_gids is None:
-            return ((conns, range(len(conns))) for conns in post_gid_conn_lists)
-
-        sgids_interest = [pre_gids] if isinstance(pre_gids, int) else pre_gids
-        return (
-            (
-                conns,
-                np.searchsorted(
-                    np.fromiter((c.sgid for c in conns), dtype="int64", count=len(conns)),
-                    sgids_interest,
-                ),
-            )
-            for conns in post_gid_conn_lists
-        )
 
     def ids_match(self, population_ids, dst_second=None):
         """Whereas a given population_id selector matches population"""
@@ -226,7 +188,7 @@ class ConnectionManagerBase:
 
     # Set depending Classes, customizable
     ConnectionSet = ConnectionSet
-    SynapseReader = SynapseReader
+    SynapseReader = SonataReader
     conn_factory = Connection
 
     cell_manager = property(lambda self: self._cell_manager)
@@ -304,10 +266,9 @@ class ConnectionManagerBase:
         self._unlock_all_connections()  # Allow appending synapses from new sources
         return synapse_file
 
-    # - override if needed
     def _open_synapse_file(self, synapse_file, pop_name):
         logging.debug("Opening Synapse file %s, population: %s", synapse_file, pop_name)
-        return self.SynapseReader.create(
+        return self.SynapseReader(
             synapse_file, pop_name, extracellular_calcium=SimConfig.extracellular_calcium
         )
 
@@ -331,7 +292,8 @@ class ConnectionManagerBase:
         )
         logging.info("Loading connections to population: %s", cur_pop)
 
-    def _compute_pop_ids(self, src_pop_name, dst_pop_name):
+    @staticmethod
+    def _compute_pop_ids(src_pop_name, dst_pop_name):
         """Compute pop id automatically base on population name."""
 
         def make_id(node_pop_name):
@@ -488,7 +450,7 @@ class ConnectionManagerBase:
         all_ranks_total = MPI.allreduce(configured_conns, MPI.SUM)
         if all_ranks_total > 0:
             logging.info(log_msg)
-            logging.info(f" => Configured {all_ranks_total:g} connections")
+            logging.info(" => Configured %s connections", all_ranks_total)
 
     def setup_delayed_connection(self, conn_config):
         raise NotImplementedError(
@@ -883,53 +845,6 @@ class ConnectionManagerBase:
             configured_conns += 1
         return configured_conns
 
-    def configure_group_delayed(self, conn_config, gidvec=None):
-        """Update instantiated connections with configuration from a
-        'Delayed Connection' blocks.
-        """
-        self.update_connections(
-            conn_config["Source"],
-            conn_config["Destination"],
-            gidvec,
-            conn_config.get("SynapseConfigure"),
-            conn_config.get("Weight"),
-        )
-
-    # Live connections update
-    # -----------------------
-    @timeit(name="connUpdate", verbose=False)
-    def update_connections(
-        self, src_target, dst_target, gidvec=None, syn_configure=None, weight=None, **syn_params
-    ):
-        """Update params on connections that are already instantiated.
-
-        Args:
-            src_target: Name of Source Target
-            dst_target: Name of Destination Target
-            gidvec: A list of gids to apply configuration. Default: all
-            syn_configure: A hoc configuration string to apply to the synapses
-            weight: new weights for the netcons
-            **syn_params: Keyword arguments of synapse properties to be changed
-                e.g. conductance: g=xyz
-        """
-        if syn_configure is None and weight is None and not syn_params:
-            logging.warning(
-                "No synpases parameters being updated for Targets %s->%s", src_target, dst_target
-            )
-            return
-
-        updated_conns = 0
-        for conn in self.get_target_connections(src_target, dst_target, gidvec):
-            if weight is not None:
-                updated_conns += 1
-                conn.update_weights(weight)
-            if syn_configure is not None:
-                conn.configure_synapses(syn_configure)
-            if syn_params:
-                conn.update_synpase_parameters(**syn_params)
-
-        logging.info("Updated %d conns", updated_conns)
-
     def restart_events(self):
         """After restore, restart the artificial events (replay and spont minis)"""
         for conn in self.all_connections():
@@ -940,14 +855,13 @@ class ConnectionManagerBase:
         for conn in self.all_connections():
             conn.locked = False
 
-    def finalize(self, base_seed=0, sim_corenrn=False, *, _conn_type="synapses", **conn_params):
+    def finalize(self, base_seed=0, *, _conn_type="synapses", **conn_params):
         """Instantiates the netcons and Synapses for all connections.
 
         Note: All weight scalars should have their final values.
 
         Args:
             base_seed: optional argument to adjust synapse RNGs (default=0)
-            sim_corenrn: Finalize accordingly in case we target CoreNeuron
             _conn_type: (Internal) A string repr of the connectivity type
             conn_params: Additional finalize parameters for the specific _finalize_conns
                 E.g. replay_mode (Default: Auto-Detect) Use DISABLED to skip replay
@@ -969,15 +883,13 @@ class ConnectionManagerBase:
             )
 
             for tgid, conns in ProgressBar.iter(pop.items(), name="Pop:" + str(popid)):
-                n_created_conns += self._finalize_conns(
-                    tgid, conns, base_seed, sim_corenrn, **conn_params
-                )
+                n_created_conns += self._finalize_conns(tgid, conns, base_seed, **conn_params)
 
         all_ranks_total = MPI.allreduce(n_created_conns, MPI.SUM)
         logging.info(" => Created %d %s", all_ranks_total, _conn_type)
         return all_ranks_total
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, *, reverse=False, **kwargs):
+    def _finalize_conns(self, tgid, conns, base_seed, *, reverse=False, **kwargs):
         """Low-level handling of finalizing connections belonging to a target gid.
         By default it calls finalize on each cell.
         """
@@ -987,7 +899,7 @@ class ConnectionManagerBase:
         if reverse:
             conns = reversed(conns)
         for conn in conns:  # type: Connection
-            syn_count = conn.finalize(metype, base_seed, skip_disabled=sim_corenrn, **kwargs)
+            syn_count = conn.finalize(metype, base_seed, **kwargs)
             logging.debug("Instantiated conn %s: %d synapses", conn, syn_count)
             n_created_conns += syn_count
         return n_created_conns
@@ -1069,14 +981,14 @@ class SynapseRuleManager(ConnectionManagerBase):
             logging.info("Init %s. Options: %s", type(self).__name__, kw)
             self.open_edge_location(syn_source, circuit_conf, **kw)
 
-    def finalize(self, base_seed=0, sim_corenrn=False, **kwargs):
+    def finalize(self, base_seed=0, **kwargs):
         """Create the actual synapses and netcons. See super() docstring"""
         kwargs.setdefault("replay_mode", ReplayMode.AS_REQUIRED)
-        super().finalize(base_seed, sim_corenrn, **kwargs)
+        super().finalize(base_seed, **kwargs)
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kw):
+    def _finalize_conns(self, tgid, conns, base_seed, **kw):
         # Note: (Compat) neurodamus hoc finalizes connections in reversed order.
-        return super()._finalize_conns(tgid, conns, base_seed, sim_corenrn, reverse=True, **kw)
+        return super()._finalize_conns(tgid, conns, base_seed, reverse=True, **kw)
 
     def setup_delayed_connection(self, conn_config):
         """Setup delayed connection weights for synapse initialization.

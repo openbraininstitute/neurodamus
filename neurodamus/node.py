@@ -7,7 +7,6 @@ import logging
 import math
 import os
 import shutil
-import subprocess
 import typing
 from collections import defaultdict
 from contextlib import contextmanager
@@ -58,6 +57,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
+from neurodamus.utils.pyutils import rmtree
 
 
 class METypeEngine(EngineBase):
@@ -183,8 +183,9 @@ class CircuitManager:
     def all_synapse_managers(self):
         return itertools.chain.from_iterable(self.edge_managers.values())
 
+    @staticmethod
     @run_only_rank0
-    def write_population_offsets(self, pop_offsets, alias_pop, virtual_pop_offsets):
+    def write_population_offsets(pop_offsets, alias_pop, virtual_pop_offsets):
         """Write population_offsets where appropriate
 
         It is needed for retrieving population offsets for reporting and replay at restore time.
@@ -472,7 +473,9 @@ class Node:
                 )
             for pop, ranks in alloc.items():
                 for rank, gids in ranks.items():
-                    logging.debug(f"Population: {pop}, Rank: {rank}, Number of GIDs: {len(gids)}")
+                    logging.debug(
+                        "Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids)
+                    )
             return alloc
 
         # Build load balancer as per requested options
@@ -640,7 +643,8 @@ class Node:
         manager = self._circuits.get_create_edge_manager(
             ctype, src, dst, c_target, (conf, *args), **kwargs
         )
-        self._load_connections(conf, manager)  # load internal connections right away
+        if manager.is_file_open:  # Base connectivity
+            manager.create_connections()
 
     def _process_connection_configure(self, conn_conf):
         source_t = TargetSpec(conn_conf["Source"])
@@ -658,12 +662,6 @@ class Node:
                     logging.debug("Using connection manager: %s", conn_manager)
                     conn_manager.configure_connections(conn_conf)
 
-    # -
-    def _load_connections(self, circuit_conf, conn_manager):
-        if conn_manager.is_file_open:  # Base connectivity
-            conn_manager.create_connections()
-
-    # -
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
@@ -734,10 +732,9 @@ class Node:
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
     def enable_stimulus(self):
-        """Iterate over any stimuli/stim injects defined in the config file given to the simulation
+        """Iterate over any stimulus defined in the config file given to the simulation
         and instantiate them.
-        This iterates over the injects, getting the stim/target combinations
-        and passes the raw text in field/value pairs to a StimulusManager object to interpret the
+        This passes the raw text in field/value pairs to a StimulusManager object to interpret the
         text and instantiate an actual stimulus object.
         """
         if Feature.Stimulus not in SimConfig.cli_options.restrict_features:
@@ -746,51 +743,20 @@ class Node:
 
         log_stage("Stimulus Apply.")
 
-        # for each stimulus defined in the config file, request the stimmanager to
+        # for each stimulus defined in the config file, request the StimulusManager to
         # instantiate
         self._stim_manager = StimulusManager(self._target_manager)
 
-        # build a dictionary of stims for faster lookup : useful when applying 10k+ stims
-        # while we are at it, check if any stims are using extracellular
-        has_extra_cellular = False
-        stim_dict = {}
-        for stim_name, stim in SimConfig.stimuli.items():
-            if stim_name in stim_dict:
-                raise ConfigurationError("Stimulus declared more than once: %s", stim_name)
-            stim_dict[stim_name] = stim
+        for stim in SimConfig.stimuli:
             if stim.get("Mode") == "Extracellular":
-                has_extra_cellular = True
-
-        # Treat extracellular stimuli
-        if has_extra_cellular:
-            self._stim_manager.interpret_extracellulars(SimConfig.injects, SimConfig.stimuli)
-
-        logging.info("Instantiating Stimulus Injects:")
-
-        for name, inject in SimConfig.injects.items():
-            target_spec = (
-                TargetSpec(inject.get("Target"))
-                if isinstance(inject.get("Target"), str)
-                else TargetSpec(inject.get("Target").s)
-            )
-            stim_name = (
-                inject.get("Stimulus")
-                if isinstance(inject.get("Stimulus"), str)
-                else inject.get("Stimulus").s
-            )
-            stim = stim_dict.get(stim_name)
-            if stim is None:
-                raise ConfigurationError(
-                    "Stimulus Inject %s uses non-existing Stim %s", name, stim_name
-                )
-
+                raise ConfigurationError("input_type extracellular_stimulation is not supported")
+            target_spec = TargetSpec(stim.get("Target"))
+            stim_name = stim["Name"]
             stim_pattern = stim["Pattern"]
             if stim_pattern == "SynapseReplay":
                 continue  # Handled by enable_replay
-
             logging.info(
-                " * [STIM] %s: %s (%s) -> %s",
-                name,
+                " * [STIM] %s (%s): -> %s",
                 stim_name,
                 stim_pattern,
                 target_spec,
@@ -811,39 +777,22 @@ class Node:
             logging.info(" -> [REPLAY] Reusing stim file from previous cycle")
             return
 
-        replay_dict = {}
-        for stim_name, stim in SimConfig.stimuli.items():
-            pattern = (
-                stim.get("Pattern")
-                if isinstance(stim.get("Pattern"), str)
-                else stim.get("Pattern").s
-            )
-            if pattern == "SynapseReplay":
-                replay_dict[stim_name] = stim
-
-        for name, inject in SimConfig.injects.items():
-            target = inject["Target"]
-            source = inject.get("Source")
-            stim_name = inject["Stimulus"]
-            connectivity_type = inject.get("Type")
-            stim = replay_dict.get(stim_name)
-            if stim is None:  # It's a non-replay inject. Injects are checked in enable_stimulus
+        for stim in SimConfig.stimuli:
+            if stim.get("Pattern") != "SynapseReplay":
                 continue
+            target = stim["Target"]
+            source = stim.get("Source")
+            stim_name = stim["Name"]
 
-            # Since saveUpdate merge there are two delay concepts:
-            #  - shift: times are shifted (previous delay)
             #  - delay: Spike replays are suppressed until a certain time
-            tshift = Nd.t if stim.get("Timing") == "Relative" else 0.0
             delay = stim.get("Delay", 0.0)
             logging.info(
-                " * [SYN REPLAY] %s (%s -> %s, time shift: %d, delay: %d)",
-                name,
+                " * [SYN REPLAY] %s -> %s (delay: %d)",
                 stim_name,
                 target,
-                tshift,
                 delay,
             )
-            self._enable_replay(source, target, stim, tshift, delay, connectivity_type)
+            self._enable_replay(source, target, stim, delay=delay)
 
     # -
     def _enable_replay(
@@ -1081,8 +1030,9 @@ class Node:
             rep_conf.get("Scaling"),
         )
 
+    @staticmethod
     @run_only_rank0
-    def _coreneuron_write_report_config(self, rep_conf, target, rep_params):
+    def _coreneuron_write_report_config(rep_conf, target, rep_params):
         """Configure CoreNEURON reporting based on the provided configuration.
 
         Computes the target type (if "Sections" and "Compartments" are specified)
@@ -1349,7 +1299,7 @@ class Node:
 
         # Clean-up any previous simulations in the same output directory
         if self._cycle_i == 0 and corenrn_datadir_shm:
-            subprocess.call(["/bin/rm", "-rf", corenrn_datadir_shm])
+            rmtree(corenrn_datadir_shm)
 
         # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
         if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
@@ -1442,7 +1392,7 @@ class Node:
         )
         # Wait for rank0 to write the sim config file
         MPI.barrier()
-        logging.info(f" => Dataset written to '{CoreConfig.datadir}'")
+        logging.info(" => Dataset written to '%s'", CoreConfig.datadir)
 
     # -
     def run_all(self):
@@ -1471,8 +1421,8 @@ class Node:
         self.solve()
         logging.info("Simulation finished.")
 
-    # -
-    def _run_coreneuron(self):
+    @staticmethod
+    def _run_coreneuron():
         logging.info("Launching simulation with CoreNEURON")
         CoreConfig.psolve_core(
             SimConfig.coreneuron_direct_mode,
@@ -1656,8 +1606,9 @@ class Node:
 
         self._last_cell_state_dump_t = Nd.t
 
+    @staticmethod
     @run_only_rank0
-    def coreneuron_cleanup(self):
+    def coreneuron_cleanup():
         """Clean coreneuron save files after running"""
         data_folder = Path(CoreConfig.datadir)
         logging.info("Deleting intermediate data in %s", data_folder)
@@ -1666,7 +1617,8 @@ class Node:
             # in restore, coreneuron data is a symbolic link
             data_folder.unlink()
         else:
-            subprocess.call(["/bin/rm", "-rf", str(data_folder)])
+            rmtree(data_folder)
+
         build_path = Path(SimConfig.build_path())
         if build_path.exists():
             shutil.rmtree(build_path)
@@ -1691,8 +1643,9 @@ class Node:
                 self.coreneuron_cleanup()
                 MPI.barrier()
 
+    @staticmethod
     @run_only_rank0
-    def move_dumpcellstates_to_output_root(self):
+    def move_dumpcellstates_to_output_root():
         """Check for .corenrn or .nrn files in the current directory
         and move them to CoreConfig.output_root_path(create=True).
         """
@@ -1703,11 +1656,9 @@ class Node:
         for file in current_dir.iterdir():
             if file.suffix in {".corenrn", ".nrn", ".nrndat"}:
                 shutil.move(str(file), output_root / file.name)
-                logging.info(f"Moved {file.name} to {output_root}")
+                logging.info("Moved %s to %s", file.name, output_root)
 
 
-# Helper class
-# ------------
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
@@ -1797,7 +1748,7 @@ class Neurodamus(Node):
         log_stage("Creating connections in the simulator")
         base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
-            syn_manager.finalize(base_seed, SimConfig.use_coreneuron)
+            syn_manager.finalize(base_seed)
         print_mem_usage()
 
         self.enable_stimulus()
@@ -1811,8 +1762,8 @@ class Neurodamus(Node):
         self.sim_init()
         assert self._sim_ready, "sim_init should have set this"
 
-    # -
-    def _merge_filesdat(self, ncycles):
+    @staticmethod
+    def _merge_filesdat(ncycles):
         log_stage("Generating merged CoreNeuron files.dat")
         coreneuron_datadir = CoreConfig.datadir
         cn_entries = []
@@ -1832,9 +1783,8 @@ class Neurodamus(Node):
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
 
-        logging.info(f" => {ncycles} files merged successfully")
+        logging.info(" => %s files merged successfully", ncycles)
 
-    # -
     def _coreneuron_restore(self):
         """Restore CoreNEURON simulation state.
 
@@ -1942,7 +1892,7 @@ class Neurodamus(Node):
             self._build_single_model()
             return
 
-        logging.info(f"MULTI-CYCLE RUN: {self._n_cycles} Cycles")
+        logging.info("MULTI-CYCLE RUN: %s Cycles", self._n_cycles)
         target = self._target_manager.get_target(self._target_spec)
         TimerManager.archive(archive_name="Before Cycle Loop")
 
@@ -2056,14 +2006,16 @@ class Neurodamus(Node):
         if cleanup:
             self.cleanup()
 
+    @staticmethod
     @run_only_rank0
-    def _remove_file(self, file_name):
+    def _remove_file(file_name):
         import contextlib
 
         with contextlib.suppress(FileNotFoundError):
             os.remove(file_name)
 
+    @staticmethod
     @run_only_rank0
-    def _touch_file(self, file_name):
+    def _touch_file(file_name):
         with open(file_name, "a"):
             os.utime(file_name, None)

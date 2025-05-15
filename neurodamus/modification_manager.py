@@ -75,16 +75,6 @@ class TTX:
                     sec.insert("TTXDynamicsSwitch")
                 sec.ttxo_level_TTXDynamicsSwitch = 1.0
 
-    def compartment_cast(self, target, subset):
-        if subset not in {"soma", "apic", "dend", ""}:
-            raise Exception(f"Unknown subset {subset} in compartment_cast")
-
-        wrapper = Nd.Target("temp", "Compartment")
-        wrapper.subtargets.append(target)
-        wrapper.targetSubsets.append(Nd.String(subset))
-        wrapper.targetExtraValues.append(Nd.Vector())
-        return wrapper
-
 
 @ModificationManager.register_type
 class ConfigureAllSections:
@@ -117,16 +107,6 @@ class ConfigureAllSections:
                 "please check its SectionConfigure for possible mistakes"
             )
 
-    def compartment_cast(self, target, subset):
-        if subset not in {"soma", "apic", "dend", ""}:
-            raise Exception(f"Unknown subset {subset} in compartment_cast")
-
-        wrapper = Nd.Target("temp", "Compartment")
-        wrapper.subtargets.append(target)
-        wrapper.targetSubsets.append(Nd.String(subset))
-        wrapper.targetExtraValues.append(Nd.Vector())
-        return wrapper
-
     def parse_section_config(self, config):
         config = config.replace("%s.", "__sec_wildcard__.")  # wildcard to placeholder
         all_attrs = self.AttributeCollector()
@@ -153,7 +133,8 @@ class ConfigureAllSections:
         def visit_Attribute(self, node):
             self.attrs.add(node.attr)
 
-    def assignment_targets(self, node):
+    @staticmethod
+    def assignment_targets(node):
         if isinstance(node, ast.Assign):
             return node.targets
         if isinstance(node, ast.AugAssign):

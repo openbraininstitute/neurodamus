@@ -29,7 +29,6 @@ docs=['sphinx', 'sphinx-bluebrain-theme']
 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
-hocify = "neurodamus.commands:hocify"
 
 [project.urls]
 Homepage = "https://github.com/BlueBrain/neurodamus"
@@ -115,6 +114,7 @@ ignore = [
     "PTH",     # use of os.path, will move to pathlib at some point
     "S101",    # Use of `assert` detected
     "RET504", # unnecessary-assign
+    "S606",   # start-process-with-no-shell
 
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
@@ -143,10 +143,8 @@ ignore = [
     "RUF012", # mutable-class-default
     "TRY002", # raise-vanilla-class
     "N806",   # non-lowercase-variable-in-function
-    "PLR6301",# no-self-use
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
-    "G004",   # logging-f-string
     "PLW1514",# unspecified-encoding
     "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
@@ -166,13 +164,8 @@ ignore = [
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
-    "S404",   # suspicious-subprocess-import
     "SIM112", # uncapitalized-environment-variables
-    "S606",   # start-process-with-no-shell
     "INP001", # implicit-namespace-package
-    "N818",   # error-suffix-on-exception-name
-    "PLR0913",# too-many-arguments
-    "PLR0917",# too-many-positional-arguments
     "PLR1702",# too-many-nested-blocks
 ]
 

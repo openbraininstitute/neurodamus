@@ -1,5 +1,6 @@
 """Collection of generic Python utilities."""
 
+import subprocess  # noqa: S404
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta
@@ -209,3 +210,13 @@ def gen_ranges(limit, blocklen, low=0, block_increase_rate=1):
         yield low, high
         low = high
         blocklen = int(blocklen * block_increase_rate)
+
+
+def rmtree(path):
+    """Recursively remove a path
+
+    Note: shutils.rmtree wouldn't complete for directories with many files.
+    See:
+    https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
+    """  # noqa: E501
+    subprocess.call(["/bin/rm", "-rf", path])

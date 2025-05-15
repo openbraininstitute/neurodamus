@@ -171,18 +171,18 @@ def print_allocation_stats(rank_memory):
         rank_memory (dict): A dictionary where keys are rank IDs
                             and values are the total memory load on each rank.
     """
-    logging.debug(f"Total memory per rank/cycle: {rank_memory}")
+    logging.debug("Total memory per rank/cycle: %s", rank_memory)
     import statistics
 
     for pop, rank_dict in rank_memory.items():
         values = list(rank_dict.values())
-        logging.info(f"Population: {pop}")
-        logging.info(f"Mean allocation per rank [KB]: {round(statistics.mean(values))}")
+        logging.info("Population: %s", pop)
+        logging.info("Mean allocation per rank [KB]: %s", round(statistics.mean(values)))
         try:
             stdev = round(statistics.stdev(values))
         except statistics.StatisticsError:
             stdev = 0
-        logging.info(f"Stdev of allocation per rank [KB]: {stdev}")
+        logging.info("Stdev of allocation per rank [KB]: %s", stdev)
 
 
 @run_only_rank0
@@ -432,16 +432,17 @@ class DryRunStats:
             return
         self.suggested_nodes = self.suggest_nodes(0.3)
         logging.info(
-            f"Based on the memory available on the current node, "
-            f"it is suggested to use at least {self.suggested_nodes} node(s)."
+            "Based on the memory available on the current node, "
+            "it is suggested to use at least %s node(s).",
+            self.suggested_nodes,
         )
         logging.info(
             "This is just a suggestion and the actual number of nodes "
             "needed to run the simulation may be different."
         )
         logging.info(
-            f"The calculation was based on a total memory available of "
-            f"{pretty_printing_memory_mb(node_total_memory)} on the current node."
+            "The calculation was based on a total memory available of %s on the current node.",
+            pretty_printing_memory_mb(node_total_memory),
         )
         logging.info(
             "Please remember that it is suggested to use the same class of nodes "
@@ -551,7 +552,8 @@ class DryRunStats:
         # syn_count_metypes = set(self.metype_cell_syn_average)
         # assert all_metypes <= syn_count_metypes, all_metypes - syn_count_metypes
 
-    def check_all_buckets_have_gids(self, bucket_allocation, population, num_ranks, cycles):
+    @staticmethod
+    def check_all_buckets_have_gids(bucket_allocation, population, num_ranks, cycles):
         """Checks if all possible buckets determined by num_ranks and cycles have at least one GID
         assigned.
 
