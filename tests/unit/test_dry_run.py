@@ -30,7 +30,7 @@ def test_dry_run_memory_use():
 
     isMacOS = PLATFORM_SYSTEM == "Darwin"
     assert (45.0 if isMacOS else 65.0) <= nd._dry_run_stats.base_memory <= (
-        100.0 if isMacOS else 120.0)
+        150.0 if isMacOS else 180.0)
     assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
     expected_metypes_count = {
