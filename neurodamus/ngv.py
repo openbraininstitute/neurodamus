@@ -17,8 +17,8 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
+from .core.configuration import ConfigurationError
 
-# TODO endoplasmic reticulum in the docs
 class Astrocyte(BaseCell):
     __slots__ = ("glut_all", "glut_endfeet", "glut_soma", "has_resized_secs", "section_names")
 
@@ -455,9 +455,9 @@ class GlioVascularManager(ConnectionManagerBase):
 
     def __init__(self, circuit_conf, target_manager, cell_manager, src_cell_manager=None, **kw):
         if cell_manager.circuit_target is None:
-            raise Exception("Circuit target is required for GlioVascular projections")
+            raise ConfigurationError("Circuit target is required for GlioVascular projections")
         if "Path" not in circuit_conf:
-            raise Exception("Missing GlioVascular Sonata file via 'Path' configuration")
+            raise ConfigurationError("Missing GlioVascular Sonata file via 'Path' configuration")
 
         if "VasculaturePath" not in circuit_conf:
             logging.warning("Missing Vasculature Sonata file via 'VasculaturePath' configuration")
