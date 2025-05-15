@@ -9,7 +9,7 @@ from .cell_distributor import CellDistributor
 from .connection import Connection
 from .connection_manager import ConnectionManagerBase
 from .core import MPI, EngineBase, NeuronWrapper as Nd
-from .core.configuration import GlobalConfig, LogLevel
+from .core.configuration import ConfigurationError, GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import BaseCell
@@ -17,7 +17,6 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
 
-from .core.configuration import ConfigurationError
 
 class Astrocyte(BaseCell):
     __slots__ = ("glut_all", "glut_endfeet", "glut_soma", "has_resized_secs", "section_names")
@@ -169,19 +168,18 @@ class Astrocyte(BaseCell):
 
 
 class AstrocyteManager(CellDistributor):
-    """
-    Manages Astrocyte cells, extending CellDistributor with post-stdinit handling.
+    """Manages Astrocyte cells, extending CellDistributor with post-stdinit handling.
 
     Behaves like CellDistributor but uses the Astrocyte cell type and resets
     NEURON pointers after stdinit due to possible memory relocation.
     The difference lies only in the Cell Type and in the post_stdinit
     """
+
     CellType = Astrocyte
     _sonata_with_extra_attrs = False
 
     def post_stdinit(self):
-        """
-        Establish pointers after stdinit, as NEURON may relocate data.
+        """Establish pointers after stdinit, as NEURON may relocate data.
 
         Also warns if sections were reduced to a single compartment,
         which is currently unsupported.
