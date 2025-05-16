@@ -45,7 +45,6 @@ def test_init_and_add_endfeet():
 
     astro = Astrocyte(gid=0, meinfos=meinfos, circuit_conf=circuit_conf)
     astro.add_endfeet(parent_ids, lengths, diameters, R0passes)
-    astro.set_pointers()
 
     assert all(hasattr(sec(0.5), "cadifus") for sec in astro.all)
     assert all(hasattr(sec(0.5), "cadifus") for sec in astro.endfeet)

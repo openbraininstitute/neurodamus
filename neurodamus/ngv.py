@@ -77,7 +77,6 @@ class Astrocyte(BaseCell):
         # even if not pointed at by a netcon so that cadifus
         # pointer dereferencing does not throw an error
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
-        # this is probably superfluous because it is re-done in post_stdinit
         Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
         return glut
 
@@ -139,16 +138,22 @@ class Astrocyte(BaseCell):
                 self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
             )
 
-    def set_pointers(self):
-        """Set cadifus pointers to the respective GlutReceive
+    @staticmethod
+    def _test_pointer(sec, glut):
+        assert sec(0.5).cadifus.glu2 == glut.glut
+        base_val = glut.glut
+        glut.glut += 1
+        assert sec(0.5).cadifus.glu2 == glut.glut == base_val + 1
+        glut.glut = base_val
 
-        Note: call this after stdinit otherwise pointers may change
-        """
+    def test_pointers(self):
         for glut, sec in zip(self.glut_all, self.all):
-            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+            self._test_pointer(sec, glut)
+            # Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
 
         for glut, sec in zip(self.glut_endfeet, self.endfeet):
-            Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+            self._test_pointer(sec, glut)
+            # Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
 
     @property
     def glut_list(self) -> list:
@@ -185,7 +190,7 @@ class AstrocyteManager(CellDistributor):
         which is currently unsupported.
         """
         for cell in self.cells:
-            cell.set_pointers()
+            cell.test_pointers()
 
         resized_secs_gids = [cell.gid for cell in self.cells if cell.has_resized_secs]
 
