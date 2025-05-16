@@ -138,23 +138,6 @@ class Astrocyte(BaseCell):
                 self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
             )
 
-    @staticmethod
-    def _test_pointer(sec, glut):
-        assert sec(0.5).cadifus.glu2 == glut.glut
-        base_val = glut.glut
-        glut.glut += 1
-        assert sec(0.5).cadifus.glu2 == glut.glut == base_val + 1
-        glut.glut = base_val
-
-    def test_pointers(self):
-        for glut, sec in zip(self.glut_all, self.all):
-            self._test_pointer(sec, glut)
-            # Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-
-        for glut, sec in zip(self.glut_endfeet, self.endfeet):
-            self._test_pointer(sec, glut)
-            # Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
-
     @property
     def glut_list(self) -> list:
         # necessary for legacy compatibility with metabolism
@@ -184,14 +167,7 @@ class AstrocyteManager(CellDistributor):
     _sonata_with_extra_attrs = False
 
     def post_stdinit(self):
-        """Establish pointers after stdinit, as NEURON may relocate data.
-
-        Also warns if sections were reduced to a single compartment,
-        which is currently unsupported.
-        """
-        for cell in self.cells:
-            cell.test_pointers()
-
+        """Collect warnings and pretty-print them"""
         resized_secs_gids = [cell.gid for cell in self.cells if cell.has_resized_secs]
 
         resized_secs_gids = MPI.py_gather(resized_secs_gids, 0)

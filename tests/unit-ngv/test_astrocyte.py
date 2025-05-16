@@ -4,25 +4,11 @@ from tests.conftest import NGV_DIR
 from unittest.mock import MagicMock
 from itertools import chain
 
-
 meinfos = MagicMock()
 meinfos.morph_name = "glia"
 circuit_conf = MagicMock()
 circuit_conf.MorphologyPath = NGV_DIR / "morphologies" / "h5"
 circuit_conf.MorphologyType = "h5"
-
-
-# def inspect(v):
-#     print("----")
-#     print(v, type(v))
-#     for i in dir(v):
-#         if not i.startswith("__"):
-#             try:
-#                 attr = getattr(v, i)
-#             except Exception as e:
-#                 attr = f"<error: {e}>"
-#             print(f"{i}: {attr}")
-#     print("----")
 
 
 def check_cadifus_pointer(sec, glut):
