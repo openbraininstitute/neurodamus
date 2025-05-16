@@ -99,7 +99,7 @@ def test_dry_run_distribute_cells():
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
+def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file):
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
@@ -112,6 +112,25 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
         }
     }
     assert rank_allocation_standard == expected_allocation
+
+    Path("allocation_r1_c1.pkl.gz").unlink(missing_ok=True)
+    Path("allocation_r2_c1.pkl.gz").unlink(missing_ok=True)
+    Path("cell_memory_usage.json").unlink(missing_ok=True)
+    Path("memory_per_metype.json").unlink(missing_ok=True)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
+    with pytest.raises(RuntimeError,
+                       match="No files cell_memory_usage.json or memory_per_metype.json. "
+                       "Neurodamus must be run in Dry_run mode before proceeding."):
+        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
+                     num_target_ranks=1)
 
 
 @pytest.mark.forked

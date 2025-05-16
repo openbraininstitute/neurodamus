@@ -456,6 +456,16 @@ class Node:
             if file_exists:
                 alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
             else:
+                if not (
+                    Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
+                    and Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists()
+                ):
+                    raise RuntimeError(
+                        f"No files {DryRunStats._MEMORY_USAGE_FILENAME} or "
+                        f"{DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. Neurodamus must be run "
+                        "in Dry_run mode before proceeding."
+                    )
+
                 logging.warning("Allocation file not found. Generating on-the-fly.")
                 self._dry_run_stats.try_import_cell_memory_usage()
                 cell_distributor = CellDistributor(circuit, self._target_manager, self._run_conf)
