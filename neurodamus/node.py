@@ -461,9 +461,9 @@ class Node:
                     and Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists()
                 ):
                     raise RuntimeError(
-                        f"No files {DryRunStats._MEMORY_USAGE_FILENAME} or "
+                        f"Missing {DryRunStats._MEMORY_USAGE_FILENAME} or "
                         f"{DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. Neurodamus must be run "
-                        "in Dry_run mode before proceeding."
+                        "with --dry-run mode before proceeding."
                     )
 
                 logging.warning("Allocation file not found. Generating on-the-fly.")
