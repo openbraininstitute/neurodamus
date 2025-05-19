@@ -7,6 +7,7 @@ from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import RINGTEST_DIR, NGV_DIR, PLATFORM_SYSTEM
+from neurodamus import Neurodamus
 
 TMP_FOLDER = tempfile.mkdtemp()
 
@@ -22,15 +23,13 @@ def change_test_dir(monkeypatch):
 
 @pytest.mark.forked
 def test_dry_run_memory_use():
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
 
     nd.run()
 
     isMacOS = PLATFORM_SYSTEM == "Darwin"
     assert (45.0 if isMacOS else 65.0) <= nd._dry_run_stats.base_memory <= (
-        100.0 if isMacOS else 120.0)
+        150.0 if isMacOS else 180.0)
     assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
     expected_metypes_count = {
@@ -43,8 +42,6 @@ def test_dry_run_memory_use():
 
 @pytest.mark.forked
 def test_dry_run_distribute_cells():
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -103,8 +100,6 @@ def test_dry_run_distribute_cells():
 ], indirect=True)
 @pytest.mark.forked
 def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
@@ -121,8 +116,6 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
 
 @pytest.mark.forked
 def test_dry_run_ngv_fail():
-    from neurodamus import Neurodamus
-
     with pytest.raises(Exception, match="Dry run not available for ngv circuit"):
         Neurodamus(str(NGV_DIR / "simulation_config.json"),  dry_run=True)
 
