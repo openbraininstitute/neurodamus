@@ -12,8 +12,8 @@ from neurodamus import Neurodamus
 TMP_FOLDER = tempfile.mkdtemp()
 
 
-@pytest.fixture(autouse=True)
-def change_test_dir(monkeypatch):
+@pytest.fixture
+def share_test_dir(monkeypatch):
     """
     All tests in this file are using the same working directory, i.e TMP_FOLDER
     Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
@@ -41,7 +41,7 @@ def test_dry_run_memory_use():
 
 
 @pytest.mark.forked
-def test_dry_run_distribute_cells():
+def test_dry_run_distribute_cells(share_test_dir):
     nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -99,7 +99,7 @@ def test_dry_run_distribute_cells():
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file):
+def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, share_test_dir):
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
@@ -112,11 +112,6 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file):
         }
     }
     assert rank_allocation_standard == expected_allocation
-
-    Path("allocation_r1_c1.pkl.gz").unlink(missing_ok=True)
-    Path("allocation_r2_c1.pkl.gz").unlink(missing_ok=True)
-    Path("cell_memory_usage.json").unlink(missing_ok=True)
-    Path("memory_per_metype.json").unlink(missing_ok=True)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
