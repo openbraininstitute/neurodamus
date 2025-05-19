@@ -6,6 +6,7 @@ from mpi4py import MPI
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import PLATFORM_SYSTEM
+from neurodamus import Neurodamus
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -39,8 +40,6 @@ def change_test_dir(monkeypatch, tmp_folder):
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
 def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -69,8 +68,6 @@ def is_subset(sub, main):
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
 def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -83,10 +80,10 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     # but neuron 3 can be in  either of the two
     if rank == 0:
         assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [1, 3])
-        assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [1])
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
         assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [2, 3])
-        assert is_subset(rank_allocation_standard['RingB'][(1, 0)], [2])
+        assert rank_allocation_standard['RingB'][(1, 0)] == [2]
 
     # Test redistribution
     rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
@@ -123,8 +120,6 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
 def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks):
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=2)
     nd.run()
