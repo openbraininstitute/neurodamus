@@ -77,7 +77,8 @@ class Astrocyte(BaseCell):
         # even if not pointed at by a netcon so that cadifus
         # pointer dereferencing does not throw an error
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
-        Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
+        # set BBCOREPOINTER glu2 to point at glut
+        sec(0.5).cadifus._ref_glu2 = glut._ref_glut
         return glut
 
     def _init_endfoot_section(self, sec, parent_id, length, diameter, R0pas):
