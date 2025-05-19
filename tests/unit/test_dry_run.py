@@ -2,29 +2,21 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
-import tempfile
 from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
-from ..conftest import RINGTEST_DIR, NGV_DIR, PLATFORM_SYSTEM
+from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
 
-TMP_FOLDER = tempfile.mkdtemp()
 
-
-@pytest.fixture
-def share_test_dir(monkeypatch):
-    """
-    All tests in this file are using the same working directory, i.e TMP_FOLDER
-    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
-    """
-    monkeypatch.chdir(TMP_FOLDER)
-
-
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_dry_run_memory_use():
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
-
+def test_dry_run_memory_use(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
     isMacOS = PLATFORM_SYSTEM == "Darwin"
@@ -40,9 +32,14 @@ def test_dry_run_memory_use():
     assert nd._dry_run_stats.suggested_nodes > 0
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_dry_run_distribute_cells(share_test_dir):
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
+def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
     # Test allocation
@@ -89,9 +86,6 @@ def test_dry_run_distribute_cells(share_test_dir):
     }
     assert rank_allocation_standard == expected_allocation
 
-    Path(("allocation_r1_c1.pkl.gz")).unlink(missing_ok=True)
-    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
-
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -99,7 +93,13 @@ def test_dry_run_distribute_cells(share_test_dir):
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, share_test_dir):
+def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
+    nd.run()
+    nd.cleanup()
+
+    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
+
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
