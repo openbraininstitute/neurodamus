@@ -91,11 +91,18 @@ def change_test_dir(monkeypatch, tmp_path):
 
 @pytest.fixture()
 def copy_memory_files(change_test_dir):
-    import shutil
+    import json
 
-    ref_folder = RINGTEST_DIR / "reference"
-    shutil.copy2(ref_folder / "cell_memory_usage.json", Path())
-    shutil.copy2(ref_folder / "memory_per_metype.json", Path())
+    metypes_memory = {
+        "MTYPE0-ETYPE0": 1377.9,
+        "MTYPE1-ETYPE1": 1107.8,
+        "MTYPE2-ETYPE2": 97.9,
+        "MTYPE0-ETYPE1": 83.8
+    }
+    with Path("cell_memory_usage.json").open("w") as f:
+        json.dump(metypes_memory, f, indent=4)
+    with Path("memory_per_metype.json").open("w") as f:
+        json.dump(metypes_memory, f, indent=4)
 
 
 @run_only_rank0
