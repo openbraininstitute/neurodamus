@@ -89,6 +89,15 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
+@pytest.fixture()
+def copy_memory_files(change_test_dir):
+    import shutil
+
+    ref_folder = RINGTEST_DIR / "reference"
+    shutil.copy2(ref_folder / "cell_memory_usage.json", Path())
+    shutil.copy2(ref_folder / "memory_per_metype.json", Path())
+
+
 @run_only_rank0
 def _create_simulation_config_file(params, dst_dir, sim_config_data=None) -> str:
     """create simulation config file in dst_dir from

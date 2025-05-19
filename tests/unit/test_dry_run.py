@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
-from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
@@ -93,13 +92,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file):
-    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
-    nd.run()
-    nd.cleanup()
-
-    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
-
+def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_files):
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 

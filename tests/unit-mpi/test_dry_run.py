@@ -1,6 +1,5 @@
 import pytest
 import tempfile
-from pathlib import Path
 from mpi4py import MPI
 
 
@@ -13,7 +12,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def tmp_folder():
     if rank == 0:
         path = tempfile.mkdtemp()
@@ -109,9 +108,6 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
         }
     assert rank_allocation_standard == expected_allocation
 
-    Path(("allocation_r1_c1.pkl.gz")).unlink(missing_ok=True)
-    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
-
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -119,7 +115,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
-def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks):
+def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks,
+                                    copy_memory_files):
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=2)
     nd.run()
