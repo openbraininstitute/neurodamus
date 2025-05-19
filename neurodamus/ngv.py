@@ -208,13 +208,13 @@ class AstrocyteManager(CellDistributor):
 
 
 class NeuroGliaConnParameters(SynapseParameters):
-    _synapse_fields = (
-        "tgid",
-        "synapse_id",
-        "astrocyte_section_id",
-        "astrocyte_segment_id",
-        "astrocyte_segment_offset",
-    )
+    _synapse_fields = {
+        "tgid": 0.0,
+        "synapse_id": 0.0,
+        "astrocyte_section_id": 0.0,
+        "astrocyte_segment_id": 0.0,
+        "astrocyte_segment_offset": 0.0,
+    }
 
 
 class NeuroGlialSynapseReader(SonataReader):

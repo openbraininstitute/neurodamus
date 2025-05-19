@@ -125,17 +125,17 @@ class ModulationConnParameters(SynapseParameters):
     # TargetManager.locationToPoint using isec, offset, ipt
     # ipt is not read from data but -1, so that locationToPoint will set location = offset .
     # weight is a placeholder for replaystim, default to 1. and overwritten by connection weight.
-    _synapse_fields = (
-        "sgid",
-        "delay",
-        "isec",
-        "offset",
-        "neuromod_strength",
-        "neuromod_dtc",
-        "ipt",
-        "location",
-        "weight",
-    )
+    _synapse_fields = {
+        "sgid": 0.0,
+        "delay": 0.0,
+        "isec": 0.0,
+        "offset": 0.0,
+        "neuromod_strength": 0.0,
+        "neuromod_dtc": 0.0,
+        "ipt": 0.0,
+        "location": 0.0,
+        "weight": 0.0,
+    }
 
 
 class NeuroModulationSynapseReader(SonataReader):

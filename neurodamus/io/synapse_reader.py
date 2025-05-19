@@ -18,72 +18,73 @@ def _constrained_hill(K_half, y):
     return (K_half_fourth + 16) / 16 * y_fourth / (K_half_fourth + y_fourth)
 
 
-class _SynParametersMeta(type):
-    def __init__(cls, name, bases, attrs):
-        type.__init__(cls, name, bases, attrs)
-        # Init public properties of the class
-        assert hasattr(cls, "_synapse_fields"), "Please define _synapse_fields class attr"
-        cls.dtype = np.dtype(
-            {"names": cls._synapse_fields, "formats": ["f8"] * len(cls._synapse_fields)}
-        )
-        cls.empty = np.recarray(0, cls.dtype)
-        if not hasattr(cls, "_optional"):
-            cls._optional = ()
-        # Reserved fields are used to hold extra info, don't come from edge files
-        if not hasattr(cls, "_reserved"):
-            cls._reserved = ()
+class BaseSynapseParameters:
+    # _synapse_fields: dict[str, float] should be defined in the subclasses
+    _optional: set[str] = set()
+    _reserved: set[str] = set()
 
-        cls.load_fields = set(cls._synapse_fields) - set(cls._reserved)
-
-    @property
+    @classmethod
     def all_fields(cls):
-        return set(cls._synapse_fields)
+        return set(cls._synapse_fields.keys())
 
+    @classmethod
+    def load_fields(cls):
+        return cls.all_fields() - cls._reserved
+
+    @classmethod
+    def dtype(cls):
+        return np.dtype(
+            {
+                "names": tuple(cls._synapse_fields),
+                "formats": ["f8"] * len(cls._synapse_fields),
+            }
+        )
+
+    @classmethod
     def fields(cls, exclude: set = (), with_translation: dict | None = None):
-        fields = cls.load_fields - exclude if exclude else cls.load_fields
+        fields = cls.load_fields() - exclude if exclude else cls.load_fields()
         if with_translation:
             return [(f, with_translation.get(f, f), f in cls._optional) for f in fields]
         return [(f, f in cls._optional) for f in fields]
 
-    def create_array(cls, length):
-        return np.recarray(length, cls.dtype)
-
-
-class SynapseParameters(metaclass=_SynParametersMeta):
-    """Synapse parameters, internally implemented as numpy record"""
-
-    _synapse_fields = (
-        "sgid",
-        "delay",
-        "isec",
-        "ipt",
-        "offset",
-        "weight",
-        "U",
-        "D",
-        "F",
-        "DTC",
-        "synType",
-        "nrrp",
-        "u_hill_coefficient",
-        "conductance_ratio",
-        "maskValue",
-        "location",
-    )  # total: 16
-
-    _optional = ("u_hill_coefficient", "conductance_ratio")
-    _reserved = ("maskValue", "location")
-
-    def __new__(cls, *_):
-        raise NotImplementedError
-
     @classmethod
     def create_array(cls, length):
-        npa = np.recarray(length, cls.dtype)
-        npa.conductance_ratio = -1  # set to -1 (not-set). 0 is meaningful
-        npa.maskValue = -1
-        npa.location = 0.5
-        return npa
+        arr = np.recarray(length, dtype=cls.dtype())
+        for field, default in cls._synapse_fields.items():
+            # Fill only if default != 0 or 0.0
+            if default != 0:
+                arr[field] = default
+        return arr
+
+    @classmethod
+    def empty(cls):
+        return cls.create_array(0)
+
+
+class SynapseParameters(BaseSynapseParameters):
+    """Synapse parameters, internally implemented as numpy record"""
+
+    _synapse_fields = {
+        "sgid": 0.0,
+        "delay": 0.0,
+        "isec": 0.0,
+        "ipt": 0.0,
+        "offset": 0.0,
+        "weight": 0.0,
+        "U": 0.0,
+        "D": 0.0,
+        "F": 0.0,
+        "DTC": 0.0,
+        "synType": 0.0,
+        "nrrp": 0.0,
+        "u_hill_coefficient": 0.0,
+        "conductance_ratio": -1.0,
+        "maskValue": -1.0,
+        "location": 0.5,
+    }
+
+    _optional = {"u_hill_coefficient", "conductance_ratio"}
+    _reserved = {"maskValue", "location"}
 
 
 class SonataReader:
@@ -125,7 +126,7 @@ class SonataReader:
         # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
         # while u_hill_coefficient can always be readif avail, conductance reader may not.
         self._uhill_property_avail = self.has_property("u_hill_coefficient")
-        self._extra_fields = ()
+        self._extra_fields = set()
         self._extra_scale_vars = []
 
     def configure_override(self, mod_override):
@@ -143,7 +144,7 @@ class SonataReader:
                     ", ".join(attr_names.split(";")), mod_override
                 )
             )
-            self._extra_fields = tuple(attr_names.split(";"))
+            self._extra_fields = set(attr_names.split(";"))
 
         # Read attribute names with format "attr1;attr2;attr3"
         attr_names = getattr(Nd, override_helper + "_UHillScaleVariables", None)
@@ -301,7 +302,7 @@ class SonataReader:
         # This has to work for when we call preload() a second/third time
         # so we are unsure about which gids were loaded what properties
         # We nevertheless can skip any base fields
-        extra_fields = set(self._extra_fields) - (self.Parameters.all_fields | compute_fields)
+        extra_fields = self._extra_fields - (self.Parameters.all_fields() | compute_fields)
         for field in sorted(extra_fields):
             now_needed_gids = sorted(
                 {
@@ -363,20 +364,22 @@ class SonataReader:
             data = self._data[gid]
 
         if not data:
-            return self.Parameters.empty  # disconnected cell
+            return self.Parameters.empty()  # disconnected cell
 
         edge_count = len(next(iter(data.values())))
 
         if self._extra_fields:
-
+            # Do not modify CustomSynapseParameters _optional and _reserved
+            # because this changes them also in SynapseParameters
             class CustomSynapseParameters(self.Parameters):
-                _synapse_fields = self.Parameters._synapse_fields + self._extra_fields
-
+                _synapse_fields = self.Parameters._synapse_fields | dict.fromkeys(
+                    self._extra_fields, 0.0
+                )
             conn_syn_params = CustomSynapseParameters.create_array(edge_count)
         else:
             conn_syn_params = self.Parameters.create_array(edge_count)
 
-        for name in self.Parameters.load_fields:
+        for name in self.Parameters.load_fields():
             conn_syn_params[name] = data[name]
         for name in self._extra_fields:
             conn_syn_params[name] = data[name]

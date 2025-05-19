@@ -4,8 +4,6 @@ import logging
 import pickle  # noqa: S403
 from pathlib import Path
 
-import numpy as np
-
 from .connection_manager import ConnectionManagerBase
 from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
@@ -16,22 +14,16 @@ from .io.synapse_reader import SonataReader, SynapseParameters
 
 class GapJunctionConnParameters(SynapseParameters):
     # Attribute names of synapse parameters, consistent with the normal synapses
-    _synapse_fields = (
-        "sgid",
-        "isec",
-        "offset",
-        "weight",
-        "efferent_junction_id",
-        "afferent_junction_id",
-        "ipt",
-        "location",
-    )
-
-    @classmethod
-    def create_array(cls, length):
-        npa = np.recarray(length, cls.dtype)
-        npa.location = 0.5
-        return npa
+    _synapse_fields = {
+        "sgid": 0.0,
+        "isec": 0.0,
+        "offset": 0.0,
+        "weight": 0.0,
+        "efferent_junction_id": 0.0,
+        "afferent_junction_id": 0.0,
+        "ipt": 0.0,
+        "location": 0.5,
+    }
 
 
 class GapJunctionSynapseReader(SonataReader):
