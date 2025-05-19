@@ -57,9 +57,7 @@ Each astrocyte is composed of multiple sections:
 
     - A `glutReceive` point process.
     - A `glutReceiveSoma` point process, which monitors recent synaptic activity across the entire astrocyte by counting signals received within the last millisecond. If no signals arrive during this period, the counter is reset, enabling real-time responsiveness.
-    - A `cadifus` mechanism responsible for calcium diffusion, configured to observe both `glutReceive` and `glutReceiveSoma`.
-
-  Due to the order of section initialization, the `cadifus` pointer is overwritten by the `glutReceiveSoma` reference when the soma is connected last. Consequently, the `glutReceive` in the soma is likely unused in practice.
+    - A `cadifus` mechanism responsible for calcium diffusion, configured to observe `glutReceive`.
 
 - **Endfeet sections**:
 
