@@ -1,7 +1,8 @@
 import json
 import pytest
-from pathlib import Path
 import platform
+from pathlib import Path
+
 from neurodamus.core._utils import run_only_rank0
 
 try:
@@ -91,17 +92,15 @@ def change_test_dir(monkeypatch, tmp_path):
 
 @pytest.fixture()
 def copy_memory_files(change_test_dir):
-    import json
-
+    # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {
-        "MTYPE0-ETYPE0": 1377.9,
-        "MTYPE1-ETYPE1": 1107.8,
-        "MTYPE2-ETYPE2": 97.9,
-        "MTYPE0-ETYPE1": 83.8
+        "MTYPE0-ETYPE0": 100.0,
+        "MTYPE1-ETYPE1": 200.0,
+        "MTYPE2-ETYPE2": 1000.0,
     }
-    with Path("cell_memory_usage.json").open("w") as f:
-        json.dump(metypes_memory, f, indent=4)
     with Path("memory_per_metype.json").open("w") as f:
+        json.dump(metypes_memory, f, indent=4)
+    with Path("cell_memory_usage.json").open("w") as f:
         json.dump(metypes_memory, f, indent=4)
 
 

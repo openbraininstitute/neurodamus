@@ -129,6 +129,7 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
     # RingA neuron 1 always in rank 0, neuron 2 always in rank 1
     # but neuron 3 can be in  either of the two
     if rank == 0:
-        assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [1, 3])
+        expected_allocation = {'RingA': {(0, 0): [1, 3]}}
     elif rank == 1:
-        assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [2, 3])
+        expected_allocation = {'RingA': {(1, 0): [2]}}
+    assert rank_allocation_standard == expected_allocation
