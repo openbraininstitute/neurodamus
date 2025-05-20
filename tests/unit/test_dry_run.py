@@ -115,8 +115,8 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
 ], indirect=True)
 @pytest.mark.forked
 def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
-    with pytest.raises(RuntimeError,
-                       match="FileNotFound Error: No such file cell_memory_usage.json. "
+    with pytest.raises(FileNotFoundError,
+                       match="No such file cell_memory_usage.json. "
                        "Neurodamus must be run with --dry-run mode before proceeding."):
         Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
@@ -124,8 +124,8 @@ def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
     with Path("cell_memory_usage.json").open('w'):
         pass
 
-    with pytest.raises(RuntimeError,
-                       match="FileNotFound Error: No such file memory_per_metype.json. "
+    with pytest.raises(FileNotFoundError,
+                       match="No such file memory_per_metype.json. "
                        "Neurodamus must be run with --dry-run mode before proceeding."):
         Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
