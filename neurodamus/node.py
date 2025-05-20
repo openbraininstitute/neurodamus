@@ -456,14 +456,17 @@ class Node:
             if file_exists:
                 alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
             else:
-                if not (
-                    Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
-                    and Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists()
-                ):
+                if not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists():
                     raise RuntimeError(
-                        f"Missing {DryRunStats._MEMORY_USAGE_FILENAME} or "
-                        f"{DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. Neurodamus must be run "
-                        "with --dry-run mode before proceeding."
+                        "FileNotFound Error: No such file "
+                        f"{DryRunStats._MEMORY_USAGE_FILENAME}. "
+                        "Neurodamus must be run with --dry-run mode before proceeding."
+                    )
+                if not Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists():
+                    raise RuntimeError(
+                        "FileNotFound Error: No such file "
+                        f"{DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. "
+                        "Neurodamus must be run with --dry-run mode before proceeding."
                     )
 
                 logging.warning("Allocation file not found. Generating on-the-fly.")

@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
+from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
@@ -115,7 +116,16 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
 @pytest.mark.forked
 def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
     with pytest.raises(RuntimeError,
-                       match="Missing cell_memory_usage.json or memory_per_metype.json. "
+                       match="FileNotFound Error: No such file cell_memory_usage.json. "
+                       "Neurodamus must be run with --dry-run mode before proceeding."):
+        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
+                     num_target_ranks=1)
+
+    with Path("cell_memory_usage.json").open('w'):
+        pass
+
+    with pytest.raises(RuntimeError,
+                       match="FileNotFound Error: No such file memory_per_metype.json. "
                        "Neurodamus must be run with --dry-run mode before proceeding."):
         Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
