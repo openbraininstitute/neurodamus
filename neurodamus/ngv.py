@@ -159,13 +159,15 @@ class Astrocyte(BaseCell):
         # reassigned and which ones are stale. the endfeet may be already
         # up-to-date
         # issue: https://github.com/openbraininstitute/neurodamus/issues/263
-        all_secs = chain(self._cellref.all, self.endfeet)
-
-        # just a safety check
-        assert len(self._cellref.all) + len(self.endfeet) == len(self.sections_glut), (
-            "Mismatch between sections and sections_glut: "
-            "probably some sections are unaccounted for"
-        )
+        if self.endfeet:
+            all_secs = chain(self._cellref.all, self.endfeet)
+            # just a safety check
+            assert len(self._cellref.all) + len(self.endfeet) == len(self.sections_glut), (
+                "Mismatch between sections and sections_glut: "
+                "probably some sections are unaccounted for"
+            )
+        else:
+            all_secs = self._cellref.all
 
         for glut, sec in zip(self.sections_glut, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)

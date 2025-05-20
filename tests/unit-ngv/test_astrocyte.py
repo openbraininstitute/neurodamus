@@ -33,7 +33,7 @@ def test_astrocyte_point_processes_and_mechanisms(create_tmp_simulation_config_f
         # Check that GlutList length matches section_names + endfeet
         glut_list = list(cell.glut_list)
         section_names = cell.section_names
-        endfeet = cell.endfeet
+        endfeet = cell.endfeet or []
         assert len(glut_list) == len(section_names) + len(endfeet) + 1
 
         # Get the runtime types of GlutReceive and GlutReceiveSoma
@@ -47,7 +47,7 @@ def test_astrocyte_point_processes_and_mechanisms(create_tmp_simulation_config_f
         for sec, glut in zip(cell.CellRef.all, glut_list):
             _check_seg(sec(0.5), glut)
 
-        for sec, glut in zip(cell.endfeet, glut_list[len(cell.CellRef.all):]):
+        for sec, glut in zip(endfeet, glut_list[len(cell.CellRef.all):]):
             _check_seg(sec(0.5), glut)
             assert hasattr(sec(0.5), "vascouplingB")
 

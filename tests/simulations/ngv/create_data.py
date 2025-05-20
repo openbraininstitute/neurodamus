@@ -37,9 +37,9 @@ def make_ngv_nodes():
         "radius": 4.5,
         "morphology": "glia",
     }
-    make_nodes(filename="astrocytes.h5", name="AstrocyteA", count=2, wanted_attributes=wanted)
+    make_nodes(filename="astrocytes.h5", name="AstrocyteA", count=5, wanted_attributes=wanted)
 
-    num_nodes = 6
+    num_nodes = 9
     wanted = {
         "node_type_id": -1,
         "model_type": "vasculature",
