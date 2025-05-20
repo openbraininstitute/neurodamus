@@ -184,14 +184,6 @@ class NeuroGlialSynapseReader(SonataReader):
     Parameters = NeuroGliaConnParameters
     custom_parameters = set()
 
-
-USE_COMPAT_SYNAPSE_ID = True
-"""
-Compat Synapse ID means the id is taken directly as the virtual gid, without any gap
-optimization. This is still required when nrank > 1
-"""
-
-
 class NeuroGlialConnection(Connection):
     neurons_not_found = set()
     neurons_attached = set()
@@ -225,13 +217,7 @@ class NeuroGlialConnection(Connection):
                 logging.debug("Finalizing conn %s. Params:\n%s", self, self._synapse_params)
 
         for syn_params in self._synapse_params:
-            if USE_COMPAT_SYNAPSE_ID:
-                syn_gid = 1_000_000 + syn_params.synapse_id
-            else:
-                tgid_conns = base_connections.get(syn_params.connected_neurons_post)
-                syn_gid = self._find_neuron_endpoint_id(syn_params, tgid_conns)
-                if syn_gid is None:
-                    continue
+            syn_gid = 1_000_000 + syn_params.synapse_id
 
             glut_idx = int(syn_params.astrocyte_section_id)
             glut_obj = glut_all[glut_idx]
@@ -251,50 +237,6 @@ class NeuroGlialConnection(Connection):
 
             n_bindings += 1
         return n_bindings
-
-    def _find_neuron_endpoint_id(self, syn_params, conns):
-        """Gets the endpoint id on the neuronal synapse.
-        To avoid gaps, the optimized version has to search along the existing connections
-        for the given synapse id.
-
-        """
-        if not conns:
-            self.neurons_not_found.add(self.sgid)
-            return None
-
-        if conns[0].synapses_offset > syn_params.synapse_id:
-            logging.error(
-                "Data Error: TGID %d syn offset (%d) is larger than syn gid %d",
-                conns[0].tgid,
-                conns[0].synapses_offset,
-                syn_params.synapse_id,
-            )
-            return None
-
-        c_i = bin_search(conns, syn_params.synapse_id, lambda c: c.synapses_offset)
-        # non-exact matches are attached to the left conn (base offset)
-        if len(conns) == c_i or syn_params.synapse_id < conns[c_i].synapses_offset:
-            c_i -= 1
-        conn = conns[c_i]
-        self.neurons_attached.add(conn.tgid)
-
-        # syn_gid: compute offset and add to the gid_base
-        syn_offset = int(syn_params.synapse_id - conn.synapses_offset)
-        assert syn_offset >= 0
-
-        syn_gid = conn.syn_gid_base + syn_offset
-        syn_id = conn.synapses[syn_offset].synapseID  # visible in the synapse events
-        log_verbose(
-            "[GLIA ATTACH] id %d to syn Gid %d (conn %d-%d, SynID %d, syn offset %d)",
-            self.tgid,
-            syn_gid,
-            conn.sgid,
-            conn.tgid,
-            syn_id,
-            syn_offset,
-        )
-        return syn_gid
-
 
 class NeuroGliaConnManager(ConnectionManagerBase):
     """A Connection Manager for Neuro-Glia connections
@@ -329,10 +271,8 @@ class NeuroGliaConnManager(ConnectionManagerBase):
         logging.info("Creating virtual cells on target Neurons for coupling to GLIA...")
         base_manager = next(self._src_cell_manager.connection_managers.values())
 
-        if USE_COMPAT_SYNAPSE_ID:
-            total_created = self._create_synapse_ustate_endpoints(base_manager)
-        else:
-            total_created = self._create_synapse_ustate_endpoints_optimized(base_manager)
+        # if USE_COMPAT_SYNAPSE_ID:
+        total_created = self._create_synapse_ustate_endpoints(base_manager)
 
         logging.info("(RANK 0) Created %d Virtual GIDs for synapses.", total_created)
 
@@ -341,9 +281,6 @@ class NeuroGliaConnManager(ConnectionManagerBase):
             base_connections=None,
             conn_type="NeuronGlia connections",
         )
-
-        if not USE_COMPAT_SYNAPSE_ID:
-            logging.info("Target cells coupled to: %s", NeuroGlialConnection.neurons_attached)
 
         if NeuroGlialConnection.neurons_not_found:
             logging.warning(
@@ -380,50 +317,6 @@ class NeuroGliaConnManager(ConnectionManagerBase):
                     total_created += 1
 
         return total_created
-
-    @staticmethod
-    def _create_synapse_ustate_endpoints_optimized(base_manager):
-        # This is an optimized version to avoid using the global synapse id
-        # as the virtual gid, which would strongly limit the size of the circuits.
-        pc = Nd.pc
-        syn_gid_base = 100_000_000  # Below 100M is reserved for cell ids
-
-        # Get the total amount of synapses per rank and compute the base
-        # synapse_gid (sum synapse count in all previous ranks)
-        syn_counts = Nd.Vector(MPI.size)
-        local_syn_count = sum(len(conn.synapses) for conn in base_manager.all_connections())
-        MPI.allgather(local_syn_count, syn_counts)
-        if MPI.rank > 0:
-            syn_gid_base += syn_counts.sum(0, MPI.rank - 1)
-
-        for conn in base_manager.all_connections():
-            # Conn objects have a placeholder (syn_gid_base) for storing the id
-            # for its first synapse. This enables getting to the synapse directly
-            conn.syn_gid_base = syn_gid_base
-
-            syn_objs = conn.synapses
-            syn_i = None
-            logging.debug(
-                "Tgid: %d, Base syn gid: %d, Base syn offset: %d",
-                conn.tgid,
-                conn.syn_gid_base,
-                conn.synapses_offset,
-            )
-
-            for syn_i, (param_i, sec) in enumerate(conn.sections_with_synapses):
-                if conn.synapse_params[param_i].synType >= 100:  # Only Excitatory
-                    synapse_gid = syn_gid_base + syn_i
-                    pc.set_gid2node(synapse_gid, MPI.rank)
-                    netcon = Nd.NetCon(syn_objs[syn_i]._ref_Ustate, None, 0, 0, 1.1, sec=sec)
-                    pc.cell(synapse_gid, netcon)
-                    conn._netcons.append(netcon)
-
-            # Next base is incremented number of synapses (last syn_i + 1)
-            if syn_i is not None:
-                syn_gid_base += syn_i + 1
-
-        return syn_gid_base - 100_000_000  # total created
-
 
 class GlioVascularManager(ConnectionManagerBase):
     CONNECTIONS_TYPE = ConnectionTypes.GlioVascular
