@@ -19,7 +19,7 @@ from .utils.pyutils import append_recarray, bin_search
 
 
 class Astrocyte(BaseCell):
-    __slots__ = ("glut_all", "glut_endfeet", "glut_soma", "has_resized_secs", "section_names")
+    __slots__ = ("glut_all", "glut_endfeet", "glut_soma", "section_names")
 
     def __init__(self, gid, meinfos, circuit_conf):
         """Initialize an Astrocyte cell:
@@ -46,10 +46,6 @@ class Astrocyte(BaseCell):
 
         logging.debug("Instantiating NGV cell gid=%d", gid)
 
-        # flag that states that at least 1 section was resized to
-        # have only 1 compartment (seg). At the moment only single
-        # compartment sections are allowed
-        self.has_resized_secs = False
         self.glut_all = []
         for sec in self.all:
             self.glut_all.append(self._init_basic_section(sec))
@@ -69,7 +65,12 @@ class Astrocyte(BaseCell):
         """
         # resize if necessary
         if sec.nseg > 1:
-            self.has_resized_secs = True
+            logging.warning(
+                "The astrocyte %s had some of their sections "
+                "reduced to 1 compartment. More than one compartment "
+                "sections are not supported at the moment.",
+                self.gid,
+            )
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
@@ -161,26 +162,11 @@ class AstrocyteManager(CellDistributor):
 
     Behaves like CellDistributor but uses the Astrocyte cell type and resets
     NEURON pointers after stdinit due to possible memory relocation.
-    The difference lies only in the Cell Type and in the post_stdinit
+    The difference lies only in the Cell Type
     """
 
     CellType = Astrocyte
     _sonata_with_extra_attrs = False
-
-    def post_stdinit(self):
-        """Collect warnings and pretty-print them"""
-        resized_secs_gids = [cell.gid for cell in self.cells if cell.has_resized_secs]
-
-        resized_secs_gids = MPI.py_gather(resized_secs_gids, 0)
-        # flatten
-        resized_secs_gids = [item for sublist in resized_secs_gids for item in sublist]
-        if len(resized_secs_gids):
-            logging.warning(
-                "The following astrocytes had some of their sections "
-                "reduced to 1 compartment: %s. More than one compartment "
-                "sections are not supported at the moment.",
-                resized_secs_gids,
-            )
 
 
 class NeuroGliaConnParameters(SynapseParameters):
