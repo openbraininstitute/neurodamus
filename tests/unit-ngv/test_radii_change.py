@@ -52,7 +52,8 @@ def compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_p
         "simconfig_file": "simulation_config.json"
     }
 ], indirect=True)
-def test_vasccouplingB_radii(create_tmp_simulation_config_file):
+@pytest.mark.mpi(ranks=1)
+def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     """
     Test function to validate vascouplingB mechanism attributes and related spike activity.
 

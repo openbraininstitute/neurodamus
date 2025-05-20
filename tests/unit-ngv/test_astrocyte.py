@@ -25,7 +25,8 @@ def _check_seg(seg, glut):
         "simconfig_file": "simulation_config.json"
     }
 ], indirect=True)
-def test_astrocyte_point_processes_and_mechanisms(create_tmp_simulation_config_file):
+@pytest.mark.mpi(ranks=1)
+def test_astrocyte_point_processes_and_mechanisms(create_tmp_simulation_config_file, mpi_ranks):
     """Check consistency among glut_list, cell point processes, and mechanisms"""
     n = Neurodamus(create_tmp_simulation_config_file)
     astro_manager = n.circuits.get_node_manager("AstrocyteA")
