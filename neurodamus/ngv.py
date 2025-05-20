@@ -14,8 +14,7 @@ from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
-from .utils.logging import log_verbose
-from .utils.pyutils import append_recarray, bin_search
+from .utils.pyutils import append_recarray
 
 
 class Astrocyte(BaseCell):
@@ -184,6 +183,7 @@ class NeuroGlialSynapseReader(SonataReader):
     Parameters = NeuroGliaConnParameters
     custom_parameters = set()
 
+
 class NeuroGlialConnection(Connection):
     neurons_not_found = set()
     neurons_attached = set()
@@ -237,6 +237,7 @@ class NeuroGlialConnection(Connection):
 
             n_bindings += 1
         return n_bindings
+
 
 class NeuroGliaConnManager(ConnectionManagerBase):
     """A Connection Manager for Neuro-Glia connections
@@ -317,6 +318,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
                     total_created += 1
 
         return total_created
+
 
 class GlioVascularManager(ConnectionManagerBase):
     CONNECTIONS_TYPE = ConnectionTypes.GlioVascular
