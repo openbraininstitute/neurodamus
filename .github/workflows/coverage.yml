@@ -1,5 +1,10 @@
 name: Build coverage reports
 
+status:
+  project:
+    default:
+      threshold: 0.01 # Ignore changes smaller than 0.01%
+
 on:
   pull_request:
   push:
@@ -8,10 +13,6 @@ on:
 
 jobs:
   coverage:
-    status:
-      project:
-        default:
-        threshold: 0.01 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
