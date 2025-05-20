@@ -77,7 +77,7 @@ class Astrocyte(BaseCell):
         # even if not pointed at by a netcon so that cadifus
         # pointer dereferencing does not throw an error
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
-        # set BBCOREPOINTER glu2 to point at glut
+        # set POINTER glu2 to point at glut
         sec(0.5).cadifus._ref_glu2 = glut._ref_glut
         return glut
 
@@ -188,6 +188,7 @@ class NeuroGlialConnection(Connection):
     neurons_not_found = set()
     neurons_attached = set()
     netcon_delay = 0.05
+    syn_gid_offset = 1_000_000  # Below 1M is reserved for cell ids
 
     def add_synapse(self, syn_tpoints, params_obj, syn_id=None):
         # Only store params. Glia have mechanisms pre-created
@@ -197,18 +198,9 @@ class NeuroGlialConnection(Connection):
         """Bind each glia connection to synapses in connections target cells via
         the assigned unique gid.
         """
-        # TODO: Currently it receives the base_connections object to look (bin search)
-        # for the sinapse to attach to. However since target cells and Glia might be
-        # distributed differently across MPI ranks, this is bound to work in a single rank.
-        # For the moment we fallback to using the original synapse id.
-
         self._netcons = []
         glut_all = astrocyte.glut_all
-        n_bindings = 0
         pc = Nd.pc
-
-        def ustate_event_handler2(syn_gid):
-            return lambda: print("GOOD netcon event 2. Spiking via v-gid: " + str(syn_gid))
 
         if GlobalConfig.debug_conn:
             if GlobalConfig.debug_conn == [self.tgid]:
@@ -217,26 +209,30 @@ class NeuroGlialConnection(Connection):
                 logging.debug("Finalizing conn %s. Params:\n%s", self, self._synapse_params)
 
         for syn_params in self._synapse_params:
-            syn_gid = 1_000_000 + syn_params.synapse_id
+            syn_gid = self.syn_gid_offset + syn_params.synapse_id
 
+            # netcon to GlutReceive
             glut_idx = int(syn_params.astrocyte_section_id)
             glut_obj = glut_all[glut_idx]
             netcon = pc.gid_connect(syn_gid, glut_obj)
             netcon.delay = self.netcon_delay
-
-            netcon.record(ustate_event_handler2(syn_gid))
-
+            netcon.record(
+                lambda syn_gid=syn_gid: print(f"GOOD netcon event 2. Spiking via v-gid: {syn_gid}")
+            )
             self._netcons.append(netcon)
 
-            # Connect also to GlutReceiveSoma for metabolism
+            # netcon to GlutReceiveSoma for metabolism
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
             netcon = pc.gid_connect(syn_gid, astrocyte.glut_soma)
-            netcon.record(ustate_event_handler2(666))
+            netcon.record(
+                lambda syn_gid=syn_gid: print(
+                    f"GOOD netcon event 2 towards GlutReceiveSoma. Spiking via v-gid: {syn_gid}"
+                )
+            )
             netcon.delay = self.netcon_delay
             self._netcons.append(netcon)
 
-            n_bindings += 1
-        return n_bindings
+        return len(self._synapse_params)
 
 
 class NeuroGliaConnManager(ConnectionManagerBase):
@@ -246,6 +242,10 @@ class NeuroGliaConnManager(ConnectionManagerBase):
     If one day Astrocytes have connections among themselves a sub ConnectionManager
     must be used
     """
+
+    ustate_netcon_threshold = 0.0
+    ustate_netcon_delay = 0.0
+    ustate_netcon_weight = 1.1
 
     CONNECTIONS_TYPE = ConnectionTypes.NeuroGlial
     conn_factory = NeuroGlialConnection
@@ -272,7 +272,6 @@ class NeuroGliaConnManager(ConnectionManagerBase):
         logging.info("Creating virtual cells on target Neurons for coupling to GLIA...")
         base_manager = next(self._src_cell_manager.connection_managers.values())
 
-        # if USE_COMPAT_SYNAPSE_ID:
         total_created = self._create_synapse_ustate_endpoints(base_manager)
 
         logging.info("(RANK 0) Created %d Virtual GIDs for synapses.", total_created)
@@ -292,13 +291,12 @@ class NeuroGliaConnManager(ConnectionManagerBase):
     def _create_synapse_ustate_endpoints(base_manager):
         """Creating an endpoint netcon to listen for events in synapse.Ustate
         Netcon ids are directly the synapse id (hence we are limited in number space)
+
+        Note: we assume that the source synapse has a Ustate variable
         """
         pc = Nd.pc
-        syn_gid_base = 1_000_000  # Below 1M is reserved for cell ids
+        syn_gid_base = NeuroGlialConnection.syn_gid_offset
         total_created = 0
-
-        def ustate_event_handler(tgid, syn_gid):
-            return lambda: print(f"[gid={tgid}] Ustate netcon event. Spiking via v-gid:", syn_gid)
 
         for conn in base_manager.all_connections():
             syn_objs = conn.synapses
@@ -306,16 +304,31 @@ class NeuroGliaConnManager(ConnectionManagerBase):
             logging.debug("Tgid: %d, Base syn offset: %d", conn.tgid, tgid_syn_offset)
 
             for param_i, sec in conn.sections_with_synapses:
-                if conn.synapse_params[param_i].synType >= 100:  # Only Excitatory
-                    synapse_gid = tgid_syn_offset + param_i
-                    pc.set_gid2node(synapse_gid, MPI.rank)
-                    netcon = Nd.NetCon(syn_objs[param_i]._ref_Ustate, None, 0, 0, 1.1, sec=sec)
-                    pc.cell(synapse_gid, netcon)
-                    if GlobalConfig.verbosity >= LogLevel.DEBUG:
-                        netcon.record(ustate_event_handler(conn.tgid, synapse_gid))
+                if conn.synapse_params[param_i].synType < 100:  # Skip Inhibitory
+                    continue
+                synapse_gid = tgid_syn_offset + param_i
+                pc.set_gid2node(synapse_gid, MPI.rank)
+                netcon = Nd.NetCon(
+                    syn_objs[param_i]._ref_Ustate,
+                    None,
+                    NeuroGliaConnManager.ustate_netcon_threshold,
+                    NeuroGliaConnManager.ustate_netcon_delay,
+                    NeuroGliaConnManager.ustate_netcon_weight,
+                    sec=sec,
+                )
+                # set the v-gid (that is actually an synapse id) to the netcon. Useful for
+                # reporting and debugging
+                pc.cell(synapse_gid, netcon)
+                if GlobalConfig.verbosity >= LogLevel.DEBUG:
+                    netcon.record(
+                        lambda tgid=conn.tgid, synapse_gid=synapse_gid: print(
+                            f"[gid={tgid}] Ustate netcon event. Spiking via v-gid:",
+                            synapse_gid,
+                        )
+                    )
 
-                    conn._netcons.append(netcon)
-                    total_created += 1
+                conn._netcons.append(netcon)
+                total_created += 1
 
         return total_created
 
@@ -329,9 +342,10 @@ class GlioVascularManager(ConnectionManagerBase):
             raise ConfigurationError("Circuit target is required for GlioVascular projections")
         if "Path" not in circuit_conf:
             raise ConfigurationError("Missing GlioVascular Sonata file via 'Path' configuration")
-
         if "VasculaturePath" not in circuit_conf:
-            logging.warning("Missing Vasculature Sonata file via 'VasculaturePath' configuration")
+            raise ConfigurationError(
+                "Missing Vasculature Sonata file via 'VasculaturePath' configuration"
+            )
 
         super().__init__(circuit_conf, target_manager, cell_manager, src_cell_manager, **kw)
         self._astro_ids = self._cell_manager.local_nodes.raw_gids()
