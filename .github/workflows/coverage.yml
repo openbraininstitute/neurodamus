@@ -8,6 +8,10 @@ on:
 
 jobs:
   coverage:
+    status:
+      project:
+        default:
+        threshold: 0.01 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
