@@ -375,6 +375,7 @@ class SonataReader:
                 _synapse_fields = self.Parameters._synapse_fields | dict.fromkeys(
                     self._extra_fields, 0.0
                 )
+
             conn_syn_params = CustomSynapseParameters.create_array(edge_count)
         else:
             conn_syn_params = self.Parameters.create_array(edge_count)
