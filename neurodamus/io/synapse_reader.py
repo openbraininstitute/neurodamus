@@ -104,7 +104,7 @@ class SynapseParameters:
             syn_params[var] *= scale_factors
 
     @classmethod
-    def create_array(cls, data, extra_fields, extra_cellular_calcium, extra_scale_vars):
+    def make_synapse_parameters_array(cls, data, extra_fields, extra_cellular_calcium, extra_scale_vars):
         """Create a recarray from data with optional extra fields and apply patches."""
         if not data:
             return np.recarray(0, dtype=cls.dtype(extra_fields=None))
@@ -207,7 +207,7 @@ class SonataReader:
                 data = self._data[gid]
 
             # create the synapse parameters array, already patched
-            syn_params = self.Parameters.create_array(
+            syn_params = self.Parameters.make_synapse_parameters_array(
                 data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
             )
             # cache the results
