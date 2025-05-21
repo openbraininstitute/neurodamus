@@ -48,7 +48,8 @@ def test_init_and_add_endfeet():
     len(glut_list) == len(astro.glut_all) + len(astro.glut_endfeet) + 1
 
     # Check that all elements in GlutList are GlutReceive except the last one
-    assert all("GlutReceive" in glut.hname() and "GlutReceiveSoma" not in glut.hname() for glut in glut_list[:-1])
+    assert all("GlutReceive" in glut.hname() and
+               "GlutReceiveSoma" not in glut.hname() for glut in glut_list[:-1])
     assert "GlutReceiveSoma" in glut_list[-1].hname()
 
     for glut, sec in zip(astro.glut_list, chain(astro.all, astro.endfeet)):
