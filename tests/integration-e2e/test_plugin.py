@@ -98,10 +98,10 @@ class ACellConnection(ConnectionBase):
 
 
 class ASynParameters(SynapseParameters):
-    _synapse_fields = {
-        "sgid": 0.0,
-        "delay": 0.0,
-        "conductance": 0.0,
+    _fields = {
+        "sgid": 'int64',
+        "delay": 'float64',
+        "conductance": 'float64',
     }
 
 

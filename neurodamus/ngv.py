@@ -208,12 +208,12 @@ class AstrocyteManager(CellDistributor):
 
 
 class NeuroGliaConnParameters(SynapseParameters):
-    _synapse_fields = {
-        "tgid": 0.0,
-        "synapse_id": 0.0,
-        "astrocyte_section_id": 0.0,
-        "astrocyte_segment_id": 0.0,
-        "astrocyte_segment_offset": 0.0,
+    _fields = {
+        "tgid": "int64",
+        "synapse_id": "int64",
+        "astrocyte_section_id": "int64",
+        "astrocyte_segment_id": "int64",
+        "astrocyte_segment_offset": "float64",
     }
 
 

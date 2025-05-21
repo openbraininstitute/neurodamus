@@ -14,15 +14,15 @@ from .io.synapse_reader import SonataReader, SynapseParameters
 
 class GapJunctionConnParameters(SynapseParameters):
     # Attribute names of synapse parameters, consistent with the normal synapses
-    _synapse_fields = {
-        "sgid": 0.0,
-        "isec": 0.0,
-        "offset": 0.0,
-        "weight": 0.0,
-        "efferent_junction_id": 0.0,
-        "afferent_junction_id": 0.0,
-        "ipt": 0.0,
-        "location": 0.5,
+    _fields = {
+        "sgid": "int64",
+        "isec": "int64",
+        "offset": "float64",
+        "weight": "float64",
+        "efferent_junction_id": "int64",
+        "afferent_junction_id": "int64",
+        "ipt": "float64",
+        "location": "float64",
     }
 
 

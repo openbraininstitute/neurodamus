@@ -12,79 +12,119 @@ from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import gen_ranges
 
 
-def _constrained_hill(K_half, y):
-    K_half_fourth = K_half**4
-    y_fourth = y**4
-    return (K_half_fourth + 16) / 16 * y_fourth / (K_half_fourth + y_fourth)
+class SynapseParameters:
+    """Synapse parameter names and dtypes for numpy recarrays
+    following the SONATA specification.
 
+    For detailed info on the parameters, see:
+    https://sonata-extension.readthedocs.io/en/latest/recipe.html
+    """
 
-class BaseSynapseParameters:
-    # _synapse_fields: dict[str, float] should be defined in the subclasses
-    _optional: set[str] = set()
-    _reserved: set[str] = set()
+    _fields = {
+        "sgid": "i8",
+        "delay": "f8",
+        "isec": "i4",
+        "ipt": "i4",
+        "offset": "f8",
+        "weight": "f8",
+        "U": "f8",
+        "D": "f8",
+        "F": "f8",
+        "DTC": "f8",
+        "synType": "i4",
+        "nrrp": "i4",
+        "u_hill_coefficient": "f8",
+        "conductance_ratio": "f8",
+        "maskValue": "f8",
+        "location": "f8",
+    }
+
+    _optional = {"u_hill_coefficient": 0, "conductance_ratio": -1.0}
+    _reserved = {"maskValue": -1.0, "location": 0.5}
 
     @classmethod
     def all_fields(cls):
-        return set(cls._synapse_fields.keys())
+        """Return all defined field names."""
+        return set(cls._fields.keys())
 
     @classmethod
     def load_fields(cls):
-        return cls.all_fields() - cls._reserved
+        """Return all fields except reserved ones."""
+        return cls.all_fields() - set(cls._reserved.keys())
 
     @classmethod
-    def dtype(cls):
-        return np.dtype(
-            {
-                "names": tuple(cls._synapse_fields),
-                "formats": ["f8"] * len(cls._synapse_fields),
-            }
-        )
+    def dtype(cls, extra_fields=None):
+        """Return dtype including optional extra fields (all float64)."""
+        names = list(cls._fields.keys())
+        formats = list(cls._fields.values())
+
+        if extra_fields is not None:
+            names.extend(extra_fields)
+            formats.extend(["f8"] * len(extra_fields))
+
+        return np.dtype({"names": tuple(names), "formats": tuple(formats)})
 
     @classmethod
     def fields(cls, exclude: set = (), with_translation: dict | None = None):
+        """Return list of fields with optional exclusion and translation.
+
+        Returns list of tuples (field_name, translated_name or is_optional).
+        """
+        optional_keys = cls._optional.keys()
         fields = cls.load_fields() - exclude if exclude else cls.load_fields()
+
         if with_translation:
-            return [(f, with_translation.get(f, f), f in cls._optional) for f in fields]
-        return [(f, f in cls._optional) for f in fields]
+            return [(f, with_translation.get(f, f), f in optional_keys) for f in fields]
+        return [(f, f in optional_keys) for f in fields]
+
+    @staticmethod
+    def _patch_delay_fp_inaccuracies(records):
+        """Round 'delay' to nearest multiple of Nd.dt to fix fp inaccuracies."""
+        if len(records) == 0 or "delay" not in records.dtype.names:
+            return
+        dt = Nd.dt
+        records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
+
+    @staticmethod
+    def _patch_scale_U_param(syn_params, extra_cellular_calcium, extra_scale_vars):
+        """Scale 'U' and other vars using constrained Hill function based on
+        extracellular calcium.
+        """
+        if len(syn_params) == 0 or extra_cellular_calcium is None:
+            return
+
+        def _constrained_hill(K_half, y):
+            K4 = K_half**4
+            y4 = y**4
+            return (K4 + 16) / 16 * y4 / (K4 + y4)
+
+        scale_factors = _constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
+        syn_params.U *= scale_factors
+        for var in extra_scale_vars:
+            syn_params[var] *= scale_factors
 
     @classmethod
-    def create_array(cls, length):
-        arr = np.recarray(length, dtype=cls.dtype())
-        for field, default in cls._synapse_fields.items():
-            # Fill only if default != 0 or 0.0
-            if default != 0:
-                arr[field] = default
+    def create_array(cls, data, extra_fields, extra_cellular_calcium, extra_scale_vars):
+        """Create a recarray from data with optional extra fields and apply patches."""
+        if not data:
+            return np.recarray(0, dtype=cls.dtype(extra_fields=None))
+        edge_count = len(next(iter(data.values())))
+        arr = np.recarray(edge_count, dtype=cls.dtype(extra_fields=extra_fields))
+
+        for name in arr.dtype.names:
+            if name in cls._reserved:
+                arr[name] = cls._reserved[name]
+            elif name in cls._optional:
+                arr[name] = data.get(name, cls._optional[name])
+            elif name in data:
+                arr[name] = data[name]
+            else:
+                raise AttributeError(f"Missing mandatory attribute {name} in the SONATA edge file")
+
+        cls._patch_delay_fp_inaccuracies(arr)
+        cls._patch_scale_U_param(arr, extra_cellular_calcium, extra_scale_vars)
+
         return arr
-
-    @classmethod
-    def empty(cls):
-        return cls.create_array(0)
-
-
-class SynapseParameters(BaseSynapseParameters):
-    """Synapse parameters, internally implemented as numpy record"""
-
-    _synapse_fields = {
-        "sgid": 0.0,
-        "delay": 0.0,
-        "isec": 0.0,
-        "ipt": 0.0,
-        "offset": 0.0,
-        "weight": 0.0,
-        "U": 0.0,
-        "D": 0.0,
-        "F": 0.0,
-        "DTC": 0.0,
-        "synType": 0.0,
-        "nrrp": 0.0,
-        "u_hill_coefficient": 0.0,
-        "conductance_ratio": -1.0,
-        "maskValue": -1.0,
-        "location": 0.5,
-    }
-
-    _optional = {"u_hill_coefficient", "conductance_ratio"}
-    _reserved = {"maskValue", "location"}
 
 
 class SonataReader:
@@ -102,6 +142,9 @@ class SonataReader:
 
     SYNAPSE_INDEX_NAMES = ("synapse_index",)
     LOOKUP_BY_TARGET_IDS = True  # False to lookup by Source Ids
+    # SynapseParameters knows how to load the parameters
+    # Child classes of SonataReader can override this with another class
+    # probably inherited from SynapseParameters to load a different set of parameters
     Parameters = SynapseParameters  # By default we load synapses
     EMPTY_DATA = {}
 
@@ -151,38 +194,25 @@ class SonataReader:
         if attr_names:
             self._extra_scale_vars = attr_names.split(";")
 
-    def get_synapse_parameters(self, gid):
-        """Obtains the synapse parameters record for a given gid."""
+    def get_synapse_parameters(self, gid) -> np.recarray:
+        """Return the synapse parameters record array for the given gid,
+        loading and caching it if needed.
+        """
         syn_params = self._syn_params.get(gid)
         if syn_params is None:
-            syn_params = self._load_synapse_parameters(gid)
+            # prepare data for the gid
+            data = self._data.get(gid)
+            if data is None:  # not in _data
+                self._preload_data_chunk([gid])
+                data = self._data[gid]
 
-            # Modify parameters
-            self._patch_delay_fp_inaccuracies(syn_params)
-            if self._uhill_property_avail:
-                self._scale_U_param(syn_params, self._ca_concentration, self._extra_scale_vars)
-            self._syn_params[gid] = syn_params  # cache parameters
+            # create the synapse parameters array, already patched
+            syn_params = self.Parameters.create_array(
+                data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
+            )
+            # cache the results
+            self._syn_params[gid] = syn_params
         return syn_params
-
-    @staticmethod
-    def _patch_delay_fp_inaccuracies(records):
-        if len(records) == 0 or "delay" not in records.dtype.names:
-            return
-        dt = Nd.dt
-        records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
-
-    @staticmethod
-    def _scale_U_param(syn_params, extra_cellular_calcium, extra_scale_vars):
-        if len(syn_params) == 0:
-            return
-        if extra_cellular_calcium is None:
-            return
-
-        scale_factors = _constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
-        syn_params.U *= scale_factors
-
-        for scale_var in extra_scale_vars:
-            syn_params[scale_var] *= scale_factors
 
     def _open_file(self, src, population, _):
         """Initializes the reader, opens the synapse file"""
@@ -355,37 +385,6 @@ class SonataReader:
             else:
                 _populate("ipt", _read("morpho_segment_id_post"))
                 _populate("offset", _read("morpho_offset_segment_post"))
-
-    def _load_synapse_parameters(self, gid):
-        """The low level reading of synapses"""
-        data = self._data.get(gid)
-        if data is None:  # not in _data
-            self._preload_data_chunk([gid])
-            data = self._data[gid]
-
-        if not data:
-            return self.Parameters.empty()  # disconnected cell
-
-        edge_count = len(next(iter(data.values())))
-
-        if self._extra_fields:
-            # Do not modify CustomSynapseParameters _optional and _reserved
-            # because this changes them also in SynapseParameters
-            class CustomSynapseParameters(self.Parameters):
-                _synapse_fields = self.Parameters._synapse_fields | dict.fromkeys(
-                    self._extra_fields, 0.0
-                )
-
-            conn_syn_params = CustomSynapseParameters.create_array(edge_count)
-        else:
-            conn_syn_params = self.Parameters.create_array(edge_count)
-
-        for name in self.Parameters.load_fields():
-            conn_syn_params[name] = data[name]
-        for name in self._extra_fields:
-            conn_syn_params[name] = data[name]
-
-        return conn_syn_params
 
     def get_counts(self, tgids):
         """Counts synapses for the given target neuron ids. Returns a dict"""
