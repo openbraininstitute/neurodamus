@@ -321,9 +321,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
                 if GlobalConfig.verbosity >= LogLevel.DEBUG:
                     netcon.record(
                         lambda tgid=conn.tgid, synapse_gid=synapse_gid: print(
-                            f"[gid={tgid}] Ustate netcon event. Spiking via v-gid:",
-                            synapse_gid,
-                        )
+                            f"[gid={tgid}] Ustate netcon event. Spiking via v-gid={synapse_gid}")
                     )
 
                 conn._netcons.append(netcon)
