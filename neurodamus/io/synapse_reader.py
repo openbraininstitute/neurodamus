@@ -104,7 +104,13 @@ class SynapseParameters:
             syn_params[var] *= scale_factors
 
     @classmethod
-    def make_synapse_parameters_array(cls, data, extra_fields, extra_cellular_calcium, extra_scale_vars):
+    def make_synapse_parameters_array(
+        cls,
+        data: dict,
+        extra_fields: list[str],
+        extra_cellular_calcium: float | None,
+        extra_scale_vars: list[str],
+    ):
         """Create a recarray from data with optional extra fields and apply patches."""
         if not data:
             return np.recarray(0, dtype=cls.dtype(extra_fields=None))
