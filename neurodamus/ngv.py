@@ -157,11 +157,10 @@ class Astrocyte(BaseCell):
 
 
 class AstrocyteManager(CellDistributor):
-    """Manages Astrocyte cells, extending CellDistributor with post-stdinit handling.
+    """Manages Astrocyte cells, extending CellDistributor
 
-    Behaves like CellDistributor but uses the Astrocyte cell type and resets
-    NEURON pointers after stdinit due to possible memory relocation.
-    The difference lies only in the Cell Type
+    Behaves like CellDistributor but uses the Astrocyte cell type.
+    The difference lies only in the Cell Type.
     """
 
     CellType = Astrocyte
