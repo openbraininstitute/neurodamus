@@ -39,7 +39,7 @@ class SynapseParameters:
         "location": "f8",
     }
 
-    _optional = {"u_hill_coefficient": 0, "conductance_ratio": -1.0}
+    _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0}
     _reserved = {"maskValue": -1.0, "location": 0.5}
 
     @classmethod
