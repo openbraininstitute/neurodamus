@@ -5,6 +5,7 @@ from itertools import chain
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -17,7 +18,6 @@ from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
-import numpy as np
 
 
 class Astrocyte(BaseCell):
@@ -220,6 +220,7 @@ class NeuroGliaConnParameters(SynapseParameters):
         - Only `_fields` is overridden.
         - All methods and behavior are reused from the base class.
     """
+
     _fields = {
         "tgid": np.int64,
         "synapse_id": np.int64,

@@ -27,6 +27,7 @@ class GapJunctionConnParameters(SynapseParameters):
         - Only the `_fields` dictionary is overridden.
         - The dtype construction and utility methods are reused as-is.
     """
+
     # Attribute names of synapse parameters, consistent with the normal synapses
     _fields = {
         "sgid": np.int64,

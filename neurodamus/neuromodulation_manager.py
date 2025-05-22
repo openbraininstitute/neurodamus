@@ -136,6 +136,7 @@ class ModulationConnParameters(SynapseParameters):
 
     The `_optional` and `_reserved` dictionaries are inherited from the base class.
     """
+
     _fields = {
         "sgid": "int64",
         "delay": "float64",
