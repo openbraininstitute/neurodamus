@@ -84,6 +84,17 @@ class SynapseParameters:
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @staticmethod
+    def _constrained_hill(K_half, y):
+        """Constrained Hill function for scaling synaptic parameters.
+
+        Note: it is iused only in scale_U_param. It is its own function
+        because it deserves to be tested separately.
+        """
+        K4 = K_half**4
+        y4 = y**4
+        return (K4 + 16) / 16 * y4 / (K4 + y4)
+
+    @staticmethod
     def _patch_scale_U_param(syn_params, extra_cellular_calcium, extra_scale_vars):
         """Scale 'U' and other vars using constrained Hill function based on
         extracellular calcium.
@@ -91,12 +102,9 @@ class SynapseParameters:
         if len(syn_params) == 0 or extra_cellular_calcium is None:
             return
 
-        def _constrained_hill(K_half, y):
-            K4 = K_half**4
-            y4 = y**4
-            return (K4 + 16) / 16 * y4 / (K4 + y4)
-
-        scale_factors = _constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
+        scale_factors = SynapseParameters._constrained_hill(
+            syn_params.u_hill_coefficient, extra_cellular_calcium
+        )
         syn_params.U *= scale_factors
         for var in extra_scale_vars:
             syn_params[var] *= scale_factors
