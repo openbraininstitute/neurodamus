@@ -47,8 +47,20 @@ class Astrocyte(BaseCell):
         logging.debug("Instantiating NGV cell gid=%d", gid)
 
         self.glut_all = []
+        is_resized_secs = False
         for sec in self.all:
-            self.glut_all.append(self._init_basic_section(sec))
+            glut, is_resized = self._init_basic_section(sec)
+            self.glut_all.append(glut)
+            is_resized_secs = is_resized_secs or is_resized
+
+        if is_resized_secs:
+            logging.warning(
+                "The astrocyte %s had some of their sections in `all` "
+                "reduced to 1 compartment. Multi-compartment "
+                "sections are not supported at the moment.",
+                self.gid,
+            )
+
         self.glut_endfeet = []
         # add GlutReceiveSoma (only for metabolism)
         soma = self._cellref.soma[0]
@@ -57,20 +69,16 @@ class Astrocyte(BaseCell):
         self.gid = gid
         self.section_names = morph.section_names
 
-    def _init_basic_section(self, sec):
+    @staticmethod
+    def _init_basic_section(sec):
         """Init a normal section
 
         Initialize sec with mechanisms and point processes
         (store PP to avoid GC).
         """
         # resize if necessary
-        if sec.nseg > 1:
-            logging.warning(
-                "The astrocyte %s had some of their sections "
-                "reduced to 1 compartment. More than one compartment "
-                "sections are not supported at the moment.",
-                self.gid,
-            )
+        is_resized_sec = sec.nseg > 1
+        if is_resized_sec:
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
@@ -80,7 +88,7 @@ class Astrocyte(BaseCell):
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
         # set POINTER glu2 to point at glut
         sec(0.5).cadifus._ref_glu2 = glut._ref_glut
-        return glut
+        return glut, is_resized_sec
 
     def _init_endfoot_section(self, sec, parent_id, length, diameter, R0pas):
         """Init an endfoot section
@@ -89,7 +97,7 @@ class Astrocyte(BaseCell):
         - Connect endfoot to parent
         (store PP to avoid GC).
         """
-        glut = self._init_basic_section(sec)
+        glut, is_resized_sec = self._init_basic_section(sec)
         sec.L = length
         sec.diam = diameter
         sec.insert("vascouplingB")
@@ -100,7 +108,7 @@ class Astrocyte(BaseCell):
         parent_sec = parent_sec_list[section_name.id]
         sec.connect(parent_sec)
         # back to basic section init
-        return glut
+        return glut, is_resized_sec
 
     @property
     def gid(self) -> int:
@@ -141,9 +149,9 @@ class Astrocyte(BaseCell):
         for sec, parent_id, length, diameter, R0pas in zip(
             self.endfeet, parent_ids, lengths, diameters, R0passes
         ):
-            self.glut_endfeet.append(
-                self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
-            )
+            glut, is_resized = self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
+            self.glut_endfeet.append(glut)
+            assert not is_resized, "Endfeet sections should be created with only 1 compartment"
 
     @property
     def glut_list(self) -> list:
