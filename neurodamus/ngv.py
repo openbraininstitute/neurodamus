@@ -17,6 +17,7 @@ from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
 from .utils.logging import log_verbose
 from .utils.pyutils import append_recarray, bin_search
+import numpy as np
 
 
 class Astrocyte(BaseCell):
@@ -208,12 +209,23 @@ class AstrocyteManager(CellDistributor):
 
 
 class NeuroGliaConnParameters(SynapseParameters):
+    """Neuron-to-glia connection parameters.
+
+    This class overrides the `_fields` attribute from `SynapseParameters` to define
+    parameters specific to neuro-glial interactions.
+
+    The `_optional` and `_reserved` dictionaries are inherited unchanged from the base class.
+
+    Note:
+        - Only `_fields` is overridden.
+        - All methods and behavior are reused from the base class.
+    """
     _fields = {
-        "tgid": "int64",
-        "synapse_id": "int64",
-        "astrocyte_section_id": "int64",
-        "astrocyte_segment_id": "int64",
-        "astrocyte_segment_offset": "float64",
+        "tgid": np.int64,
+        "synapse_id": np.int64,
+        "astrocyte_section_id": np.int64,
+        "astrocyte_segment_id": np.int64,
+        "astrocyte_segment_offset": np.float64,
     }
 
 

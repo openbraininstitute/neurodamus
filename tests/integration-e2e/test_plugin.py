@@ -99,9 +99,9 @@ class ACellConnection(ConnectionBase):
 
 class ASynParameters(SynapseParameters):
     _fields = {
-        "sgid": 'int64',
-        "delay": 'float64',
-        "conductance": 'float64',
+        "sgid": np.int64,
+        "delay": np.float64,
+        "conductance": np.float64,
     }
 
 

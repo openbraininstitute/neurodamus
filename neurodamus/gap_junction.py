@@ -4,6 +4,8 @@ import logging
 import pickle  # noqa: S403
 from pathlib import Path
 
+import numpy as np
+
 from .connection_manager import ConnectionManagerBase
 from .core import MPI, NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
@@ -13,16 +15,28 @@ from .io.synapse_reader import SonataReader, SynapseParameters
 
 
 class GapJunctionConnParameters(SynapseParameters):
+    """Glial-glial gap junction connection parameters.
+
+    This class overrides the `_fields` attribute from the base `SynapseParameters`
+    class to define a specific set of parameters relevant for gap junctions.
+
+    The `_optional` and `_reserved` dictionaries are inherited from the base class
+    and apply unchanged.
+
+    Note:
+        - Only the `_fields` dictionary is overridden.
+        - The dtype construction and utility methods are reused as-is.
+    """
     # Attribute names of synapse parameters, consistent with the normal synapses
     _fields = {
-        "sgid": "int64",
-        "isec": "int64",
-        "offset": "float64",
-        "weight": "float64",
-        "efferent_junction_id": "int64",
-        "afferent_junction_id": "int64",
-        "ipt": "float64",
-        "location": "float64",
+        "sgid": np.int64,
+        "isec": np.int64,
+        "offset": np.float64,
+        "weight": np.float64,
+        "efferent_junction_id": np.int64,
+        "afferent_junction_id": np.int64,
+        "ipt": np.float64,
+        "location": np.float64,
     }
 
 

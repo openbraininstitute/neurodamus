@@ -17,26 +17,26 @@ class SynapseParameters:
     following the SONATA specification.
 
     For detailed info on the parameters, see:
-    https://sonata-extension.readthedocs.io/en/latest/recipe.html
+    https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#edge-file
     """
 
     _fields = {
-        "sgid": "i8",
-        "delay": "f8",
-        "isec": "i4",
-        "ipt": "i4",
-        "offset": "f8",
-        "weight": "f8",
-        "U": "f8",
-        "D": "f8",
-        "F": "f8",
-        "DTC": "f8",
-        "synType": "i4",
-        "nrrp": "i4",
-        "u_hill_coefficient": "f8",
-        "conductance_ratio": "f8",
-        "maskValue": "f8",
-        "location": "f8",
+        "sgid": np.int64,
+        "delay": np.float64,
+        "isec": np.int32,
+        "ipt": np.int32,
+        "offset": np.float64,
+        "weight": np.float64,
+        "U": np.float64,
+        "D": np.float64,
+        "F": np.float64,
+        "DTC": np.float64,
+        "synType": np.int32,
+        "nrrp": np.int32,
+        "u_hill_coefficient": np.float64,
+        "conductance_ratio": np.float64,
+        "maskValue": np.float64,
+        "location": np.float64,
     }
 
     _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0}
@@ -55,14 +55,12 @@ class SynapseParameters:
     @classmethod
     def dtype(cls, extra_fields=None):
         """Return dtype including optional extra fields (all float64)."""
-        names = list(cls._fields.keys())
-        formats = list(cls._fields.values())
+        fields = list(cls._fields.items())
 
         if extra_fields is not None:
-            names.extend(extra_fields)
-            formats.extend(["f8"] * len(extra_fields))
+            fields.extend((name, np.float64) for name in extra_fields)
 
-        return np.dtype({"names": tuple(names), "formats": tuple(formats)})
+        return np.dtype(fields)
 
     @classmethod
     def fields(cls, exclude: set = (), with_translation: dict | None = None):
