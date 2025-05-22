@@ -2,7 +2,6 @@ import numpy.testing as npt
 from neurodamus.ngv import Astrocyte
 from tests.conftest import NGV_DIR
 from unittest.mock import MagicMock
-from itertools import chain
 
 meinfos = MagicMock()
 meinfos.morph_name = "glia"
@@ -11,14 +10,15 @@ circuit_conf.MorphologyPath = NGV_DIR / "morphologies" / "h5"
 circuit_conf.MorphologyType = "h5"
 
 
-def check_cadifus_pointer(sec, glut):
+def is_cadifus_pointer_set(sec, glut):
     """
     Check the pointer by changing the value in GlutReceive
     and checking the change in cadifus
     """
-    assert sec(0.5).cadifus.glu2 == glut.glut
+    if not sec(0.5).cadifus.glu2 == glut.glut:
+        return False
     glut.glut += 1
-    assert sec(0.5).cadifus.glu2 == glut.glut
+    return sec(0.5).cadifus.glu2 == glut.glut
 
 
 def test_init_and_add_endfeet():
@@ -43,18 +43,25 @@ def test_init_and_add_endfeet():
     npt.assert_allclose(diameters, [sec.diam for sec in astro.endfeet])
     npt.assert_allclose(R0passes, [sec(0.5).vascouplingB.R0pas for sec in astro.endfeet])
 
+    glut3 = astro.get_glut(3)
+    astro.get_glut(6)
+    glut3bis = astro.get_glut(3)
+    assert glut3.same(glut3bis)
+
     # glut_list tests
     glut_list = astro.glut_list
-    len(glut_list) == len(astro.glut_all) + len(astro.glut_endfeet) + 1
+    assert len(glut_list) == 3
 
     # Check that all elements in GlutList are GlutReceive except the last one
     assert all("GlutReceive" in glut.hname() and
                "GlutReceiveSoma" not in glut.hname() for glut in glut_list[:-1])
     assert "GlutReceiveSoma" in glut_list[-1].hname()
 
-    for glut, sec in zip(astro.glut_list, chain(astro.all, astro.endfeet)):
+    all_secs = list(astro.all)
+    for sec_id, glut in astro._gluts.items():
+        sec = all_secs[sec_id]
+        assert is_cadifus_pointer_set(sec, glut)
+
         sec_glut = sec(0.5).point_processes()[-1]
         assert glut.same(sec_glut)
-        check_cadifus_pointer(sec, glut)
-
     assert astro._cellref.soma[0](0.5).point_processes()[0].hname() == "GlutReceiveSoma[0]"

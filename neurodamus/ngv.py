@@ -19,7 +19,7 @@ from .utils.pyutils import append_recarray
 
 
 class Astrocyte(BaseCell):
-    __slots__ = ("glut_all", "glut_endfeet", "glut_soma", "section_names")
+    __slots__ = ("_gluts", "glut_soma", "section_names")
 
     def __init__(self, gid, meinfos, circuit_conf):
         """Initialize an Astrocyte cell:
@@ -46,11 +46,11 @@ class Astrocyte(BaseCell):
 
         logging.debug("Instantiating NGV cell gid=%d", gid)
 
-        self.glut_all = []
+        # assigned later
+        self._gluts = {}
         is_resized_secs = False
         for sec in self.all:
-            glut, is_resized = self._init_basic_section(sec)
-            self.glut_all.append(glut)
+            is_resized = self._init_basic_section(sec)
             is_resized_secs = is_resized_secs or is_resized
 
         if is_resized_secs:
@@ -61,13 +61,17 @@ class Astrocyte(BaseCell):
                 self.gid,
             )
 
-        self.glut_endfeet = []
         # add GlutReceiveSoma (only for metabolism)
         soma = self._cellref.soma[0]
         self.glut_soma = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
 
         self.gid = gid
         self.section_names = morph.section_names
+
+    def _get_sec(self, sec_id):
+        section_name = self.section_names[sec_id]
+        sec_list = getattr(self._cellref, section_name.name)
+        return sec_list[section_name.id]
 
     @staticmethod
     def _init_basic_section(sec):
@@ -82,13 +86,8 @@ class Astrocyte(BaseCell):
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
-        # add GlutReceive point process everywhere (at 0.5)
-        # even if not pointed at by a netcon so that cadifus
-        # pointer dereferencing does not throw an error
-        glut = Nd.GlutReceive(sec(0.5), sec=sec)
-        # set POINTER glu2 to point at glut
-        sec(0.5).cadifus._ref_glu2 = glut._ref_glut
-        return glut, is_resized_sec
+
+        return is_resized_sec
 
     def _init_endfoot_section(self, sec, parent_id, length, diameter, R0pas):
         """Init an endfoot section
@@ -97,18 +96,25 @@ class Astrocyte(BaseCell):
         - Connect endfoot to parent
         (store PP to avoid GC).
         """
-        glut, is_resized_sec = self._init_basic_section(sec)
+        is_resized_sec = self._init_basic_section(sec)
         sec.L = length
         sec.diam = diameter
         sec.insert("vascouplingB")
         sec(0.5).vascouplingB.R0pas = R0pas
         # connect to parent sec
-        section_name = self.section_names[parent_id + 1]
-        parent_sec_list = getattr(self._cellref, section_name.name)
-        parent_sec = parent_sec_list[section_name.id]
+        parent_sec = self._get_sec(parent_id + 1)
         sec.connect(parent_sec)
         # back to basic section init
-        return glut, is_resized_sec
+        return is_resized_sec
+
+    def get_glut(self, sec_id):
+        if sec_id in self._gluts:
+            return self._gluts[sec_id]
+        sec = self._get_sec(sec_id)
+        glut = Nd.GlutReceive(sec(0.5), sec=sec)
+        sec(0.5).cadifus._ref_glu2 = glut._ref_glut
+        self._gluts[sec_id] = glut
+        return glut
 
     @property
     def gid(self) -> int:
@@ -149,14 +155,13 @@ class Astrocyte(BaseCell):
         for sec, parent_id, length, diameter, R0pas in zip(
             self.endfeet, parent_ids, lengths, diameters, R0passes
         ):
-            glut, is_resized = self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
-            self.glut_endfeet.append(glut)
+            is_resized = self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
             assert not is_resized, "Endfeet sections should be created with only 1 compartment"
 
     @property
     def glut_list(self) -> list:
         # necessary for legacy compatibility with metabolism
-        return [*self.glut_all, *self.glut_endfeet, self.glut_soma]
+        return [*self._gluts.values(), self.glut_soma]
 
     def connect2target(self, target_pp=None):
         return Nd.NetCon(self._cellref.soma[0](1)._ref_v, target_pp, sec=self._cellref.soma[0])
@@ -224,7 +229,6 @@ class NeuroGlialConnection(Connection):
         the assigned unique gid.
         """
         self._netcons = []
-        glut_all = astrocyte.glut_all
         pc = Nd.pc
 
         if GlobalConfig.debug_conn:
@@ -238,7 +242,7 @@ class NeuroGlialConnection(Connection):
 
             # netcon to GlutReceive
             glut_idx = int(syn_params.astrocyte_section_id)
-            glut_obj = glut_all[glut_idx]
+            glut_obj = astrocyte.get_glut(glut_idx)
             netcon = pc.gid_connect(syn_gid, glut_obj)
             netcon.delay = self.netcon_delay
             netcon.record(
