@@ -113,7 +113,12 @@ class Astrocyte(BaseCell):
 
     @property
     def all(self):
-        """Returns _cellref.all (SectionList)."""
+        """Return the main SectionList (`_cellref.all`).
+
+        Note:
+            This list does **not** include all sections. Specifically,
+            endfeet sections are excluded and can be accessed via the `endfeet` attribute.
+        """
         return self._cellref.all
 
     @property
