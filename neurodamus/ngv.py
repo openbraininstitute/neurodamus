@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -173,13 +174,25 @@ class AstrocyteManager(CellDistributor):
 
 
 class NeuroGliaConnParameters(SynapseParameters):
-    _synapse_fields = (
-        "tgid",
-        "synapse_id",
-        "astrocyte_section_id",
-        "astrocyte_segment_id",
-        "astrocyte_segment_offset",
-    )
+    """Neuron-to-glia connection parameters.
+
+    This class overrides the `_fields` attribute from `SynapseParameters` to define
+    parameters specific to neuro-glial interactions.
+
+    The `_optional` and `_reserved` dictionaries are inherited unchanged from the base class.
+
+    Note:
+        - Only `_fields` is overridden.
+        - All methods and behavior are reused from the base class.
+    """
+
+    _fields = {
+        "tgid": np.int64,
+        "synapse_id": np.int64,
+        "astrocyte_section_id": np.int64,
+        "astrocyte_segment_id": np.int64,
+        "astrocyte_segment_offset": np.float64,
+    }
 
 
 class NeuroGlialSynapseReader(SonataReader):
