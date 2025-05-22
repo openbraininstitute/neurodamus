@@ -40,13 +40,13 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
 
     n.run()
 
-     # Check RingA cells spikes
+    # Check RingA cells spikes
     if rank == 0:
         spike_gid_ref = np.array([1001, 1003, 1005])
         timestamps_ref = np.array([2.075, 2.075, 2.075])
     elif rank == 1:
         spike_gid_ref = np.array([1002, 1004])
-        timestamps_ref = np.array([2.075, 2.075])        
+        timestamps_ref = np.array([2.075, 2.075])
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
     spike_gids = np.array(ringA_spikes[1])
@@ -57,7 +57,7 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
     if rank == 0:
         spike_gid_ref = np.array([1, 3])
         timestamps_ref = np.array([5.475, 7.675])
-    elif rank == 1: 
+    elif rank == 1:
         spike_gid_ref = np.array([2, 4])
         timestamps_ref = np.array([6.725, 8.775])
     astrocyteA_spikes = n._spike_vecs[1]
