@@ -69,6 +69,7 @@ class Astrocyte(BaseCell):
         self.section_names = morph.section_names
 
     def _get_sec(self, sec_id):
+        """Retrieve section object by section ID."""
         section_name = self.section_names[sec_id]
         sec_list = getattr(self._cellref, section_name.name)
         return sec_list[section_name.id]
@@ -108,6 +109,7 @@ class Astrocyte(BaseCell):
         return is_resized_sec
 
     def get_glut(self, sec_id):
+        """Return cached GlutReceive object for a section, creating it if needed."""
         if sec_id in self._gluts:
             return self._gluts[sec_id]
         sec = self._get_sec(sec_id)
