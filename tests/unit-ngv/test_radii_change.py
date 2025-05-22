@@ -93,8 +93,8 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     n.run()
 
     # Check RingA cells spikes
-    spike_gid_ref = np.array([1001, 1002, 1003])
-    timestamps_ref = np.array([2.075, 2.075, 2.075])
+    spike_gid_ref = np.array([1001, 1002, 1003, 1004, 1005])
+    timestamps_ref = np.array([2.075, 2.075, 2.075, 2.075, 2.075])
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
     spike_gids = np.array(ringA_spikes[1])
@@ -102,8 +102,8 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(timestamps_ref, timestamps)
 
     # Check AstrocytesA spikes
-    spike_gid_ref = np.array([1, 2])
-    timestamps_ref = np.array([5.5, 6.725])
+    spike_gid_ref = np.array([1, 2, 3, 4])
+    timestamps_ref = np.array([5.475, 6.725, 7.675, 8.775])
     astrocyteA_spikes = n._spike_vecs[1]
     timestamps = np.array(astrocyteA_spikes[0])
     spike_gids = np.array(astrocyteA_spikes[1])
