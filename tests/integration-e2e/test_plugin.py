@@ -98,7 +98,11 @@ class ACellConnection(ConnectionBase):
 
 
 class ASynParameters(SynapseParameters):
-    _synapse_fields = ["sgid", "delay", "conductance"]
+    _fields = {
+        "sgid": np.int64,
+        "delay": np.float64,
+        "conductance": np.float64,
+    }
 
 
 class ACellSynReader(object):
