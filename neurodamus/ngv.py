@@ -18,6 +18,17 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.pyutils import append_recarray
 
 
+def inspect(v):
+    print(v, type(v))
+    for i in dir(v):
+        if i.startswith("__"):
+            continue
+        try:
+            print(f"  {i}: {getattr(v, i)}")
+        except Exception as e:
+            print(f"  {i}: {e}")
+
+
 class Astrocyte(BaseCell):
     __slots__ = ("_gluts", "glut_soma", "section_names")
 

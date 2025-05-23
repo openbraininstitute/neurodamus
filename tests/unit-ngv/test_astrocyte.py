@@ -1,13 +1,10 @@
 import numpy.testing as npt
 from neurodamus.ngv import Astrocyte
 from tests.conftest import NGV_DIR
-from unittest.mock import MagicMock
+from neurodamus.metype import METypeItem
+from neurodamus.core.configuration import CircuitConfig
 
-meinfos = MagicMock()
-meinfos.morph_name = "glia"
-circuit_conf = MagicMock()
-circuit_conf.MorphologyPath = NGV_DIR / "morphologies" / "h5"
-circuit_conf.MorphologyType = "h5"
+
 
 
 def is_cadifus_pointer_set(sec, glut):
@@ -28,6 +25,11 @@ def test_init_and_add_endfeet():
     lengths = [1.1, 1.2, 1.3]
     diameters = [2.1, 2.2, 2.3]
     R0passes = [3.1, 3.2, 3.3]
+    meinfos = METypeItem("glia")
+    circuit_conf = CircuitConfig(CellLibraryFile="None",
+                                 MorphologyPath = NGV_DIR / "morphologies" / "h5",
+                                 nrnPath=False,
+                                 MorphologyType = "h5")
 
     astro = Astrocyte(gid=0, meinfos=meinfos, circuit_conf=circuit_conf)
     astro.add_endfeet(parent_ids, lengths, diameters, R0passes)
