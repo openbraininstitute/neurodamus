@@ -24,7 +24,7 @@ def make_ngv_nodes():
         "z": it.count(2),
         "morphology": "cell_small",
     }
-    make_nodes(filename="nodes.h5", name="RingA", count=3, wanted_attributes=wanted)
+    make_nodes(filename="nodes.h5", name="RingA", count=5, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
@@ -37,9 +37,9 @@ def make_ngv_nodes():
         "radius": 4.5,
         "morphology": "glia",
     }
-    make_nodes(filename="astrocytes.h5", name="AstrocyteA", count=2, wanted_attributes=wanted)
+    make_nodes(filename="astrocytes.h5", name="AstrocyteA", count=5, wanted_attributes=wanted)
 
-    num_nodes = 6
+    num_nodes = 9
     wanted = {
         "node_type_id": -1,
         "model_type": "vasculature",
@@ -56,7 +56,7 @@ def make_ngv_nodes():
 
 
 def make_ngv_edges():
-    edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 0)])
+    edges = Edges("RingA", "RingA", "chemical", [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)])
     wanted_attributes = {
         "edge_type_id": -1,
         "conductance": it.count(100.0),
@@ -70,25 +70,25 @@ def make_ngv_edges():
         "afferent_segment_id": 1,
         "afferent_segment_offset": 0,
         "n_rrp_vesicles": 4,
-        "syn_type_id": [131, 104, 77],
+        "syn_type_id": [131, 104, 130, 120, 77],
     }
     make_edges(filename="edges.h5", edges=edges, wanted_attributes=wanted_attributes)
 
     edges = Edges(
-        "AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0), (1, 1)],
-        "RingA__RingA__chemical", [0, 1])
+        "AstrocyteA", "RingA", "synapse_astrocyte", [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)],
+        "RingA__RingA__chemical", [0, 1, 2, 3, 4])
     wanted_attributes = {
         "edge_type_id": -1,
-        "astrocyte_section_id" : [4, 27],
-        "astrocyte_segment_id" : [0, 1],
-        "astrocyte_segment_offset" : [3., 1.]
+        "astrocyte_section_id" : [4, 27, 7, 15, 21],
+        "astrocyte_segment_id" : [0, 1, 0, 2, 0],
+        "astrocyte_segment_offset" : [3., 1., 2., 0.5, 1.]
     }
     make_edges(filename="neuroglia.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    edges = Edges("vasculature", "AstrocyteA", "endfoot", [(2, 0), (4, 1), (3, 0)])
+    edges = Edges("vasculature", "AstrocyteA", "endfoot", [(2, 0), (4, 1), (3, 2), (8, 3), (6, 4)])
     wanted_attributes = {
         "edge_type_id": -1,
-        "astrocyte_section_id" : [5, 28, 10],
+        "astrocyte_section_id" : [5, 28, 7, 16, 22],
         "endfoot_compartment_length": 10.,
         "endfoot_compartment_diameter": 5.,
         "endfoot_compartment_perimeter": 7.
