@@ -119,12 +119,8 @@ class Astrocyte(BaseCell):
             length (float): Length of the endfoot section.
             diameter (float): Diameter of the endfoot section.
             R0pas (float): Passive resistance parameter for the vascouplingB mechanism.
-
-        Returns:
-            bool: True if the section was resized in `_init_basic_section`. This
-            should never be True.
         """
-        is_resized_sec = self._init_basic_section(sec)
+        self._init_basic_section(sec)
         sec.L = length
         sec.diam = diameter
         sec.insert("vascouplingB")
@@ -132,8 +128,6 @@ class Astrocyte(BaseCell):
         # connect to parent sec
         parent_sec = self._get_sec(parent_id + 1)
         sec.connect(parent_sec)
-        # back to basic section init
-        return is_resized_sec
 
     def get_glut(self, sec_id):
         """Return cached GlutReceive object for a section, creating it if needed."""
@@ -184,8 +178,7 @@ class Astrocyte(BaseCell):
         for sec, parent_id, length, diameter, R0pas in zip(
             self.endfeet, parent_ids, lengths, diameters, R0passes
         ):
-            is_resized = self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
-            assert not is_resized, "Endfeet sections should be created with only 1 compartment"
+            self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
 
     @property
     def glut_list(self) -> list:
