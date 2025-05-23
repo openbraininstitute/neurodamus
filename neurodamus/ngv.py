@@ -75,27 +75,43 @@ class Astrocyte(BaseCell):
         return sec_list[section_name.id]
 
     @staticmethod
-    def _init_basic_section(sec):
-        """Init a normal section
+    def _init_basic_section(sec) -> bool:
+        """Initialize a basic NEURON section with standard mechanisms.
 
-        Initialize sec with mechanisms and point processes
-        (store PP to avoid GC).
+        This function ensures the section has a single compartment (`nseg = 1`),
+        resizing it if necessary. After, it inserts the 'cadifus' mechanism used
+        for calcium diffusion. It returns whether the section had more
+        than one segment before resizing.
+
+        Parameters:
+            sec (neuron.h.Section): The section to initialize.
+
+        Returns:
+            bool: True if the section was resized (i.e., `sec.nseg > 1`), else False.
         """
         # resize if necessary
-        is_resized_sec = sec.nseg > 1
-        if is_resized_sec:
+        if is_resized_sec := (sec.nseg > 1):
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
 
         return is_resized_sec
 
-    def _init_endfoot_section(self, sec, parent_id, length, diameter, R0pas):
-        """Init an endfoot section
+    def _init_endfoot_section(
+        self, sec, parent_id: int, length: float, diameter: float, R0pas: float
+    ) -> bool:
+        """Initialize an endfoot NEURON section with custom geometry and mechanisms.
 
-        - Initialize endfoot sec with mechanisms and point processes
-        - Connect endfoot to parent
-        (store PP to avoid GC).
+        Parameters:
+            sec (neuron.h.Section): The endfoot section to initialize.
+            parent_id (int): Index to identify the parent section.
+            length (float): Length of the endfoot section.
+            diameter (float): Diameter of the endfoot section.
+            R0pas (float): Passive resistance parameter for the vascouplingB mechanism.
+
+        Returns:
+            bool: True if the section was resized in `_init_basic_section`. This
+            should never be True.
         """
         is_resized_sec = self._init_basic_section(sec)
         sec.L = length
