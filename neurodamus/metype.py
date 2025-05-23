@@ -13,12 +13,13 @@ from .core.configuration import ConfigurationError, SimConfig
 class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
-    __slots__ = ("_ccell", "_cellref", "raw_gid")
+    __slots__ = ("_ccell", "_cellref", "raw_gid", "warnings")
 
     def __init__(self, gid, cell_info, circuit_info):
         self._cellref = None
         self._ccell = None
         self.raw_gid = None
+        self.warnings = set()
 
     @property
     def CellRef(self):

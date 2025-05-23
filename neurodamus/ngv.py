@@ -59,18 +59,8 @@ class Astrocyte(BaseCell):
 
         # assigned later
         self._gluts = {}
-        is_resized_secs = False
         for sec in self.all:
-            is_resized = self._init_basic_section(sec)
-            is_resized_secs = is_resized_secs or is_resized
-
-        if is_resized_secs:
-            logging.warning(
-                "The astrocyte %s had some of their sections in `all` "
-                "reduced to 1 compartment. Multi-compartment "
-                "sections are not supported at the moment.",
-                self.gid,
-            )
+            self._init_basic_section(sec)
 
         # add GlutReceiveSoma (only for metabolism)
         soma = self._cellref.soma[0]
@@ -85,8 +75,7 @@ class Astrocyte(BaseCell):
         sec_list = getattr(self._cellref, section_name.name)
         return sec_list[section_name.id]
 
-    @staticmethod
-    def _init_basic_section(sec) -> bool:
+    def _init_basic_section(self, sec):
         """Initialize a basic NEURON section with standard mechanisms.
 
         This function ensures the section has a single compartment (`nseg = 1`),
@@ -96,17 +85,16 @@ class Astrocyte(BaseCell):
 
         Parameters:
             sec (neuron.h.Section): The section to initialize.
-
-        Returns:
-            bool: True if the section was resized (i.e., `sec.nseg > 1`), else False.
         """
         # resize if necessary
-        if is_resized_sec := (sec.nseg > 1):
+        if sec.nseg > 1:
+            self.warnings.add(
+                "At least a section was resized to 1 compartment. "
+                "Only single compartment sections are supported at the moment."
+            )
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
-
-        return is_resized_sec
 
     def _init_endfoot_section(
         self, sec, parent_id: int, length: float, diameter: float, R0pas: float

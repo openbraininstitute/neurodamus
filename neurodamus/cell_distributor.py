@@ -8,6 +8,7 @@ import weakref
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from collections import defaultdict
 
 import numpy as np
 
@@ -147,6 +148,23 @@ class CellManagerBase(_CellManager):
     circuit_name = property(lambda self: self._circuit_conf.name)
     is_virtual = property(lambda _self: False)
     connection_managers = property(lambda self: self._conn_managers_per_src_pop)
+
+    def _emit_cell_init_warnings(self):
+        """
+        Collect and emit initialization warnings for all cells in this rank.
+
+        Logs messages in the format:
+            "Rank <rank>: Cells [<gid1>, <gid2>, ...] emitted warning: '<warning>'"
+        """
+        warning_map = defaultdict(list)
+        for cell in self._gid2cell.values():
+            if not hasattr(cell, "warnings"):
+                continue
+            for w in cell.warnings:
+                warning_map[w].append(cell.gid)
+        for warning, gids in warning_map.items():
+            logging.warning(f"Rank {MPI.rank}: Cells {gids} emitted warning: '{warning}'")
+
 
     def is_initialized(self):
         return self._local_nodes is not None
@@ -291,6 +309,8 @@ class CellManagerBase(_CellManager):
         for gid, cell_info in gid_info_items:
             cell = CellType(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
+        
+        self._emit_cell_init_warnings()
 
     @mpi_no_errors
     def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
@@ -342,6 +362,8 @@ class CellManagerBase(_CellManager):
             self._store_cell(gid + cell_offset, cell)
             prev_metype = metype
             metype_n_cells += 1
+        
+        self._emit_cell_init_warnings()
 
         if prev_metype is not None and metype_n_cells > 0:
             store_metype_stats(prev_metype, metype_n_cells)
