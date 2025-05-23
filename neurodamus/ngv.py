@@ -9,7 +9,12 @@ import numpy as np
 from .cell_distributor import CellDistributor
 from .connection import Connection
 from .connection_manager import ConnectionManagerBase
-from .core import MPI, EngineBase, NeuronWrapper as Nd
+from .core import (
+    MPI,
+    EngineBase,
+    NeuronWrapper as Nd,
+    mpi_no_errors,
+)
 from .core.configuration import ConfigurationError, GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
@@ -18,19 +23,8 @@ from .morphio_wrapper import MorphIOWrapper
 from .utils.pyutils import append_recarray
 
 
-def inspect(v):
-    print(v, type(v))
-    for i in dir(v):
-        if i.startswith("__"):
-            continue
-        try:
-            print(f"  {i}: {getattr(v, i)}")
-        except Exception as e:
-            print(f"  {i}: {e}")
-
-
 class Astrocyte(BaseCell):
-    __slots__ = ("_gluts", "glut_soma", "section_names")
+    __slots__ = ("_gluts", "glut_soma", "is_resized_sections_warning", "section_names")
 
     def __init__(self, gid, meinfos, circuit_conf):
         """Initialize an Astrocyte cell:
@@ -59,6 +53,7 @@ class Astrocyte(BaseCell):
 
         # assigned later
         self._gluts = {}
+        self.is_resized_sections_warning = False
         for sec in self.all:
             self._init_basic_section(sec)
 
@@ -88,10 +83,7 @@ class Astrocyte(BaseCell):
         """
         # resize if necessary
         if sec.nseg > 1:
-            self.warnings.add(
-                "At least a section was resized to 1 compartment. "
-                "Only single compartment sections are supported at the moment."
-            )
+            self.is_resized_sections_warning = True
             sec.nseg = 1
         # add cadifus mechanism for calcium diffusion
         sec.insert("cadifus")
@@ -194,6 +186,33 @@ class AstrocyteManager(CellDistributor):
 
     CellType = Astrocyte
     _sonata_with_extra_attrs = False
+
+    def _emit_resized_section_warnings(self):
+        """TODO"""
+        gids = [cell.gid for cell in self._gid2cell.values() if cell.is_resized_sections_warning]
+        # Gather all warning maps to rank 0
+        gids = MPI.py_gather(gids, 0)
+
+        if MPI.rank == 0:
+            # flatten the list of gids
+            gids = [gid for sublist in gids for gid in sublist]
+            gids = sorted(gids)
+            logging.warning(
+                "Cells %s emitted warning: '%s'",
+                sorted(gids),
+                "Multi-compartment sections are not allowed at the moment."
+                "Resizing to 1 compartment.",
+            )
+
+    @mpi_no_errors
+    def _instantiate_cells(self, _CellType=None, **_opts):
+        super()._instantiate_cells(_CellType=_CellType, **_opts)
+        self._emit_resized_section_warnings()
+
+    @mpi_no_errors
+    def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
+        super()._instantiate_cells_dry(CellType=CellType, skip_metypes=skip_metypes, **_opts)
+        self._emit_resized_section_warnings()
 
 
 class NeuroGliaConnParameters(SynapseParameters):

@@ -5,7 +5,6 @@ import hashlib
 import logging  # active only in rank 0 (init)
 import os
 import weakref
-from collections import defaultdict
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
@@ -148,30 +147,6 @@ class CellManagerBase(_CellManager):
     circuit_name = property(lambda self: self._circuit_conf.name)
     is_virtual = property(lambda _self: False)
     connection_managers = property(lambda self: self._conn_managers_per_src_pop)
-
-    def _emit_cell_init_warnings(self):
-        """Collect and emit initialization warnings for all cells in this rank.
-
-        Logs messages in the format:
-            "Rank <rank>: Cells [<gid1>, <gid2>, ...] emitted warning: '<warning>'"
-        """
-        local_map = defaultdict(list)
-        for cell in self._gid2cell.values():
-            if not hasattr(cell, "warnings"):
-                continue
-            for w in cell.warnings:
-                local_map[w].append(cell.gid)
-        # Gather all warning maps to rank 0
-        all_maps = MPI.py_gather(local_map, 0)
-
-        if MPI.rank == 0:
-            merged_map = defaultdict(list)
-            for wm in all_maps:
-                for warning, gids in wm.items():
-                    merged_map[warning].extend(gids)
-
-            for warning, gids in merged_map.items():
-                logging.warning("Cells %s emitted warning: '%s'", sorted(gids), warning)
 
     def is_initialized(self):
         return self._local_nodes is not None
@@ -317,8 +292,6 @@ class CellManagerBase(_CellManager):
             cell = CellType(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
-        self._emit_cell_init_warnings()
-
     @mpi_no_errors
     def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
@@ -369,8 +342,6 @@ class CellManagerBase(_CellManager):
             self._store_cell(gid + cell_offset, cell)
             prev_metype = metype
             metype_n_cells += 1
-
-        self._emit_cell_init_warnings()
 
         if prev_metype is not None and metype_n_cells > 0:
             store_metype_stats(prev_metype, metype_n_cells)
