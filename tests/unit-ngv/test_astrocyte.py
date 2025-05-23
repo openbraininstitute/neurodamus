@@ -5,8 +5,6 @@ from neurodamus.metype import METypeItem
 from neurodamus.core.configuration import CircuitConfig
 
 
-
-
 def is_cadifus_pointer_set(sec, glut):
     """
     Check the pointer by changing the value in GlutReceive
@@ -27,9 +25,9 @@ def test_init_and_add_endfeet():
     R0passes = [3.1, 3.2, 3.3]
     meinfos = METypeItem("glia")
     circuit_conf = CircuitConfig(CellLibraryFile="None",
-                                 MorphologyPath = NGV_DIR / "morphologies" / "h5",
+                                 MorphologyPath=NGV_DIR / "morphologies" / "h5",
                                  nrnPath=False,
-                                 MorphologyType = "h5")
+                                 MorphologyType="h5")
 
     astro = Astrocyte(gid=0, meinfos=meinfos, circuit_conf=circuit_conf)
     astro.add_endfeet(parent_ids, lengths, diameters, R0passes)
