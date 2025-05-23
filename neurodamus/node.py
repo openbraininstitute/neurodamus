@@ -1216,10 +1216,6 @@ class Node:
         with timeit(name="stdinit"):
             Nd.stdinit()
 
-        logging.info("Executing actions after stdinit...")
-        for mgr in self._circuits.all_node_managers():
-            mgr.post_stdinit()
-
     # -
     def _sim_init_neuron(self):
         # === Neuron specific init ===

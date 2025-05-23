@@ -72,7 +72,6 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
-
     astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
 
     manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)

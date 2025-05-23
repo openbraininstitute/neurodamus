@@ -106,6 +106,19 @@ There was an initial attempt to incorporate the ER into NGV. This effort was tem
 
 Ultimately, the feature was removed at the time, as partially implemented functionality added complexity without delivering tangible benefits.
 
+Optimized Synapse GID Assignment
+--------------------------------
+
+As previously discussed, the `UState` of a synapse connected to a post-synaptic neuron must send a signal to the astrocyte through the spike detection network in a tripartite synapse. This signaling requires a unique GID, which competes with those of other neurons in the network.
+
+Before the Blue Brain Project's closure, there was an incomplete attempt to optimize GID assignment for this purpose. The challenge is more intricate than it initially appears, as synapses may be created before all neurons are fully instantiated.
+
+If you wish to revisit this optimization, refer to commit `b30924461b738cfe7b4014673f75c039996486bc` in the file `ngv.py`. The two key functions involved are:
+
+- `_find_neuron_endpoint_id`
+- `_create_synapse_ustate_endpoints_optimized`
+
+
 
 
 
