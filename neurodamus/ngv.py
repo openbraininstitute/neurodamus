@@ -188,7 +188,7 @@ class AstrocyteManager(CellDistributor):
     _sonata_with_extra_attrs = False
 
     def _emit_resized_section_warnings(self):
-        """TODO"""
+        """Collect and emit warnings for cells that had sections resized."""
         gids = [cell.gid for cell in self._gid2cell.values() if cell.is_resized_sections_warning]
         # Gather all warning maps to rank 0
         gids = MPI.py_gather(gids, 0)
