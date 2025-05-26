@@ -441,9 +441,6 @@ class CellManagerBase(_CellManager):
             for c in self.cells:
                 c.delete_axon()
 
-    def post_stdinit(self):
-        """Post stdinit actions"""
-
 
 class GlobalCellManager(_CellManager):
     """GlobalCellManager is a wrapper over all Cell Managers so that we can query
