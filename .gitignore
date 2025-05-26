@@ -7,7 +7,7 @@
 .*.swp
 */.ipynb_checkpoints/*
 .vscode
-spack-*
+spack*
 
 # Project files
 .ropeproject

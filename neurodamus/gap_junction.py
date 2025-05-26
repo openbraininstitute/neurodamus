@@ -15,23 +15,30 @@ from .io.synapse_reader import SonataReader, SynapseParameters
 
 
 class GapJunctionConnParameters(SynapseParameters):
-    # Attribute names of synapse parameters, consistent with the normal synapses
-    _synapse_fields = (
-        "sgid",
-        "isec",
-        "offset",
-        "weight",
-        "efferent_junction_id",
-        "afferent_junction_id",
-        "ipt",
-        "location",
-    )
+    """Glial-glial gap junction connection parameters.
 
-    @classmethod
-    def create_array(cls, length):
-        npa = np.recarray(length, cls.dtype)
-        npa.location = 0.5
-        return npa
+    This class overrides the `_fields` attribute from the base `SynapseParameters`
+    class to define a specific set of parameters relevant for gap junctions.
+
+    The `_optional` and `_reserved` dictionaries are inherited from the base class
+    and apply unchanged.
+
+    Note:
+        - Only the `_fields` dictionary is overridden.
+        - The dtype construction and utility methods are reused as-is.
+    """
+
+    # Attribute names of synapse parameters, consistent with the normal synapses
+    _fields = {
+        "sgid": np.int64,
+        "isec": np.int64,
+        "offset": np.float64,
+        "weight": np.float64,
+        "efferent_junction_id": np.int64,
+        "afferent_junction_id": np.int64,
+        "ipt": np.float64,
+        "location": np.float64,
+    }
 
 
 class GapJunctionSynapseReader(SonataReader):

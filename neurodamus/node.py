@@ -456,6 +456,17 @@ class Node:
             if file_exists:
                 alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
             else:
+                if not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists():
+                    raise FileNotFoundError(
+                        f"No such file {DryRunStats._MEMORY_USAGE_FILENAME}. "
+                        "Neurodamus must be run with --dry-run mode before proceeding."
+                    )
+                if not Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists():
+                    raise FileNotFoundError(
+                        f"No such file {DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. "
+                        "Neurodamus must be run with --dry-run mode before proceeding."
+                    )
+
                 logging.warning("Allocation file not found. Generating on-the-fly.")
                 self._dry_run_stats.try_import_cell_memory_usage()
                 cell_distributor = CellDistributor(circuit, self._target_manager, self._run_conf)
@@ -1748,7 +1759,7 @@ class Neurodamus(Node):
         log_stage("Creating connections in the simulator")
         base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
-            syn_manager.finalize(base_seed, SimConfig.use_coreneuron)
+            syn_manager.finalize(base_seed)
         print_mem_usage()
 
         self.enable_stimulus()

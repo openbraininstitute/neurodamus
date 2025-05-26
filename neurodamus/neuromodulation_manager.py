@@ -51,7 +51,6 @@ class NeuroModulationConnection(Connection):
         cell,
         base_seed=0,
         *,
-        skip_disabled=False,
         replay_mode=ReplayMode.AS_REQUIRED,
         base_managers=None,
         **_kwargs,
@@ -64,8 +63,6 @@ class NeuroModulationConnection(Connection):
         neuromod_dtc, and nc_type NC_MODULATOR
         """
         logging.debug("Finalize neuromodulation connection")
-        if skip_disabled and self._disabled:
-            return 0
 
         self._netcons = []
         # Initialize member lists
@@ -123,22 +120,34 @@ class NeuroModulationConnection(Connection):
 
 
 class ModulationConnParameters(SynapseParameters):
-    # Attribute names of synapse parameters,
-    # For consistancy with standard synapses, location is computed with hoc function
-    # TargetManager.locationToPoint using isec, offset, ipt
-    # ipt is not read from data but -1, so that locationToPoint will set location = offset .
-    # weight is a placeholder for replaystim, default to 1. and overwritten by connection weight.
-    _synapse_fields = (
-        "sgid",
-        "delay",
-        "isec",
-        "offset",
-        "neuromod_strength",
-        "neuromod_dtc",
-        "ipt",
-        "location",
-        "weight",
-    )
+    """Modulatory connection parameters.
+
+    This class defines parameters for neuromodulatory connections by overriding
+    `_fields` from `SynapseParameters`.
+
+    Notes:
+        - The field names are consistent with standard synapses for compatibility.
+        - `location` is computed using the HOC function `TargetManager.locationToPoint`
+          with `isec`, `offset`, and `ipt`.
+        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
+          `location = offset`.
+        - `weight` is used as a placeholder for replay stimulation; it defaults to 1.0
+          and is later overwritten by the actual connection weight.
+
+    The `_optional` and `_reserved` dictionaries are inherited from the base class.
+    """
+
+    _fields = {
+        "sgid": "int64",
+        "delay": "float64",
+        "isec": "int64",
+        "offset": "float64",
+        "neuromod_strength": "float64",
+        "neuromod_dtc": "float64",
+        "ipt": "float64",
+        "location": "float64",
+        "weight": "float64",
+    }
 
 
 class NeuroModulationSynapseReader(SonataReader):
@@ -155,7 +164,7 @@ class NeuroModulationManager(SynapseRuleManager):
     conn_factory = NeuroModulationConnection
     SynapseReader = NeuroModulationSynapseReader
 
-    def _finalize_conns(self, tgid, conns, base_seed, sim_corenrn, **kwargs):
+    def _finalize_conns(self, tgid, conns, base_seed, **kwargs):
         """Override the function from the base class.
         Retrieve the base synapse connections with the same tgid.
         Pass the base connection managers (from all src populations except the neuromodulatory one)
@@ -167,5 +176,5 @@ class NeuroModulationManager(SynapseRuleManager):
             if src_pop != self.src_node_population
         ]
         return super()._finalize_conns(
-            tgid, conns, base_seed, sim_corenrn, base_managers=base_managers, **kwargs
+            tgid, conns, base_seed, base_managers=base_managers, **kwargs
         )

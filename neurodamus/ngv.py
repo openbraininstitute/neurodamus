@@ -5,6 +5,7 @@ from itertools import chain
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from .cell_distributor import CellDistributor
 from .connection import Connection
@@ -158,13 +159,15 @@ class Astrocyte(BaseCell):
         # reassigned and which ones are stale. the endfeet may be already
         # up-to-date
         # issue: https://github.com/openbraininstitute/neurodamus/issues/263
-        all_secs = chain(self._cellref.all, self.endfeet)
-
-        # just a safety check
-        assert len(self._cellref.all) + len(self.endfeet) == len(self.sections_glut), (
-            "Mismatch between sections and sections_glut: "
-            "probably some sections are unaccounted for"
-        )
+        if self.endfeet:
+            all_secs = chain(self._cellref.all, self.endfeet)
+            # just a safety check
+            assert len(self._cellref.all) + len(self.endfeet) == len(self.sections_glut), (
+                "Mismatch between sections and sections_glut: "
+                "probably some sections are unaccounted for"
+            )
+        else:
+            all_secs = self._cellref.all
 
         for glut, sec in zip(self.sections_glut, all_secs):
             Nd.setpointer(glut._ref_glut, "glu2", sec(0.5).cadifus)
@@ -208,13 +211,25 @@ class AstrocyteManager(CellDistributor):
 
 
 class NeuroGliaConnParameters(SynapseParameters):
-    _synapse_fields = (
-        "tgid",
-        "synapse_id",
-        "astrocyte_section_id",
-        "astrocyte_segment_id",
-        "astrocyte_segment_offset",
-    )
+    """Neuron-to-glia connection parameters.
+
+    This class overrides the `_fields` attribute from `SynapseParameters` to define
+    parameters specific to neuro-glial interactions.
+
+    The `_optional` and `_reserved` dictionaries are inherited unchanged from the base class.
+
+    Note:
+        - Only `_fields` is overridden.
+        - All methods and behavior are reused from the base class.
+    """
+
+    _fields = {
+        "tgid": np.int64,
+        "synapse_id": np.int64,
+        "astrocyte_section_id": np.int64,
+        "astrocyte_segment_id": np.int64,
+        "astrocyte_segment_offset": np.float64,
+    }
 
 
 class NeuroGlialSynapseReader(SonataReader):

@@ -61,13 +61,13 @@ class EngineBase(metaclass=_EngineMeta):
     Without any customization an engine will default to use:
 
       CellManagerCls = None   # Use existing instance of CellDistributor
-      SynapseManagerCls = None  # Use existing instance of SynapseRuleManager
+      InnerConnectivityCls = None  # Use existing instance of SynapseRuleManager
 
     Such setup is equivalent to not specifying the Engine for a given circuit,
     effectively handling additional circuits by the built-in Engine.
     Specifying CellManagerCls will instantiate cells with the new Engine. If a
-    SynapseManagerCls is not provided then only cell creation happens.
-    Specifying SynapseManagerCls alone is not supported.
+    InnerConnectivityCls is not provided then only cell creation happens.
+    Specifying InnerConnectivityCls alone is not supported.
 
     """
 
@@ -77,23 +77,3 @@ class EngineBase(metaclass=_EngineMeta):
     """A dict of the new connection types and associated Manager class"""
     CircuitPrecedence = 1
     """Precedence influences instantiation order. The lower the earlier setup"""
-
-    @classmethod
-    def new_cell_manager(cls, circuit_conf, target_parser, run_conf):
-        if not cls.CellManagerCls:
-            raise RuntimeError("missing CellManagerCls")
-        return cls.CellManagerCls(circuit_conf, target_parser, run_conf)
-
-    def new_synapse_manager(cls, circuit_conf, target_manager, cell_manager):
-        """Routine responsible for creating connection managers."""
-        if not cls.SynapseManagerCls:
-            raise RuntimeError("missing SynapseManagerCls")
-        if cell_manager is None:
-            raise RuntimeError("Circuit Not Initialized. Please load_nodes() first")
-        return cls.SynapseManagerCls(circuit_conf, target_manager, cell_manager)
-
-    def report(report, target_parser, rep_target, corenrn_conf, cell_manager):
-        """Create reports for this type of engine."""
-        if cell_manager is None:
-            raise RuntimeError("Circuit Not Initialized. Please load_nodes() first")
-        raise NotImplementedError("report not implemented")
