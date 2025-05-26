@@ -274,19 +274,11 @@ class NeuroGlialConnection(Connection):
             glut_obj = astrocyte.get_glut(glut_idx)
             netcon = pc.gid_connect(syn_gid, glut_obj)
             netcon.delay = self.netcon_delay
-            netcon.record(
-                lambda syn_gid=syn_gid: print(f"GOOD netcon event 2. Spiking via v-gid: {syn_gid}")
-            )
             self._netcons.append(netcon)
 
             # netcon to GlutReceiveSoma for metabolism
             logging.debug("[NGV] Conn %s linking synapse id %d to Astrocyte", self, syn_gid)
             netcon = pc.gid_connect(syn_gid, astrocyte.glut_soma)
-            netcon.record(
-                lambda syn_gid=syn_gid: print(
-                    f"GOOD netcon event 2 towards GlutReceiveSoma. Spiking via v-gid: {syn_gid}"
-                )
-            )
             netcon.delay = self.netcon_delay
             self._netcons.append(netcon)
 
