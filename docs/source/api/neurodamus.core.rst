@@ -27,12 +27,9 @@ Sub-Modules
 ===========
 
 .. autosummary::
-   cell
    configuration
-   mechanisms
    random
    stimuli
-   synapses
 
 
 Module API
