@@ -229,9 +229,9 @@ jobs:
       run: |
         tox -e unit
 
-    - name: unit-ngv
+    - name: unit-ngv-mpi
       run: |
-        tox -e unit-ngv
+        tox -e unit-ngv-mpi
 
     - name: unit-mpi
       run: |

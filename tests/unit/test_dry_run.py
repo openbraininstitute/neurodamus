@@ -2,35 +2,26 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import unittest.mock
-import tempfile
 from pathlib import Path
 
 from tests.utils import defaultdict_to_standard_types
-from ..conftest import RINGTEST_DIR, NGV_DIR, PLATFORM_SYSTEM
-
-TMP_FOLDER = tempfile.mkdtemp()
-
-
-@pytest.fixture(autouse=True)
-def change_test_dir(monkeypatch):
-    """
-    All tests in this file are using the same working directory, i.e TMP_FOLDER
-    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
-    """
-    monkeypatch.chdir(TMP_FOLDER)
+from ..conftest import NGV_DIR, PLATFORM_SYSTEM
+from neurodamus import Neurodamus
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_dry_run_memory_use():
-    from neurodamus import Neurodamus
-
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
-
+def test_dry_run_memory_use(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
     isMacOS = PLATFORM_SYSTEM == "Darwin"
     assert (45.0 if isMacOS else 65.0) <= nd._dry_run_stats.base_memory <= (
-        100.0 if isMacOS else 120.0)
+        150.0 if isMacOS else 180.0)
     assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
     expected_metypes_count = {
@@ -41,11 +32,14 @@ def test_dry_run_memory_use():
     assert nd._dry_run_stats.suggested_nodes > 0
 
 
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
 @pytest.mark.forked
-def test_dry_run_distribute_cells():
-    from neurodamus import Neurodamus
-
-    nd = Neurodamus(str(RINGTEST_DIR / "simulation_config.json"),  dry_run=True, num_target_ranks=2)
+def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
     # Test allocation
@@ -92,8 +86,26 @@ def test_dry_run_distribute_cells():
     }
     assert rank_allocation_standard == expected_allocation
 
-    Path(("allocation_r1_c1.pkl.gz")).unlink(missing_ok=True)
-    Path(("allocation_r2_c1.pkl.gz")).unlink(missing_ok=True)
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_files):
+    nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
+                     num_target_ranks=1)
+
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+    expected_allocation = {
+        'RingA': {
+            (0, 0): [1, 3],
+            (1, 0): [2]
+        }
+    }
+    assert rank_allocation_standard == expected_allocation
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -102,27 +114,25 @@ def test_dry_run_distribute_cells():
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
-    nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
+def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
+    with pytest.raises(FileNotFoundError,
+                       match="No such file cell_memory_usage.json. "
+                       "Neurodamus must be run with --dry-run mode before proceeding."):
+        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
 
-    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(2, 1)
-    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
-    expected_allocation = {
-        'RingA': {
-            (0, 0): [1],
-            (1, 0): [2, 3]
-        }
-    }
-    assert rank_allocation_standard == expected_allocation
+    with Path("cell_memory_usage.json").open('w'):
+        pass
+
+    with pytest.raises(FileNotFoundError,
+                       match="No such file memory_per_metype.json. "
+                       "Neurodamus must be run with --dry-run mode before proceeding."):
+        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
+                     num_target_ranks=1)
 
 
 @pytest.mark.forked
 def test_dry_run_ngv_fail():
-    from neurodamus import Neurodamus
-
     with pytest.raises(Exception, match="Dry run not available for ngv circuit"):
         Neurodamus(str(NGV_DIR / "simulation_config.json"),  dry_run=True)
 

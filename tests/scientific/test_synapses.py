@@ -17,7 +17,7 @@ def test_synapses_params():
     from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.node import Node
     from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
-    from neurodamus.io.synapse_reader import SonataReader
+    from neurodamus.io.synapse_reader import SynapseParameters
     from neurodamus.utils.logging import log_verbose
     from libsonata import EdgeStorage
 
@@ -51,7 +51,7 @@ def test_synapses_params():
     # init
     base_seed = n._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
     for syn_manager in n._circuits.all_synapse_managers():
-        syn_manager.finalize(base_seed, False)
+        syn_manager.finalize(base_seed)
     n.sim_init()
 
     # 1) get synapse parameters from libsonata
@@ -92,7 +92,7 @@ def test_synapses_params():
 
     for df in dfs.values():
         tmp = wrapU(df["u_syn"], df["u_hill_coefficient"])
-        SonataReader._scale_U_param(tmp, SimConfig.extracellular_calcium, [])
+        SynapseParameters._patch_scale_U_param(tmp, SimConfig.extracellular_calcium, [])
         df["u_syn"] = tmp.U
 
     # 2) get values from NEURON
@@ -189,7 +189,7 @@ def get_edge_properties(edge_pop, selection, properties=[]):
 
 
 def test__constrained_hill():
-    from neurodamus.io.synapse_reader import _constrained_hill
+    from neurodamus.io.synapse_reader import SynapseParameters
 
     # original functions
     def hill(ca_conc, y, K_half):
@@ -206,9 +206,9 @@ def test__constrained_hill():
     a = 10 * rng.random(100)
     b = 10 * rng.random(100)
 
-    npt.assert_allclose(scale_factors(a, 2), _constrained_hill(a, 2))
-    npt.assert_allclose(scale_factors(a, 2.2), _constrained_hill(a, 2.2))
-    npt.assert_allclose(scale_factors(a, b), _constrained_hill(a, b))
+    npt.assert_allclose(scale_factors(a, 2), SynapseParameters._constrained_hill(a, 2))
+    npt.assert_allclose(scale_factors(a, 2.2), SynapseParameters._constrained_hill(a, 2.2))
+    npt.assert_allclose(scale_factors(a, b), SynapseParameters._constrained_hill(a, b))
 
 
 def get_target_raw_gids(target_manager, target_name):
