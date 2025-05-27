@@ -3,11 +3,14 @@
 import logging
 import re
 import shutil
+import pytest
+import numpy as np
+import numpy.testing as npt
 from pathlib import Path
 
-import pytest
 
-from ..conftest import RINGTEST_DIR
+from tests.conftest import RINGTEST_DIR
+from neurodamus import Neurodamus
 from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 
 base_dir = Path("sim_conf")
@@ -238,6 +241,62 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "inputs": {
+                "Stimulus": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 5,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
+        }
+    },
+], indirect=True)
+@pytest.mark.parametrize("lb_mode", [
+    "rr",
+    "roundrobin",
+    "wholecell",
+    "loadbalance",
+    "multisplit",
+    "memory",
+])
+def test_load_balance_simulation(create_tmp_simulation_config_file, copy_memory_files, lb_mode):
+    from neurodamus.core import NeuronWrapper as Nd
+    from tests import utils
+
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
+
+    cell_id = 1001
+    manager = nd.circuits.get_node_manager("RingB")
+    cell_ringB = manager.get_cell(cell_id)
+    voltage_vec = Nd.Vector()
+    voltage_vec.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
+
+    Nd.finitialize()
+    nd.run()
+
+    # Check spikes in RingA population
+    ringA_spikes = nd._spike_vecs[0]
+    timestamps = np.array(ringA_spikes[0])
+    spike_gids = np.array(ringA_spikes[1])
+    spike_gid_ref = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3])
+    timestamps_ref = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
+    npt.assert_equal(spike_gid_ref, spike_gids)
+    npt.assert_allclose(timestamps_ref, timestamps)
+
+    # Check voltage variation in RingB population cell
+    utils.check_signal_peaks(voltage_vec, [92, 291])
 
 
 def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
