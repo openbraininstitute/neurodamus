@@ -8,7 +8,6 @@ from ._mpi import MPI
 from ._neuron import _Neuron
 from .configuration import GlobalConfig
 from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
-from neurodamus.utils.pyutils import classproperty
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
@@ -22,7 +21,8 @@ class _NeuronWrapper(_Neuron):
     __slots__ = ()
     _pc = None
 
-    @classproperty
+    @classmethod
+    @property
     def h(cls):
         """The neuron hoc interpreter, initializing if needed"""
         cls._pc or cls._init()
