@@ -244,14 +244,16 @@ class CellManagerBase(_CellManager):
         targetspec: TargetSpec = self._target_spec
 
         population = targetspec.population
-        all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
-        all_gids = np.array(all_gids, dtype="uint32")
-        logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
-        total_cells = len(all_gids)
-        if total_cells == 0:
-            return [], [], 0, 0
-        gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
-        return gidvec, me_infos, total_cells, full_size
+        if population in load_balancer:
+            all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
+            all_gids = np.array(all_gids, dtype="uint32")
+            logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
+            total_cells = len(all_gids)
+            if total_cells == 0:
+                return [], [], 0, 0
+            gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
+            return gidvec, me_infos, total_cells, full_size
+        return self._load_nodes(loader_f)
 
     # -
     def finalize(self, **opts):
