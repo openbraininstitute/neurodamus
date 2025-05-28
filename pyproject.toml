@@ -157,7 +157,6 @@ ignore = [
     "N815",   # mixed-case-variable-in-class-scope
     "BLE001", # blind-except
     "N805",   # invalid-first-argument-name-for-method
-    "S603",   # subprocess-without-shell-equals-true
     "N801",   # invalid-class-name
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
