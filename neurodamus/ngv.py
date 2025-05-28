@@ -1,8 +1,5 @@
 """Module which defines and handles Glia Cells and connectivity"""
 
-# TODO(cattabiani): in https://github.com/openbraininstitute/neurodamus/pull/266
-# the cell.py was removed; perhaps it can replace Cell.hoc; see discussion in PR
-
 import logging
 from pathlib import Path
 
