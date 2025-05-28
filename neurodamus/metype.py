@@ -144,7 +144,7 @@ class METype(BaseCell):
             self._cellref.clear()  # cut cyclic reference
 
 
-class Cell_V6(METype):
+class Cell_V6(METype):  # noqa: N801
     __slots__ = ("local_to_global_matrix",)
 
     def __init__(self, gid, meinfo, circuit_conf):

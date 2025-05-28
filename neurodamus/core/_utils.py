@@ -42,7 +42,7 @@ def mpi_no_errors(f):
     return mpi_ok_wrapper
 
 
-class run_only_rank0:
+class run_only_rank0:  # noqa: N801
     """Decorator that makes a given func to run only in rank 0.
 
     It will broadcast results IFF the user specifies return type notation.
