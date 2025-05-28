@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 from pathlib import Path
+from tests import utils
 
 
 from tests.conftest import RINGTEST_DIR
@@ -243,6 +244,28 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
 
 
+def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
+    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
+    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
+
+    cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
+    cell_manager.load_nodes()
+    lbal = LoadBalance(
+        LoadBalanceMode.WholeCell, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
+    )
+    t1 = TargetSpec("RingA:All")
+    with lbal.generate_load_balance(t1, cell_manager):
+        cell_manager.finalize()
+
+    captured = capsys.readouterr()
+    assert "3 cells\n3 pieces" in captured.out
+
+    # Check the cpu assign file
+    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
+    content = Path(cpu_assign_filename).open().read()
+    assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
+
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -273,7 +296,6 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
 ])
 def test_load_balance_simulation(create_tmp_simulation_config_file, copy_memory_files, lb_mode):
     from neurodamus.core import NeuronWrapper as Nd
-    from tests import utils
 
     nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
 
@@ -297,28 +319,6 @@ def test_load_balance_simulation(create_tmp_simulation_config_file, copy_memory_
 
     # Check voltage variation in RingB population cell
     utils.check_signal_peaks(voltage_vec, [92, 291])
-
-
-def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
-    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
-    cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
-    cell_manager.load_nodes()
-    lbal = LoadBalance(
-        LoadBalanceMode.WholeCell, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
-    )
-    t1 = TargetSpec("RingA:All")
-    with lbal.generate_load_balance(t1, cell_manager):
-        cell_manager.finalize()
-
-    captured = capsys.readouterr()
-    assert "3 cells\n3 pieces" in captured.out
-
-    # Check the cpu assign file
-    cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
-    content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
 
 
 class MockedTargetManager:

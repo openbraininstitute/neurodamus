@@ -245,10 +245,10 @@ class CellManagerBase(_CellManager):
 
         population = targetspec.population
         if population in load_balancer:
-            all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
+            all_gids = load_balancer.get(population).get((MPI.rank, cycle_i), [])
             all_gids = np.array(all_gids, dtype="uint32")
-            logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
             total_cells = len(all_gids)
+            logging.debug("Loading %d cells in rank %d", total_cells, MPI.rank)
             if total_cells == 0:
                 return [], [], 0, 0
             gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
