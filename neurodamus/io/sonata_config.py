@@ -259,12 +259,8 @@ class SonataConfig:
                     logging.warning("Unhandled synapse type: %s", pop_type)
                     continue
 
-                edges_file = edge_config["edges_file"]
-                if not os.path.isabs(edges_file):
-                    edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
-
                 # skip inner connectivity populations
-                edge_pop_path = edges_file + ":" + edge_pop_name
+                edge_pop_path = edge_config["edges_file"] + ":" + edge_pop_name
                 if edge_pop_path in internal_edge_pops:
                     continue
 
@@ -275,20 +271,25 @@ class SonataConfig:
                     "Type": projection_type_convert.get(pop_type),
                 }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
-                if projection.get("Type") == ConnectionTypes.NeuroGlial:
+                if projection["Type"] == ConnectionTypes.NeuroGlial:
                     projection["Source"], projection["Destination"] = (
                         projection["Destination"],
                         projection["Source"],
                     )
-                if projection.get("Type") == ConnectionTypes.GlioVascular:
-                    for node_file_info in networks["nodes"]:
-                        for pop_name, pop_info in node_file_info["populations"].items():
-                            if pop_info.get("type") == "vasculature":
-                                projection["VasculaturePath"] = (
-                                    self._circuit_conf.node_population_properties(
-                                        pop_name
-                                    ).elements_path
-                                )
+                elif projection["Type"] == ConnectionTypes.GlioVascular:
+                    vasculature_popnames = [
+                        name
+                        for node_info in networks["nodes"]
+                        for name, pop_info in node_info["populations"].items()
+                        if pop_info.get("type") == "vasculature"
+                    ]
+                    if vasculature_popnames:
+                        assert len(vasculature_popnames) == 1
+                        projection["VasculaturePath"] = (
+                            self._circuit_conf.node_population_properties(
+                                vasculature_popnames[0]
+                            ).elements_path
+                        )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
