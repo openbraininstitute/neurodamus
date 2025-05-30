@@ -354,7 +354,7 @@ class _SimConfig:
             )
         try:
             config_parser = SonataConfig(config_file)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise ConfigurationError(f"Failed to initialize SonataConfig with {config_file}: {e}")
         return config_parser
 

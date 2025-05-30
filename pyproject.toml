@@ -156,7 +156,6 @@ ignore = [
     "B904",   # raise-without-from-inside-except
     "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
-    "BLE001", # blind-except
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "PLR0912",# too-many-branches

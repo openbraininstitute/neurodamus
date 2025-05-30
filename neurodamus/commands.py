@@ -99,7 +99,7 @@ def neurodamus(args=None):
         return 1
     except OtherRankError:
         return 1  # no need for _mpi_abort, error is being handled by all ranks
-    except Exception:
+    except:  # noqa: E722
         show_exception_abort("Unhandled Exception. Terminating...", sys.exc_info())
         return 1
     return 0
