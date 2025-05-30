@@ -15,7 +15,7 @@ class BaseCell:
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
 
-    def __init__(self, gid, cell_info, circuit_info):
+    def __init__(self):
         self._cellref = None
         self._ccell = None
         self.raw_gid = None
@@ -27,10 +27,6 @@ class BaseCell:
     @property
     def CCell(self):
         return self._ccell
-
-    def connect2target(self, target_pp=None):
-        """Connects empty cell to target"""
-        return Nd.NetCon(self._cellref, target_pp)
 
     def re_init_rng(self, ion_seed):
         pass
@@ -66,7 +62,7 @@ class METype(BaseCell):
             morpho_path: path for morphologies
             meinfos: dictionary with v6 infos (if v6 circuit)
         """
-        super().__init__(gid, meinfos, None)
+        super().__init__()
         self._threshold_current = None
         self._hypAmp_current = None
         self._netcons = []
@@ -209,7 +205,7 @@ class EmptyCell(BaseCell):
     __slots__ = ("gid",)
 
     def __init__(self, gid, cell):
-        super().__init__(gid, None, None)
+        super().__init__()
         self._cellref = cell
         self.gid = gid
 

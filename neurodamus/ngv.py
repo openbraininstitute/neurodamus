@@ -35,7 +35,7 @@ class Astrocyte(BaseCell):
         - add cadifus, GlutReceive (they will be connected later)
         - record section_names for creating connections later
         """
-        super().__init__(gid, meinfos, None)
+        super().__init__()
 
         # Create the cell
         self._cellref = Nd.Cell(gid)  # cell instantiated with Cell.hoc
