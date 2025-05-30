@@ -16,7 +16,6 @@ except importlib.metadata.PackageNotFoundError:
 __author__ = "Fernando Pereira <fernando.pereira@epfl.ch>"
 __copyright__ = "2018 Blue Brain Project, EPFL"
 
-# Neurodamus node for setting up a neurodamus execution
 from .node import Neurodamus, Node
 
 __all__ = ["Neurodamus", "Node"]

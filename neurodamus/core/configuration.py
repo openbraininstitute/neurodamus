@@ -1187,7 +1187,9 @@ def check_connections_configure(sim_config, target_manager):
             is_overriding = True
             # If there isn't a full override for zero weights, we must raise exception (later)
             if not conn2.get("_full_overridden"):
-                conn2["_full_overridden"] = target_manager.pathways_overlap(conn, conn2, True)
+                conn2["_full_overridden"] = target_manager.pathways_overlap(
+                    conn, conn2, equal_only=True
+                )
         if not is_overriding:
             logging.warning(
                 "Delayed connection %s is not overriding any weight=0 Connection", conn["_name"]

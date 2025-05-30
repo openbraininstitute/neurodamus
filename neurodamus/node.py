@@ -1167,7 +1167,9 @@ class Node:
         if corenrn_gen is None:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
-            self._coreneuron_configure_datadir(False, SimConfig.coreneuron_direct_mode)
+            self._coreneuron_configure_datadir(
+                corenrn_restore=False, coreneuron_direct_mode=SimConfig.coreneuron_direct_mode
+            )
             self._coreneuron_write_sim_config()
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
@@ -1823,7 +1825,9 @@ class Neurodamus(Node):
         - linking the old coreneuron_datadir to the new one
         (in save_path or output_root)
         """
-        self._coreneuron_configure_datadir(True, SimConfig.coreneuron_direct_mode)
+        self._coreneuron_configure_datadir(
+            corenrn_restore=True, coreneuron_direct_mode=SimConfig.coreneuron_direct_mode
+        )
 
         # handle coreneuron_input movements
         src_datadir = Path(SimConfig.coreneuron_datadir_restore_path())

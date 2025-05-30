@@ -402,9 +402,9 @@ class CurrentSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
-            self.time_vec,
-            self.stim_vec,
+            stim_vec_mode=True,
+            time_vec=self.time_vec,
+            stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
         )
 
@@ -425,7 +425,7 @@ class CurrentSource(SignalSource):
                 section,
                 position,
                 self._clamps,
-                False,
+                stim_vec_mode=False,
                 amp=self._amp,
                 delay=self._delay,
                 dur=self._dur,

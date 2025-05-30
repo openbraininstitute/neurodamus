@@ -839,7 +839,7 @@ class LoadBalance:
         Results are written to file. basename.<NCPU>.dat
         """
         logging.info("Assigning Cells <-> %d CPUs [mymetis3]", self.target_cpu_count)
-        base_filename = self._cx_filename(target_name, True)
+        base_filename = self._cx_filename(target_name, basename_str=True)
         Nd.mymetis3(base_filename, self.target_cpu_count)
 
     @staticmethod
@@ -911,7 +911,7 @@ class LoadBalance:
         """Loads a load-balance info for a given target.
         NOTE: Please ensure the load balance exists or is derived before calling this function
         """
-        bal_filename = self._cx_filename(target_spec.simple_name, True)
+        bal_filename = self._cx_filename(target_spec.simple_name, basename_str=True)
         return Nd.BalanceInfo(bal_filename, MPI.rank, MPI.size)
 
     @classmethod

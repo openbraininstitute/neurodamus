@@ -278,7 +278,9 @@ class SelectionNodeSet(_NodeSetBase):
 
         sel2 = getattr(other, "_selection", None)
         if sel2:
-            intersect = _ranges_overlap(self._selection.ranges, sel2.ranges, True, _quick_check)
+            intersect = _ranges_overlap(
+                self._selection.ranges, sel2.ranges, flattened_out=True, quick_check=_quick_check
+            )
         else:
             # Selection ranges are 0-based. We must bring gids to 0-based
             base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")

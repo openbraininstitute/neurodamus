@@ -231,7 +231,9 @@ class SonataReader:
         try:
             from mpi4py import MPI
 
-            hdf5_reader = libsonata.make_collective_reader(MPI.COMM_WORLD, False, True)
+            hdf5_reader = libsonata.make_collective_reader(
+                MPI.COMM_WORLD, collective_metadata=False, collective_transfer=True
+            )
         except ModuleNotFoundError:
             hdf5_reader = libsonata.Hdf5Reader()
 
