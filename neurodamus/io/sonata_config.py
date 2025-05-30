@@ -33,7 +33,7 @@ class SonataConfig:
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
 
-        with open(config_path) as fd:
+        with open(config_path, encoding="utf-8") as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
             else:

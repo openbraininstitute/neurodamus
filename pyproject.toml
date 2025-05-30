@@ -146,7 +146,6 @@ ignore = [
     "N806",   # non-lowercase-variable-in-function
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
-    "PLW1514",# unspecified-encoding
     "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
     "PLW2901",# redefined-loop-name

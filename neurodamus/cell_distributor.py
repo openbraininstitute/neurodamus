@@ -707,7 +707,7 @@ class LoadBalance:
         )
 
         # Write the new cx file since Neuron needs it to do CPU assignment
-        with open(new_cx_filename, "w") as newfile:
+        with open(new_cx_filename, "w", encoding="utf-8") as newfile:
             self._write_msdat_dict(newfile, cx_other, target_gids)
         # register
         self._cx_targets.add(target_spec.simple_name)
@@ -743,7 +743,7 @@ class LoadBalance:
         if not cxpath.is_file():
             log_verbose("  - cxpath doesnt exist: %s", cxpath)
             return False
-        with open(cxpath) as f:
+        with open(cxpath, encoding="utf-8") as f:
             cx_saved = cls._read_msdat(f)
         if not set(cx_saved.keys()) >= set(target_gids):
             log_verbose("  - Not all GIDs in target %s %s", set(cx_saved.keys()), set(target_gids))
@@ -799,7 +799,7 @@ class LoadBalance:
 
         all_ranks_cx = MPI.py_gather(ostring.getvalue(), 0)
         if MPI.rank == 0:
-            with open(out_filename, "w") as fp:
+            with open(out_filename, "w", encoding="utf-8") as fp:
                 fp.write(f"1\n{cell_distributor.total_cells}\n")
                 fp.writelines(all_ranks_cx)
 

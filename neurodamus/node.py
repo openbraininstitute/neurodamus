@@ -198,7 +198,7 @@ class CircuitManager:
         # populations_offset is necessary in output_path
         output_path = SimConfig.populations_offset_output_path(create=True)
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.writelines(
                 "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
                 for alias, pop in alias_pop.items()
@@ -234,7 +234,7 @@ class CircuitManager:
         pop_offsets = {}
         alias_pop = {}
         virtual_pop_offsets = {}
-        with open(file_path or SimConfig.populations_offset_restore_path()) as f:
+        with open(file_path or SimConfig.populations_offset_restore_path(), encoding="utf-8") as f:
             for line in f:
                 pop, offset, alias = line.strip().split("::")
                 pop = pop or None
@@ -1777,7 +1777,7 @@ class Neurodamus(Node):
         for i in range(ncycles):
             log_verbose(f"files_{i}.dat")
             filename = ospath.join(coreneuron_datadir, f"files_{i}.dat")
-            with open(filename) as fd:
+            with open(filename, encoding="utf-8") as fd:
                 first_line = fd.readline()
                 nlines = int(fd.readline())
                 for _ in range(nlines):
@@ -1785,7 +1785,7 @@ class Neurodamus(Node):
                     cn_entries.append(line)
 
         cnfilename = ospath.join(coreneuron_datadir, "files.dat")
-        with open(cnfilename, "w") as cnfile:
+        with open(cnfilename, "w", encoding="utf-8") as cnfile:
             cnfile.write(first_line)
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
@@ -2024,5 +2024,5 @@ class Neurodamus(Node):
     @staticmethod
     @run_only_rank0
     def _touch_file(file_name):
-        with open(file_name, "a"):
+        with open(file_name, "a", encoding="utf-8"):
             os.utime(file_name, None)

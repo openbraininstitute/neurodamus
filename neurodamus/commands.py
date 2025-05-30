@@ -133,10 +133,10 @@ def show_exception_abort(err_msg, exc_info):
     if err_file.exists():
         return
 
-    with open(err_file, "a") as f:
+    with open(err_file, "a", encoding="utf-8") as f:
         f.write(str(MPI.rank) + "\n")
 
-    with open(err_file) as f:
+    with open(err_file, encoding="utf-8") as f:
         line0 = f.readline().strip()
 
     if str(MPI.rank) == line0:
