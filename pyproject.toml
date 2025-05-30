@@ -124,6 +124,7 @@ ignore = [
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
     "FIX001", # line-contains-fixme
+    "INP001", # implicit-namespace-package
 
     ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/108
     "D100",   # undocumented-public-module
@@ -162,8 +163,6 @@ ignore = [
     "PLR0914",# too-many-locals
     "S102",   # exec-builtin
     "SIM112", # uncapitalized-environment-variables
-    "INP001", # implicit-namespace-package
-    "PLR1702",# too-many-nested-blocks
 ]
 
 [tool.ruff.lint.isort]
