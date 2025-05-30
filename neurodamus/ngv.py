@@ -89,7 +89,12 @@ class Astrocyte(BaseCell):
         sec.insert("cadifus")
 
     def _init_endfoot_section(
-        self, sec, parent_id: int, length: float, diameter: float, R0pas: float
+        self,
+        sec,
+        parent_id: int,
+        length: float,
+        diameter: float,
+        R0pas: float,  # noqa: N803
     ) -> bool:
         """Initialize an endfoot NEURON section with custom geometry and mechanisms.
 
@@ -146,7 +151,7 @@ class Astrocyte(BaseCell):
             return self._cellref.endfeet
         return Nd.SectionList()
 
-    def add_endfeet(self, parent_ids, lengths, diameters, R0passes):
+    def add_endfeet(self, parent_ids, lengths, diameters, R0passes):  # noqa: N803
         assert len(parent_ids) == len(lengths) == len(diameters) == len(R0passes)
         self._cellref.execute_commands(
             [
@@ -205,13 +210,13 @@ class AstrocyteManager(CellDistributor):
             )
 
     @mpi_no_errors
-    def _instantiate_cells(self, _CellType=None, **_opts):
-        super()._instantiate_cells(_CellType=_CellType, **_opts)
+    def _instantiate_cells(self, cell_type=None, **_opts):
+        super()._instantiate_cells(cell_type=cell_type, **_opts)
         self._emit_resized_section_warnings()
 
     @mpi_no_errors
-    def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
-        super()._instantiate_cells_dry(CellType=CellType, skip_metypes=skip_metypes, **_opts)
+    def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
+        super()._instantiate_cells_dry(cell_type=cell_type, skip_metypes=skip_metypes, **_opts)
         self._emit_resized_section_warnings()
 
 
@@ -253,7 +258,7 @@ class NeuroGlialConnection(Connection):
         # Only store params. Glia have mechanisms pre-created
         self._synapse_params = append_recarray(self._synapse_params, params_obj)
 
-    def finalize(self, astrocyte, base_Seed, *, base_connections=None, **kw):
+    def finalize(self, astrocyte, base_seed, *, base_connections=None, **kw):
         """Bind each glia connection to synapses in connections target cells via
         the assigned unique gid.
         """
@@ -310,7 +315,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
         for syn_params in syns_params:
             cur_conn.add_synapse(None, syn_params)
 
-    def finalize(self, base_Seed=0, *_):
+    def finalize(self, base_seed=0, *_):
         """Instantiate connections to the simulator.
 
         This is a two-step process:
@@ -327,7 +332,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
         logging.info("(RANK 0) Created %d Virtual GIDs for synapses.", total_created)
 
         super().finalize(
-            base_Seed,
+            base_seed,
             base_connections=None,
             conn_type="NeuronGlia connections",
         )

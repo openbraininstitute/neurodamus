@@ -15,7 +15,9 @@ class SHMUtil:
     nnodes = -1
 
     @staticmethod
-    def __set_node_info(MPI):  # TODO: Replace with MPI SHM communicator
+    def _set_node_info():  # TODO: Replace with MPI SHM communicator
+        from neurodamus.core import MPI
+
         shmdir = SHMUtil.get_datadir_shm("/.__pydamus_nodeinfo_sync")
         path = os.path.join(shmdir, str(MPI.rank))
 
@@ -67,7 +69,7 @@ class SHMUtil:
 
         If MPI ranks can't be associated with a node, return `None`.
         """
-        from . import MPI, Neuron
+        from neurodamus.core import MPI, Neuron
 
         # If we do not have the SHM environment, we can't even know
         # how many nodes there are. Just return `None`.
@@ -76,7 +78,7 @@ class SHMUtil:
 
         # Define the node ID for the rank and number of nodes
         if SHMUtil.nnodes < 0:
-            SHMUtil.__set_node_info(MPI)
+            SHMUtil._set_node_info()
 
         # Aggregate the individual memory consumption per node
         process = psutil.Process(os.getpid())

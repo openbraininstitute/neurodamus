@@ -84,7 +84,7 @@ class SynapseParameters:
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @staticmethod
-    def _constrained_hill(K_half, y):
+    def _constrained_hill(K_half, y):  # noqa: N803
         """Constrained Hill function for scaling synaptic parameters.
 
         Note: it is iused only in scale_U_param. It is its own function

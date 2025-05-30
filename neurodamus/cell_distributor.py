@@ -272,12 +272,12 @@ class CellManagerBase(_CellManager):
         self._local_nodes.clear_cell_info()
 
     @mpi_no_errors
-    def _instantiate_cells(self, _CellType=None, **_opts):
-        CellType = _CellType or self.CellType
+    def _instantiate_cells(self, cell_type=None, **_opts):
+        cell_type = cell_type or self.CellType
         if SimConfig.crash_test_mode:
-            CellType = PointCell
+            cell_type = PointCell
 
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Instantiating cells... (%d in Rank 0)", len(self._local_nodes))
@@ -289,18 +289,18 @@ class CellManagerBase(_CellManager):
             gid_info_items = ProgressBar.iter(self._local_nodes.items(), len(self._local_nodes))
 
         for gid, cell_info in gid_info_items:
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
     @mpi_no_errors
-    def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
+    def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
 
         Args:
-            CellType: The cell type class
+            cell_type: The cell type class
             full_memory_counter: The memory counter to be updated for each metype
         """
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
@@ -338,7 +338,7 @@ class CellManagerBase(_CellManager):
                 metype_n_cells = 0
             if metype_n_cells >= MAX_CELLS:
                 continue
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
             prev_metype = metype
             metype_n_cells += 1
@@ -554,19 +554,19 @@ class CellDistributor(CellManagerBase):
             return super()._instantiate_cells(self.CellType)
 
         conf = self._circuit_conf
-        CellType = Cell_V6
+        cell_type = Cell_V6
         if conf.MorphologyType:
-            CellType.morpho_extension = conf.MorphologyType
+            cell_type.morpho_extension = conf.MorphologyType
 
         log_verbose("Loading metypes from: %s", conf.METypePath)
         log_verbose(
-            "Loading '%s' morphologies from: %s", CellType.morpho_extension, conf.MorphologyPath
+            "Loading '%s' morphologies from: %s", cell_type.morpho_extension, conf.MorphologyPath
         )
         if dry_run_stats_obj is None:
-            super()._instantiate_cells(CellType, **opts)
+            super()._instantiate_cells(cell_type, **opts)
         else:
             cur_metypes_mem = dry_run_stats_obj.metype_memory
-            memory_dict = self._instantiate_cells_dry(CellType, cur_metypes_mem, **opts)
+            memory_dict = self._instantiate_cells_dry(cell_type, cur_metypes_mem, **opts)
             log_verbose("Updating global dry-run memory counters with %d items", len(memory_dict))
             cur_metypes_mem.update(memory_dict)
 

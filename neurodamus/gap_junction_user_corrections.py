@@ -146,11 +146,11 @@ def _deterministic_stoch(node_manager):
                 sec.deterministic_StochKv1 = 1
 
 
-def _perform_remove_channels(node_manager, Mechanisms: list):
+def _perform_remove_channels(node_manager, mechanisms: list):
     """Remove certain mechanisms from the cell"""
     for cell in node_manager.cells:
         for sec in cell._cellref.all:
-            for mec in Mechanisms:
+            for mec in mechanisms:
                 if mec in dir(sec(0.5)):
                     sec.uninsert(mec)
 
