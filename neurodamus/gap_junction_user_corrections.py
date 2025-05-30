@@ -164,8 +164,8 @@ def _update_gpas(node_manager, filename, gjc, correction_iteration_load):
     processed_cells = 0
     try:
         g_pas_file = h5py.File(filename, "r")
-    except OSError:
-        raise ConfigurationError(f"Error opening g_pas file {filename}")
+    except OSError as e:
+        raise ConfigurationError(f"Error opening g_pas file {filename}") from e
     raw_cell_gids = node_manager.local_nodes.raw_gids()
     offset = node_manager.local_nodes.offset
     if f"g_pas/{gjc}" not in g_pas_file:
@@ -200,8 +200,9 @@ def _load_holding_ic(node_manager, filename, gjc):
     holding_ic_per_gid = {}
     try:
         holding_per_gid = h5py.File(filename, "r")
-    except OSError:
-        raise ConfigurationError(f"Error opening MEComboInfo file {filename}")
+    except OSError as e:
+        raise ConfigurationError(f"Error opening MEComboInfo file {filename}") from e
+
     if f"holding_per_gid/{gjc}" not in holding_per_gid:
         logging.warning("Data for holding_per_gid/%s not found in %s", gjc, holding_per_gid)
         return holding_ic_per_gid
@@ -232,8 +233,8 @@ def _find_holding_current(node_manager, filename):
 
     try:
         v_per_gid = h5py.File(filename, "r")
-    except OSError:
-        raise ConfigurationError(f"Error opening voltage file {filename}")
+    except OSError as e:
+        raise ConfigurationError(f"Error opening voltage file {filename}") from e
 
     logging.info("Inject voltage clamps without disabling holding current!")
 

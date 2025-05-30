@@ -354,8 +354,9 @@ class _SimConfig:
             )
         try:
             config_parser = SonataConfig(config_file)
-        except Exception as e:  # noqa: BLE001
-            raise ConfigurationError(f"Failed to initialize SonataConfig with {config_file}: {e}")
+        except Exception as e:
+            msg = f"Failed to initialize SonataConfig with {config_file}"
+            raise ConfigurationError(msg) from e
         return config_parser
 
     @classmethod
@@ -486,10 +487,10 @@ def _check_params(
         val = data.get(param)
         try:
             val and float(val)
-        except ValueError:
+        except ValueError as e:
             raise ConfigurationError(
                 f"simulation config param must be numeric: [{section_name}] {param}"
-            )
+            ) from e
     for param in non_negatives:
         val = data.get(param)
         if val and float(val) < 0:

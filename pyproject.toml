@@ -152,7 +152,6 @@ ignore = [
     "C901",   # complex-structure
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
-    "B904",   # raise-without-from-inside-except
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "PLR0912",# too-many-branches

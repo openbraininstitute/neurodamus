@@ -163,8 +163,9 @@ class Report:
                 for synapse in synapse_list:
                     var_ref = getattr(synapse, "_ref_" + variable)
                     self.report.AddVar(var_ref, synapse.synapseID, gid, pop_name)
-            except AttributeError:
-                raise AttributeError(f"Variable '{variable}' not found at '{synapse.hname()}'.")
+            except AttributeError as e:
+                msg = f"Variable '{variable}' not found at '{synapse.hname()}'."
+                raise AttributeError(msg) from e
 
     def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
         """Handle both intrinsic currents and point processes for summation report."""
