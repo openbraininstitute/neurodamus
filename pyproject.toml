@@ -151,12 +151,7 @@ ignore = [
     "ERA001", # commented-out-code
     "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
-    "C901",   # complex-structure
     "G001",   # logging-string-format
-    "PLR0915",# too-many-statements
-    "FURB189",# subclass-builtin
-    "PLR0912",# too-many-branches
-    "PLR0914",# too-many-locals
 ]
 
 [tool.ruff.lint.isort]

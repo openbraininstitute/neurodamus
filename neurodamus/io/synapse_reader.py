@@ -271,7 +271,7 @@ class SonataReader:
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
             self._preload_data_chunk(gids[start:end], minimal_mode)
 
-    def _preload_data_chunk(self, gids, minimal_mode=False):
+    def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}

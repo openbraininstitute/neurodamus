@@ -140,7 +140,7 @@ class SonataConfig:
 
         return {"Conditions": conditions}
 
-    def _extract_circuits_info(self) -> dict:
+    def _extract_circuits_info(self) -> dict:  # noqa: C901
         """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
         return a dictionary of circuit info as:
         {

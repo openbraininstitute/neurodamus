@@ -53,7 +53,7 @@ non_stochastic_mechs = [
 stochastic_mechs = ["StochKv", "StochKv2", "StochKv3"]
 
 
-def load_user_modifications(gj_manager):
+def load_user_modifications(gj_manager):  # noqa: C901
     """Apply user modifications on gap junction connections, designed by @Oren Amsalem
     The modification parameters should be in the "beta_features" section of
     the simulation config file.

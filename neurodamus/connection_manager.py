@@ -561,7 +561,7 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
-    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):
+    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):  # noqa: PLR0914
         """A generator which loads synapse data and yields tuples(sgid, tgid, synapses)
 
         Args:
@@ -659,7 +659,7 @@ class ConnectionManagerBase:
                 pathway_repr = f"Pathway {src_target.name} -> {dst_target.name}"
             logging.info(" * %s. Created %d connections", pathway_repr, all_created)
 
-    def _get_conn_stats(self, dst_target, src_target=None):
+    def _get_conn_stats(self, dst_target, src_target=None):  # noqa: PLR0914
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:

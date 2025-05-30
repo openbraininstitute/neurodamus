@@ -468,7 +468,7 @@ def find_input_file(filepath, search_paths=(), alt_filename=None):
     return file_found
 
 
-def _check_params(
+def _check_params(  # noqa: C901
     section_name,
     data,
     required_fields,
@@ -1153,7 +1153,7 @@ def get_debug_cell_gids(cli_options):
         return gids
 
 
-def check_connections_configure(sim_config, target_manager):
+def check_connections_configure(sim_config, target_manager):  # noqa: C901, PLR0912, PLR0915
     """Check connection block configuration and raise warnings for:
     1. Global variable should be set in the Conditions block,
     2. Connection overriding chains (t=0)

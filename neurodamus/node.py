@@ -415,7 +415,7 @@ class Node:
     # -
     @mpi_no_errors
     @timeit(name="Compute LB")
-    def compute_load_balance(self):
+    def compute_load_balance(self):  # noqa: C901, PLR0912
         """In case the user requested load-balance this function instantiates a
         CellDistributor to split cells and balance those pieces across the available CPUs.
         """
@@ -904,7 +904,7 @@ class Node:
 
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
-    def enable_reports(self):
+    def enable_reports(self):  # noqa: C901, PLR0912
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 

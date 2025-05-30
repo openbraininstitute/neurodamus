@@ -334,7 +334,7 @@ def vector_rotate_translate(points, transform_matrix):
     return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
 
 
-class METypeManager(dict):
+class METypeManager(dict):  # noqa: FURB189
     """Map to hold specific METype info and provide retrieval by gid"""
 
     def insert(self, gid, morph_name, *me_data, **kwargs):

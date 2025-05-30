@@ -157,7 +157,16 @@ class SignalSource:
         self._add_point(self._base_amp)
         return self
 
-    def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):  # noqa: N803
+    def add_shot_noise(  # noqa: PLR0914
+        self,
+        tau_D,  # noqa: N803
+        tau_R,  # noqa: N803
+        rate,
+        amp_mean,
+        amp_var,
+        duration,
+        dt=0.25,
+    ):
         """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
         bi-exponential impulse response: https://paulbourke.net/miscellaneous/functions/
 
