@@ -153,7 +153,6 @@ ignore = [
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
     "B904",   # raise-without-from-inside-except
-    "N815",   # mixed-case-variable-in-class-scope
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
     "PLR0912",# too-many-branches

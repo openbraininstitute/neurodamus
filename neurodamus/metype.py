@@ -230,7 +230,7 @@ class PointCell:
 
     CellRef = property(lambda self: self)
     CCell = property(lambda self: self)
-    nSecAll = property(lambda _self: 1)
+    nSecAll = property(lambda _self: 1)  # noqa: N815
     all = property(lambda self: self.soma)
     input_resistance = property(lambda _self: 1)
 

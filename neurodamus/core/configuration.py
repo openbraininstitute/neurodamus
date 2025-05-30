@@ -94,7 +94,7 @@ class CliOptions(ConfigT):
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    nrnPath = ConfigT.REQUIRED
+    nrnPath = ConfigT.REQUIRED  # noqa: N815
     CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None
