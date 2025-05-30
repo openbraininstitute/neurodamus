@@ -354,7 +354,7 @@ class Node:
         self._target_manager = TargetManager(self._run_conf)
         self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
-            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
+            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
         self._dump_cell_state_gids = get_debug_cell_gids(options)
         self._core_replay_file = ""
