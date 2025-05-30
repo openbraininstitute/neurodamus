@@ -154,7 +154,6 @@ ignore = [
     "G001",   # logging-string-format
     "N803",   # invalid-argument-name
     "B904",   # raise-without-from-inside-except
-    "T201",   # print
     "N815",   # mixed-case-variable-in-class-scope
     "PLR0915",# too-many-statements
     "FURB189",# subclass-builtin
