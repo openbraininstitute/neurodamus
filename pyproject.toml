@@ -115,6 +115,7 @@ ignore = [
     "S101",    # Use of `assert` detected
     "RET504", # unnecessary-assign
     "S606",   # start-process-with-no-shell
+    "PLW2901",# redefined-loop-name
 
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
@@ -150,7 +151,6 @@ ignore = [
     "ERA001", # commented-out-code
     "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
-    "PLW2901",# redefined-loop-name
     "C901",   # complex-structure
     "G001",   # logging-string-format
     "PLR0915",# too-many-statements

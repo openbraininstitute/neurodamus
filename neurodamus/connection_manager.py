@@ -234,7 +234,7 @@ class ConnectionManagerBase:
         name = self.__class__.__name__
         return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
-    def open_edge_location(self, syn_source, circuit_conf, **kw):
+    def open_edge_location(self, syn_source, _circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
         pop_name = pop[0] if pop else None
         return self.open_synapse_file(edge_file, pop_name, **kw)

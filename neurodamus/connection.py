@@ -687,7 +687,7 @@ class SpontMinis(ArtificialStim):
     def has_data(self):
         return self.rate_vec is not None
 
-    def create_on(self, conn, sec, position, syn_obj, syn_params, base_seed, _rate_vec=None):
+    def create_on(self, conn, sec, position, syn_obj, syn_params, _base_seed, _rate_vec=None):
         """Inserts a SpontMini stim into the given synapse"""
         rate_vec = _rate_vec or self.rate_vec  # allow override (private API)
         if GlobalConfig.debug_conn in ([conn.tgid], [conn.sgid, conn.tgid]):
