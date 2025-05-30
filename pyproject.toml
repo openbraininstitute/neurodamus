@@ -161,7 +161,6 @@ ignore = [
     "FURB189",# subclass-builtin
     "PLR0912",# too-many-branches
     "PLR0914",# too-many-locals
-    "S102",   # exec-builtin
     "SIM112", # uncapitalized-environment-variables
 ]
 
