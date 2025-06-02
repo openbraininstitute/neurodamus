@@ -31,6 +31,10 @@ class BaseCell:
     def re_init_rng(self, ion_seed):
         pass
 
+    def connect2target(self, target_pp=None):
+        """Connects empty cell to target"""
+        return Nd.NetCon(self._cellref, target_pp)
+
 
 class METype(BaseCell):
     """Class representing an METype. Will instantiate a Hoc-level cell as well"""
