@@ -42,7 +42,7 @@ def get_section_index(cell, section):
 
     # Extract the index from the section name
     try:
-        index_str = section_name.split("[")[-1].rstrip("]")
+        index_str = section_name.split("[", maxsplit=1)[-1].rstrip("]")
         section_index = int(index_str)
     except ValueError:
         logging.warning("Error while getting section index %s", index_str)

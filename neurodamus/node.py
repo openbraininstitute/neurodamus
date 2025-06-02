@@ -40,7 +40,6 @@ from .core.configuration import (
     GlobalConfig,
     SimConfig,
     _SimConfig,
-    find_input_file,
     get_debug_cell_gids,
     make_circuit_config,
 )
@@ -637,8 +636,6 @@ class Node:
 
         edge_file, *pop = conf.get("nrnPath").split(":")
         edge_pop = pop[0] if pop else None
-        if not os.path.isabs(edge_file):
-            edge_file = find_input_file(edge_file)
         src, dst = edge_node_pop_names(edge_file, edge_pop)
 
         logging.info("Processing edge file %s, pop: %s", edge_file, edge_pop)
@@ -692,8 +689,6 @@ class Node:
 
         ppath, *pop_name = projection["Path"].split(":")
         edge_pop_name = pop_name[0] if pop_name else None
-        if not os.path.exists(ppath):
-            ppath = self._find_projection_file(ppath)
 
         logging.info("Processing Edge file: %s", ppath)
 
@@ -724,22 +719,6 @@ class Node:
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
-    # -
-    def _find_projection_file(self, proj_path):
-        """Determine the full path to a projection.
-        The "Path" might specify the filename. If not, it will attempt the old 'proj_nrn.h5'
-        """
-        return self._find_config_file(proj_path, ("ProjectionPath"), alt_filename="proj_nrn.h5")
-
-    def _find_config_file(self, filepath, path_conf_entries=(), alt_filename=None):
-        search_paths = [
-            self._run_conf[path_key]
-            for path_key in path_conf_entries
-            if self._run_conf.get(path_key)
-        ]
-        return find_input_file(filepath, search_paths, alt_filename)
-
-    # -
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
     def enable_stimulus(self):
@@ -809,7 +788,6 @@ class Node:
     def _enable_replay(
         self, source, target, stim_conf, tshift=0.0, delay=0.0, connectivity_type=None
     ):
-        spike_filepath = find_input_file(stim_conf["SpikeFile"])
         ptype_cls = EngineBase.connection_types.get(connectivity_type)
         src_target = self.target_manager.get_target(source)
         dst_target = self.target_manager.get_target(target)
@@ -820,7 +798,7 @@ class Node:
         for src_pop in src_target.population_names:
             try:
                 log_verbose("Loading replay spikes for population '%s'", src_pop)
-                spike_manager = SpikeManager(spike_filepath, tshift, src_pop)  # Disposable
+                spike_manager = SpikeManager(stim_conf["SpikeFile"], tshift, src_pop)  # Disposable
             except MissingSpikesPopulationError:
                 logging.info("  > No replay for src population: '%s'", src_pop)
                 continue

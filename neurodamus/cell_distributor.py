@@ -25,7 +25,6 @@ from .core.configuration import (
     LoadBalanceMode,
     LogLevel,
     SimConfig,
-    find_input_file,
 )
 from .core.nodeset import NodeSet
 from .io import cell_readers
@@ -163,8 +162,6 @@ class CellManagerBase(_CellManager):
         return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
-        if not os.path.isabs(circuit_conf.CellLibraryFile):
-            circuit_conf.CellLibraryFile = find_input_file(circuit_conf.CellLibraryFile)
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
