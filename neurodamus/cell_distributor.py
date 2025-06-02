@@ -166,6 +166,7 @@ class CellManagerBase(_CellManager):
         if not os.path.isabs(circuit_conf.CellLibraryFile):
             circuit_conf.CellLibraryFile = find_input_file(circuit_conf.CellLibraryFile)
         if not pop:  # Last attempt to get pop name
+            breakpoint() # XXX BREAKPOINT
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
         self._population_name = pop

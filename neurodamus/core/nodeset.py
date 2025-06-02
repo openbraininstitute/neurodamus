@@ -195,6 +195,7 @@ class NodeSet(_NodeSetBase):
                 In v5 and v6 values are METypeItem's
 
         """
+        breakpoint() # XXX BREAKPOINT
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
         self._gid_info = {}
@@ -261,14 +262,6 @@ class SelectionNodeSet(_NodeSetBase):
     def raw_gids(self):
         return np.add(self._selection.flatten(), 1, dtype="uint32")
 
-    def raw_gids_iter(self):
-        for r_start, r_end in self._selection.ranges:
-            yield from range(r_start + 1, r_end + 1)
-
-    def final_gids_iter(self):
-        for gid in self.raw_gids_iter():
-            yield gid + self._offset
-
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
         """Computes intersection of two nodesets."""
         # NOTE: A _quick_check param can be set to True so that we effectively only check for
@@ -280,6 +273,7 @@ class SelectionNodeSet(_NodeSetBase):
         if sel2:
             intersect = _ranges_overlap(self._selection.ranges, sel2.ranges, True, _quick_check)
         else:
+            breakpoint() # XXX BREAKPOINT
             # Selection ranges are 0-based. We must bring gids to 0-based
             base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
             intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
