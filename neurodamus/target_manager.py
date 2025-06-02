@@ -7,7 +7,7 @@ import libsonata
 import numpy as np
 
 from .core import NeuronWrapper as Nd
-from .core.configuration import ConfigurationError, find_input_file
+from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
 from .utils.logging import log_verbose
@@ -119,7 +119,7 @@ class TargetManager:
 
         nodes_file = circuit.get("CellLibraryFile")
         if nodes_file and _is_sonata_file(nodes_file) and self._nodeset_reader:
-            self._nodeset_reader.register_node_file(find_input_file(nodes_file))
+            self._nodeset_reader.register_node_file(nodes_file)
 
     @classmethod
     def create_global_target(cls):
