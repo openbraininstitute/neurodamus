@@ -561,7 +561,13 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
-    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):  # noqa: PLR0914
+    def _iterate_conn_params(  # noqa: PLR0914
+        self,
+        src_target,
+        dst_target,
+        show_progress=None,
+        mod_override=None,
+    ):
         """A generator which loads synapse data and yields tuples(sgid, tgid, synapses)
 
         Args:
