@@ -8,6 +8,17 @@ from enum import EnumMeta
 import numpy as np
 
 
+class classproperty:  # noqa: N801
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)
+
+    def __set__(self, instance, value):
+        raise AttributeError("Class properties can't be override")
+
+
 def dict_filter(dic, filter_):
     """Creates a generator for filtering elements in a dictionary"""
     return ((key, val) for key, val in dic.items() if filter_(key, val))
