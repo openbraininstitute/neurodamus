@@ -55,22 +55,6 @@ addopts = [
 ]
 markers = ["slow: marks tests as slow"]
 
-[tool.flake8]
-exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
-extend-ignore = [
-    "E127",  # continuation line over-indented for visual indent
-    "E203",  # whitespace before ':'
-    "E221",  # multiple spaces before operator
-    "E226",  # missing whitespace around arithmetic operator
-    "E701",  # multiple statements on one line (colon)
-    "E731",  # do not assign a lambda expression, use a def
-    "PT001", # use @pytest.fixture over @pytest.fixture()
-    "PT023", # use @pytest.mark.foo over @pytest.mark.foo()
-    "W503",  # line break before binary operator
-    "W504",  # line break after binary operator
-]
-max-line-length = 100
-
 [tool.coverage.run]
 branch = false
 parallel = false
