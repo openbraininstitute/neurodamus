@@ -422,52 +422,6 @@ class _SimConfig:
 SimConfig = _SimConfig()
 
 
-def find_input_file(filepath, search_paths=(), alt_filename=None):
-    """Determine the full path of input files.
-
-    Relative paths are built from Run configuration entries, and never pwd.
-    In case filepath points to a file, alt_filename is disregarded
-
-    Args:
-        filepath: The relative or absolute path of the file to find
-        path_conf_entries: (tuple) Run configuration entries to build the absolute path
-        alt_filename: When the filepath is a directory, attempt finding a given filename
-    Returns:
-        The absolute path to the data file
-    Raises:
-        (ConfigurationError) If the file could not be found
-    """
-    search_paths += (SimConfig.current_dir, SimConfig.simulation_config_dir)
-
-    def try_find_in(fullpath):
-        if os.path.isfile(fullpath):
-            return fullpath
-        if not os.path.exists(fullpath):
-            return None
-        if alt_filename is not None:
-            alt_file_path = os.path.join(fullpath, alt_filename)
-            if os.path.isfile(alt_file_path):
-                return alt_file_path
-        logging.warning("Deprecated: Data source found is not a file")
-        return fullpath
-
-    if os.path.isabs(filepath):
-        # if it's absolute path then can be used immediately
-        file_found = try_find_in(filepath)
-    else:
-        file_found = None
-        for path in search_paths:
-            file_found = try_find_in(os.path.join(path, filepath))
-            if file_found:
-                break
-
-    if not file_found:
-        raise ConfigurationError(f"Could not find file {filepath}")
-
-    logging.debug("data file %s path: %s", filepath, file_found)
-    return file_found
-
-
 def _check_params(  # noqa: C901
     section_name,
     data,

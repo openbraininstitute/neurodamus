@@ -13,7 +13,7 @@ import numpy as np
 
 from .connection import Connection, ReplayMode
 from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
-from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
+from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
@@ -247,9 +247,6 @@ class ConnectionManagerBase:
             edge_population: The population of the edges
             src_name: The source pop name, normally matching that of the source cell manager
         """
-        if not ospath.isabs(synapse_file):
-            synapse_file = find_input_file(synapse_file)
-            log_verbose("Relative path for edge file resolved to: %s", synapse_file)
         if not ospath.exists(synapse_file):
             raise ConfigurationError(f"Connectivity (Edge) file not found: {synapse_file}")
         if ospath.isdir(synapse_file):
