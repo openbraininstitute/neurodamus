@@ -316,17 +316,13 @@ class NodeSetReader:
         self._population_stores = {}
         self.nodesets = _load_nodesets_from_file(config_nodeset_file)
         simulation_nodesets = _load_nodesets_from_file(simulation_nodesets_file)
-        duplicate_nodesets = self.nodesets.update(simulation_nodesets)
-        if duplicate_nodesets:
+        if self.nodesets.update(simulation_nodesets):
             logging.warning("Some node set rules were replaced from %s", simulation_nodesets_file)
 
     def register_node_file(self, node_file):
         storage = libsonata.NodeStorage(node_file)
         for pop_name in storage.population_names:
             self._population_stores[pop_name] = storage
-
-    def __contains__(self, nodeset_name):
-        return nodeset_name in self.nodesets.names
 
     @property
     def names(self):
