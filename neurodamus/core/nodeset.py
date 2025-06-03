@@ -195,7 +195,6 @@ class NodeSet(_NodeSetBase):
                 In v5 and v6 values are METypeItem's
 
         """
-        breakpoint() # XXX BREAKPOINT
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
         self._gid_info = {}
@@ -269,14 +268,12 @@ class SelectionNodeSet(_NodeSetBase):
         if self.population_name != other.population_name:
             return []
 
-        sel2 = getattr(other, "_selection", None)
-        if sel2:
-            intersect = _ranges_overlap(self._selection.ranges, sel2.ranges, True, _quick_check)
-        else:
-            breakpoint() # XXX BREAKPOINT
-            # Selection ranges are 0-based. We must bring gids to 0-based
-            base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
-            intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
+        # Note: if a libsonata.Selection is ever needed, plus use the & operator
+        assert not hasattr(other, "_selection")
+
+        # Selection ranges are 0-based. We must bring gids to 0-based
+        base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
+        intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
 
         if _quick_check:
             return intersect
@@ -290,56 +287,6 @@ class SelectionNodeSet(_NodeSetBase):
 
     def intersects(self, other):
         return self.intersection(other, _quick_check=True)
-
-
-def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dtype="uint32"):
-    """Detect overlaps between two lists of ranges.
-    This is especially important for nodesets since we can access the ranges in no time
-    without the need to flatten and consume GBs of memory
-
-    Args:
-        ranges1: The first list of ranges
-        ranges2: The second list of ranges
-        flattened_out (bool): Whether to return the overlaps as a flat list. Otherwise range list
-        quick_check: Whether to short-circuit and return True if any overlap exists
-        dtype: The output dtype in case flattened_out is requested [default: "uint32"]
-    """
-    if not ranges1 or not ranges2:
-        return []
-
-    all_ranges = []
-    r1_iter = iter(ranges1)
-    r2_iter = iter(ranges2)
-    r1, r2 = next(r1_iter), next(r2_iter)
-
-    while r1 and r2:
-        if r2[0] >= r1[1]:  # r2 past over end r1. Move r1
-            r1 = next(r1_iter, None)
-            continue
-        if r2[1] <= r1[0]:  # r2 before whole range r1. Move r2
-            r2 = next(r2_iter, None)
-            continue
-
-        # Phew, finally some intersection
-        low, high = max(r1[0], r2[0]), min(r1[1], r2[1])
-        if low < high:
-            if quick_check:
-                return True
-            all_ranges.append((low, high))
-
-        # Now move the one that still has potential for more overlap without moving the other
-        if r2[1] > r1[1]:
-            r1 = next(r1_iter, None)
-        else:
-            r2 = next(r2_iter, None)
-
-    if quick_check:
-        return False  # We know it's False as quick_check returns True in the loop
-    if not flattened_out:
-        return all_ranges
-    if not all_ranges:
-        return []
-    return np.concatenate([np.arange(*r, dtype=dtype) for r in all_ranges])
 
 
 def _ranges_vec_overlap(ranges1, vector, quick_check=False):
