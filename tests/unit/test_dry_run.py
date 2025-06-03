@@ -101,7 +101,11 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {
-            (0, 0): [1, 3],
+            (0, 0): [1],
+            (1, 0): [2, 3]
+        },
+        'RingB': {
+            (0, 0): [1],
             (1, 0): [2]
         }
     }
