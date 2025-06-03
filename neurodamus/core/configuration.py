@@ -1107,7 +1107,7 @@ def get_debug_cell_gids(cli_options):
         return gids
 
 
-def check_connections_configure(sim_config, target_manager):  # noqa: C901, PLR0912, PLR0915
+def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C901, PLR0912, PLR0915
     """Check connection block configuration and raise warnings for:
     1. Global variable should be set in the Conditions block,
     2. Connection overriding chains (t=0)
@@ -1169,10 +1169,10 @@ def check_connections_configure(sim_config, target_manager):  # noqa: C901, PLR0
             conn = conn.get("_overrides")
 
     logging.info("Checking Connection Configurations")
-    all_conn_blocks = sim_config.connections.values()
+    all_conn_blocks = config.connections.values()
 
     # On a first phase process only for t=0
-    for name, conn_conf in zip(sim_config.connections, all_conn_blocks):
+    for name, conn_conf in zip(config.connections, all_conn_blocks):
         conn_conf["_name"] = name
         if float(conn_conf.get("Delay", 0)) > 0.0:
             continue
