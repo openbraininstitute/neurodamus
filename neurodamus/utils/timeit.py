@@ -245,7 +245,7 @@ TimerManager = _TimerManager()  # singleton
 
 
 # Can be used as context manager or decorator
-class timeit(ContextDecorator):
+class timeit(ContextDecorator):  # noqa: N801
     curr_path = []
 
     def __init__(self, name, verbose=True):

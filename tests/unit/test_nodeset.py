@@ -1,8 +1,10 @@
-import os
-import pytest
-from neurodamus.core.nodeset import NodeSet, _ranges_overlap, _ranges_vec_overlap
-import numpy
 import json
+
+import numpy as np
+import pytest
+
+from neurodamus.core.nodeset import NodeSet, _ranges_overlap, _ranges_vec_overlap
+from neurodamus.target_manager import NodeSetReader
 
 
 @pytest.mark.forked
@@ -45,17 +47,17 @@ def test_NodeSet_add():
 
 
 @pytest.mark.parametrize(("ranges1", "ranges2", "expected"), [
-    ([(0, 10), (20, 30)], [(8, 23), (28, 35)], numpy.array([8, 9, 20, 21, 22, 28, 29])),
+    ([(0, 10), (20, 30)], [(8, 23), (28, 35)], np.array([8, 9, 20, 21, 22, 28, 29])),
     ([(0, 10), (20, 30)], [(10, 20)], []),
-    ([(5, 10), (20, 30)], [(0, 10)], numpy.arange(5, 10)),
-    ([(5, 10), (20, 30)], [(25, 35)], numpy.arange(25, 30)),
+    ([(5, 10), (20, 30)], [(0, 10)], np.arange(5, 10)),
+    ([(5, 10), (20, 30)], [(25, 35)], np.arange(25, 30)),
     ([], [], []),
     ([], [(5, 25)], []),
     ([(0, 10), (20, 30)], [], []),
 ])
 def test_ranges_overlap(ranges1, ranges2, expected):
-    out = _ranges_overlap(ranges1, ranges2, flattened_out=True)
-    numpy.testing.assert_array_equal(out, expected)
+    out = _ranges_overlap(ranges1, ranges2)
+    np.testing.assert_array_equal(out, expected)
 
 
 @pytest.mark.parametrize(("ranges1", "vec", "expected"), [
@@ -67,7 +69,7 @@ def test_ranges_overlap(ranges1, ranges2, expected):
 ])
 def test_ranges_vec_overlap(ranges1, vec, expected):
     out = _ranges_vec_overlap(ranges1, vec)
-    numpy.testing.assert_array_equal(out, expected)
+    np.testing.assert_array_equal(out, expected)
 
 
 @pytest.fixture
@@ -103,15 +105,10 @@ def nodeset_files(tmpdir):
     with open(simulation_nodeset, 'w') as f:
         json.dump(simulation_nodesets_file, f)
 
-    yield config_nodeset, simulation_nodeset
-
-    # Delete the files after they're used
-    os.unlink(config_nodeset)
-    os.unlink(simulation_nodeset)
+    return config_nodeset, simulation_nodeset
 
 
 def test_read_nodesets_from_file(nodeset_files):
-    from neurodamus.target_manager import NodeSetReader
 
     ns_reader = NodeSetReader(*nodeset_files)
     assert ns_reader.names == {'Mosaic', 'Layer1', 'Layer2'}

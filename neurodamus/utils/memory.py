@@ -195,14 +195,14 @@ def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
 @run_only_rank0
 def export_metype_memory_usage(memory_per_metype, memory_per_metype_file):
     """Export memory per METype dictionary to a JSON file."""
-    with open(memory_per_metype_file, "w") as f:
+    with open(memory_per_metype_file, "w", encoding="utf-8") as f:
         json.dump(memory_per_metype, f, indent=4)
 
 
 @run_only_rank0
 def import_metype_memory_usage(memory_per_metype_file):
     """Import memory per METype dictionary from a JSON file."""
-    with open(memory_per_metype_file) as f:
+    with open(memory_per_metype_file, encoding="utf-8") as f:
         memory_per_metype = json.load(f)
 
     return memory_per_metype
@@ -315,14 +315,14 @@ class DryRunStats:
 
     @run_only_rank0
     def export_cell_memory_usage(self):
-        with open(self._MEMORY_USAGE_FILENAME, "w") as fp:
+        with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
             json.dump(self.metype_memory, fp, sort_keys=True, indent=4)
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
-        with open(self._MEMORY_USAGE_FILENAME) as fp:
+        with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
             self.metype_memory = json.load(fp)
 
     def collect_display_syn_counts(self):

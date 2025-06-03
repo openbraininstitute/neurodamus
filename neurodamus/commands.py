@@ -8,10 +8,10 @@ from pathlib import Path
 
 from docopt import docopt
 
-from . import Neurodamus
 from .core import MPI, OtherRankError
 from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
 from .utils.pyutils import docopt_sanitize
+from neurodamus.node import Neurodamus
 from neurodamus.utils.timeit import TimerManager
 
 
@@ -79,7 +79,7 @@ def neurodamus(args=None):
         return 1
 
     # Shall replace process with special? Don't if is special or already replaced
-    if not sys.argv[0].endswith("special") and not os.environ.get("neurodamus_special"):
+    if not sys.argv[0].endswith("special") and not os.environ.get("NEURODAMUS_SPECIAL"):
         _attempt_launch_special(config_file)
 
     # Warning control before starting the process
@@ -91,7 +91,7 @@ def neurodamus(args=None):
         os.remove(EXCEPTION_NODE_FILENAME)
 
     try:
-        Neurodamus(config_file, True, logging_level=log_level, **options).run()
+        Neurodamus(config_file, auto_init=True, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
     except ConfigurationError:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init
@@ -99,7 +99,7 @@ def neurodamus(args=None):
         return 1
     except OtherRankError:
         return 1  # no need for _mpi_abort, error is being handled by all ranks
-    except Exception:
+    except:  # noqa: E722
         show_exception_abort("Unhandled Exception. Terminating...", sys.exc_info())
         return 1
     return 0
@@ -133,10 +133,10 @@ def show_exception_abort(err_msg, exc_info):
     if err_file.exists():
         return
 
-    with open(err_file, "a") as f:
+    with open(err_file, "a", encoding="utf-8") as f:
         f.write(str(MPI.rank) + "\n")
 
-    with open(err_file) as f:
+    with open(err_file, encoding="utf-8") as f:
         line0 = f.readline().strip()
 
     if str(MPI.rank) == line0:
@@ -165,8 +165,8 @@ def _attempt_launch_special(config_file):
             "-> DO NOT USE WITH PRODUCTION RUNS"
         )
         return
-    print("::INIT:: Special available. Replacing binary...")
-    os.environ["neurodamus_special"] = "1"
+    print("::INIT:: Special available. Replacing binary...")  # noqa: T201
+    os.environ["NEURODAMUS_SPECIAL"] = "1"
     init_script = os.path.join(neurodamus_py_root, "init.py")
     os.execl(special, "-mpi", "-python", init_script, "--configFile=" + config_file, *sys.argv[2:])
 

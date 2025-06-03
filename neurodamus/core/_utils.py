@@ -42,7 +42,7 @@ def mpi_no_errors(f):
     return mpi_ok_wrapper
 
 
-class run_only_rank0:
+class run_only_rank0:  # noqa: N801
     """Decorator that makes a given func to run only in rank 0.
 
     It will broadcast results IFF the user specifies return type notation.
@@ -90,7 +90,7 @@ class SimulationProgress:
         if (current_time - self.last_time_check > 0.75) and (sim_t > 0):
             self.last_time_check = current_time
             sec_remain = (self.last_time_check - self.sim_start) * (sim_tstop / sim_t - 1)
-            print(
+            print(  # noqa: T201
                 f"\r[t={sim_t:5.2f}] Completed {sim_t * 100 / sim_tstop:2.0f}%"
                 f" ETA: {timedelta(seconds=int(sec_remain))}  ",
                 end="",

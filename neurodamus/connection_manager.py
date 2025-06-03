@@ -234,7 +234,7 @@ class ConnectionManagerBase:
         name = self.__class__.__name__
         return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
-    def open_edge_location(self, syn_source, circuit_conf, **kw):
+    def open_edge_location(self, syn_source, _circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
         pop_name = pop[0] if pop else None
         return self.open_synapse_file(edge_file, pop_name, **kw)
@@ -558,7 +558,13 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
-    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):
+    def _iterate_conn_params(  # noqa: PLR0914
+        self,
+        src_target,
+        dst_target,
+        show_progress=None,
+        mod_override=None,
+    ):
         """A generator which loads synapse data and yields tuples(sgid, tgid, synapses)
 
         Args:
@@ -656,7 +662,7 @@ class ConnectionManagerBase:
                 pathway_repr = f"Pathway {src_target.name} -> {dst_target.name}"
             logging.info(" * %s. Created %d connections", pathway_repr, all_created)
 
-    def _get_conn_stats(self, dst_target, src_target=None):
+    def _get_conn_stats(self, dst_target, src_target=None):  # noqa: PLR0914
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:

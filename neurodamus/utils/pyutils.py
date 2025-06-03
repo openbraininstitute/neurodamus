@@ -8,7 +8,7 @@ from enum import EnumMeta
 import numpy as np
 
 
-class classproperty:
+class classproperty:  # noqa: N801
     def __init__(self, getter):
         self.getter = getter
 
@@ -43,7 +43,7 @@ def docopt_sanitize(docopt_opts):
     return opts
 
 
-class WeakList(list):
+class WeakList(list):  # noqa: FURB189
     def append(self, item):
         list.append(self, weakref.ref(item, self.remove))
 
@@ -219,4 +219,4 @@ def rmtree(path):
     See:
     https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
     """  # noqa: E501
-    subprocess.call(["/bin/rm", "-rf", path])
+    subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603

@@ -36,9 +36,6 @@ def split_morphology_path(morphology_path):
 
 def contourcenter(xyz):
     """Python implementation of NEURON code: lib/hoc/import3d/import3d_sec.hoc"""
-    # xyz = xyz.astype('d')
-    # print(xyz.dtype)
-    # print(xyz[0])
     POINTS = 101
 
     points = np.vstack((np.diff(xyz[:, [X, Y]], axis=0), xyz[0, [X, Y]]))

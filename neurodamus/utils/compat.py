@@ -29,7 +29,7 @@ class Vector(array):
         return hoc_vector(self)
 
 
-class List(list):
+class List(list):  # noqa: FURB189
     """Behavior similar to Hoc List"""
 
     __slots__ = ()

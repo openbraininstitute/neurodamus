@@ -31,7 +31,7 @@ class Random123(RNG):
 
 
 # Gamma-distributed sample generator (not available in NEURON)
-def gamma(rng, a, b, N=1):
+def gamma(rng, a, b, N=1):  # noqa: N803
     """Sample N variates from a gamma distribution with parameters shape = a, scale = b
     using the NEURON random number generator rng.
     Uses the algorithm by Marsaglia and Tsang 2001.

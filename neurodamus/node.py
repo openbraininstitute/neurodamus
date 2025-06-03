@@ -197,7 +197,7 @@ class CircuitManager:
         # populations_offset is necessary in output_path
         output_path = SimConfig.populations_offset_output_path(create=True)
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.writelines(
                 "{}::{}::{}\n".format(pop or " ", pop_offsets[pop], alias or " ")
                 for alias, pop in alias_pop.items()
@@ -233,7 +233,7 @@ class CircuitManager:
         pop_offsets = {}
         alias_pop = {}
         virtual_pop_offsets = {}
-        with open(file_path or SimConfig.populations_offset_restore_path()) as f:
+        with open(file_path or SimConfig.populations_offset_restore_path(), encoding="utf-8") as f:
             for line in f:
                 pop, offset, alias = line.strip().split("::")
                 pop = pop or None
@@ -353,7 +353,7 @@ class Node:
         self._target_manager = TargetManager(self._run_conf)
         self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
-            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)
+            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
         self._dump_cell_state_gids = get_debug_cell_gids(options)
         self._core_replay_file = ""
@@ -414,7 +414,7 @@ class Node:
     # -
     @mpi_no_errors
     @timeit(name="Compute LB")
-    def compute_load_balance(self):
+    def compute_load_balance(self):  # noqa: C901, PLR0912
         """In case the user requested load-balance this function instantiates a
         CellDistributor to split cells and balance those pieces across the available CPUs.
         """
@@ -882,7 +882,7 @@ class Node:
 
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
-    def enable_reports(self):
+    def enable_reports(self):  # noqa: C901, PLR0912
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 
@@ -1145,7 +1145,9 @@ class Node:
         if corenrn_gen is None:
             corenrn_gen = SimConfig.use_coreneuron
         if corenrn_gen:
-            self._coreneuron_configure_datadir(False, SimConfig.coreneuron_direct_mode)
+            self._coreneuron_configure_datadir(
+                corenrn_restore=False, coreneuron_direct_mode=SimConfig.coreneuron_direct_mode
+            )
             self._coreneuron_write_sim_config()
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
@@ -1755,7 +1757,7 @@ class Neurodamus(Node):
         for i in range(ncycles):
             log_verbose(f"files_{i}.dat")
             filename = ospath.join(coreneuron_datadir, f"files_{i}.dat")
-            with open(filename) as fd:
+            with open(filename, encoding="utf-8") as fd:
                 first_line = fd.readline()
                 nlines = int(fd.readline())
                 for _ in range(nlines):
@@ -1763,7 +1765,7 @@ class Neurodamus(Node):
                     cn_entries.append(line)
 
         cnfilename = ospath.join(coreneuron_datadir, "files.dat")
-        with open(cnfilename, "w") as cnfile:
+        with open(cnfilename, "w", encoding="utf-8") as cnfile:
             cnfile.write(first_line)
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
@@ -1801,7 +1803,9 @@ class Neurodamus(Node):
         - linking the old coreneuron_datadir to the new one
         (in save_path or output_root)
         """
-        self._coreneuron_configure_datadir(True, SimConfig.coreneuron_direct_mode)
+        self._coreneuron_configure_datadir(
+            corenrn_restore=True, coreneuron_direct_mode=SimConfig.coreneuron_direct_mode
+        )
 
         # handle coreneuron_input movements
         src_datadir = Path(SimConfig.coreneuron_datadir_restore_path())
@@ -2002,5 +2006,5 @@ class Neurodamus(Node):
     @staticmethod
     @run_only_rank0
     def _touch_file(file_name):
-        with open(file_name, "a"):
+        with open(file_name, "a", encoding="utf-8"):
             os.utime(file_name, None)

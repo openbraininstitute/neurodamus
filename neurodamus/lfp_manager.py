@@ -33,7 +33,7 @@ class LFPManager:
         try:
             self._lfp_file = h5py.File(lfp_weights_file, "r")
         except OSError as e:
-            raise ConfigurationError(f"Error opening LFP electrodes file: {e}")
+            raise ConfigurationError("Error opening LFP electrodes file") from e
 
         # Check that the file contains the required groups for at least 1 population
         populations_found = []

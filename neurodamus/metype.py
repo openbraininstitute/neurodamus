@@ -15,7 +15,7 @@ class BaseCell:
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
 
-    def __init__(self, gid, cell_info, circuit_info):
+    def __init__(self):
         self._cellref = None
         self._ccell = None
         self.raw_gid = None
@@ -28,12 +28,12 @@ class BaseCell:
     def CCell(self):
         return self._ccell
 
+    def re_init_rng(self, ion_seed):
+        pass
+
     def connect2target(self, target_pp=None):
         """Connects empty cell to target"""
         return Nd.NetCon(self._cellref, target_pp)
-
-    def re_init_rng(self, ion_seed):
-        pass
 
 
 class METype(BaseCell):
@@ -66,7 +66,7 @@ class METype(BaseCell):
             morpho_path: path for morphologies
             meinfos: dictionary with v6 infos (if v6 circuit)
         """
-        super().__init__(gid, meinfos, None)
+        super().__init__()
         self._threshold_current = None
         self._hypAmp_current = None
         self._netcons = []
@@ -144,7 +144,7 @@ class METype(BaseCell):
             self._cellref.clear()  # cut cyclic reference
 
 
-class Cell_V6(METype):
+class Cell_V6(METype):  # noqa: N801
     __slots__ = ("local_to_global_matrix",)
 
     def __init__(self, gid, meinfo, circuit_conf):
@@ -209,7 +209,7 @@ class EmptyCell(BaseCell):
     __slots__ = ("gid",)
 
     def __init__(self, gid, cell):
-        super().__init__(gid, None, None)
+        super().__init__()
         self._cellref = cell
         self.gid = gid
 
@@ -230,7 +230,7 @@ class PointCell:
 
     CellRef = property(lambda self: self)
     CCell = property(lambda self: self)
-    nSecAll = property(lambda _self: 1)
+    nSecAll = property(lambda _self: 1)  # noqa: N815
     all = property(lambda self: self.soma)
     input_resistance = property(lambda _self: 1)
 
@@ -334,7 +334,7 @@ def vector_rotate_translate(points, transform_matrix):
     return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
 
 
-class METypeManager(dict):
+class METypeManager(dict):  # noqa: FURB189
     """Map to hold specific METype info and provide retrieval by gid"""
 
     def insert(self, gid, morph_name, *me_data, **kwargs):

@@ -269,7 +269,8 @@ class Connection(ConnectionBase):
         """
         n_synapses = len(synapses_params)
         synapse_ids = np.arange(base_id, base_id + n_synapses, dtype="uint64")
-        mask = np.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
+        # We may need to skip invalid synapses (e.g. on Axon)
+        mask = np.full(n_synapses, fill_value=True)
         for i, syn_params in enumerate(synapses_params):
             syn_point = target_manager.location_to_point(
                 self.tgid, syn_params["isec"], syn_params["ipt"], syn_params["offset"]
@@ -686,7 +687,7 @@ class SpontMinis(ArtificialStim):
     def has_data(self):
         return self.rate_vec is not None
 
-    def create_on(self, conn, sec, position, syn_obj, syn_params, base_seed, _rate_vec=None):
+    def create_on(self, conn, sec, position, syn_obj, syn_params, _base_seed, _rate_vec=None):
         """Inserts a SpontMini stim into the given synapse"""
         rate_vec = _rate_vec or self.rate_vec  # allow override (private API)
         if GlobalConfig.debug_conn in ([conn.tgid], [conn.sgid, conn.tgid]):

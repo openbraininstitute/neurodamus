@@ -157,7 +157,16 @@ class SignalSource:
         self._add_point(self._base_amp)
         return self
 
-    def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):
+    def add_shot_noise(  # noqa: PLR0914
+        self,
+        tau_D,  # noqa: N803
+        tau_R,  # noqa: N803
+        rate,
+        amp_mean,
+        amp_var,
+        duration,
+        dt=0.25,
+    ):
         """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
         bi-exponential impulse response: https://paulbourke.net/miscellaneous/functions/
 
@@ -336,7 +345,7 @@ class SignalSource:
         return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
 
     @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):
+    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # noqa: N803
         return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
 
     @classmethod
@@ -402,9 +411,9 @@ class CurrentSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
-            self.time_vec,
-            self.stim_vec,
+            stim_vec_mode=True,
+            time_vec=self.time_vec,
+            stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
         )
 
@@ -425,7 +434,7 @@ class CurrentSource(SignalSource):
                 section,
                 position,
                 self._clamps,
-                False,
+                stim_vec_mode=False,
                 amp=self._amp,
                 delay=self._delay,
                 dur=self._dur,

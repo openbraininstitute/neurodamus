@@ -84,7 +84,7 @@ Let's now try to run some tests.
 That looks good. Notice a couple of things:
 
 If you're a developer, you probably want to start with only one MPI rank. Beware of the size of the simulations, though. You probably want to solve a problem with a minimum reproducer having a couple of cells only.
-**"Special available. Replacing binary."** informs us that it detected a "special" binary and is going to use it (instead of attempting to load libnrnmech.so). If you need to disable that, set the env variable: export neurodamus_special=1
+**"Special available. Replacing binary."** informs us that it detected a "special" binary and is going to use it (instead of attempting to load libnrnmech.so). If you need to disable that, set the env variable: export NEURODAMUS_SPECIAL=1
 
 .. warning::
     NOTE: Unfortunately, for practical reasons, loading a model like neurodamus-neocortex will add neurodamus-py from the system to PYTHONPATH. While this isn't fully investigated yet, for the moment, we need to override that entry by pushing our own neurodamus-py to the top of PYTHONPATH.

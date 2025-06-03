@@ -269,12 +269,12 @@ class CellManagerBase(_CellManager):
         self._local_nodes.clear_cell_info()
 
     @mpi_no_errors
-    def _instantiate_cells(self, _CellType=None, **_opts):
-        CellType = _CellType or self.CellType
+    def _instantiate_cells(self, cell_type=None, **_opts):
+        cell_type = cell_type or self.CellType
         if SimConfig.crash_test_mode:
-            CellType = PointCell
+            cell_type = PointCell
 
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Instantiating cells... (%d in Rank 0)", len(self._local_nodes))
@@ -286,18 +286,18 @@ class CellManagerBase(_CellManager):
             gid_info_items = ProgressBar.iter(self._local_nodes.items(), len(self._local_nodes))
 
         for gid, cell_info in gid_info_items:
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
     @mpi_no_errors
-    def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
+    def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
 
         Args:
-            CellType: The cell type class
+            cell_type: The cell type class
             full_memory_counter: The memory counter to be updated for each metype
         """
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
@@ -335,7 +335,7 @@ class CellManagerBase(_CellManager):
                 metype_n_cells = 0
             if metype_n_cells >= MAX_CELLS:
                 continue
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
             prev_metype = metype
             metype_n_cells += 1
@@ -551,19 +551,19 @@ class CellDistributor(CellManagerBase):
             return super()._instantiate_cells(self.CellType)
 
         conf = self._circuit_conf
-        CellType = Cell_V6
+        cell_type = Cell_V6
         if conf.MorphologyType:
-            CellType.morpho_extension = conf.MorphologyType
+            cell_type.morpho_extension = conf.MorphologyType
 
         log_verbose("Loading metypes from: %s", conf.METypePath)
         log_verbose(
-            "Loading '%s' morphologies from: %s", CellType.morpho_extension, conf.MorphologyPath
+            "Loading '%s' morphologies from: %s", cell_type.morpho_extension, conf.MorphologyPath
         )
         if dry_run_stats_obj is None:
-            super()._instantiate_cells(CellType, **opts)
+            super()._instantiate_cells(cell_type, **opts)
         else:
             cur_metypes_mem = dry_run_stats_obj.metype_memory
-            memory_dict = self._instantiate_cells_dry(CellType, cur_metypes_mem, **opts)
+            memory_dict = self._instantiate_cells_dry(cell_type, cur_metypes_mem, **opts)
             log_verbose("Updating global dry-run memory counters with %d items", len(memory_dict))
             cur_metypes_mem.update(memory_dict)
 
@@ -704,7 +704,7 @@ class LoadBalance:
         )
 
         # Write the new cx file since Neuron needs it to do CPU assignment
-        with open(new_cx_filename, "w") as newfile:
+        with open(new_cx_filename, "w", encoding="utf-8") as newfile:
             self._write_msdat_dict(newfile, cx_other, target_gids)
         # register
         self._cx_targets.add(target_spec.simple_name)
@@ -740,7 +740,7 @@ class LoadBalance:
         if not cxpath.is_file():
             log_verbose("  - cxpath doesnt exist: %s", cxpath)
             return False
-        with open(cxpath) as f:
+        with open(cxpath, encoding="utf-8") as f:
             cx_saved = cls._read_msdat(f)
         if not set(cx_saved.keys()) >= set(target_gids):
             log_verbose("  - Not all GIDs in target %s %s", set(cx_saved.keys()), set(target_gids))
@@ -796,7 +796,7 @@ class LoadBalance:
 
         all_ranks_cx = MPI.py_gather(ostring.getvalue(), 0)
         if MPI.rank == 0:
-            with open(out_filename, "w") as fp:
+            with open(out_filename, "w", encoding="utf-8") as fp:
                 fp.write(f"1\n{cell_distributor.total_cells}\n")
                 fp.writelines(all_ranks_cx)
 
@@ -836,7 +836,7 @@ class LoadBalance:
         Results are written to file. basename.<NCPU>.dat
         """
         logging.info("Assigning Cells <-> %d CPUs [mymetis3]", self.target_cpu_count)
-        base_filename = self._cx_filename(target_name, True)
+        base_filename = self._cx_filename(target_name, basename_str=True)
         Nd.mymetis3(base_filename, self.target_cpu_count)
 
     @staticmethod
@@ -908,7 +908,7 @@ class LoadBalance:
         """Loads a load-balance info for a given target.
         NOTE: Please ensure the load balance exists or is derived before calling this function
         """
-        bal_filename = self._cx_filename(target_spec.simple_name, True)
+        bal_filename = self._cx_filename(target_spec.simple_name, basename_str=True)
         return Nd.BalanceInfo(bal_filename, MPI.rank, MPI.size)
 
     @classmethod
