@@ -8,7 +8,6 @@ import os.path
 from contextlib import contextmanager
 
 from .configuration import GlobalConfig, NeuronStdrunDefaults, SimConfig
-from neurodamus.utils.pyutils import classproperty
 
 
 #
@@ -24,7 +23,7 @@ class _Neuron:
     # No new attributes. __setattr__ can rely on it
     __slots__ = ()
 
-    @classproperty
+    @property
     def h(cls):  # noqa: N805
         """The neuron hoc interpreter, initializing if needed."""
         return cls._h or cls._init()
