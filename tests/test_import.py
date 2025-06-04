@@ -2,7 +2,6 @@
 # This file needs to be updated as new files are added/removed
 
 # ruff: noqa: F401
-# flake8: noqa
 import neurodamus.__init__
 import neurodamus.cell_distributor
 import neurodamus.commands
