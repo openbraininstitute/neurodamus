@@ -22,10 +22,10 @@ class _NeuronWrapper(_Neuron):
     _pc = None
 
     @property
-    def h(cls):  # noqa: N805
+    def h(self):
         """The neuron hoc interpreter, initializing if needed"""
-        cls._pc or cls._init()
-        return cls._h
+        self._pc or self._init()
+        return self._h
 
     @classmethod
     def _init(cls, **kwargs):
