@@ -24,9 +24,9 @@ class _Neuron:
     __slots__ = ()
 
     @property
-    def h(cls):  # noqa: N805
+    def h(self):  # noqa: N805
         """The neuron hoc interpreter, initializing if needed."""
-        return cls._h or cls._init()
+        return self._h or self._init()
 
     @classmethod
     def _init(cls, mpi=False):
