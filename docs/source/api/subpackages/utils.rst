@@ -80,7 +80,6 @@ neurodamus.utils.pyutils
    .. autosummary::
       ConfigT
       ConsoleColors
-      classproperty
       WeakList
       dict_filter
       dict_filter_map
