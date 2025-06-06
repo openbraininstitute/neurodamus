@@ -44,7 +44,6 @@ neurodamus.utils.multimap
 
    .. autosummary::
       GroupedMultiMap
-      MultiMap
 
 
 neurodamus.utils.progressbar
