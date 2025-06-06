@@ -94,11 +94,17 @@ class METype(BaseCell):
     def getThreshold(self):
         return self._threshold_current
 
+    def setThreshold(self, value):
+        self._threshold_current = value
+
     def getHypAmp(self):
         if self._hypAmp_current is None:
             logging.warning("EModel %s doesnt define HypAmp current", self._emodel_name)
             return 0
         return self._hypAmp_current
+
+    def setHypAmp(self, value):
+        self._hypAmp_current = value
 
     def connect2target(self, target_pp=None):
         """Connects MEtype cell to target
