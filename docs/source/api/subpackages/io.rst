@@ -20,7 +20,6 @@ neurodamus.io.cell\_readers
    .. rubric:: Exceptions
 
    .. autosummary::
-      CellReaderError
 
 
 neurodamus.io.synapse\_reader
