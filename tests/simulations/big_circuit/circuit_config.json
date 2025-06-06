@@ -1,0 +1,59 @@
+{
+    "version": 2,
+    "networks": {
+        "nodes": [
+            {
+                "nodes_file": "nodes_A.h5",
+                "populations": {
+                    "RingA": {
+                        "type": "biophysical",
+                        "morphologies_dir": "morphologies/swc",
+                        "biophysical_neuron_models_dir": "hoc",
+                        "alternate_morphologies": {
+                            "neurolucida-asc": "morphologies/asc"
+                        }
+                    }
+                }
+            },
+            {
+                "nodes_file": "nodes_B.h5",
+                "populations": {
+                    "RingB": {
+                        "type": "biophysical",
+                        "morphologies_dir": "morphologies/swc",
+                        "biophysical_neuron_models_dir": "hoc",
+                        "alternate_morphologies": {
+                            "neurolucida-asc": "morphologies/asc"
+                        }
+                    }
+                }
+            }
+        ],
+        "edges": [
+            {
+                "edges_file": "local_edges_A.h5",
+                "populations": {
+                    "RingA__RingA__chemical": {
+                        "type": "chemical"
+                    }
+                }
+            },
+            {
+                "edges_file": "local_edges_B.h5",
+                "populations": {
+                    "RingB__RingB__chemical": {
+                        "type": "chemical"
+                    }
+                }
+            },
+            {
+                "edges_file": "edges_AB.h5",
+                "populations": {
+                    "RingA__RingB__chemical": {
+                        "type": "chemical"
+                    }
+                }
+            }
+        ]
+    }
+}
