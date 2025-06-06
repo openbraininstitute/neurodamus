@@ -122,14 +122,6 @@ class Progress:
         # __call__ 'end' cant be False -> None
         return cls(end, start, **kw)(iterable, end or None, start)
 
-    @classmethod
-    def itervalues(cls, iterable, **kw):
-        return cls.iter(iterable.values(), len(iterable), **kw)
-
-    @classmethod
-    def iteritems(cls, iterable, **kw):
-        return cls.iter(iterable.items(), len(iterable), **kw)
-
 
 class ProgressBar(Progress):
     """ProgressBar implements a fully visual text-based representation of a progress.

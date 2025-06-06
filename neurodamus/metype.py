@@ -7,7 +7,7 @@ from os import path as ospath
 import numpy as np
 
 from .core import NeuronWrapper as Nd
-from .core.configuration import ConfigurationError, SimConfig
+from .core.configuration import SimConfig
 
 
 class BaseCell:
@@ -48,7 +48,6 @@ class METype(BaseCell):
         "_emodel_name",
         "_hypAmp_current",
         "_netcons",
-        "_syn_helper_list",
         "_synapses",
         "_threshold_current",
         "exc_mini_frequency",
@@ -71,7 +70,6 @@ class METype(BaseCell):
         self._hypAmp_current = None
         self._netcons = []
         self._synapses = None
-        self._syn_helper_list = None
         self._emodel_name = emodel
         self.exc_mini_frequency = None
         self.inh_mini_frequency = None
@@ -107,10 +105,6 @@ class METype(BaseCell):
 
     def setHypAmp(self, value):
         self._hypAmp_current = value
-
-    @staticmethod
-    def getVersion():
-        return 3
 
     def connect2target(self, target_pp=None):
         """Connects MEtype cell to target
@@ -173,23 +167,12 @@ class Cell_V6(METype):  # noqa: N801
             raise RuntimeError(msg) from e
         self._ccell = self._cellref
         self._synapses = Nd.List()
-        self._syn_helper_list = Nd.List()
         self._threshold_current = meinfos_v6.threshold_current
         self._hypAmp_current = meinfos_v6.holding_current
         self.exc_mini_frequency = meinfos_v6.exc_mini_frequency
         self.inh_mini_frequency = meinfos_v6.inh_mini_frequency
         self.local_to_global_matrix = meinfos_v6.local_to_global_matrix
         self.extra_attrs = meinfos_v6.extra_attrs
-
-    def local_to_global_coord_mapping(self, points):
-        if self.local_to_global_matrix is False:
-            raise ConfigurationError(
-                "To use local_to_global_coord_mapping please "
-                "run neurodamus with `enable_coord_mapping=True`"
-            )
-        if self.local_to_global_matrix is None:
-            raise Exception("Nodes don't provide all 3d position/rotation info")
-        return vector_rotate_translate(points, self.local_to_global_matrix)
 
     def delete_axon(self):
         self._cellref.replace_axon()
@@ -315,24 +298,6 @@ class METypeItem:
         m[:, 3] *= scale
         return m
 
-    def local_to_global_coord_mapping(self, points):
-        return vector_rotate_translate(points, self.local_to_global_matrix)
-
-
-def vector_rotate_translate(points, transform_matrix):
-    """Rotate/translate a vector of 3D points according to a transformation matrix.
-
-    Note: Rotation is done directly using the Einstein Sum method, similarly to scipy,
-        avoiding intermediate states.
-    """
-    if points.shape[0] == 0:
-        return np.array([])
-    if len(points.shape) != 2 or points.shape[1] != 3:
-        raise ValueError("Matrix of input coordinates needs 3 columns.")
-    rot_matrix = transform_matrix[None, :, :3]
-    translation = transform_matrix[:, 3]
-    return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
-
 
 class METypeManager(dict):  # noqa: FURB189
     """Map to hold specific METype info and provide retrieval by gid"""
@@ -379,9 +344,6 @@ class METypeManager(dict):  # noqa: FURB189
                 rotation=rotation,
                 add_params=add_params,
             )
-
-    def retrieve_info(self, gid):
-        return self.get(gid) or logging.warning("No info for gid %d found.", gid)
 
     @property
     def gids(self):
