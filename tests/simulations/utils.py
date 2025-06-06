@@ -102,10 +102,10 @@ def make_nodes(filename, name, count, wanted_attributes):
             ds_value = _expand_values(attr, value, count)
             dg.create_dataset(name=ds_name, data=ds_value, dtype=typ.type)
 
-        # virtual population has no attribute
-        # but group "0" is required by libsonata function open_population
-        if "0" not in dg:
-            dg.create_group("0")
+        dg = h5.create_group(f"/nodes/{name}/0/dynamics_params")
+        ds_value = _expand_values("AIS_scaler", 1.2, count)
+        dg.create_dataset(name="AIS_scaler", data=ds_value, dtype = np.float32)
+
 
 
 def make_edges(filename, edges, wanted_attributes):
