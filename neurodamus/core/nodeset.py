@@ -156,10 +156,6 @@ class _NodeSetBase:
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
 
-    @classmethod
-    def unregister_all(cls):
-        PopulationNodes.reset()
-
     def __len__(self):
         raise NotImplementedError("__len__ not implemented")
 
@@ -201,8 +197,6 @@ class NodeSet(_NodeSetBase):
         self._metadata = metadata
         if gids is not None:
             self.add_gids(gids, gid_info)
-
-    meta = property(lambda self: self._metadata)
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed"""
@@ -264,10 +258,6 @@ class SelectionNodeSet(_NodeSetBase):
     def raw_gids_iter(self):
         for r_start, r_end in self._selection.ranges:
             yield from range(r_start + 1, r_end + 1)
-
-    def final_gids_iter(self):
-        for gid in self.raw_gids_iter():
-            yield gid + self._offset
 
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
         """Computes intersection of two nodesets.
