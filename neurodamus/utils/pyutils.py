@@ -8,11 +8,6 @@ from enum import EnumMeta
 import numpy as np
 
 
-def dict_filter(dic, filter_):
-    """Creates a generator for filtering elements in a dictionary"""
-    return ((key, val) for key, val in dic.items() if filter_(key, val))
-
-
 def dict_filter_map(dic, mapp):
     """Filters a dict and converts the keys according to a given map"""
     return {mapp[key]: val for key, val in dic.items() if key in mapp}
