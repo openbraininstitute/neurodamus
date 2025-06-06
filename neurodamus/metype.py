@@ -7,7 +7,7 @@ from os import path as ospath
 import numpy as np
 
 from .core import NeuronWrapper as Nd
-from .core.configuration import ConfigurationError, SimConfig
+from .core.configuration import SimConfig
 
 
 class BaseCell:
