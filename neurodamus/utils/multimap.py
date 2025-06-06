@@ -60,14 +60,6 @@ class MultiMap(collections.abc.Mapping):
             return default
         return self._values[idx]
 
-    def get_items(self, key):
-        """An iterator over all the values of a key"""
-        idx = self.find(key)
-        for k, v in zip(self._keys[idx:], self._values[idx:]):
-            if k != key:
-                break
-            yield v
-
     def __getitem__(self, key):
         idx = self.find(key)
         if idx is None:
@@ -141,9 +133,6 @@ class GroupedMultiMap(MultiMap):
         self._keys, v_list = self._duplicates_to_list(self._keys, self._values)
         self._values = [reduce(add, subl) for subl in v_list]
         return self
-
-    def flat_values(self):
-        return reduce(self.concat, self._values)
 
     def flatten(self):
         """Transform the current Map to a plain Multimap, without groups."""
