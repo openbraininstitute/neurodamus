@@ -182,7 +182,7 @@ class NodeSet(_NodeSetBase):
     so that different population's gids dont overlap
     """
 
-    def __init__(self, gids=None, gid_info=None, **metadata):
+    def __init__(self, gids=None, gid_info=None):
         """Create a NodeSet.
 
         Args:
@@ -194,7 +194,6 @@ class NodeSet(_NodeSetBase):
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
         self._gid_info = {}
-        self._metadata = metadata
         if gids is not None:
             self.add_gids(gids, gid_info)
 
@@ -254,10 +253,6 @@ class SelectionNodeSet(_NodeSetBase):
 
     def raw_gids(self):
         return np.add(self._selection.flatten(), 1, dtype="uint32")
-
-    def raw_gids_iter(self):
-        for r_start, r_end in self._selection.ranges:
-            yield from range(r_start + 1, r_end + 1)
 
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
         """Computes intersection of two nodesets.
