@@ -82,9 +82,6 @@ class _CellManager(abc.ABC):
     @abc.abstractmethod
     def getGidListForProcessor(self): ...
 
-    def getMEType(self, gid):
-        return self.get_cell(gid)
-
     def getCell(self, gid):
         return self.get_cellref(gid)
 
