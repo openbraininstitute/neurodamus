@@ -292,24 +292,6 @@ class METypeItem:
         m[:, 3] *= scale
         return m
 
-    def local_to_global_coord_mapping(self, points):
-        return vector_rotate_translate(points, self.local_to_global_matrix)
-
-
-def vector_rotate_translate(points, transform_matrix):
-    """Rotate/translate a vector of 3D points according to a transformation matrix.
-
-    Note: Rotation is done directly using the Einstein Sum method, similarly to scipy,
-        avoiding intermediate states.
-    """
-    if points.shape[0] == 0:
-        return np.array([])
-    if len(points.shape) != 2 or points.shape[1] != 3:
-        raise ValueError("Matrix of input coordinates needs 3 columns.")
-    rot_matrix = transform_matrix[None, :, :3]
-    translation = transform_matrix[:, 3]
-    return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
-
 
 class METypeManager(dict):  # noqa: FURB189
     """Map to hold specific METype info and provide retrieval by gid"""
