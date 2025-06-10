@@ -39,6 +39,8 @@ def test_badly_formed():
     with pytest.raises(AssertionError):
         GroupedMultiMap(keys, vals)
 
+
+def test_empty():
     d = GroupedMultiMap(np.array([], "i"), [])
     assert len(d.values()) == 0
 
