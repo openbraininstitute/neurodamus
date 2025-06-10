@@ -11,7 +11,6 @@ class _EngineMeta(type):
 
     __engines = {}
     __connection_types = {}
-    __instances = {}
 
     def __init__(cls, name, bases, attrs):
         type.__init__(cls, name, bases, attrs)
