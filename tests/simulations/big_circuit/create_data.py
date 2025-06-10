@@ -16,40 +16,96 @@ from utils import Edges, make_nodes, make_edges
 
 def make_ringtest_nodes(num_ringA_nodes, num_ringB_nodes):
 
-    # sscx-v7-plasticity
-    hocs = ["hoc:cADpyr_L5TPC", "hoc:dSTUT_L2SBC", "hoc:cSTUT_L6NGC",       
-        "hoc:cADpyr_L5TPC", "hoc:cADpyr_L5TPC"
-        ]
-    mtypes = ["L5_TPC:C", "L5_LBC", "L5_NBC", "L5_TPC:B", "L5_TPC:A"]
-    etypes = ["cADpyr", "dSTUT", "cSTUT", "cADpyr", "cADpyr"]
+    # # sscx-v7-plasticity
+    # hocs = ["hoc:cADpyr_L5TPC", 
+    #         "hoc:dSTUT_L2SBC", 
+    #         "hoc:cSTUT_L6NGC",       
+    #         "hoc:cADpyr_L5TPC", 
+    #         "hoc:cADpyr_L5TPC"
+    #     ]
+    # mtypes = ["L5_TPC:C", 
+    #           "L5_LBC", 
+    #           "L5_NBC", 
+    #           "L5_TPC:B", 
+    #           "L5_TPC:A"] # 
+    # etypes = ["cADpyr", 
+    #           "dSTUT", 
+    #           "cSTUT", 
+    #           "cADpyr", 
+    #           "cADpyr"]
+    # morphologies = [
+    #     "dend-rp100428-3_idD_axon-vd110315_idE_-_Scale_x1.000_y0.975_z1.000_-_Clone_0",
+    #     "mtC050301A_idC_-_Scale_x1.000_y1.025_z1.000_-_Clone_0",
+    #     "rp110711_C3_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_1",
+    #     "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
+    #     "dend-vd110504_idA_axon-rat_20160906_E1_LH5_cell2_-_Clone_0",
+    #     ]
+    # # usecase3
+    # hocs += ["hoc:cNAC_L23BTC", 
+    #          "hoc:cNAC_L23BTC", 
+    #          "hoc:cADpyr_L2TPC"]
+    # mtypes += ["L4_PC", #  
+    #            "L4_MC", 
+    #            "L4_MC"]
+    # etypes += ["dSTUT", 
+    #            "dSTUT",
+    #             "dNAC"]
+    # morphologies += ["rr110330_C3_idA", "C210401C", "rr110330_C3_idA"]
+    # # v5_gapjunctions
+    # hocs += ["hoc:cACint209", "hoc:bIR215"]
+    # mtypes += ["L5_MC", "L5_MC"]
+    # etypes += ["cACint", "bIR"]
+    # morphologies += ["C210301C1_cor", "C290500C-I4"]
+    # # v5_sonata
+    # hocs += ["hoc:cNAC187", "hoc:bNAC219", "hoc:cADpyr229",
+    #     "hoc:cACint209", "hoc:cADpyr229"
+    #     ]
+    # mtypes += ["L1_HAC", "L1_DAC", "L23_PC", "L23_NBC", "L23_PC"]
+    # etypes += ["cNAC", "bNAC", "cADpyr", "cACint", "cADpyr"]
+    # morphologies += ["sm080908a4", "sm080902a3-2", 
+    #     "dend-C280199C-P3_axon-C220797A-P1_-_Clone_4", 
+    #     "C040600B3_-_Clone_7","dend-C090905B_axon-C220797A-P1_-_Clone_5"
+    #     ]
+    # # # ringtest
+    # hocs += ["hoc:TestCell"]
+    # mtypes += ["mTest"]
+    # etypes += ["eTest"]
+    # morphologies += ["cell_small"]
+
+    hocs = [
+            "hoc:cADpyr_L5TPC",
+            "hoc:cADpyr_L5TPC", 
+            "hoc:cSTUT_L6NGC",       
+            "hoc:cNAC_L23BTC", 
+            "hoc:TestCell",
+            "hoc:cACint209"
+            ]
+    mtypes = [
+              "L5_TPC:A",
+              "L5_TPC:B", 
+                "L5_NBC", 
+              "L4_PC",
+              "mTest",
+              "L23_NBC"
+              ] # 
+    etypes = [
+            "cADpyr",
+            "cADpyr", 
+            "cSTUT", 
+            "dSTUT",
+            "eTest",
+            "cACint"
+            ]
     morphologies = [
-        "dend-rp100428-3_idD_axon-vd110315_idE_-_Scale_x1.000_y0.975_z1.000_-_Clone_0",
-        "mtC050301A_idC_-_Scale_x1.000_y1.025_z1.000_-_Clone_0",
-        "rp110711_C3_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_1",
-        "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
         "dend-vd110504_idA_axon-rat_20160906_E1_LH5_cell2_-_Clone_0",
+        "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
+        "rp110711_C3_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_1",
+        "rr110330_C3_idA",
+        "cell_small",
+        "dend-C280199C-P3_axon-C220797A-P1_-_Clone_4"
         ]
-    # usecase3
-    hocs += ["hoc:cNAC_L23BTC", "hoc:cNAC_L23BTC", "hoc:cADpyr_L2TPC"]
-    mtypes += ["L4_PC", "L4_MC", "L4_MC"]
-    etypes += ["dSTUT", "dSTUT", "dNAC"]
-    morphologies += ["rr110330_C3_idA", "C210401C", "rr110330_C3_idA"]
-    # v5_gapjunctions
-    hocs += ["hoc:cACint209", "hoc:bIR215"]
-    mtypes += ["L5_MC", "L5_MC"]
-    etypes += ["cACint", "bIR"]
-    morphologies += ["C210301C1_cor", "C290500C-I4"]
-    # v5_sonata
-    hocs += ["hoc:cNAC187", "hoc:bNAC219", "hoc:cADpyr229",
-        "hoc:cACint209", "hoc:cADpyr229"
-        ]
-    mtypes += ["L1_HAC", "L1_DAC", "L23_PC", "L23_NBC", "L23_PC"]
-    etypes += ["cNAC", "bNAC", "cADpyr", "cACint", "cADpyr"]
-    morphologies += ["sm080908a4", "sm080902a3-2", 
-        "dend-C280199C-P3_axon-C220797A-P1_-_Clone_4", 
-        "C040600B3_-_Clone_7","dend-C090905B_axon-C220797A-P1_-_Clone_5"
-        ]
-    
+
+
     wanted = {
         "node_type_id": -1,
         "model_template": it.islice(it.cycle(hocs), num_ringA_nodes),
@@ -136,7 +192,7 @@ def make_ringtest_edges(num_ringA_nodes, num_ringB_nodes):
 
 
 num_ringA_nodes=20
-num_ringB_nodes=1000
+num_ringB_nodes=500
 
 make_ringtest_nodes(num_ringA_nodes=num_ringA_nodes, num_ringB_nodes=num_ringB_nodes)
 make_ringtest_edges(num_ringA_nodes=num_ringA_nodes, num_ringB_nodes=num_ringB_nodes)

@@ -1,0 +1,80 @@
+-------------------------------
+-------------------------------
+Running with 2 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=742.95, Min=670.69, Mean(Stdev)=706.82(36.13)
+Cell creation: 68.47 
+Run time: 48.91 
+-------------------------------
+-------------------------------
+Running with 3 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=616.62, Min=365.91, Mean(Stdev)=515.30(107.85)
+Cell creation: 48.57 
+Run time: 42.26 
+-------------------------------
+-------------------------------
+Running with 4 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=422.80, Min=382.48, Mean(Stdev)=400.98(16.79)
+Cell creation: 35.53 
+Run time: 20.81 
+-------------------------------
+-------------------------------
+Running with 5 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=363.41, Min=349.23, Mean(Stdev)=357.66(5.97)
+Cell creation: 24.07 
+Run time: 16.13 
+-------------------------------
+-------------------------------
+Running with 6 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=537.12, Min=109.39, Mean(Stdev)=296.00(148.61)
+Cell creation: 46.63 
+Run time: 35.63 
+-------------------------------
+-------------------------------
+Running with 7 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=295.47, Min=272.72, Mean(Stdev)=281.80(6.88)
+Cell creation: 17.83 
+Run time: 10.37 
+-------------------------------
+-------------------------------
+Running with 8 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=276.55, Min=251.95, Mean(Stdev)=264.92(8.90)
+Cell creation: 19.01 
+Run time: 9.48 
+-------------------------------
+-------------------------------
+Running with 9 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=282.53, Min=183.44, Mean(Stdev)=240.77(38.79)
+Cell creation: 18.04 
+Run time: 12.02 
+-------------------------------
+-------------------------------
+Running with 10 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=261.56, Min=229.27, Mean(Stdev)=246.55(11.12)
+Cell creation: 17.70 
+Run time: 8.97 
+-------------------------------
+-------------------------------
+Running with 11 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=247.20, Min=218.77, Mean(Stdev)=237.74(9.48)
+Cell creation: 13.93 
+Run time: 7.90 
+-------------------------------
+-------------------------------
+Running with 12 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=354.59, Min=101.48, Mean(Stdev)=211.19(84.52)
+Cell creation: 30.30 
+Run time: 18.16 
+-------------------------------
+-------------------------------
+Running with 13 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=212.23, Min=192.11, Mean(Stdev)=204.42(5.70)
+Cell creation: 13.22 
+Run time: 6.25 
+-------------------------------
+-------------------------------
+Running with 14 MPI rank(s)...
+Memusage (RSS) per task [MB]: Max=208.80, Min=180.88, Mean(Stdev)=196.53(10.46)
+Cell creation: 15.13 
+Run time: 6.30 
+-------------------------------
+-------------------------------
