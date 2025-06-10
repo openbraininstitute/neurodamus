@@ -86,24 +86,6 @@ class _Neuron:
         yield
         self.h.pop_section()
 
-    @classmethod
-    def run_sim(cls, t_stop, *monitored_sections, **params):
-        """A helper to run the simulation, recording the Voltage in the specified cell sections.
-
-        Args:
-            t_stop: Stop time
-            *monitored_sections: Cell sections to be probed.
-            **params: Custom simulation parameters
-
-        Returns: A simulation object
-        """
-        cls._h or cls._init()
-        sim = Simulation(**params)
-        for sec in monitored_sections:
-            sim.record_activity(sec)
-        sim.run(t_stop)
-        return sim
-
     # Properties that are not found here are get / set
     # directly in neuron.h
     def __getattr__(self, item):
@@ -183,25 +165,6 @@ class Simulation:
         for key, val in self.args.items():
             setattr(Neuron.h, key, val)
         Neuron.h.run()
-
-    @staticmethod
-    def run_continue(t_stop):
-        Neuron.h.continuerun(t_stop)
-
-    def record_activity(self, section, rel_pos=0.5):
-        if isinstance(section, Neuron.Segment):
-            segment = section
-            name = str(segment.sec)
-        else:
-            segment = section(rel_pos)
-            name = section.name()
-
-        rec_vec = Neuron.h.Vector()
-        rec_vec.record(segment._ref_v)
-        self.recordings[name] = rec_vec
-
-    def get_voltages_at(self, section):
-        return self.recordings[section.name()]
 
     def plot(self):
         try:

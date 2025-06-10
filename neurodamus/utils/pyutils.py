@@ -8,11 +8,6 @@ from enum import EnumMeta
 import numpy as np
 
 
-def dict_filter(dic, filter_):
-    """Creates a generator for filtering elements in a dictionary"""
-    return ((key, val) for key, val in dic.items() if filter_(key, val))
-
-
 def dict_filter_map(dic, mapp):
     """Filters a dict and converts the keys according to a given map"""
     return {mapp[key]: val for key, val in dic.items() if key in mapp}
@@ -66,10 +61,6 @@ class ConfigT:
         self._init(self, opt_dict)
 
     @classmethod
-    def set_defaults(cls, **opts):
-        cls._init(cls, opts)
-
-    @classmethod
     def _init(cls, obj, opts):
         for name, value in opts.items():
             if value is not None and not name.startswith("_") and hasattr(obj, name):
@@ -98,20 +89,6 @@ class ConfigT:
         return name in self._all
 
     all = property(lambda self: self._all)
-
-    @staticmethod
-    def _apply_f(obj, opts_dict):
-        for key, val in opts_dict.items():
-            setattr(obj, key, val)
-
-    def apply(self, obj, subset=None, excludes=(), **overrides):
-        """Applies the configuration to one or multiple objects (if tuple)"""
-        opts = self.as_dict(subset, excludes)
-        opts.update(overrides)
-        if not isinstance(obj, (tuple, list)):
-            obj = (obj,)
-        for o in obj:
-            self._apply_f(o, opts)
 
     def as_dict(self, subset=None, excludes=()):
         return {
@@ -164,10 +141,6 @@ class ConsoleColors:
     @classmethod
     def reset(cls):
         return cls._RESET_SEQ
-
-    @classmethod
-    def set_text_color(cls, color):
-        return cls._CHANGE_SEQ.format(color)
 
     @classmethod
     def format_text(cls, text, color, style=None):

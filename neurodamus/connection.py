@@ -112,12 +112,6 @@ class ConnectionBase:
         for syn in self._synapses:
             syn.g = new_g
 
-    def update_synapse_parameters(self, **params):
-        """A generic function to update several parameters of all synapses"""
-        for syn in self._synapses:
-            for key, val in params.items():
-                setattr(syn, key, val)
-
     def update_weights(self, weight):
         """Change the weights of the netcons generated when connecting
         the source and target gids represented in this connection
@@ -649,7 +643,7 @@ class ArtificialStim:
 class SpontMinis(ArtificialStim):
     """A class creating/holding spont minis of a connection"""
 
-    __slots__ = ("_keep_alive", "_rng_info", "rate_vec")
+    __slots__ = ("_rng_info", "rate_vec")
 
     tbins_vec = None
     """Neurodamus uses a constant rate, so tbin is always containing only 0
@@ -664,7 +658,6 @@ class SpontMinis(ArtificialStim):
         super().__init__()
         self.tbins_vec or self._cls_init()
         self._rng_info = Nd.RNGSettings()
-        self._keep_alive = []
         self.rate_vec = None
 
         if minis_spont_rate is not None:  # Allow None (used by subclass)
@@ -739,9 +732,6 @@ class SpontMinis(ArtificialStim):
 
 class InhExcSpontMinis(SpontMinis):
     """Extends SpontMinis to handle two spont rates: Inhibitory & Excitatory"""
-
-    rate_vec_inh = property(lambda self: self.rate_vec)
-    """The inhibitory spont rate vector (alias to base class .rate_vec)"""
 
     def __init__(self, spont_rate_inh, spont_rate_exc):
         super().__init__(spont_rate_inh or None)  # positive rate, otherwise None

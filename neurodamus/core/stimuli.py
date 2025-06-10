@@ -417,30 +417,6 @@ class CurrentSource(SignalSource):
             represents_physical_electrode=self._represents_physical_electrode,
         )
 
-    # Constant has a special attach_to and doesnt share any composing method
-    class Constant:
-        """Class implementing a minimal IClamp for a Constant current."""
-
-        _clamps = set()
-
-        def __init__(self, amp, duration, delay=0, represents_physical_electrode=False):
-            self._amp = amp
-            self._dur = duration
-            self._delay = delay
-            self.represents_physical_electrode = represents_physical_electrode
-
-        def attach_to(self, section, position=0.5):
-            return CurrentSource._Clamp(
-                section,
-                position,
-                self._clamps,
-                stim_vec_mode=False,
-                amp=self._amp,
-                delay=self._delay,
-                dur=self._dur,
-                represents_physical_electrode=self.represents_physical_electrode,
-            )
-
 
 class ConductanceSource(SignalSource):
     _all_sources = []
