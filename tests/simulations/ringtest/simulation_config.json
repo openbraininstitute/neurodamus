@@ -1,6 +1,7 @@
 {
     "node_sets_file": "nodesets.json",
     "network": "circuit_config.json",
+    "compartment_sets_file": "compartmentsets.json",
     "node_set": "Mosaic",
     "target_simulator": "NEURON",
     "run": {

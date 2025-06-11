@@ -1,5 +1,5 @@
 docopt
 h5py
-libsonata>=v0.1.27
+git+https://github.com/openbraininstitute/libsonata
 numpy
 

@@ -35,3 +35,7 @@ def test_get_section_index():
     mock_cell.nSecNodal = 10
     seal(mock_cell)
     assert get_section_index(mock_cell, "TestCell[0].myelin[9]") == 6 * 10 + 9
+
+
+def test_compartment_sets():
+    from libsonata import CompartmentSets
