@@ -469,7 +469,7 @@ class Node:
                 logging.warning("Allocation file not found. Generating on-the-fly.")
                 self._dry_run_stats.try_import_cell_memory_usage()
                 for circuit in self._sonata_circuits.values():
-                    if circuit.get("PopulationType") != "virtual":
+                    if circuit.get("PopulationType") == "biophysical":
                         cell_distributor = CellDistributor(
                             circuit, self._target_manager, self._run_conf
                         )
