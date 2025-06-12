@@ -85,7 +85,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
         assert rank_allocation_standard['RingB'][(1, 0)] == [2]
 
     # Test redistribution
-    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {(0, 0): [1, 2, 3]},

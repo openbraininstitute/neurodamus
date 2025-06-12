@@ -53,7 +53,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     assert rank_allocation_standard == expected_allocation
 
     # Test redistribution
-    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1, None)
+    rank_alloc, _, _ = nd._dry_run_stats.distribute_cells_with_validation(1, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {(0, 0): [1, 2, 3]},
@@ -72,7 +72,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
 
     # Test reuse of cell_memory_use file
     rank_allocation, _, _ = nd._dry_run_stats.distribute_cells_with_validation(
-        2, 1, nd._dry_run_stats._MEMORY_USAGE_PER_METYPE_FILENAME)
+        2, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_allocation)
     expected_allocation = {
         'RingA': {
@@ -121,15 +121,6 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
 def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
     with pytest.raises(FileNotFoundError,
                        match="No such file cell_memory_usage.json. "
-                       "Neurodamus must be run with --dry-run mode before proceeding."):
-        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
-                     num_target_ranks=1)
-
-    with Path("cell_memory_usage.json").open('w'):
-        pass
-
-    with pytest.raises(FileNotFoundError,
-                       match="No such file memory_per_metype.json. "
                        "Neurodamus must be run with --dry-run mode before proceeding."):
         Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=1)
