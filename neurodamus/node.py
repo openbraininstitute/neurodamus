@@ -468,14 +468,18 @@ class Node:
 
                 logging.warning("Allocation file not found. Generating on-the-fly.")
                 self._dry_run_stats.try_import_cell_memory_usage()
-                cell_distributor = CellDistributor(circuit, self._target_manager, self._run_conf)
-                cell_distributor.load_nodes(
-                    None,
-                    loader_opts={
-                        "load_mode": "load_nodes_metype",
-                        "dry_run_stats": self._dry_run_stats,
-                    },
-                )
+                for circuit in self._sonata_circuits.values():
+                    if circuit.get("PopulationType") == "biophysical":
+                        cell_distributor = CellDistributor(
+                            circuit, self._target_manager, self._run_conf
+                        )
+                        cell_distributor.load_nodes(
+                            None,
+                            loader_opts={
+                                "load_mode": "load_nodes_metype",
+                                "dry_run_stats": self._dry_run_stats,
+                            },
+                        )
                 alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                     MPI.size,
                     SimConfig.modelbuilding_steps,
