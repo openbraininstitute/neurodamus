@@ -1,52 +1,7 @@
 import logging
 
 from .core import NeuronWrapper as Nd
-
-
-def get_section_index(cell, section):
-    """Calculate the global index of a given section within its cell.
-    :param cell: The cell instance containing the section of interest
-    :param section: The specific section for which the index is required
-    :return: The global index of the section, applicable for neuron mapping
-    """
-    section_name = str(section)
-    base_offset = 0
-    section_index = 0
-    if "soma" in section_name:
-        pass  # base_offset is 0
-    elif "axon" in section_name:
-        base_offset = cell.nSecSoma
-    elif "dend" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig
-    elif "apic" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal
-    elif "ais" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical
-    elif "node" in section_name:
-        base_offset = (
-            cell.nSecSoma
-            + cell.nSecAxonalOrig
-            + cell.nSecBasal
-            + cell.nSecApical
-            + getattr(cell, "nSecLastAIS", 0)
-        )
-    elif "myelin" in section_name:
-        base_offset = (
-            cell.nSecSoma
-            + cell.nSecAxonalOrig
-            + cell.nSecBasal
-            + cell.nSecApical
-            + getattr(cell, "nSecLastAIS", 0)
-            + getattr(cell, "nSecNodal", 0)
-        )
-
-    # Extract the index from the section name
-    index_str = section_name.rsplit("[", maxsplit=1)[-1].rstrip("]")
-    section_index = int(index_str)
-
-    return int(base_offset + section_index)
-
-
+from .metype import BaseCell
 class Report:
     INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
@@ -65,6 +20,9 @@ class Report:
         scaling_option=None,
         use_coreneuron=False,
     ):
+        
+        print(report_type)
+        exit()
         self.variable_name = variable_name
         self.report_dt = dt
         self.scaling_mode = self.determine_scaling_mode(scaling_option)
@@ -97,7 +55,7 @@ class Report:
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
-            section_index = get_section_index(cell_obj, section)
+            section_index = BaseCell.get_section_index(cell_obj, section)
             self.report.AddVar(var_ref, section_index, gid, pop_name)
 
     def add_summation_report(
@@ -123,7 +81,7 @@ class Report:
             self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
 
             if not collapsed:
-                section_index = get_section_index(cell_obj, section)
+                section_index = BaseCell.get_section_index(cell_obj, section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
         if collapsed:
             # soma

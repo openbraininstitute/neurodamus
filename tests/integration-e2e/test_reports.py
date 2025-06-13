@@ -25,6 +25,7 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
 
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
+    config["compartment_sets_file"] =  str(SIM_DIR / "compartment_sets.json")
 
     # Modify the necessary fields
     config["reports"] = config.get("reports", {})
@@ -57,6 +58,15 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
         "end_time": 40.0
     }
 
+    config["reports"]["compartment_set_v"] = {
+        "type": "compartment_set",
+        "compartment_set": "cs1",
+        "variable_name": "v",
+        "dt": 0.1,
+        "start_time": 0.0,
+        "end_time": 40.0
+    }
+
     # Write the modified configuration to a temporary file in tmp_path
     temp_config_path = tmp_path / "reports_config.json"
     with open(temp_config_path, "w") as f:
@@ -79,18 +89,19 @@ def test_v5_sonata_reports(tmp_path):
 
     nd = Neurodamus(temp_config_path)
     nd.run()
+    assert False
 
-    report_refs = {
-        "soma_report.h5":
-            [(10, 3, -64.92565), (128, 1, -60.309418), (333, 4, -39.864296)],
-        "summation_report.h5":
-            [(20, 153, 1.19864846e-4), (60, 42, 1.1587787e-4), (283, 121, 3.3678625e-5)]
-    }
-    node_id_refs = [0, 1, 2, 3, 4]
+#     report_refs = {
+#         "soma_report.h5":
+#             [(10, 3, -64.92565), (128, 1, -60.309418), (333, 4, -39.864296)],
+#         "summation_report.h5":
+#             [(20, 153, 1.19864846e-4), (60, 42, 1.1587787e-4), (283, 121, 3.3678625e-5)]
+#     }
+#     node_id_refs = [0, 1, 2, 3, 4]
 
-    # Go through each report and compare the results
-    for report_name, refs in report_refs.items():
-        result_ids, result_data = _read_sonata_report(Path(output_dir) / report_name)
-        assert result_ids == node_id_refs
-        for row, col, ref in refs:
-            npt.assert_allclose(result_data.data[row][col], ref)
+#     # Go through each report and compare the results
+#     for report_name, refs in report_refs.items():
+#         result_ids, result_data = _read_sonata_report(Path(output_dir) / report_name)
+#         assert result_ids == node_id_refs
+#         for row, col, ref in refs:
+#             npt.assert_allclose(result_data.data[row][col], ref)

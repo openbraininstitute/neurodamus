@@ -1071,20 +1071,26 @@ class Node:
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
-        # Go through the target members, one cell at a time. We give a cell reference
-        # For summation targets - check if we were given a Cell target because we really
-        # want all points of the cell which will ultimately be collapsed to a single
-        # value on the soma. Otherwise, get target points as normal.
-        sections = rep_conf.get("Sections")
-        compartments = rep_conf.get("Compartments")
-        sum_currents_into_soma = sections == "soma" and compartments == "center"
-        # In case of summation in the soma, we need all points anyway
-        if sum_currents_into_soma and rep_type == "Summation":
-            sections = "all"
-            compartments = "all"
-        points = self._target_manager.getPointList(
-            target, sections=sections, compartments=compartments
-        )
+        if rep_type == "compartment_set":
+            compartment_set = rep_conf.get("CompartmentSet")
+            points = self._target_manager.getPointList(target, compartment_set=compartment_set)
+        else:
+            # Go through the target members, one cell at a time. We give a cell reference
+            # For summation targets - check if we were given a Cell target because we really
+            # want all points of the cell which will ultimately be collapsed to a single
+            # value on the soma. Otherwise, get target points as normal.
+            sections = rep_conf.get("Sections")
+            compartments = rep_conf.get("Compartments")
+            
+            sum_currents_into_soma = sections == "soma" and compartments == "center"
+            # In case of summation in the soma, we need all points anyway
+            if sum_currents_into_soma and rep_type == "Summation":
+                sections = "all"
+                compartments = "all"
+            points = self._target_manager.getPointList(
+                target, sections=sections, compartments=compartments
+            )
+
         for point in points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)
@@ -1092,7 +1098,7 @@ class Node:
             spgid = global_manager.getSpGid(gid)
 
             # may need to take different actions based on report type
-            if rep_type == "compartment":
+            if rep_type in ["compartment", "compartment_set"]:
                 report.add_compartment_report(cell, point, spgid, pop_name, pop_offset)
             elif rep_type == "Summation":
                 report.add_summation_report(
@@ -1100,6 +1106,8 @@ class Node:
                 )
             elif rep_type == "Synapse":
                 report.add_synapse_report(cell, point, spgid, pop_name, pop_offset)
+            else:
+                raise KeyError(f"Unknown report of type '{rep_type}'")
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]

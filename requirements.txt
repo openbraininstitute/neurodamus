@@ -1,5 +1,5 @@
 docopt
 h5py
-git+https://github.com/openbraininstitute/libsonata
+git+https://github.com/openbraininstitute/libsonata@katta/comp_sets_2
 numpy
 

@@ -17,7 +17,7 @@ dynamic = ["version"]
 dependencies = [
     "h5py",
     "docopt-ng",
-    "libsonata @ git+https://github.com/openbraininstitute/libsonata",
+    "libsonata @ git+https://github.com/openbraininstitute/libsonata@katta/comp_sets_2",
     "psutil"
 ]
 requires-python=">=3.9"

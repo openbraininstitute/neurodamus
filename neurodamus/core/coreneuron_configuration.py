@@ -5,7 +5,7 @@ from pathlib import Path
 from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
-from neurodamus.report import get_section_index
+from ..metype import BaseCell
 
 
 class CompartmentMapping:
@@ -31,7 +31,7 @@ class CompartmentMapping:
         section_attr = getattr(cell, sections[0], None)
         if section_attr:
             for sec in section_attr:
-                section_index = get_section_index(cell, sec)
+                section_index = BaseCell.get_section_index(cell, sec)
                 num_segments += self.create_section_vectors(section_index, sec, secvec, segvec)
 
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
