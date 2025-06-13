@@ -930,7 +930,11 @@ class Node:
                 self._coreneuron_write_report_config(rep_conf, target, rep_params)
 
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
-            report = create_report(*rep_params, use_coreneuron=SimConfig.use_coreneuron) if has_gids else None
+            report = (
+                create_report(*rep_params, use_coreneuron=SimConfig.use_coreneuron)
+                if has_gids
+                else None
+            )
 
             # With coreneuron direct mode, enable fast membrane current calculation
             # for i_membrane
@@ -1098,7 +1102,9 @@ class Node:
             cell = global_manager.get_cellref(gid)
             spgid = global_manager.getSpGid(gid)
 
-            report.append_gid_section(cell, point, spgid, pop_name, pop_offset, sum_currents_into_soma)
+            report.append_gid_section(
+                cell, point, spgid, pop_name, pop_offset, sum_currents_into_soma
+            )
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]

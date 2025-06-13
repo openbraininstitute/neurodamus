@@ -1,8 +1,7 @@
 import logging
+from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
-
-from enum import IntEnum
 
 
 def get_section_index(cell, section):
@@ -49,8 +48,6 @@ def get_section_index(cell, section):
     return int(base_offset + section_index)
 
 
-
-
 class Report:
     INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
@@ -74,7 +71,7 @@ class Report:
         report_name,
         variable_name,
         unit,
-        _format, # used by coreneuron. Keep this
+        _format,  # used by coreneuron. Keep this
         dt,
         start_time,
         end_time,
@@ -160,10 +157,12 @@ class Report:
                 tokens_with_vars.append((token, "i"))  # Default internal variable
 
         return tokens_with_vars
-    
+
 
 class CompartmentReport(Report):
-    def append_gid_section(self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma):
+    def append_gid_section(
+        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+    ):
         if self.use_coreneuron:
             return
         gid = cell_obj.gid
@@ -178,6 +177,7 @@ class CompartmentReport(Report):
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
             section_index = get_section_index(cell_obj, section)
             self.report.AddVar(var_ref, section_index, gid, pop_name)
+
 
 class SummationReport(Report):
     def append_gid_section(
@@ -208,7 +208,7 @@ class SummationReport(Report):
         if sum_currents_into_soma:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
-    
+
     def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
         """Handle both intrinsic currents and point processes for summation report."""
         area_at_x = section(x).area()
@@ -226,7 +226,7 @@ class SummationReport(Report):
             logging.warning(
                 "Skipping intrinsic current '%s' at a location with area = 0", mechanism
             )
-    
+
     def handle_point_processes(self, section, x, alu_helper, point_processes, variable):
         """Handle point processes for a given mechanism."""
         for point_process in point_processes:
@@ -266,8 +266,11 @@ class SummationReport(Report):
         # Append ALUhelper to the list of ALU objects
         self.alu_list.append(alu_helper)
 
+
 class SynapseReport(Report):
-    def append_gid_section(self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma):
+    def append_gid_section(
+        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+    ):
         gid = cell_obj.gid
         # Default to cell's gid if vgid is not provided
         vgid = vgid or cell_obj.gid
@@ -302,15 +305,17 @@ class SynapseReport(Report):
                 msg = f"Variable '{variable}' not found at '{synapse.hname()}'."
                 raise AttributeError(msg) from e
 
+
 NOT_SUPPORTED = object()
 _report_classes = {
     "compartment": CompartmentReport,
     "Summation": SummationReport,
     "Synapse": SynapseReport,
-    "lfp": NOT_SUPPORTED
+    "lfp": NOT_SUPPORTED,
 }
 
-def create_report(report_type: str, *args, **kwargs) -> Report | None:
+
+def create_report(report_type: str, *args, **kwargs):
     cls = _report_classes.get(report_type)
     if cls is None:
         raise ValueError(f"Unknown report type: {report_type}")
