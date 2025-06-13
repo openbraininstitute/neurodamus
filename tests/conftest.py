@@ -69,6 +69,7 @@ def ringtest_baseconfig():
     return dict(
         network=str(RINGTEST_DIR / "circuit_config.json"),
         node_sets_file=str(RINGTEST_DIR / "nodesets.json"),
+        compartment_sets_file=str(RINGTEST_DIR / "compartmentsets.json"),
         target_simulator="NEURON",
         run={
             "random_seed": 1122,

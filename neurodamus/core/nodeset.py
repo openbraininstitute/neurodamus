@@ -269,6 +269,10 @@ class SelectionNodeSet(_NodeSetBase):
         for gid in self.raw_gids_iter():
             yield gid + self._offset
 
+    def selection_gid_2_final_gid(self, gid):
+        """Convenience function that translates a 0-based gid (for example from a libsonata.Selection) to the final 1-based gid (used in Neuron._pc for example)."""
+        return gid + self.offset + 1
+
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
         """Computes intersection of two nodesets.
 

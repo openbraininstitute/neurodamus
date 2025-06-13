@@ -14,6 +14,17 @@ class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
+    # TODO remove
+    # _sections = [
+    #     ("soma", "nSecSoma"),
+    #     ("axon", "nSecAxonalOrig"),
+    #     ("dend", "nSecBasal"),
+    #     ("apic", "nSecApical"),
+    #     ("ais", "nSecLastAIS"),
+    #     ("node", "nSecNodal"),
+    #     ("myelin", "nSecMyelin"),
+    # ]
+    _sections = ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
 
     def __init__(self):
         self._cellref = None
@@ -34,6 +45,42 @@ class BaseCell:
     def connect2target(self, target_pp=None):
         """Connects empty cell to target"""
         return Nd.NetCon(self._cellref, target_pp)
+    
+    @staticmethod
+    def get_sec(cell, section_index):
+        """From a section index return the section it refers to """
+        offset = 0
+
+        for section_type in BaseCell._sections:
+            if not hasattr(cell, section_type):
+                continue
+            sec_list = getattr(cell, section_type)
+            count = len(sec_list)
+            if section_index < offset + count:          
+                return sec_list[section_index - offset]
+            offset += count
+
+        raise IndexError(f"Global index {section_index} out of range (max index is {offset - 1})")
+
+    @staticmethod
+    def get_section_index(cell, section):
+        """Calculate the global index of a given section within the cell"""
+        section_name = str(section)
+        section_name = section_name.rsplit(".", 1)[-1]
+        section_name, index = section_name.rsplit("[", maxsplit=1)
+        index = int(index.rstrip("]"))
+        offset = 0
+
+        for section_type in BaseCell._sections:
+            if section_type == section_name:
+                return offset + index
+            if not hasattr(cell, section_type):
+                continue
+            sec = getattr(cell, section_type)
+            offset += len(sec)
+
+        raise ValueError(f"Could not determine index for section: {section_name}")
+
 
 
 class METype(BaseCell):
