@@ -413,7 +413,7 @@ class Node:
     # -
     @mpi_no_errors
     @timeit(name="Compute LB")
-    def compute_load_balance(self):  # noqa: C901, PLR0912
+    def compute_load_balance(self):  # noqa: C901, PLR0912, PLR0915
         """In case the user requested load-balance this function instantiates a
         CellDistributor to split cells and balance those pieces across the available CPUs.
         """
@@ -459,7 +459,7 @@ class Node:
                 compute_cell_memory_usage = not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
                 if not compute_cell_memory_usage:
                     self._dry_run_stats.try_import_cell_memory_usage()
-                else: 
+                else:
                     logging.warning("Cell memory usage file not found. Computing on-the-fly.")
                 for circuit in self._sonata_circuits.values():
                     if circuit.get("PopulationType") == "biophysical":
@@ -479,7 +479,7 @@ class Node:
                     self._dry_run_stats.collect_all_mpi()
                     self._dry_run_stats.export_cell_memory_usage()
                     self._dry_run_stats.estimate_cell_memory()
-                    # reset since we instantiated 
+                    # reset since we instantiated
                     Nd.t = 0.0  # Reset time
                     self.clear_model()
 
