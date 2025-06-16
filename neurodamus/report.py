@@ -375,15 +375,15 @@ class SynapseReport(Report):
 NOT_SUPPORTED = object()
 _report_classes = {
     "compartment": CompartmentReport,
-    "Summation": SummationReport,
-    "Synapse": SynapseReport,
+    "summation": SummationReport,
+    "synapse": SynapseReport,
     "lfp": NOT_SUPPORTED,
 }
 
 
 def create_report(params, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
-    cls = _report_classes.get(params.rep_type)
+    cls = _report_classes.get(params.rep_type.lower())
     if cls is None:
         raise ValueError(f"Unknown report type: {params.rep_type}")
     if cls is NOT_SUPPORTED:
