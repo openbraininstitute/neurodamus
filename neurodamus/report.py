@@ -66,30 +66,28 @@ class Report:
             }
             return mapping.get(option, cls.SCALING_ELECTRODE)
 
+        # start: float
+        # end: float
+        # output_dir: str
+        # scaling: str
+
+
     def __init__(
         self,
-        report_name,
-        variable_name,
-        unit,
-        _format,  # used by coreneuron. Keep this
-        dt,
-        start_time,
-        end_time,
-        output_dir,
-        scaling_option=None,
-        use_coreneuron=False,
+        params,
+        use_coreneuron,
     ):
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
-        self.variable_name = variable_name
-        self.report_dt = dt
-        self.scaling_mode = self.ScalingMode.from_option(scaling_option)
+        self.variable_name = params.report_on
+        self.report_dt = params.dt
+        self.scaling_mode = self.ScalingMode.from_option(params.scaling)
         self.use_coreneuron = use_coreneuron
 
         self.alu_list = []
         self.report = Nd.SonataReport(
-            0.5, report_name, output_dir, start_time, end_time, dt, unit, "compartment"
+            0.5, params.name, params.output_dir, params.start, params.end, params.dt, params.unit, "compartment"
         )
         Nd.BBSaveState().ignore(self.report)
 
@@ -315,10 +313,12 @@ _report_classes = {
 }
 
 
-def create_report(report_type: str, *args, **kwargs):
-    cls = _report_classes.get(report_type)
+def create_report(        
+        params,
+        use_coreneuron):
+    cls = _report_classes.get(params.rep_type)
     if cls is None:
-        raise ValueError(f"Unknown report type: {report_type}")
+        raise ValueError(f"Unknown report type: {params.rep_type}")
     if cls is NOT_SUPPORTED:
         return None
-    return cls(*args, **kwargs)
+    return cls(params, use_coreneuron)

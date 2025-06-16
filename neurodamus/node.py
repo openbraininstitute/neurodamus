@@ -931,7 +931,7 @@ class Node:
 
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
             report = (
-                create_report(*rep_params, use_coreneuron=SimConfig.use_coreneuron)
+                create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
                 if has_gids
                 else None
             )
