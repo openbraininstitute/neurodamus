@@ -454,14 +454,13 @@ class Node:
             if file_exists:
                 alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
             else:
-                if not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists():
-                    raise FileNotFoundError(
-                        f"No such file {DryRunStats._MEMORY_USAGE_FILENAME}. "
-                        "Neurodamus must be run with --dry-run mode before proceeding."
-                    )
-
                 logging.warning("Allocation file not found. Generating on-the-fly.")
-                self._dry_run_stats.try_import_cell_memory_usage()
+
+                compute_cell_memory_usage = not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
+                if not compute_cell_memory_usage:
+                    self._dry_run_stats.try_import_cell_memory_usage()
+                else: 
+                    logging.warning("Cell memory usage file not found. Computing on-the-fly.")
                 for circuit in self._sonata_circuits.values():
                     if circuit.get("PopulationType") == "biophysical":
                         cell_distributor = CellDistributor(
@@ -474,6 +473,16 @@ class Node:
                                 "dry_run_stats": self._dry_run_stats,
                             },
                         )
+                        if compute_cell_memory_usage:
+                            cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                if compute_cell_memory_usage:
+                    self._dry_run_stats.collect_all_mpi()
+                    self._dry_run_stats.export_cell_memory_usage()
+                    self._dry_run_stats.estimate_cell_memory()
+                    # reset since we instantiated 
+                    Nd.t = 0.0  # Reset time
+                    self.clear_model()
+
                 alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                     MPI.size, SimConfig.modelbuilding_steps
                 )
