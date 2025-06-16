@@ -192,22 +192,6 @@ def export_allocation_stats(rank_allocation, filename, ranks, cycles=1):
     Path(f"{filename}_r{ranks}_c{cycles}.pkl.gz").write_bytes(compressed_data)
 
 
-@run_only_rank0
-def export_metype_memory_usage(memory_per_metype, memory_per_metype_file):
-    """Export memory per METype dictionary to a JSON file."""
-    with open(memory_per_metype_file, "w", encoding="utf-8") as f:
-        json.dump(memory_per_metype, f, indent=4)
-
-
-@run_only_rank0
-def import_metype_memory_usage(memory_per_metype_file):
-    """Import memory per METype dictionary from a JSON file."""
-    with open(memory_per_metype_file, encoding="utf-8") as f:
-        memory_per_metype = json.load(f)
-
-    return memory_per_metype
-
-
 class SynapseMemoryUsage:
     """A small class that works as a lookup table
     for the memory used by each type of synapse.
@@ -227,7 +211,6 @@ class SynapseMemoryUsage:
 class DryRunStats:
     _MEMORY_USAGE_FILENAME = "cell_memory_usage.json"
     _ALLOCATION_FILENAME = "allocation"
-    _MEMORY_USAGE_PER_METYPE_FILENAME = "memory_per_metype.json"
 
     _alloc_cache = None
 
@@ -459,7 +442,7 @@ class DryRunStats:
 
     @run_only_rank0
     def distribute_cells(
-        self, num_ranks: int, cycles: int = 1, metype_file=None, batch_size=10
+        self, num_ranks: int, cycles: int = 1, batch_size=10
     ) -> tuple[dict, dict, dict]:
         """Distributes cells across ranks and cycles based on their memory load.
 
@@ -470,7 +453,6 @@ class DryRunStats:
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles to distribute cells over.
             batch_size (int): The number of cells to assign to each bucket at a time.
-            metype_file (str): The path to a JSON file containing memory usage for each METype.
 
         Returns:
             bucket_allocation (dict): A dictionary where keys are tuples (pop, rank_id, cycle_id)
@@ -485,14 +467,10 @@ class DryRunStats:
         bucket_memory = defaultdict(DryRunStats.defaultdict_float)
 
         # Prepare the memory usage for each METype
-        if metype_file:
-            metype_memory_usage = import_metype_memory_usage(metype_file)
-        else:
-            metype_memory_usage = {}
-            for metype, metype_mem in self.metype_memory.items():
-                syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average[metype])
-                metype_memory_usage[metype] = metype_mem + syns_mem
-            export_metype_memory_usage(metype_memory_usage, self._MEMORY_USAGE_PER_METYPE_FILENAME)
+        metype_memory_usage = {}
+        for metype, metype_mem in self.metype_memory.items():
+            syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average[metype])
+            metype_memory_usage[metype] = metype_mem + syns_mem
 
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
@@ -575,9 +553,7 @@ class DryRunStats:
         return True
 
     @run_only_rank0
-    def distribute_cells_with_validation(
-        self, num_ranks, cycles=None, metype_file=None
-    ) -> tuple[dict, dict, dict]:
+    def distribute_cells_with_validation(self, num_ranks, cycles=None) -> tuple[dict, dict, dict]:
         """Wrapper function to distribute cells across the specified number of ranks and cycles,
         ensuring that each bucket (combination of rank and cycle) has at least one GID assigned.
         The function attempts to find a valid distribution with the initially calculated batch
@@ -586,7 +562,6 @@ class DryRunStats:
         Args:
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles to distribute cells over.
-            metype_file (str): The path to a JSON file containing memory usage for each METype.
 
         Returns:
             Tuple[dict, dict, dict]: Returns the same as distribute_cells once a valid distribution
@@ -614,7 +589,7 @@ class DryRunStats:
         }
 
         bucket_allocation, bucket_memory, metype_memory_usage = self.distribute_cells(
-            num_ranks, cycles, metype_file, batch_size=batch_size
+            num_ranks, cycles, batch_size=batch_size
         )
 
         valid_distribution = all(

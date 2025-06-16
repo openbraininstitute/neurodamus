@@ -460,26 +460,23 @@ class Node:
                         f"No such file {DryRunStats._MEMORY_USAGE_FILENAME}. "
                         "Neurodamus must be run with --dry-run mode before proceeding."
                     )
-                if not Path(DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME).exists():
-                    raise FileNotFoundError(
-                        f"No such file {DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME}. "
-                        "Neurodamus must be run with --dry-run mode before proceeding."
-                    )
 
                 logging.warning("Allocation file not found. Generating on-the-fly.")
                 self._dry_run_stats.try_import_cell_memory_usage()
-                cell_distributor = CellDistributor(circuit, self._target_manager, self._run_conf)
-                cell_distributor.load_nodes(
-                    None,
-                    loader_opts={
-                        "load_mode": "load_nodes_metype",
-                        "dry_run_stats": self._dry_run_stats,
-                    },
-                )
+                for circuit in self._sonata_circuits.values():
+                    if circuit.get("PopulationType") == "biophysical":
+                        cell_distributor = CellDistributor(
+                            circuit, self._target_manager, self._run_conf
+                        )
+                        cell_distributor.load_nodes(
+                            None,
+                            loader_opts={
+                                "load_mode": "load_nodes_metype",
+                                "dry_run_stats": self._dry_run_stats,
+                            },
+                        )
                 alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
-                    MPI.size,
-                    SimConfig.modelbuilding_steps,
-                    DryRunStats._MEMORY_USAGE_PER_METYPE_FILENAME,
+                    MPI.size, SimConfig.modelbuilding_steps
                 )
             for pop, ranks in alloc.items():
                 for rank, gids in ranks.items():
