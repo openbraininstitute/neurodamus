@@ -478,7 +478,6 @@ class Node:
                 if compute_cell_memory_usage:
                     self._dry_run_stats.collect_all_mpi()
                     self._dry_run_stats.export_cell_memory_usage()
-                    self._dry_run_stats.estimate_cell_memory()
                     # reset since we instantiated
                     Nd.t = 0.0  # Reset time
                     self.clear_model()
