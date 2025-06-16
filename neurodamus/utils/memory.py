@@ -541,18 +541,15 @@ class DryRunStats:
             population (str): The population to check.
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles.
-
-        Returns:
-            bool: True if all buckets have at least one GID assigned, False otherwise.
         """
         rank_allocation = bucket_allocation.get(population, {})
         for rank_id in range(num_ranks):
             for cycle_id in range(cycles):
                 if not rank_allocation.get((rank_id, cycle_id)):
                     logging.warning(
-                        f"Population {population} is not allocated across the full size of ranks. "
-                        "This may indicate that more ranks were used than necessary. "
-                        "Consider reducing the number of ranks or cycles."
+                        "Population %s is not allocated across the full size of ranks "
+                        "and cycles. Consider reducing the number of ranks or cycles.",
+                        population,
                     )
 
     @run_only_rank0
