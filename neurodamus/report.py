@@ -20,9 +20,6 @@ class Report:
         scaling_option=None,
         use_coreneuron=False,
     ):
-        
-        print(report_type)
-        exit()
         self.variable_name = variable_name
         self.report_dt = dt
         self.scaling_mode = self.determine_scaling_mode(scaling_option)

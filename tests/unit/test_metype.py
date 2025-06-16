@@ -4,12 +4,14 @@ from neurodamus.metype import BaseCell
 
 def _make_mock_cell():
     mock_cell = Mock()
-    mock_cell.nSecSoma = 10
-    mock_cell.nSecAxonalOrig = 10
-    mock_cell.nSecBasal = 10
-    mock_cell.nSecApical = 10
+    mock_cell.soma = 10*[None]
+    mock_cell.axon = 10*[None]
+    mock_cell.dend = 10*[None]
+    mock_cell.apic = 10*[None]
     return mock_cell
 
+
+# ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
 
 def test_get_section_index():
     mock_cell = _make_mock_cell()

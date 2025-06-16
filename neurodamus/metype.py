@@ -14,16 +14,6 @@ class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
-    # TODO remove
-    # _sections = [
-    #     ("soma", "nSecSoma"),
-    #     ("axon", "nSecAxonalOrig"),
-    #     ("dend", "nSecBasal"),
-    #     ("apic", "nSecApical"),
-    #     ("ais", "nSecLastAIS"),
-    #     ("node", "nSecNodal"),
-    #     ("myelin", "nSecMyelin"),
-    # ]
     _sections = ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
 
     def __init__(self):
