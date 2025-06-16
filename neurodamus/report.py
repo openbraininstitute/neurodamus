@@ -71,7 +71,6 @@ class Report:
         # output_dir: str
         # scaling: str
 
-
     def __init__(
         self,
         params,
@@ -87,7 +86,14 @@ class Report:
 
         self.alu_list = []
         self.report = Nd.SonataReport(
-            0.5, params.name, params.output_dir, params.start, params.end, params.dt, params.unit, "compartment"
+            0.5,
+            params.name,
+            params.output_dir,
+            params.start,
+            params.end,
+            params.dt,
+            params.unit,
+            "compartment",
         )
         Nd.BBSaveState().ignore(self.report)
 
@@ -313,9 +319,7 @@ _report_classes = {
 }
 
 
-def create_report(        
-        params,
-        use_coreneuron):
+def create_report(params, use_coreneuron):
     cls = _report_classes.get(params.rep_type)
     if cls is None:
         raise ValueError(f"Unknown report type: {params.rep_type}")
