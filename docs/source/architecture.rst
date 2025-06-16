@@ -389,9 +389,6 @@ itself, e.g. data structures, loaded libraries and so on. This is done by measur
 process before any of the actual instantiation is done. This value, since it's averaged over all ranks that take
 part in the execution, is then multiplied by the number of ranks used in the execution.
 
-The final estimated memory usage for each METype is also saved as a file in the working directory
-called `memory_per_metype.json`. This file is currently not used in the dry run mode but it's
-saved for future reference and to speed up the distribution of cells in future versions of Neurodamus.
 
 On top of this we also need to consider the memory usage of the simulation itself. Unfortunately
 at the moment there are no easy ways to estimate this value, so we have opted for a simple heuristic
@@ -421,8 +418,8 @@ We've opted for a greedy approach to distribute the gids in order to keep the im
 and fast. The algorithm is as follows:
 
 - Sort our ranks in a heap so that the emptiest rank is always at the top
-- Assign gids in batches of 10 to the emptiest rank
-- Rince and repeat until all gids are assigned
+- Assign gids in batches to the emptiest rank
+- Rinse and repeat until all gids are assigned
 
 The user can specify the number of ranks to target using the `--num-target-ranks` flag in the CLI of neurodamus.
 The default value is 40. The allocation dictionary, containing the assignment of gids to ranks per each population,
@@ -434,6 +431,11 @@ Neurodamus will check if the amount of ranks used in the simulation is the same 
 dry run. If the amount of ranks is the same, the allocation dictionary will be loaded and used to load balance the
 simulation. If the amount of ranks is different, neurodamus will redistribute the gids on-the-fly using the same greedy
 algorithm used in the dry run.
+
+**Note:** Running a prior dry run is *not required* to use `--lb-mode=Memory`. If no precomputed allocation file is found,  
+Neurodamus will perform the memory load balancing automatically at runtime using the same greedy algorithm. 
+If needed, and no `cell_memory_usage.json` file is found, the necessary memory information for each metype combination will also be computed on-the-fly before performing the allocation.
+
 
 This way the exact gids that were assigned to each rank in the dry run will be assigned to the actual simulation,
 possibly avoiding out-of-memory errors.
