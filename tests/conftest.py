@@ -99,8 +99,6 @@ def copy_memory_files(change_test_dir):
         "MTYPE1-ETYPE1": 200.0,
         "MTYPE2-ETYPE2": 200.0,
     }
-    with Path("memory_per_metype.json").open("w") as f:
-        json.dump(metypes_memory, f, indent=4)
     with Path("cell_memory_usage.json").open("w") as f:
         json.dump(metypes_memory, f, indent=4)
 
