@@ -5,10 +5,14 @@ from .core import NeuronWrapper as Nd
 
 
 def get_section_index(cell, section):
-    """Calculate the global index of a given section within its cell.
-    :param cell: The cell instance containing the section of interest
-    :param section: The specific section for which the index is required
-    :return: The global index of the section, applicable for neuron mapping
+    """Calculate the global index of a section within a cell, based on section type and local index.
+
+    The function determines the offset for the section type (soma, axon, dend, etc.) and adds
+    the section-specific index (e.g., [0], [1], etc.) to compute a unique global index.
+
+    :param cell: The cell instance containing various sections and section counts.
+    :param section: The specific NEURON section for which the index is required.
+    :return: Integer global index of the section within the cell.
     """
     section_name = str(section)
     base_offset = 0
@@ -49,16 +53,34 @@ def get_section_index(cell, section):
 
 
 class Report:
+    """Abstract base class for handling simulation reports in NEURON.
+
+    Provides methods for parsing report parameters, handling variables, and defining the structure
+    required by subclasses to append specific data (e.g., compartments or currents).
+    """
+
     INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
 
     class ScalingMode(IntEnum):
+        """Enum to define scaling modes used in report generation.
+
+        SCALING_NONE: No scaling.
+        SCALING_AREA: Scale by membrane area.
+        SCALING_ELECTRODE: Custom/electrode-based scaling (fallback/default).
+        """
+
         SCALING_NONE = 0
         SCALING_AREA = 1
         SCALING_ELECTRODE = 2
 
         @classmethod
         def from_option(cls, option):
+            """Map user-provided scaling option to a ScalingMode enum.
+
+            :param option: User-specified string or None.
+            :return: Corresponding ScalingMode.
+            """
             mapping = {
                 None: cls.SCALING_AREA,
                 "Area": cls.SCALING_AREA,
@@ -66,16 +88,16 @@ class Report:
             }
             return mapping.get(option, cls.SCALING_ELECTRODE)
 
-        # start: float
-        # end: float
-        # output_dir: str
-        # scaling: str
-
     def __init__(
         self,
         params,
         use_coreneuron,
     ):
+        """Initialize a Report object with simulation parameters.
+
+        :param params: Object containing report configuration (e.g., name, dt, unit).
+        :param use_coreneuron: Boolean indicating if CoreNEURON is enabled.
+        """
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
@@ -100,6 +122,10 @@ class Report:
     def append_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
     ):
+        """Abstract method to be implemented by subclasses to add section-level report data.
+
+        :raises NotImplementedError: Always, unless overridden in subclass.
+        """
         raise NotImplementedError("Subclasses must implement append_gid_section()")
 
     @staticmethod
@@ -150,6 +176,12 @@ class Report:
         return synapses
 
     def parse_variable_names(self):
+        """Parse variable names from a user-specified string into mechanism-variable tuples.
+
+        E.g., "hh.ina pas.i" → [("hh", "ina"), ("pas", "i")]
+
+        :return: List of (mechanism, variable) tuples.
+        """
         tokens_with_vars = []
         tokens = self.variable_name.split()  # Splitting by whitespace
 
@@ -164,9 +196,23 @@ class Report:
 
 
 class CompartmentReport(Report):
+    """Concrete Report subclass for reporting compartment-level variables.
+
+    Appends variable references at specific compartment locations for a given cell.
+    """
+
     def append_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):
+        """Append section-based report data for a single cell and its compartments.
+
+        :param cell_obj: The cell being processed.
+        :param point: Point data containing section list and location.
+        :param vgid: Virtual GID to use in report.
+        :param pop_name: Population name.
+        :param pop_offset: Offset for population indexing.
+        :param _sum_currents_into_soma: Unused parameter in this subclass.
+        """
         if self.use_coreneuron:
             return
         gid = cell_obj.gid
@@ -184,9 +230,23 @@ class CompartmentReport(Report):
 
 
 class SummationReport(Report):
+    """Concrete Report subclass for summing currents or other variables across sections.
+
+    Handles intrinsic currents and point processes, possibly summing them into soma.
+    """
+
     def append_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
     ):
+        """Append summed variable data for a given cell across sections.
+
+        :param cell_obj: The cell being reported.
+        :param point: Point containing section list and x positions.
+        :param vgid: Optional virtual GID.
+        :param pop_name: Population name.
+        :param pop_offset: Population GID offset.
+        :param sum_currents_into_soma: If True, collapses sum into soma.
+        """
         if self.use_coreneuron:
             return
         gid = cell_obj.gid
@@ -266,6 +326,7 @@ class SummationReport(Report):
         return alu_helper
 
     def add_summation_var_and_commit_alu(self, alu_helper, section_index, gid, population_name):
+        """Add the ALU's output as a summation variable and commit it to the report."""
         self.report.AddVar(alu_helper._ref_output, section_index, gid, population_name)
         # Append ALUhelper to the list of ALU objects
         self.alu_list.append(alu_helper)
@@ -275,6 +336,7 @@ class SynapseReport(Report):
     def append_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):
+        """Append synapse variables for a given cell to the report grouped by gid."""
         gid = cell_obj.gid
         # Default to cell's gid if vgid is not provided
         vgid = vgid or cell_obj.gid
@@ -320,6 +382,7 @@ _report_classes = {
 
 
 def create_report(params, use_coreneuron):
+    """Factory function to create a report instance based on parameters."""
     cls = _report_classes.get(params.rep_type)
     if cls is None:
         raise ValueError(f"Unknown report type: {params.rep_type}")
