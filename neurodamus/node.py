@@ -13,6 +13,8 @@ from contextlib import contextmanager
 from os import path as ospath
 from pathlib import Path
 
+import libsonata
+
 # Internal Plugins
 from . import ngv as _ngv
 from .cell_distributor import (
@@ -102,9 +104,6 @@ class CircuitManager:
 
     def _new_virtual_node_manager(self, circuit):
         """Instantiate a new virtual node manager explicitly."""
-        # Only happens with Sonata config files
-        import libsonata
-
         storage = libsonata.NodeStorage(circuit.CellLibraryFile)
         pop_name, _ = circuit.CircuitTarget.split(":")  # Sonata config fills population
         node_size = storage.open_population(pop_name).size

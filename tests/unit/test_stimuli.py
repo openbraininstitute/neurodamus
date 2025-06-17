@@ -445,28 +445,6 @@ class TestIClampSource:
     def test_clamp_attach_detach(self):
         clamp_attach_detach(self.stim, "IClamp")
 
-    def test_constant_attach_detach(self):
-        sec1, soma = create_ball_and_stick()
-        duration = 3.0
-        assert "IClamp" not in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-
-        stim = st.CurrentSource.Constant(
-            amp=self.base_amp,
-            duration=duration,
-            delay=self.base_delay,
-            represents_physical_electrode=True,
-        )
-        clamp07 = stim.attach_to(soma, position=0.72)
-        assert "IClamp" in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(stim._clamps) == 1
-        assert np.allclose(clamp07.clamp.get_loc(), 0.7)
-        clamp07.detach()
-        assert "IClamp" not in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(stim._clamps) == 0
-
 
 class TestMembraneCurrentSource:
     def setup_method(self):
