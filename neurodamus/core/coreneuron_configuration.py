@@ -31,7 +31,7 @@ class CompartmentMapping:
         section_attr = getattr(cell, sections[0], None)
         if section_attr:
             for sec in section_attr:
-                section_index = BaseCell.get_section_index(cell, sec)
+                section_index = BaseCell.get_section_id(cell, sec)
                 num_segments += self.create_section_vectors(section_index, sec, secvec, segvec)
 
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:

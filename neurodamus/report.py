@@ -52,7 +52,7 @@ class Report:
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
-            section_index = BaseCell.get_section_index(cell_obj, section)
+            section_index = BaseCell.get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_index, gid, pop_name)
 
     def add_summation_report(
@@ -78,7 +78,7 @@ class Report:
             self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
 
             if not collapsed:
-                section_index = BaseCell.get_section_index(cell_obj, section)
+                section_index = BaseCell.get_section_id(cell_obj, section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
         if collapsed:
             # soma

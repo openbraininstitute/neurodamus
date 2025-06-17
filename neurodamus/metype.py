@@ -53,7 +53,7 @@ class BaseCell:
         raise IndexError(f"Global index {section_index} out of range (max index is {offset - 1})")
 
     @staticmethod
-    def get_section_index(cell, section):
+    def get_section_id(cell, section):
         """Calculate the global index of a given section within the cell"""
         section_name = str(section)
         section_name = section_name.rsplit(".", 1)[-1]
