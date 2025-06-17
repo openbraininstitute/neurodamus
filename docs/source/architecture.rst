@@ -422,7 +422,7 @@ and fast. The algorithm is as follows:
 - Rinse and repeat until all gids are assigned
 
 The user can specify the number of ranks to target using the `--num-target-ranks` flag in the CLI of neurodamus.
-The default value is 40. The allocation dictionary, containing the assignment of gids to ranks per each population,
+The allocation dictionary, containing the assignment of gids to ranks per each population,
 is then saved to the `allocation_r#_c#.pkl.gz` file in a pickled gzipped format.
 
 Now that the `allocation_r#_c#.pkl.gz` has been generated, the user can load it in the main simulation and use it to load balance the
