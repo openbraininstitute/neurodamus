@@ -35,42 +35,63 @@ class BaseCell:
     def connect2target(self, target_pp=None):
         """Connects empty cell to target"""
         return Nd.NetCon(self._cellref, target_pp)
-    
+
     @staticmethod
     def get_sec(cell, section_index):
-        """From a section index return the section it refers to """
-        offset = 0
+        """Return the section corresponding to the global section_index
+        Note: supports negative indices.
+        """
+        # Build a list of (section_list, length) tuples for available section types
+        sec_lists = [getattr(cell, stype) for stype in BaseCell._sections if hasattr(cell, stype)]
 
-        for section_type in BaseCell._sections:
-            if not hasattr(cell, section_type):
-                continue
-            sec_list = getattr(cell, section_type)
+        # Compute total length
+        total_len = sum(len(lst) for lst in sec_lists)
+
+        # Handle negative index
+        if section_index < 0:
+            section_index += total_len
+
+        if not (0 <= section_index < total_len):
+            raise IndexError(
+                f"Global index {section_index} out of range (max index is {total_len - 1})"
+            )
+
+        # Locate the section
+        offset = 0
+        for sec_list in sec_lists:
             count = len(sec_list)
-            if section_index < offset + count:          
+            if section_index < offset + count:
                 return sec_list[section_index - offset]
             offset += count
-
-        raise IndexError(f"Global index {section_index} out of range (max index is {offset - 1})")
+        raise RuntimeError("Failed to locate section despite valid index")
 
     @staticmethod
     def get_section_id(cell, section):
-        """Calculate the global index of a given section within the cell"""
-        section_name = str(section)
-        section_name = section_name.rsplit(".", 1)[-1]
-        section_name, index = section_name.rsplit("[", maxsplit=1)
-        index = int(index.rstrip("]"))
-        offset = 0
+        """Calculate the global index of a given section within the cell."""
+        section_name = str(section).rsplit(".", 1)[-1]
+        section_name, index_str = section_name.rsplit("[", maxsplit=1)
+        index = int(index_str.rstrip("]"))
 
+        if not hasattr(cell, section_name):
+            raise ValueError(f"Cell has no section list named '{section_name}'")
+
+        sec_list = getattr(cell, section_name)
+        if not (0 <= index < len(sec_list)):
+            raise IndexError(
+                f"Section index {index} out of range for '{section_name}' (size: {len(sec_list)})"
+            )
+
+        offset = 0
         for section_type in BaseCell._sections:
-            if section_type == section_name:
-                return offset + index
             if not hasattr(cell, section_type):
                 continue
-            sec = getattr(cell, section_type)
-            offset += len(sec)
+            if section_type == section_name:
+                return offset + index
+            offset += len(getattr(cell, section_type))
 
-        raise ValueError(f"Could not determine index for section: {section_name}")
-
+        raise RuntimeError(
+            f"Unexpected error: section '{section_name}' was found but not in BaseCell._sections"
+        )
 
 
 class METype(BaseCell):

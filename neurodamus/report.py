@@ -2,6 +2,8 @@ import logging
 
 from .core import NeuronWrapper as Nd
 from .metype import BaseCell
+
+
 class Report:
     INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}

@@ -1078,7 +1078,7 @@ class Node:
             # value on the soma. Otherwise, get target points as normal.
             sections = rep_conf.get("Sections")
             compartments = rep_conf.get("Compartments")
-            
+
             sum_currents_into_soma = sections == "soma" and compartments == "center"
             # In case of summation in the soma, we need all points anyway
             if sum_currents_into_soma and rep_type == "Summation":
@@ -1095,7 +1095,7 @@ class Node:
             spgid = global_manager.getSpGid(gid)
 
             # may need to take different actions based on report type
-            if rep_type in ["compartment", "compartment_set"]:
+            if rep_type in {"compartment", "compartment_set"}:
                 report.add_compartment_report(cell, point, spgid, pop_name, pop_offset)
             elif rep_type == "Summation":
                 report.add_summation_report(

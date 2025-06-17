@@ -9,9 +9,9 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
+from .metype import BaseCell
 from .utils import compat
 from .utils.logging import log_verbose
-from .metype import BaseCell
 
 
 class TargetError(Exception):
@@ -108,10 +108,14 @@ class TargetManager:
         return (config_nodeset_file or simulation_nodesets_file) and NodeSetReader(
             config_nodeset_file, simulation_nodesets_file
         )
-    
+
     @staticmethod
     def _init_compartment_sets(run_conf):
-        return libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"]) if run_conf["compartment_sets_file"] else None
+        return (
+            libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"])
+            if run_conf["compartment_sets_file"]
+            else None
+        )
 
     def load_targets(self, circuit):
         """Provided that the circuit location is known and whether a nodes file has been
@@ -222,9 +226,11 @@ class TargetManager:
             target = self.get_target(target)
 
         if "compartment_set" in kw:
-            return target.getPointListFromCompartmentSet(cell_manager=self._cell_manager, compartment_set=self._compartment_sets[kw["compartment_set"]])
-        else:
-            return target.getPointList(self._cell_manager, **kw)
+            return target.getPointListFromCompartmentSet(
+                cell_manager=self._cell_manager,
+                compartment_set=self._compartment_sets[kw["compartment_set"]],
+            )
+        return target.getPointList(self._cell_manager, **kw)
 
     def getMETypes(self, target_name):
         """Convenience function for objects like StimulusManager to get access to METypes of cell
@@ -497,7 +503,7 @@ class NodesetTarget:
             gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
 
         return np.concatenate(gids_groups) if gids_groups else np.empty(0)
-    
+
     def getPointListFromCompartmentSet(self, cell_manager, compartment_set):
         """TODO"""
         pointList = compat.List()
@@ -508,7 +514,7 @@ class NodesetTarget:
         selNodeSet = self.populations[pop]
 
         for cl in compartment_set.filtered_iter(selNodeSet._selection):
-            gid, section_index, offset  = cl.node_id, cl.section_index, cl.offset
+            gid, section_index, offset = cl.node_id, cl.section_index, cl.offset
             gid = selNodeSet.selection_gid_2_final_gid(gid)
             cellObj = cell_manager.get_cellref(gid)
             sec = BaseCell.get_sec(cellObj, section_index)
