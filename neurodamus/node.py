@@ -413,7 +413,7 @@ class Node:
     # -
     @mpi_no_errors
     @timeit(name="Compute LB")
-    def compute_load_balance(self):  # noqa: C901, PLR0912, PLR0915
+    def compute_load_balance(self):
         """In case the user requested load-balance this function instantiates a
         CellDistributor to split cells and balance those pieces across the available CPUs.
         """
@@ -445,52 +445,7 @@ class Node:
             return None
         if lb_mode == LoadBalanceMode.Memory:
             logging.info("Load Balancing ENABLED. Mode: Memory")
-            filename = f"allocation_r{MPI.size}_c{SimConfig.modelbuilding_steps}.pkl.gz"
-
-            file_exists = ospath.exists(filename)
-            MPI.barrier()
-
-            self._dry_run_stats = DryRunStats()
-            if file_exists:
-                alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
-            else:
-                logging.warning("Allocation file not found. Generating on-the-fly.")
-
-                compute_cell_memory_usage = not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
-                if not compute_cell_memory_usage:
-                    self._dry_run_stats.try_import_cell_memory_usage()
-                else:
-                    logging.warning("Cell memory usage file not found. Computing on-the-fly.")
-                for circuit in self._sonata_circuits.values():
-                    if circuit.get("PopulationType") == "biophysical":
-                        cell_distributor = CellDistributor(
-                            circuit, self._target_manager, self._run_conf
-                        )
-                        cell_distributor.load_nodes(
-                            None,
-                            loader_opts={
-                                "load_mode": "load_nodes_metype",
-                                "dry_run_stats": self._dry_run_stats,
-                            },
-                        )
-                        if compute_cell_memory_usage:
-                            cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
-                if compute_cell_memory_usage:
-                    self._dry_run_stats.collect_all_mpi()
-                    self._dry_run_stats.export_cell_memory_usage()
-                    # reset since we instantiated
-                    Nd.t = 0.0  # Reset time
-                    self.clear_model()
-
-                alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
-                    MPI.size, SimConfig.modelbuilding_steps
-                )
-            for pop, ranks in alloc.items():
-                for rank, gids in ranks.items():
-                    logging.debug(
-                        "Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids)
-                    )
-            return alloc
+            return self._memory_mode_load_balancing()
 
         # Build load balancer as per requested options
         node_path = circuit.CellLibraryFile
@@ -516,6 +471,52 @@ class Node:
         self.clear_model()
 
         return load_balancer
+
+    def _memory_mode_load_balancing(self):
+        filename = f"allocation_r{MPI.size}_c{SimConfig.modelbuilding_steps}.pkl.gz"
+
+        file_exists = ospath.exists(filename)
+        MPI.barrier()
+
+        self._dry_run_stats = DryRunStats()
+        if file_exists:
+            alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
+        else:
+            logging.warning("Allocation file not found. Generating on-the-fly.")
+
+            compute_cell_memory_usage = not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
+            if not compute_cell_memory_usage:
+                self._dry_run_stats.try_import_cell_memory_usage()
+            else:
+                logging.warning("Cell memory usage file not found. Computing on-the-fly.")
+            for circuit in self._sonata_circuits.values():
+                if circuit.get("PopulationType") == "biophysical":
+                    cell_distributor = CellDistributor(
+                        circuit, self._target_manager, self._run_conf
+                    )
+                    cell_distributor.load_nodes(
+                        None,
+                        loader_opts={
+                            "load_mode": "load_nodes_metype",
+                            "dry_run_stats": self._dry_run_stats,
+                        },
+                    )
+                    if compute_cell_memory_usage:
+                        cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+            if compute_cell_memory_usage:
+                self._dry_run_stats.collect_all_mpi()
+                self._dry_run_stats.export_cell_memory_usage()
+                # reset since we instantiated
+                Nd.t = 0.0  # Reset time
+                self.clear_model()
+
+            alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
+                MPI.size, SimConfig.modelbuilding_steps
+            )
+        for pop, ranks in alloc.items():
+            for rank, gids in ranks.items():
+                logging.debug("Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids))
+        return alloc
 
     # -
     @mpi_no_errors
