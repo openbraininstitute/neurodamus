@@ -52,7 +52,7 @@ from .io.sonata_config import ConnectionTypes
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
-from .report import Report
+from .report import create_report
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
@@ -852,8 +852,8 @@ class Node:
 
     # Reporting
     class ReportParams(typing.NamedTuple):
-        name: str
         rep_type: str
+        name: str
         report_on: str
         unit: str
         format: str
@@ -931,7 +931,11 @@ class Node:
                 self._coreneuron_write_report_config(rep_conf, target, rep_params)
 
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
-            report = Report(*rep_params, SimConfig.use_coreneuron) if has_gids else None
+            report = (
+                create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
+                if has_gids
+                else None
+            )
 
             # With coreneuron direct mode, enable fast membrane current calculation
             # for i_membrane
@@ -1012,8 +1016,8 @@ class Node:
 
         report_on = rep_conf["ReportOn"]
         return self.ReportParams(
-            os.path.basename(rep_conf.get("FileName", rep_name)),
             rep_type,  # rep type is case sensitive !!
+            os.path.basename(rep_conf.get("FileName", rep_name)),
             report_on,
             rep_conf["Unit"],
             rep_format,
@@ -1073,6 +1077,9 @@ class Node:
         CoreConfig.write_report_config(*core_report_params)
 
     def _report_setup(self, report, rep_conf, target, rep_type):
+        if report is None:
+            return
+
         # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
@@ -1084,7 +1091,7 @@ class Node:
         compartments = rep_conf.get("Compartments")
         sum_currents_into_soma = sections == "soma" and compartments == "center"
         # In case of summation in the soma, we need all points anyway
-        if sum_currents_into_soma and rep_type == "Summation":
+        if sum_currents_into_soma and rep_type.lower() == "summation":
             sections = "all"
             compartments = "all"
         points = self._target_manager.getPointList(
@@ -1096,15 +1103,9 @@ class Node:
             cell = global_manager.get_cellref(gid)
             spgid = global_manager.getSpGid(gid)
 
-            # may need to take different actions based on report type
-            if rep_type == "compartment":
-                report.add_compartment_report(cell, point, spgid, pop_name, pop_offset)
-            elif rep_type == "Summation":
-                report.add_summation_report(
-                    cell, point, sum_currents_into_soma, spgid, pop_name, pop_offset
-                )
-            elif rep_type == "Synapse":
-                report.add_synapse_report(cell, point, spgid, pop_name, pop_offset)
+            report.append_gid_section(
+                cell, point, spgid, pop_name, pop_offset, sum_currents_into_soma
+            )
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]
