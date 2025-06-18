@@ -541,16 +541,16 @@ class DryRunStats:
             population (str): The population to check.
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles.
-
-        Returns:
-            bool: True if all buckets have at least one GID assigned, False otherwise.
         """
         rank_allocation = bucket_allocation.get(population, {})
         for rank_id in range(num_ranks):
             for cycle_id in range(cycles):
                 if not rank_allocation.get((rank_id, cycle_id)):
-                    return False
-        return True
+                    logging.warning(
+                        "Population %s is not allocated across the full size of ranks "
+                        "and cycles. Consider reducing the number of ranks or cycles.",
+                        population,
+                    )
 
     @run_only_rank0
     def distribute_cells_with_validation(self, num_ranks, cycles=None) -> tuple[dict, dict, dict]:
@@ -592,17 +592,8 @@ class DryRunStats:
             num_ranks, cycles, batch_size=batch_size
         )
 
-        valid_distribution = all(
+        for population in self.pop_metype_gids:
             self.check_all_buckets_have_gids(bucket_allocation, population, num_ranks, cycles)
-            for population in self.pop_metype_gids
-        )
-
-        if not valid_distribution:
-            raise RuntimeError(
-                "Unable to find a valid distribution with the given parameters. "
-                "Please try again with a smaller number of ranks or cycles. "
-                "No allocation file was created."
-            )
 
         print_allocation_stats(bucket_memory)
         export_allocation_stats(bucket_allocation, self._ALLOCATION_FILENAME, num_ranks, cycles)

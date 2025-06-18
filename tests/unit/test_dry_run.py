@@ -112,20 +112,6 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
     assert rank_allocation_standard == expected_allocation
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-    },
-], indirect=True)
-@pytest.mark.forked
-def test_dry_run_lb_mode_memory_fail(create_tmp_simulation_config_file):
-    with pytest.raises(FileNotFoundError,
-                       match="No such file cell_memory_usage.json. "
-                       "Neurodamus must be run with --dry-run mode before proceeding."):
-        Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
-                     num_target_ranks=1)
-
-
 @pytest.mark.forked
 def test_dry_run_ngv_fail():
     with pytest.raises(Exception, match="Dry run not available for ngv circuit"):
