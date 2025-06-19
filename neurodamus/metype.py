@@ -39,7 +39,7 @@ class BaseCell:
     @staticmethod
     def get_sec(cell, section_index):
         """Return the section corresponding to the global section_index
-        Note: supports negative indices.
+        Note: supports python's negative indices.
         """
         # Build a list of (section_list, length) tuples for available section types
         sec_lists = [getattr(cell, stype) for stype in BaseCell._sections if hasattr(cell, stype)]

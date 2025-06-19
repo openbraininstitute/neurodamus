@@ -212,9 +212,10 @@ class TargetManager:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
-    def getPointList(self, target, **kw):
-        """Helper to retrieve the points of a target.
+    def getPointList(self, target, **kwargs):
+        """Dispatcher: it helps to retrieve the points of a target.
         Returns the result of calling getPointList directly on the target.
+        Selects a target if unknown.
 
         Args:
             target: The target name or object
@@ -225,12 +226,13 @@ class TargetManager:
         if not isinstance(target, NodesetTarget):
             target = self.get_target(target)
 
-        if "compartment_set" in kw:
+        if "compartment_set" in kwargs:
             return target.getPointListFromCompartmentSet(
                 cell_manager=self._cell_manager,
-                compartment_set=self._compartment_sets[kw["compartment_set"]],
+                compartment_set=self._compartment_sets[kwargs["compartment_set"]],
             )
-        return target.getPointList(self._cell_manager, **kw)
+        else:
+            return target.getPointList(self._cell_manager, **kwargs)
 
     def getMETypes(self, target_name):
         """Convenience function for objects like StimulusManager to get access to METypes of cell
@@ -505,26 +507,33 @@ class NodesetTarget:
         return np.concatenate(gids_groups) if gids_groups else np.empty(0)
 
     def getPointListFromCompartmentSet(self, cell_manager, compartment_set):
-        """TODO"""
-        pointList = compat.List()
-        pop = compartment_set.population
+        """
+        Builds a list of points grouped by GID from a compartment set,
+        mapping sections and offsets for each relevant population.
 
-        if pop not in self.population_names:
-            return pointList
-        selNodeSet = self.populations[pop]
+        Note:
+            The compartment locations in `compartment_set` are expected to be
+            sorted and without duplicates. This is ensured by libsonata.
+        """
+        point_list = compat.List()
+        population_name = compartment_set.population
 
-        for cl in compartment_set.filtered_iter(selNodeSet._selection):
+        if population_name not in self.population_names:
+            return point_list
+        sel_node_set = self.populations[population_name]
+
+        for cl in compartment_set.filtered_iter(sel_node_set._selection):
             gid, section_index, offset = cl.node_id, cl.section_index, cl.offset
-            gid = selNodeSet.selection_gid_2_final_gid(gid)
-            cellObj = cell_manager.get_cellref(gid)
-            sec = BaseCell.get_sec(cellObj, section_index)
-            if len(pointList) and pointList[-1].gid == gid:
-                pointList[-1].append(Nd.SectionRef(sec), offset)
+            gid = sel_node_set.selection_gid_2_final_gid(gid)
+            cell_obj = cell_manager.get_cellref(gid)
+            sec = BaseCell.get_sec(cell_obj, section_index)
+            if len(point_list) and point_list[-1].gid == gid:
+                point_list[-1].append(Nd.SectionRef(sec), offset)
             else:
                 point = TPointList(gid)
                 point.append(Nd.SectionRef(sec), offset)
-                pointList.append(point)
-        return pointList
+                point_list.append(point)
+        return point_list
 
     def getPointList(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and

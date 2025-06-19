@@ -1,5 +1,5 @@
 docopt
 h5py
-git+https://github.com/openbraininstitute/libsonata@katta/comp_sets_2
+git+https://github.com/openbraininstitute/libsonata@katta/comp_sets_2 # TODO: remove when libsonata@katta/comp_sets_2 is merged
 numpy
 

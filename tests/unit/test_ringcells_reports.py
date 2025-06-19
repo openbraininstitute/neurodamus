@@ -409,37 +409,3 @@ def test_enable_coreneuron_report(create_tmp_simulation_config_file):
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
     assert Path(CoreConfig.report_config_file_save).exists()
-
-# TODO remove
-# @pytest.mark.parametrize(
-#     "create_tmp_simulation_config_file",
-#     [
-#         {
-#             "simconfig_fixture": "ringtest_baseconfig",
-#             "extra_config": {
-#                 "target_simulator": "NEURON",
-#                 "reports": {
-#                     "soma_v": {
-#                         "type": "compartment",
-#                         "cells": "Mosaic",
-#                         "variable_name": "v",
-#                         "sections": "soma",
-#                         "dt": 0.1,
-#                         "start_time": 0.0,
-#                         "end_time": 100.0
-#                     }
-#                 },
-#             },
-#         }
-#     ],
-#     indirect=True,
-# )
-# def test_compartment_sets_report(create_tmp_simulation_config_file):
-#     """TODO
-#     """
-#     from neurodamus import Neurodamus
-
-#     n = Neurodamus(create_tmp_simulation_config_file)
-#     n.run()
-#     print(n.reports)
-#     exit()
