@@ -231,8 +231,7 @@ class TargetManager:
                 cell_manager=self._cell_manager,
                 compartment_set=self._compartment_sets[kwargs["compartment_set"]],
             )
-        else:
-            return target.getPointList(self._cell_manager, **kwargs)
+        return target.getPointList(self._cell_manager, **kwargs)
 
     def getMETypes(self, target_name):
         """Convenience function for objects like StimulusManager to get access to METypes of cell
@@ -507,8 +506,7 @@ class NodesetTarget:
         return np.concatenate(gids_groups) if gids_groups else np.empty(0)
 
     def getPointListFromCompartmentSet(self, cell_manager, compartment_set):
-        """
-        Builds a list of points grouped by GID from a compartment set,
+        """Builds a list of points grouped by GID from a compartment set,
         mapping sections and offsets for each relevant population.
 
         Note:
