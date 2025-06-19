@@ -54,8 +54,8 @@ class Report:
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
-            section_index = BaseCell.get_section_id(cell_obj, section)
-            self.report.AddVar(var_ref, section_index, gid, pop_name)
+            section_id = BaseCell.get_section_id(cell_obj, section)
+            self.report.AddVar(var_ref, section_id, gid, pop_name)
 
     def add_summation_report(
         self, cell_obj, point, collapsed, vgid, pop_name="default", pop_offset=0
@@ -80,8 +80,8 @@ class Report:
             self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
 
             if not collapsed:
-                section_index = BaseCell.get_section_id(cell_obj, section)
-                self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
+                section_id = BaseCell.get_section_id(cell_obj, section)
+                self.add_summation_var_and_commit_alu(alu_helper, section_id, gid, pop_name)
         if collapsed:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
@@ -233,7 +233,7 @@ class Report:
 
         return tokens_with_vars
 
-    def add_summation_var_and_commit_alu(self, alu_helper, section_index, gid, population_name):
-        self.report.AddVar(alu_helper._ref_output, section_index, gid, population_name)
+    def add_summation_var_and_commit_alu(self, alu_helper, section_id, gid, population_name):
+        self.report.AddVar(alu_helper._ref_output, section_id, gid, population_name)
         # Append ALUhelper to the list of ALU objects
         self.alu_list.append(alu_helper)

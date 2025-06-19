@@ -250,7 +250,7 @@ class Connection(ConnectionBase):
     @property
     def sections_with_synapses(self):
         """Generator over all sections containing synapses, yielding pairs
-        (section_index, section)
+        (section_id, section)
         """
         for syn_i, sc in enumerate(self._synapse_sections):
             # All locations, on and off node should be in this list, but

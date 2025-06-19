@@ -37,8 +37,8 @@ class BaseCell:
         return Nd.NetCon(self._cellref, target_pp)
 
     @staticmethod
-    def get_sec(cell, section_index):
-        """Return the section corresponding to the global section_index
+    def get_sec(cell, section_id):
+        """Return the section corresponding to the global section_id
         Note: supports python's negative indices.
         """
         # Build a list of (section_list, length) tuples for available section types
@@ -48,20 +48,20 @@ class BaseCell:
         total_len = sum(len(lst) for lst in sec_lists)
 
         # Handle negative index
-        if section_index < 0:
-            section_index += total_len
+        if section_id < 0:
+            section_id += total_len
 
-        if not (0 <= section_index < total_len):
+        if not (0 <= section_id < total_len):
             raise IndexError(
-                f"Global index {section_index} out of range (max index is {total_len - 1})"
+                f"Global index {section_id} out of range (max index is {total_len - 1})"
             )
 
         # Locate the section
         offset = 0
         for sec_list in sec_lists:
             count = len(sec_list)
-            if section_index < offset + count:
-                return sec_list[section_index - offset]
+            if section_id < offset + count:
+                return sec_list[section_id - offset]
             offset += count
         raise RuntimeError("Failed to locate section despite valid index")
 
