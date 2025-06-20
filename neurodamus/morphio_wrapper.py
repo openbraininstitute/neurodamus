@@ -200,14 +200,15 @@ class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
 
     morph = property(lambda self: self._morph)
-    section_index2name_dict = property(lambda self: self._sec_idx2names)
     section_typeid_distrib = property(lambda self: self._sec_typeid_distrib)
 
     def __init__(self, input_file, options=0):
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        self.section_names = self._get_section_names()
+        # we cannot use BaseCell routines because we
+        # do not have a cell at this point.
+        self._section_names = self._get_section_names()
         self._build_sec_typeid_distrib()
 
     def _build_morph(self):
@@ -338,12 +339,12 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = self.section_names[index]
+            tstr = self._section_names[index]
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = self.section_names[parent_index]
+                    tstr1 = self._section_names[parent_index]
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:
