@@ -13,186 +13,92 @@ if __name__ == "__main__":
     sys.path.append(str(Path(__file__).resolve().parent.parent))
 from utils import Edges, make_nodes, make_edges
 
+num_cells = 5
 
-def make_ringtest_nodes(num_ringA_nodes, num_ringB_nodes):
+def make_ringtest_nodes(num_chunks):
 
-    # # sscx-v7-plasticity
-    # hocs = ["hoc:cADpyr_L5TPC", 
-    #         "hoc:dSTUT_L2SBC", 
-    #         "hoc:cSTUT_L6NGC",       
-    #         "hoc:cADpyr_L5TPC", 
-    #         "hoc:cADpyr_L5TPC"
-    #     ]
-    # mtypes = ["L5_TPC:C", 
-    #           "L5_LBC", 
-    #           "L5_NBC", 
-    #           "L5_TPC:B", 
-    #           "L5_TPC:A"] # 
-    # etypes = ["cADpyr", 
-    #           "dSTUT", 
-    #           "cSTUT", 
-    #           "cADpyr", 
-    #           "cADpyr"]
-    # morphologies = [
-    #     "dend-rp100428-3_idD_axon-vd110315_idE_-_Scale_x1.000_y0.975_z1.000_-_Clone_0",
-    #     "mtC050301A_idC_-_Scale_x1.000_y1.025_z1.000_-_Clone_0",
-    #     "rp110711_C3_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_1",
-    #     "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
-    #     "dend-vd110504_idA_axon-rat_20160906_E1_LH5_cell2_-_Clone_0",
-    #     ]
-    # # usecase3
-    # hocs += ["hoc:cNAC_L23BTC", 
-    #          "hoc:cNAC_L23BTC", 
-    #          "hoc:cADpyr_L2TPC"]
-    # mtypes += ["L4_PC", #  
-    #            "L4_MC", 
-    #            "L4_MC"]
-    # etypes += ["dSTUT", 
-    #            "dSTUT",
-    #             "dNAC"]
-    # morphologies += ["rr110330_C3_idA", "C210401C", "rr110330_C3_idA"]
-    # # v5_gapjunctions
-    # hocs += ["hoc:cACint209", "hoc:bIR215"]
-    # mtypes += ["L5_MC", "L5_MC"]
-    # etypes += ["cACint", "bIR"]
-    # morphologies += ["C210301C1_cor", "C290500C-I4"]
-    # # v5_sonata
-    # hocs += ["hoc:cNAC187", "hoc:bNAC219", "hoc:cADpyr229",
-    #     "hoc:cACint209", "hoc:cADpyr229"
-    #     ]
-    # mtypes += ["L1_HAC", "L1_DAC", "L23_PC", "L23_NBC", "L23_PC"]
-    # etypes += ["cNAC", "bNAC", "cADpyr", "cACint", "cADpyr"]
-    # morphologies += ["sm080908a4", "sm080902a3-2", 
-    #     "dend-C280199C-P3_axon-C220797A-P1_-_Clone_4", 
-    #     "C040600B3_-_Clone_7","dend-C090905B_axon-C220797A-P1_-_Clone_5"
-    #     ]
-    # # # ringtest
-    # hocs += ["hoc:TestCell"]
-    # mtypes += ["mTest"]
-    # etypes += ["eTest"]
-    # morphologies += ["cell_small"]
-
-    hocs = [
-            "hoc:cADpyr_L5TPC",
-            "hoc:cADpyr_L5TPC", 
+    # sscx-v7-plasticity
+    hocs = ["hoc:cADpyr_L5TPC", 
+            "hoc:dSTUT_L2SBC", 
             "hoc:cSTUT_L6NGC",       
-            "hoc:cNAC_L23BTC", 
-            "hoc:TestCell",
-            "hoc:cACint209"
-            ]
-    mtypes = [
-              "L5_TPC:A",
+            "hoc:cADpyr_L5TPC", 
+            "hoc:cADpyr_L5TPC"
+        ]
+    mtypes = ["L5_TPC:C", 
+              "L5_LBC", 
+              "L5_NBC", 
               "L5_TPC:B", 
-                "L5_NBC", 
-              "L4_PC",
-              "mTest",
-              "L23_NBC"
-              ] # 
-    etypes = [
-            "cADpyr",
-            "cADpyr", 
-            "cSTUT", 
-            "dSTUT",
-            "eTest",
-            "cACint"
-            ]
+              "L5_TPC:A"] # 
+    etypes = ["cADpyr", 
+              "dSTUT", 
+              "cSTUT", 
+              "cADpyr", 
+              "cADpyr"]
     morphologies = [
-        "dend-vd110504_idA_axon-rat_20160906_E1_LH5_cell2_-_Clone_0",
-        "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
+        "dend-rp100428-3_idD_axon-vd110315_idE_-_Scale_x1.000_y0.975_z1.000_-_Clone_0",
+        "mtC050301A_idC_-_Scale_x1.000_y1.025_z1.000_-_Clone_0",
         "rp110711_C3_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_1",
-        "rr110330_C3_idA",
-        "cell_small",
-        "dend-C280199C-P3_axon-C220797A-P1_-_Clone_4"
+        "dend-rat_20160303_LH2_E2_cell1_axon-vd111221_idB_-_Scale_x1.000_y0.975_z1.000",
+        "dend-vd110504_idA_axon-rat_20160906_E1_LH5_cell2_-_Clone_0",
         ]
 
-
     wanted = {
         "node_type_id": -1,
-        "model_template": it.islice(it.cycle(hocs), num_ringA_nodes),
+        "model_template": hocs * num_chunks,
         "model_type": "biophysical",
-        "mtype": it.islice(it.cycle(mtypes), num_ringA_nodes),
-        "etype": it.islice(it.cycle(etypes), num_ringA_nodes),
+        "mtype": mtypes * num_chunks,
+        "etype": etypes * num_chunks,
         "x": it.count(0),
         "y": it.count(1),
         "z": it.count(2),
-        "morphology": it.islice(it.cycle(morphologies), num_ringA_nodes)
+        "morphology": morphologies * num_chunks
     }
-    make_nodes(filename="nodes_A.h5", name="RingA", count=num_ringA_nodes, wanted_attributes=wanted)
-
-    wanted = {
-        "node_type_id": -1,
-        "model_template": it.islice(it.cycle(hocs), num_ringB_nodes),
-        "model_type": "biophysical",
-        "mtype": it.islice(it.cycle(mtypes), num_ringB_nodes),
-        "etype": it.islice(it.cycle(etypes), num_ringB_nodes),
-        "x": it.count(0),
-        "y": it.count(1),
-        "z": it.count(2),
-        "morphology": it.islice(it.cycle(morphologies), num_ringB_nodes)
-    }
-
-    make_nodes(filename="nodes_B.h5", name="RingB", count=num_ringB_nodes, wanted_attributes=wanted)
+    make_nodes(filename="nodes_A.h5", name="RingA", count=num_cells * num_chunks, wanted_attributes=wanted)
 
 
-def make_ringtest_edges(num_ringA_nodes, num_ringB_nodes):
-    edges = Edges("RingA", "RingA", "chemical", [(i, (i+1)%num_ringA_nodes) for i in range(num_ringA_nodes)])
+def make_ringtest_edges(num_chunks):
+    base_edges = [(1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (2,0), (3,0), (3,0), (3,0), (3,0), (3,0), (3,0), (3,0), (4,0), (4,0), (4,0), (4,0), (4,0), (4,0), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2), (4,2)]
+    conductance = [5.5943, 5.5943, 5.5943, 5.5943, 5.5943, 5.5943, 5.5943,5.5943, 5.5943, 5.5943, 5.5943, 5.5943, 1.98427, 1.98427,1.98427, 1.98427, 1.98427, 1.98427, 1.98427, 1.98427,1.98427, 1.98427, 1.98427, 1.98427, 1.98427, 1.17042,0.0599575, 0.748599, 0.85163, 0.847217, 1.491, 1.03113,1.21809, 0.703759, 0.116345, 0.361779, 0.648706,0.978789, 0.830771, 0.830771, 0.830771, 0.830771,0.830771, 0.830771, 0.830771, 0.830771, 0.830771,0.830771, 0.830771]
+    decay_time = [7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.38603, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 7.82519, 1.69079, 1.69079, 1.69079, 1.69079, 1.69079, 1.69079, 1.69079, 1.69449, 1.69449, 1.69449, 1.69449, 1.69449, 1.69449, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034, 1.9034]
+    delay = [0.827539, 0.904213, 1.0706, 0.890394, 0.937436, 0.795972, 0.662277, 0.672224, 0.673768, 1.03446, 0.954318, 0.980119, 0.68563, 0.721659, 1.44051, 1.49121, 1.51194, 0.985443, 0.402412, 0.46135, 0.472113, 0.71992, 2.10686, 1.71025, 1.27882, 1.15208, 1.92287, 1.93208, 2.03017, 1.36375, 1.68019, 1.35211, 0.948137, 1.12324, 1.13179, 0.979563, 1.14649, 2.35941, 1.01447, 1.09411, 1.10441, 1.10611, 1.10985, 1.11036, 1.47519, 1.01145, 1.27908, 1.96599, 1.91174]
+    depression_time = [113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 113.105, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 124.018, 641.414, 689.766, 684.82, 675.357, 650.328, 646.151, 667.628, 664.267, 658.185, 670.651, 637.752, 679.893, 653.714, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874, 200.874]
+    facilitation_time = [44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 44.5179, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 43.2343, 15.6923, 18.2049, 18.8847, 14.2592, 24.376, 22.8841, 23.9043, 13.5484, 16.3729, 11.5726, 19.2378, 23.8492, 20.3322, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271, 0.75271]
+    u_syn = [0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.252089, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.31343, 0.524151, 0.462185, 0.514421, 0.49336, 0.515007, 0.527129, 0.490634, 0.51741, 0.502634, 0.464501, 0.493526, 0.497464, 0.505147, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282, 0.789282]
+    afferent_section_id = [132, 132, 138, 138, 137, 139, 139, 139, 139, 136, 129, 129, 175, 173, 183, 183, 183, 153, 183, 180, 180, 175, 149, 183, 182, 136, 132, 128, 131, 129, 129, 129, 175, 180, 180, 130, 180, 165, 388, 379, 379, 379, 379, 379, 363, 388, 387, 385, 385]
+    afferent_section_pos = [0.53573, 0.547639, 0.18148, 0.0600003, 0.814624, 0.221401, 0.502495, 0.507556, 0.500827, 0.373361, 0.759969, 0.726317, 0.0494062, 0.651483, 0.911889, 0.949106, 0.963657, 0.749371, 0.182049, 0.153295, 0.184257, 0.309596, 0.888315, 0.543021, 0.453664, 0.903811, 0.550065, 0.355296, 0.126779, 0.118932, 0.498192, 0.873429, 0.297945, 0.323424, 0.361647, 0.771282, 0.514411, 0.798989, 0.307004, 0.659926, 0.659686, 0.675701, 0.690662, 0.700213, 0.792115, 0.585771, 0.801239, 0.758779, 0.349115]
+    afferent_segment_id = [14, 14, 6, 1, 18, 20, 42, 43, 42, 42, 65, 62, 8, 31, 39, 40, 40, 8, 14, 8, 8, 15, 1, 26, 40, 104, 14, 9, 3, 4, 36, 77, 14, 10, 11, 32, 14, 20, 24, 14, 14, 15, 15, 16, 14, 47, 9, 45, 19]
+    afferent_segment_offset = [0.0266073, 1.4634, 4.64698, 2.92604, 0.315054, 1.93563, 3.28724, 0.467721, 2.97768, 1.24604, 1.12063, 2.54551, 0.591928, 1.98494, 0.383818, 3.50628, 9.51018, 6.41613, 5.1479, 2.38913, 8.67887, 2.32247, 3.40449, 7.2486, 2.76403, 0.706739, 1.75609, 0.227248, 1.53668, 0.275657, 1.6957, 0.15103, 10.4847, 12.0596, 7.37407, 6.58095, 1.02609, 2.3074, 0.122763, 0.804636, 0.79722, 0.347136, 0.809985, 0.183374, 2.67176, 0.412008, 5.81238, 0.218138, 1.062]
+    n_rrp_vesicles = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3, 2, 2, 1, 1, 1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+    syn_type_id = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 114, 114, 114, 114, 114, 114, 114, 114, 114, 114, 114, 114, 114, 135, 135, 135, 135, 135, 135, 135, 135, 135, 135, 135]
+
+    edges = []
+    for i in range(num_chunks):
+        off = i * num_cells
+        edges += [(edge[0]+off, edge[1]+off) for edge in base_edges]
+
+    edges = Edges("RingA", "RingA", "chemical", edges)
     wanted_attributes = {
         "edge_type_id": -1,
-        "conductance": it.count(11.0),
-        "decay_time": it.count(12.0),
-        "delay": it.count(13.0),
-        "depression_time": it.count(14.0),
-        "facilitation_time": it.count(15.0),
-        "u_syn": it.count(16.0),
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": it.islice(it.cycle([160, 104, 177]),num_ringA_nodes)
+        "conductance": conductance * num_chunks,
+        "decay_time": decay_time * num_chunks,
+        "delay": delay * num_chunks,
+        "depression_time": depression_time * num_chunks,
+        "facilitation_time": facilitation_time * num_chunks,
+        "u_syn": u_syn * num_chunks,
+        "afferent_section_id": afferent_section_id * num_chunks,
+        "afferent_section_pos": afferent_section_pos * num_chunks,
+        "afferent_segment_id": afferent_segment_id * num_chunks,
+        "afferent_segment_offset": afferent_segment_offset * num_chunks,
+        "n_rrp_vesicles": n_rrp_vesicles * num_chunks,
+        "syn_type_id": syn_type_id * num_chunks
     }
     make_edges(filename="local_edges_A.h5", edges=edges, wanted_attributes=wanted_attributes)
 
-    edges = Edges("RingB", "RingB", "chemical", [(i, (i+1)%num_ringB_nodes) for i in range(num_ringB_nodes)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": it.count(11.0),
-        "decay_time": it.count(12.0),
-        "delay": it.count(13.0),
-        "depression_time": it.count(14.0),
-        "facilitation_time": it.count(15.0),
-        "u_syn": it.count(16.0),
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": it.islice(it.cycle([160, 104, 177]),num_ringB_nodes)
-    }
-    make_edges(filename="local_edges_B.h5", edges=edges, wanted_attributes=wanted_attributes)
 
+num_nodes=1000
+num_chunks = num_nodes // num_cells
 
-    edges = Edges("RingA", "RingB", "chemical", [(0, 0)])
-    wanted_attributes = {
-        "edge_type_id": -1,
-        "conductance": 100.0,
-        "decay_time": 2.0,
-        "delay": 3.0,
-        "depression_time": 4.0,
-        "facilitation_time": 5.0,
-        "u_syn": 6.0,
-        "afferent_section_id": 1,
-        "afferent_section_pos": 0.75,
-        "afferent_segment_id": 1,
-        "afferent_segment_offset": 0,
-        "n_rrp_vesicles": 4,
-        "syn_type_id": 131,
-    }
-    make_edges(filename="edges_AB.h5", edges=edges, wanted_attributes=wanted_attributes)
+print("Num chunks: ", num_chunks)
 
-
-num_ringA_nodes=20
-num_ringB_nodes=500
-
-make_ringtest_nodes(num_ringA_nodes=num_ringA_nodes, num_ringB_nodes=num_ringB_nodes)
-make_ringtest_edges(num_ringA_nodes=num_ringA_nodes, num_ringB_nodes=num_ringB_nodes)
+make_ringtest_nodes(num_chunks=num_chunks)
+make_ringtest_edges(num_chunks=num_chunks)

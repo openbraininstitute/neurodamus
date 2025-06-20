@@ -1,5 +1,4 @@
 {
   "RingA": {"population": "RingA"},
-  "RingB": {"population": "RingB"},
-  "Mosaic": {"population": ["RingA", "RingB"]}
+  "Mosaic": {"population": ["RingA"]}
 }
