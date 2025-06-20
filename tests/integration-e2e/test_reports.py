@@ -85,7 +85,7 @@ def test_v5_sonata_reports(tmp_path):
     from neurodamus import Neurodamus
 
     config_file = SIM_DIR / "simulation_config_mini.json"
-    temp_config_path, output_dir = _create_reports_config(config_file, tmp_path, is_coreneuron=True)
+    temp_config_path, output_dir = _create_reports_config(config_file, tmp_path)
 
     nd = Neurodamus(str(temp_config_path), keep_build=True)
     nd.run()
