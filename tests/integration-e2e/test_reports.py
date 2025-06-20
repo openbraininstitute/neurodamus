@@ -25,6 +25,7 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
 
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
+    config["compartment_sets_file"] =  str(SIM_DIR / "compartment_sets.json")
 
     # Modify the necessary fields
     config["reports"] = config.get("reports", {})
@@ -57,6 +58,15 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
         "end_time": 40.0
     }
 
+    config["reports"]["compartment_set_v"] = {
+        "type": "compartment_set",
+        "compartment_set": "cs1",
+        "variable_name": "v",
+        "dt": 0.1,
+        "start_time": 0.0,
+        "end_time": 40.0
+    }
+
     # Write the modified configuration to a temporary file in tmp_path
     temp_config_path = tmp_path / "reports_config.json"
     with open(temp_config_path, "w") as f:
@@ -66,7 +76,7 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
     if not output_dir.is_absolute():
         output_dir = tmp_path / output_dir
 
-    return str(temp_config_path), str(output_dir)
+    return temp_config_path, output_dir
 
 
 @pytest.mark.slow
@@ -77,20 +87,29 @@ def test_v5_sonata_reports(tmp_path):
     config_file = SIM_DIR / "simulation_config_mini.json"
     temp_config_path, output_dir = _create_reports_config(config_file, tmp_path)
 
-    nd = Neurodamus(temp_config_path)
+    nd = Neurodamus(str(temp_config_path), keep_build=True)
     nd.run()
 
     report_refs = {
-        "soma_report.h5":
-            [(10, 3, -64.92565), (128, 1, -60.309418), (333, 4, -39.864296)],
-        "summation_report.h5":
-            [(20, 153, 1.19864846e-4), (60, 42, 1.1587787e-4), (283, 121, 3.3678625e-5)]
+        "soma_report.h5": [(10, 3, -64.92565), (128, 1, -60.309418), (333, 4, -39.864296)],
+        "summation_report.h5": [(20, 153, 1.19864846e-4), (60, 42, 1.1587787e-4), (283, 121, 3.3678625e-5)]
     }
-    node_id_refs = [0, 1, 2, 3, 4]
+    node_ids = list(range(5))
 
     # Go through each report and compare the results
     for report_name, refs in report_refs.items():
-        result_ids, result_data = _read_sonata_report(Path(output_dir) / report_name)
-        assert result_ids == node_id_refs
-        for row, col, ref in refs:
-            npt.assert_allclose(result_data.data[row][col], ref)
+        result_ids, result_data = _read_sonata_report(output_dir / report_name)
+        assert result_ids == node_ids
+        res = [result_data.data[row][col] for row, col, _ref in refs]
+        ref = [v for _row, _col, v in refs]
+        npt.assert_allclose(res, ref)
+    
+    # test compartment_sets_v.h5
+    node_ids = [0, 2, 3]
+    refs = [(22, 0, -64.125854), (36, 2, -63.736946), (48, 4, -64.76902)]
+    result_ids, result_data = _read_sonata_report(output_dir / "compartment_set_v.h5")
+    assert result_ids == node_ids
+    assert result_data.data.shape[1] == 5
+    res = [result_data.data[row][col] for row, col, _ref in refs]
+    ref = [v for _row, _col, v in refs]
+    npt.assert_allclose(res, ref)

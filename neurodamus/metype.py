@@ -14,6 +14,7 @@ class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
+    _sections = ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
 
     def __init__(self):
         self._cellref = None
@@ -34,6 +35,63 @@ class BaseCell:
     def connect2target(self, target_pp=None):
         """Connects empty cell to target"""
         return Nd.NetCon(self._cellref, target_pp)
+
+    @staticmethod
+    def get_sec(cell, section_id):
+        """Return the section corresponding to the global section_id
+        Note: supports python's negative indices.
+        """
+        # Build a list of (section_list, length) tuples for available section types
+        sec_lists = [getattr(cell, stype) for stype in BaseCell._sections if hasattr(cell, stype)]
+
+        # Compute total length
+        total_len = sum(len(lst) for lst in sec_lists)
+
+        # Handle negative index
+        if section_id < 0:
+            section_id += total_len
+
+        if not (0 <= section_id < total_len):
+            raise IndexError(
+                f"Global index {section_id} out of range (max index is {total_len - 1})"
+            )
+
+        # Locate the section
+        offset = 0
+        for sec_list in sec_lists:
+            count = len(sec_list)
+            if section_id < offset + count:
+                return sec_list[section_id - offset]
+            offset += count
+        raise RuntimeError("Failed to locate section despite valid index")
+
+    @staticmethod
+    def get_section_id(cell, section):
+        """Calculate the global index of a given section within the cell."""
+        section_name = str(section).rsplit(".", 1)[-1]
+        section_name, index_str = section_name.rsplit("[", maxsplit=1)
+        index = int(index_str.rstrip("]"))
+
+        if not hasattr(cell, section_name):
+            raise ValueError(f"Cell has no section list named '{section_name}'")
+
+        sec_list = getattr(cell, section_name)
+        if not (0 <= index < len(sec_list)):
+            raise IndexError(
+                f"Section index {index} out of range for '{section_name}' (size: {len(sec_list)})"
+            )
+
+        offset = 0
+        for section_type in BaseCell._sections:
+            if not hasattr(cell, section_type):
+                continue
+            if section_type == section_name:
+                return offset + index
+            offset += len(getattr(cell, section_type))
+
+        raise RuntimeError(
+            f"Unexpected error: section '{section_name}' was found but not in BaseCell._sections"
+        )
 
 
 class METype(BaseCell):
