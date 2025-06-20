@@ -1,5 +1,5 @@
 docopt
 h5py
-git+https://github.com/openbraininstitute/libsonata # TODO: remove when libsonata is merged
+libsonata
 numpy
 

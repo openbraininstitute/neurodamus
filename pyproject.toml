@@ -17,13 +17,10 @@ dynamic = ["version"]
 dependencies = [
     "h5py",
     "docopt-ng",
-    "libsonata @ git+https://github.com/openbraininstitute/libsonata", # TODO: remove when libsonata is merged
+    "libsonata",
     "psutil"
 ]
 requires-python=">=3.9"
-
-[tool.hatch.metadata] # TODO: remove when libsonata is merged
-allow-direct-references = true # TODO: remove when libsonata is merged
 
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API

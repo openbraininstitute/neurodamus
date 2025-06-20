@@ -85,11 +85,10 @@ def test_v5_sonata_reports(tmp_path):
     from neurodamus import Neurodamus
 
     config_file = SIM_DIR / "simulation_config_mini.json"
-    temp_config_path, output_dir = _create_reports_config(config_file, tmp_path)
+    temp_config_path, output_dir = _create_reports_config(config_file, tmp_path, is_coreneuron=True)
 
-    nd = Neurodamus(str(temp_config_path))
+    nd = Neurodamus(str(temp_config_path), keep_build=True)
     nd.run()
-    
 
     report_refs = {
         "soma_report.h5": [(10, 3, -64.92565), (128, 1, -60.309418), (333, 4, -39.864296)],
