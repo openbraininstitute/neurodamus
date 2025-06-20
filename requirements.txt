@@ -1,5 +1,5 @@
 docopt
 h5py
-libsonata
+libsonata>=v0.1.27
 numpy
 
