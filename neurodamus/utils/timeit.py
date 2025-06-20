@@ -257,7 +257,7 @@ class timeit(ContextDecorator):  # noqa: N801
         self._name = delim.join(timeit.curr_path)
         TimerManager.init(self._name)
 
-    def __exit__(self, exc_type, exc, exc_tb):
+    def __exit__(self, _exc_type, _exc, _exc_tb):
         TimerManager.update(self._name, self._verbose)
         timeit.curr_path.pop()
 

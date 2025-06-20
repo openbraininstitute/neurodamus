@@ -82,9 +82,6 @@ class _CellManager(abc.ABC):
     @abc.abstractmethod
     def getGidListForProcessor(self): ...
 
-    def getMEType(self, gid):
-        return self.get_cell(gid)
-
     def getCell(self, gid):
         return self.get_cellref(gid)
 
@@ -121,7 +118,6 @@ class CellManagerBase(_CellManager):
         self._total_cells = 0  # total cells in target, being simulated
         self._gid2cell = {}
 
-        self._global_seed = 0
         self._ionchannel_seed = 0
         self._binfo = None
         self._pc = Nd.pc
@@ -379,15 +375,6 @@ class CellManagerBase(_CellManager):
 
         pc.multisplit()
 
-    def enable_report(self, report_conf, target_name, use_coreneuron):
-        """Placeholder for Engines implementing their own reporting
-
-        Args:
-            report_conf: The dict containing the report configuration
-            target_name: The target of the report
-            use_coreneuron: Whether the simulator is CoreNeuron
-        """
-
     def load_artificial_cell(self, gid, artificial_cell):
         logging.info(" > Adding Artificial cell for CoreNeuron")
         cell = EmptyCell(gid, artificial_cell)
@@ -398,7 +385,6 @@ class CellManagerBase(_CellManager):
 
     def _init_rng(self):
         rng_info = Nd.RNGSettings()
-        self._global_seed = rng_info.getGlobalSeed()
         self._ionchannel_seed = rng_info.getIonChannelSeed()
         return rng_info
 
@@ -849,7 +835,6 @@ class LoadBalance:
         piece_count = int(ms.x[2])
         fp.write(f" {piece_count}\n")
         i = 2
-        tcx = 0  # Total accum complexity
 
         for _ in range(piece_count):
             i += 1
@@ -858,7 +843,6 @@ class LoadBalance:
             for _ in range(subtree_count):
                 i += 1
                 cx = ms.x[i]  # subtree complexity
-                tcx += cx
                 i += 1
                 children_count = int(ms.x[i])
                 fp.write(f"   {cx:g} {children_count}\n")

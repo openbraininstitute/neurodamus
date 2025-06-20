@@ -106,7 +106,6 @@ class METype(BaseCell):
         "_emodel_name",
         "_hypAmp_current",
         "_netcons",
-        "_syn_helper_list",
         "_synapses",
         "_threshold_current",
         "exc_mini_frequency",
@@ -129,7 +128,6 @@ class METype(BaseCell):
         self._hypAmp_current = None
         self._netcons = []
         self._synapses = None
-        self._syn_helper_list = None
         self._emodel_name = emodel
         self.exc_mini_frequency = None
         self.inh_mini_frequency = None
@@ -165,10 +163,6 @@ class METype(BaseCell):
 
     def setHypAmp(self, value):
         self._hypAmp_current = value
-
-    @staticmethod
-    def getVersion():
-        return 3
 
     def connect2target(self, target_pp=None):
         """Connects MEtype cell to target
@@ -231,7 +225,6 @@ class Cell_V6(METype):  # noqa: N801
             raise RuntimeError(msg) from e
         self._ccell = self._cellref
         self._synapses = Nd.List()
-        self._syn_helper_list = Nd.List()
         self._threshold_current = meinfos_v6.threshold_current
         self._hypAmp_current = meinfos_v6.holding_current
         self.exc_mini_frequency = meinfos_v6.exc_mini_frequency
@@ -437,9 +430,6 @@ class METypeManager(dict):  # noqa: FURB189
                 rotation=rotation,
                 add_params=add_params,
             )
-
-    def retrieve_info(self, gid):
-        return self.get(gid) or logging.warning("No info for gid %d found.", gid)
 
     @property
     def gids(self):

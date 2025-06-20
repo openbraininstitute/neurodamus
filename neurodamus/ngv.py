@@ -170,10 +170,6 @@ class Astrocyte(BaseCell):
     def getThreshold():
         return 0.114648
 
-    @staticmethod
-    def getVersion():
-        return 99
-
 
 class AstrocyteManager(CellDistributor):
     """Manages Astrocyte cells, extending CellDistributor

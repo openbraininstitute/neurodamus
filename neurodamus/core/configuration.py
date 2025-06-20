@@ -57,12 +57,10 @@ class Feature(Enum):
 class CliOptions(ConfigT):
     build_model = None
     simulate_model = True
-    model_path = None  # Currently is output-path
     output_path = None
     keep_build = False
     lb_mode = None
     modelbuilding_steps = None
-    experimental_stims = False
     enable_coord_mapping = False
     save = False
     restore = None
@@ -88,7 +86,6 @@ class CliOptions(ConfigT):
     restrict_features = NoRestriction  # can also be a list
     restrict_node_populations = NoRestriction
     restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
-    restrict_stimulus = NoRestriction  # possible list of Stim names
 
 
 class CircuitConfig(ConfigT):
@@ -216,10 +213,8 @@ class _SimConfig:
     buffer_time = 25
     save = None
     restore = None
-    coreneuron_outputdir = None
     coreneuron_datadir = None
     extracellular_calcium = None
-    secondorder = None
     use_coreneuron = False
     use_neuron = True
     corenrn_buff_size = 8

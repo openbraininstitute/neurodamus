@@ -156,10 +156,6 @@ class _NodeSetBase:
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
 
-    @classmethod
-    def unregister_all(cls):
-        PopulationNodes.reset()
-
     def __len__(self):
         raise NotImplementedError("__len__ not implemented")
 
@@ -186,7 +182,7 @@ class NodeSet(_NodeSetBase):
     so that different population's gids dont overlap
     """
 
-    def __init__(self, gids=None, gid_info=None, **metadata):
+    def __init__(self, gids=None, gid_info=None):
         """Create a NodeSet.
 
         Args:
@@ -198,11 +194,8 @@ class NodeSet(_NodeSetBase):
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
         self._gid_info = {}
-        self._metadata = metadata
         if gids is not None:
             self.add_gids(gids, gid_info)
-
-    meta = property(lambda self: self._metadata)
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed"""
@@ -260,14 +253,6 @@ class SelectionNodeSet(_NodeSetBase):
 
     def raw_gids(self):
         return np.add(self._selection.flatten(), 1, dtype="uint32")
-
-    def raw_gids_iter(self):
-        for r_start, r_end in self._selection.ranges:
-            yield from range(r_start + 1, r_end + 1)
-
-    def final_gids_iter(self):
-        for gid in self.raw_gids_iter():
-            yield gid + self._offset
 
     def selection_gid_2_final_gid(self, gid):
         """Convenience function that translates a 0-based gid
