@@ -23,6 +23,7 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
     with open(original_config_path, 'r') as f:
         config = json.load(f)
 
+    config["target_simulator"] = "CORENEURON"
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
     config["compartment_sets_file"] =  str(SIM_DIR / "compartment_sets.json")

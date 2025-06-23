@@ -982,6 +982,11 @@ class Node:
                 " or simulator is not set to CoreNEURON"
             )
             return None
+        if rep_type == "compartment_set" and SimConfig.use_coreneuron:
+            logging.error(
+                "Compartment set reports are not supported with CoreNEURON at the moment."
+            )
+            return None
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
