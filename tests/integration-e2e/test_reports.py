@@ -57,7 +57,15 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
         "start_time": 0.0,
         "end_time": 40.0
     }
-
+    config["reports"]["compartment_v"] = {
+        "type": "compartment",
+        "sections": "soma",
+        "compartment": "all",
+        "variable_name": "v",
+        "dt": 0.1,
+        "start_time": 0.0,
+        "end_time": 40.0
+    }
     config["reports"]["compartment_set_v"] = {
         "type": "compartment_set",
         "compartment_set": "cs1",
@@ -106,10 +114,15 @@ def test_v5_sonata_reports(tmp_path):
     
     # test compartment_sets_v.h5
     node_ids = [0, 2, 3]
-    refs = [(22, 0, -64.125854), (36, 2, -63.736946), (48, 4, -64.76902)]
+    refs = [(22, 1, -64.125854), (36, 3, -63.736946), (48, 7, -64.76902)]
     result_ids, result_data = _read_sonata_report(output_dir / "compartment_set_v.h5")
     assert result_ids == node_ids
-    assert result_data.data.shape[1] == 5
+    assert result_data.data.shape[1] == 8
     res = [result_data.data[row][col] for row, col, _ref in refs]
     ref = [v for _row, _col, v in refs]
     npt.assert_allclose(res, ref)
+
+    # test compare compartment_v.h5 with compartment_set_v.h5
+    _, soma_v_data = _read_sonata_report(output_dir / "compartment_v.h5")
+    for col_res, col_ref in [(0, 0), (4, 2), (6, 3)]:
+        npt.assert_allclose(result_data.data[:,col_res], soma_v_data.data[:,col_ref])
