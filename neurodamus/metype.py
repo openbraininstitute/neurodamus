@@ -38,7 +38,7 @@ class BaseCell:
 
     @staticmethod
     def get_sec(cell, section_id):
-        """Return the section corresponding to the global section_id."""
+        """Return the section corresponding to the section_id."""
         sec_lists = [
             getattr(cell, stype) for stype in BaseCell._section_types if hasattr(cell, stype)
         ]

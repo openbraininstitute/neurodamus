@@ -205,8 +205,10 @@ class MorphIOWrapper:
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        # we cannot use BaseCell routines because we
-        # do not have a cell at this point.
+        # This logic is similar to what's in BaseCell, but at this point we are still
+        # constructing the cell, so we don't yet have access to a fully initialized instance.
+        # Therefore, we cannot reuse the BaseCell implementation directly and need
+        # a custom solution here.
         self._section_names = self._get_section_names()
         self._build_sec_typeid_distrib()
 
