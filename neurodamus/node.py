@@ -1078,7 +1078,7 @@ class Node:
 
         if rep_type == "compartment_set":
             compartment_set = rep_conf.get("CompartmentSet")
-            points = self._target_manager.getPointList(target, compartment_set=compartment_set)
+            points = self._target_manager.get_point_list(target, compartment_set=compartment_set)
         else:
             # Go through the target members, one cell at a time. We give a cell reference
             # For summation targets - check if we were given a Cell target because we really
@@ -1092,7 +1092,7 @@ class Node:
             if sum_currents_into_soma and rep_type == "Summation":
                 sections = "all"
                 compartments = "all"
-            points = self._target_manager.getPointList(
+            points = self._target_manager.get_point_list(
                 target, sections=sections, compartments=compartments
             )
 

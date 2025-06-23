@@ -212,9 +212,9 @@ class TargetManager:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
-    def getPointList(self, target, **kwargs):
+    def get_point_list(self, target, **kwargs):
         """Dispatcher: it helps to retrieve the points of a target.
-        Returns the result of calling getPointList directly on the target.
+        Returns the result of calling get_point_list directly on the target.
         Selects a target if unknown.
 
         Args:
@@ -227,11 +227,11 @@ class TargetManager:
             target = self.get_target(target)
 
         if "compartment_set" in kwargs:
-            return target.getPointListFromCompartmentSet(
+            return target.get_point_list_from_compartment_set(
                 cell_manager=self._cell_manager,
                 compartment_set=self._compartment_sets[kwargs["compartment_set"]],
             )
-        return target.getPointList(self._cell_manager, **kwargs)
+        return target.get_point_list(self._cell_manager, **kwargs)
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
@@ -485,7 +485,7 @@ class NodesetTarget:
 
         return np.concatenate(gids_groups) if gids_groups else np.empty(0)
 
-    def getPointListFromCompartmentSet(self, cell_manager, compartment_set):
+    def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
         """Builds a list of points grouped by GID from a compartment set,
         mapping sections and offsets for each relevant population.
 
@@ -513,7 +513,7 @@ class NodesetTarget:
                 point_list.append(point)
         return point_list
 
-    def getPointList(self, cell_manager, **kw):
+    def get_point_list(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 

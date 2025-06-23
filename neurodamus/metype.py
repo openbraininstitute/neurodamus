@@ -14,7 +14,7 @@ class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
     __slots__ = ("_ccell", "_cellref", "raw_gid")
-    _sections = ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
+    _section_types = ["soma", "axon", "dend", "apic", "ais", "node", "myelin"]
 
     def __init__(self):
         self._cellref = None
@@ -38,32 +38,28 @@ class BaseCell:
 
     @staticmethod
     def get_sec(cell, section_id):
-        """Return the section corresponding to the global section_id
-        Note: supports python's negative indices.
-        """
-        # Build a list of (section_list, length) tuples for available section types
-        sec_lists = [getattr(cell, stype) for stype in BaseCell._sections if hasattr(cell, stype)]
-
-        # Compute total length
+        """Return the section corresponding to the global section_id."""
+        sec_lists = [
+            getattr(cell, stype) for stype in BaseCell._section_types if hasattr(cell, stype)
+        ]
         total_len = sum(len(lst) for lst in sec_lists)
-
-        # Handle negative index
-        if section_id < 0:
-            section_id += total_len
 
         if not (0 <= section_id < total_len):
             raise IndexError(
                 f"Global index {section_id} out of range (max index is {total_len - 1})"
             )
 
-        # Locate the section
         offset = 0
         for sec_list in sec_lists:
-            count = len(sec_list)
-            if section_id < offset + count:
+            if section_id < offset + len(sec_list):
                 return sec_list[section_id - offset]
-            offset += count
-        raise RuntimeError("Failed to locate section despite valid index")
+            offset += len(sec_list)
+
+        raise RuntimeError(
+            f"Failed to locate section with global index {section_id}. "
+            f"Total sections = {total_len}, accumulated offset = {offset}. "
+            f"This indicates an internal logic error in section indexing."
+        )
 
     @staticmethod
     def get_section_id(cell, section):
@@ -82,7 +78,7 @@ class BaseCell:
             )
 
         offset = 0
-        for section_type in BaseCell._sections:
+        for section_type in BaseCell._section_types:
             if not hasattr(cell, section_type):
                 continue
             if section_type == section_name:
@@ -90,7 +86,8 @@ class BaseCell:
             offset += len(getattr(cell, section_type))
 
         raise RuntimeError(
-            f"Unexpected error: section '{section_name}' was found but not in BaseCell._sections"
+            f"Unexpected error: section '{section_name}' was found "
+            "but not in BaseCell._section_types"
         )
 
 

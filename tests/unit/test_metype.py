@@ -6,7 +6,7 @@ from neurodamus.metype import BaseCell
 def _make_mock_cell():
     mock_cell = Mock()
     offset = 0
-    for sec_type in BaseCell._sections:
+    for sec_type in BaseCell._section_types:
         setattr(mock_cell, sec_type, [offset + i for i in range(10)])
         offset += 10
     mock_cell.unexpected_section = list(range(5))
@@ -37,8 +37,7 @@ def test_get_sec():
     seal(mock_cell)
     assert BaseCell.get_sec(mock_cell, 9) == 9
     assert BaseCell.get_sec(mock_cell, 30) == 30
-    assert BaseCell.get_sec(mock_cell, -1) == 7 * 10 - 1
     with pytest.raises(IndexError):
         BaseCell.get_sec(mock_cell, 70)
     with pytest.raises(IndexError):
-        BaseCell.get_sec(mock_cell, -80)
+        BaseCell.get_sec(mock_cell, -1)
