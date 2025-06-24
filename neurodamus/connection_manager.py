@@ -705,7 +705,6 @@ class ConnectionManagerBase:
             #  - Blocks increase as a geometric progression for handling very large sets
 
             metype_estimate = 0
-            sampled_gids_count = 0
 
             for (
                 start,
@@ -749,7 +748,6 @@ class ConnectionManagerBase:
                 )
                 block_syns_per_cell = new_syns_count / sample_len
                 logging.debug(" - Synapses: %d (Avg: %.2f)", new_syns_count, block_syns_per_cell)
-                sampled_gids_count += sample_len
                 metype_estimate += block_syns_per_cell * block_len
 
             # Info on the whole metype (subject to selected target)

@@ -60,13 +60,18 @@ def change_test_dir(monkeypatch, tmp_folder):
     "loadbalance",
     "multisplit",
     "memory",
+    "memory-cache"
 ])
 @pytest.mark.mpi(ranks=2)
-def test_load_balance_simulation(create_tmp_simulation_config_file, copy_memory_files, lb_mode,
+def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_mode,
                                  mpi_ranks):
     from neurodamus.core import NeuronWrapper as Nd
 
-    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode, num_target_ranks=mpi_ranks)
+    if lb_mode == "memory-cache":
+        request.getfixturevalue("copy_memory_files")       
+        lb_mode = "memory"
+
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
 
     if rank == 0:
         cell_id = 1001
