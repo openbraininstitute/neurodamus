@@ -23,7 +23,6 @@ def _create_reports_config(original_config_path: Path, tmp_path: Path) -> tuple[
     with open(original_config_path, 'r') as f:
         config = json.load(f)
 
-    config["target_simulator"] = "CORENEURON"
     # Update the network path in the config
     config["network"] = str(SIM_DIR / "sub_mini5" / "circuit_config.json")
     config["compartment_sets_file"] =  str(SIM_DIR / "compartment_sets.json")
@@ -115,7 +114,7 @@ def test_v5_sonata_reports(tmp_path):
     
     # test compartment_sets_v.h5
     node_ids = [0, 2, 3]
-    refs = [(22, 1, -64.125854), (36, 3, -63.736946), (48, 7, -64.76902)]
+    refs = [(22, 1, -64.14941), (36, 3, -63.708347), (48, 7, -64.82845)]
     result_ids, result_data = _read_sonata_report(output_dir / "compartment_set_v.h5")
     assert result_ids == node_ids
     assert result_data.data.shape[1] == 8
