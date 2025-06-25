@@ -3,16 +3,11 @@ from pathlib import Path
 import pytest
 from libsonata import SonataError
 
-from tests.utils import (
-    check_signal_peaks,
-    read_ascii_report,
-    record_compartment_report,
-    write_ascii_report,
-)
-
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.node import Node, EnableReportsCumulativeError
+from neurodamus.node import EnableReportsCumulativeError, Node
+from tests.utils import (check_signal_peaks, read_ascii_report,
+                         record_compartment_report, write_ascii_report)
 
 
 @pytest.mark.parametrize(
