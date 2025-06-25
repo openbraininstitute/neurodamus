@@ -1073,7 +1073,6 @@ class Node:
         CoreConfig.write_report_config(*core_report_params)
 
     def _report_setup(self, report, rep_conf, target, rep_type):
-        # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
         # Go through the target members, one cell at a time. We give a cell reference
