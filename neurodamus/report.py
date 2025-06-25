@@ -119,14 +119,14 @@ class Report:
         )
         Nd.BBSaveState().ignore(self.report)
 
-    def append_gid_section(
+    def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
     ):
         """Abstract method to be implemented by subclasses to add section-level report data.
 
         :raises NotImplementedError: Always, unless overridden in subclass.
         """
-        raise NotImplementedError("Subclasses must implement append_gid_section()")
+        raise NotImplementedError("Subclasses must implement register_gid_section()")
 
     @staticmethod
     def enable_fast_imem(mechanism):
@@ -201,7 +201,7 @@ class CompartmentReport(Report):
     Appends variable references at specific compartment locations for a given cell.
     """
 
-    def append_gid_section(
+    def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):
         """Append section-based report data for a single cell and its compartments.
@@ -235,7 +235,7 @@ class SummationReport(Report):
     Handles intrinsic currents and point processes, possibly summing them into soma.
     """
 
-    def append_gid_section(
+    def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
     ):
         """Append summed variable data for a given cell across sections.
@@ -333,7 +333,7 @@ class SummationReport(Report):
 
 
 class SynapseReport(Report):
-    def append_gid_section(
+    def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):
         """Append synapse variables for a given cell to the report grouped by gid."""

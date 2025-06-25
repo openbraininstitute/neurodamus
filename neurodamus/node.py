@@ -1103,7 +1103,7 @@ class Node:
             cell = global_manager.get_cellref(gid)
             spgid = global_manager.getSpGid(gid)
 
-            report.append_gid_section(
+            report.register_gid_section(
                 cell, point, spgid, pop_name, pop_offset, sum_currents_into_soma
             )
 
