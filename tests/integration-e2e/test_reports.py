@@ -1,13 +1,14 @@
-import json
-import pytest
+
 from pathlib import Path
 
+import libsonata
+import numpy.testing as npt
+import pytest
 
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
+from neurodamus.core.configuration import SimConfig
 
 
 def _read_sonata_report(report_file):
-    import libsonata
     report = libsonata.ElementReportReader(report_file)
     pop_name = report.get_population_names()[0]
     node_ids = report[pop_name].get_node_ids()
@@ -53,9 +54,7 @@ def _read_sonata_report(report_file):
 ], indirect=True)
 @pytest.mark.slow
 def test_v5_sonata_reports(create_tmp_simulation_config_file):
-    import numpy.testing as npt
     from neurodamus import Neurodamus
-    from neurodamus.core.configuration import SimConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
