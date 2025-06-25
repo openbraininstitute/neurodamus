@@ -1,1 +1,2 @@
 pytest-isolate-mpi
+mpi4py<=4.0.3 # Must match OpenMPI 4 (uses libmpi.so.12). 4.1+ passed to OpenMPI 5.
