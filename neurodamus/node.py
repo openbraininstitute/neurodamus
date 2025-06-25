@@ -252,6 +252,18 @@ class CircuitManager:
         del self.node_managers
 
 
+class EnableReportsCumulativeError(Exception):
+    def __init__(self, errors):
+        self.errors = errors
+        super().__init__(self._format_message())
+
+    def _format_message(self):
+        messages = []
+        for func_name, value, err in self.errors:
+            messages.append(f"{func_name}({value}): {type(err).__name__} -> {err}")
+        return "enable_reports failed with multiple errors:\n" + "\n".join(messages)
+
+
 class Node:
     """The Node class is the main entity for a distributed Neurodamus execution.
 
@@ -891,7 +903,7 @@ class Node:
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 
-        n_errors = 0
+        errors = []
         # filter: only the enabled ones
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
         self._report_list = []
@@ -920,7 +932,13 @@ class Node:
             # Build final config. On errors log, stop only after all reports processed
             rep_params = self._report_build_params(rep_name, rep_conf)
             if rep_params is None:
-                n_errors += 1
+                errors.append(
+                    (
+                        "_report_build_params",
+                        rep_name,
+                        ValueError(f"Report params is None for '{rep_name}'"),
+                    )
+                )
                 continue
 
             if SimConfig.restore_coreneuron:
@@ -947,9 +965,9 @@ class Node:
             if not SimConfig.use_coreneuron or rep_params.rep_type == "synapse":
                 try:
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
-                except Exception:
+                except Exception as e:
                     logging.exception("Error setting up report '%s'", rep_name)
-                    n_errors += 1
+                    errors.append(("_report_setup", rep_name, e))
                     continue
 
             self._report_list.append(report)
@@ -957,9 +975,8 @@ class Node:
         if SimConfig.restore_coreneuron:
             CoreConfig.update_report_config(substitutions)
 
-        if n_errors > 0:
-            msg = f"{n_errors} reporting errors detected. Terminating"
-            raise Exception(msg)
+        if errors:
+            raise EnableReportsCumulativeError(errors)
 
         MPI.check_no_errors()
 

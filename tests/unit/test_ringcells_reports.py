@@ -12,7 +12,7 @@ from tests.utils import (
 
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.node import Node
+from neurodamus.node import Node, EnableReportsCumulativeError
 
 
 @pytest.mark.parametrize(
@@ -78,7 +78,7 @@ def test_report_config_error(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(Exception, match=r"1 reporting errors detected. Terminating"):
+    with pytest.raises(EnableReportsCumulativeError, match="Report params is None|_ref_wrong was not made to point to anything"):
         n.enable_reports()
 
 
@@ -172,7 +172,7 @@ def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(Exception, match=r"1 reporting errors detected. Terminating"):
+    with pytest.raises(EnableReportsCumulativeError, match=r"Mechanism 'ProbAMPANMDA_EMS' not found"):
         n.enable_reports()
 
 
