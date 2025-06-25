@@ -944,7 +944,7 @@ class Node:
             ) or rep_params.rep_type == "lfp":
                 Nd.cvode.use_fast_imem(1)
 
-            if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
+            if not SimConfig.use_coreneuron or rep_params.rep_type == "synapse":
                 try:
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
                 except Exception:
