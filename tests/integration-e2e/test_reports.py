@@ -5,6 +5,7 @@ import libsonata
 import numpy.testing as npt
 import pytest
 
+from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
 
 
@@ -54,8 +55,6 @@ def _read_sonata_report(report_file):
 ], indirect=True)
 @pytest.mark.slow
 def test_v5_sonata_reports(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
