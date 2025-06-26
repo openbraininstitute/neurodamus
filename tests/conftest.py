@@ -27,6 +27,7 @@ pytest.register_assert_rewrite("tests.utils")
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
+V5_SONATA = SIM_DIR / "v5_sonata"
 PLATFORM_SYSTEM = platform.system()
 RINGTEST_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest"
 NGV_DIR = Path(__file__).parent.absolute() / "simulations" / "ngv"
@@ -81,6 +82,14 @@ def ringtest_baseconfig():
             "v_init": -65
         }
     )
+
+@pytest.fixture
+def v5_sonata_config():
+    config_path = V5_SONATA / "simulation_config_mini.json"
+    with open(config_path, "r") as f:
+        d = json.load(f)
+    d["network"] = str(V5_SONATA / "sub_mini5" / "circuit_config.json")
+    return d
 
 
 @pytest.fixture(autouse=True)
