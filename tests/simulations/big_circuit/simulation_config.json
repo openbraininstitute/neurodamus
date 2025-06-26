@@ -11,5 +11,18 @@
     "conditions": {
         "celsius": 35,
         "v_init": -65
+    },
+    "inputs": {
+        "pInj": {
+            "node_set": "RingA",
+            "input_type": "current_clamp",
+            "module": "pulse",
+            "amp_start": 10.0,
+            "amp_end": 0.0,
+            "frequency": 50.0,
+            "width": 1,
+            "delay": 2.0,
+            "duration": 100.0
+        }
     }
 }
