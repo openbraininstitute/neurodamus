@@ -109,7 +109,7 @@ class _CoreNEURONConfig:
         return SimConfig.output_root
 
     @property
-    def datadir(self):
+    def datadir(self) -> Path:
         """Get datadir from SimConfig if not set explicitly"""
         return SimConfig.coreneuron_datadir_path()
 

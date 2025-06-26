@@ -6,13 +6,15 @@ import hashlib
 import logging
 from collections import defaultdict
 from itertools import chain
-from os import path as ospath
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .connection import Connection, ReplayMode
-from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
+from .core import MPI, run_only_rank0
+from .core import NeuronWrapper as Nd
+from .core import ProgressBarRank0 as ProgressBar
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
@@ -247,12 +249,13 @@ class ConnectionManagerBase:
             edge_population: The population of the edges
             src_name: The source pop name, normally matching that of the source cell manager
         """
-        if not ospath.exists(synapse_file):
+        if not synapse_file.exists():
             raise ConfigurationError(f"Connectivity (Edge) file not found: {synapse_file}")
-        if ospath.isdir(synapse_file):
-            raise ConfigurationError("Edges source is a directory")
 
-        self._synapse_reader = self._open_synapse_file(synapse_file, edge_population)
+        logging.debug("Opening Synapse file %s, population: %s", synapse_file, edge_population)
+        self._synapse_reader = self.SynapseReader(
+            synapse_file, edge_population, extracellular_calcium=SimConfig.extracellular_calcium
+        )
         if self._load_offsets and not self._synapse_reader.has_property("synapse_index"):
             raise Exception(
                 "Synapse offsets required but not available. "
@@ -262,12 +265,6 @@ class ConnectionManagerBase:
         self._init_conn_population(src_pop_name)
         self._unlock_all_connections()  # Allow appending synapses from new sources
         return synapse_file
-
-    def _open_synapse_file(self, synapse_file, pop_name):
-        logging.debug("Opening Synapse file %s, population: %s", synapse_file, pop_name)
-        return self.SynapseReader(
-            synapse_file, pop_name, extracellular_calcium=SimConfig.extracellular_calcium
-        )
 
     def _init_conn_population(self, src_pop_name):
         if not src_pop_name:

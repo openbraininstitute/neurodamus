@@ -3,9 +3,9 @@ They are then available as singletons objects in neurodamus.core package
 """
 
 import logging
-import os  # os.environ
-import os.path
+import os
 from contextlib import contextmanager
+from pathlib import Path
 
 from .configuration import GlobalConfig, NeuronStdrunDefaults, SimConfig
 
@@ -70,10 +70,10 @@ class _Neuron:
         return cls._h
 
     @classmethod
-    def load_dll(cls, dll_path):
+    def load_dll(cls, dll_path: Path):
         """Loads a Neuron mod file (typically an .so file in linux)."""
         h = cls._h or cls._init()
-        rc = h.nrn_load_dll(dll_path)
+        rc = h.nrn_load_dll(str(dll_path))
         if rc == 0:
             raise RuntimeError(
                 f"Cant load MOD dll {dll_path}. Please check LD path and dependencies"
@@ -191,8 +191,7 @@ class MComplexLoadBalancer:
     """Wrapper of the load balance Hoc Module with mcomplex."""
 
     def __init__(self, force_regenerate=False):
-        # Can we use an existing mcomplex.dat?
-        if force_regenerate or not os.path.isfile("mcomplex.dat"):
+        if force_regenerate or not Path("mcomplex.dat").is_file():
             logging.info("Generating mcomplex.dat...")
             self._create_mcomplex()
         else:

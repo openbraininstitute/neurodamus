@@ -113,7 +113,7 @@ def copy_memory_files(change_test_dir):
 
 
 @run_only_rank0
-def _create_simulation_config_file(params, dst_dir, sim_config_data=None) -> str:
+def _create_simulation_config_file(params, dst_dir, sim_config_data=None) -> Path:
     """create simulation config file in dst_dir from
         1. simconfig_data: dict
         2. or copy of simconfig_file in params, and attach relative paths to src_dir
@@ -149,7 +149,7 @@ def _create_simulation_config_file(params, dst_dir, sim_config_data=None) -> str
 
     with open(dst_dir / config_file, "w") as dst_f:
         json.dump(sim_config_data, dst_f, indent=2)
-    return str(dst_dir / config_file)
+    return dst_dir / config_file
 
 
 def _is_valid_relative_path(filepath: str):

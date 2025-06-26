@@ -1,8 +1,8 @@
-"""Collection of Cell Readers from different sources (Pure HDF5, SynTool...)"""
+"""Collection of Cell Readers from different sources"""
 
 import logging
 from collections import defaultdict
-from os import path as ospath
+from pathlib import Path
 
 import libsonata
 import numpy as np
@@ -234,7 +234,7 @@ def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
     """
     add_params_list = []
     for gid, emodel in zip(gidvec, emodels):
-        Nd.h.load_file(ospath.join(etype_path, emodel) + ".hoc")  # hoc doesn't throw
+        Nd.h.load_file(str(Path(etype_path) / emodel) + ".hoc")  # hoc doesn't throw
         attr_names = getattr(Nd, emodel + "_NeededAttributes", None)  # format "attr1;attr2;attr3"
         vals = []
         if attr_names is not None:

@@ -2,17 +2,19 @@
 
 import logging
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
 
 from docopt import docopt
 
+from neurodamus.node import Neurodamus
+from neurodamus.utils.timeit import TimerManager
+
 from .core import MPI, OtherRankError
 from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
 from .utils.pyutils import docopt_sanitize
-from neurodamus.node import Neurodamus
-from neurodamus.utils.timeit import TimerManager
 
 
 def neurodamus(args=None):
@@ -71,10 +73,10 @@ def neurodamus(args=None):
     from . import __version__
 
     options = docopt_sanitize(docopt(neurodamus.__doc__, args, version=__version__))
-    config_file = options.pop("ConfigFile")
+    config_file = Path(options.pop("ConfigFile"))
     log_level = _pop_log_level(options)
 
-    if not os.path.isfile(config_file):
+    if not config_file.is_file():
         logging.error("Config file not found: %s", config_file)
         return 1
 
@@ -87,8 +89,8 @@ def neurodamus(args=None):
 
     # Some previous executions may have left a bad exception node file
     # This is done now so it's a very early stage and we know the mpi rank
-    if MPI.rank == 0 and os.path.exists(EXCEPTION_NODE_FILENAME):
-        os.remove(EXCEPTION_NODE_FILENAME)
+    if MPI.rank == 0 and EXCEPTION_NODE_FILENAME.exists():
+        EXCEPTION_NODE_FILENAME.unlink()
 
     try:
         Neurodamus(config_file, auto_init=True, logging_level=log_level, **options).run()
@@ -127,7 +129,7 @@ def show_exception_abort(err_msg, exc_info):
     Processes that dont see any file will register (append) their rank id
     First one is elected to print
     """
-    err_file = Path(EXCEPTION_NODE_FILENAME)
+    err_file = EXCEPTION_NODE_FILENAME
     ALL_RANKS_SYNC_WINDOW = 1
 
     if err_file.exists():
@@ -147,17 +149,18 @@ def show_exception_abort(err_msg, exc_info):
 
 
 def _attempt_launch_special(config_file):
-    import shutil
+    special = Path(shutil.which("special"))
+    local_special = Path("x86_64/special")
+    if local_special.exists():  # prefer locally compiled special
+        special = local_special.absolute()
 
-    special = shutil.which("special")
-    if os.path.isfile("x86_64/special"):  # prefer locally compiled special
-        special = os.path.abspath("x86_64/special")
     if special is None:
         logging.warning(
             "special not found. Running neurodamus from Python with libnrnmech. "
             "-> DO NOT USE WITH PRODUCTION RUNS"
         )
         return
+
     neurodamus_py_root = os.environ.get("NEURODAMUS_PYTHON")
     if not neurodamus_py_root:
         logging.warning(
@@ -165,9 +168,10 @@ def _attempt_launch_special(config_file):
             "-> DO NOT USE WITH PRODUCTION RUNS"
         )
         return
-    print("::INIT:: Special available. Replacing binary...")  # noqa: T201
+
+    logging.warning("::INIT:: Special available. Replacing binary with %s", special)
     os.environ["NEURODAMUS_SPECIAL"] = "1"
-    init_script = os.path.join(neurodamus_py_root, "init.py")
+    init_script = Path(neurodamus_py_root) / "init.py"
     os.execl(special, "-mpi", "-python", init_script, "--configFile=" + config_file, *sys.argv[2:])
 
 

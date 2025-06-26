@@ -2,7 +2,7 @@
 
 import logging
 from abc import abstractmethod
-from os import path as ospath
+from pathlib import Path
 
 import numpy as np
 
@@ -149,7 +149,7 @@ class Cell_V6(METype):  # noqa: N801
 
     def _instantiate_cell(self, gid, etype_path, emodel, morpho_path, meinfos_v6, detailed_axon):
         """Instantiates a SSCx v6 cell"""
-        Nd.load_hoc(ospath.join(etype_path, emodel))
+        Nd.load_hoc(str(Path(etype_path) / emodel))
         EModel = getattr(Nd, emodel)
         morpho_file = meinfos_v6.morph_name + "." + self.morpho_extension
         keep_axon = detailed_axon and self.KEEP_AXON_FLAG

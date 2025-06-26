@@ -2,7 +2,6 @@
 
 import logging
 import os
-import os.path
 import re
 from collections import defaultdict
 from enum import Enum
@@ -13,7 +12,7 @@ from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT
 
-EXCEPTION_NODE_FILENAME = ".exception_node"
+EXCEPTION_NODE_FILENAME = Path(".exception_node")
 """A file which controls which rank shows exception"""
 
 
@@ -237,13 +236,14 @@ class _SimConfig:
     cell_requirements = property(lambda self: self._cell_requirements)
 
     @classmethod
-    def init(cls, config_file, cli_options):
+    def init(cls, config_file: Path, cli_options):
         # Import these objects scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
 
         Nd.init()
-        if not os.path.isfile(config_file):
+        if not config_file.is_file():
             raise ConfigurationError("Config file not found: " + config_file)
+
         logging.info("Initializing Simulation Configuration and Validation")
 
         log_verbose("ConfigFile: %s", config_file)
@@ -252,7 +252,7 @@ class _SimConfig:
         cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
+        cls.simulation_config_dir = config_file.absolute().parent
 
         cls.projections = cls._config_parser.parsedProjections
         cls.connections = cls._config_parser.parsedConnects
@@ -277,32 +277,32 @@ class _SimConfig:
         cls._init_hoc_config_objs()
 
     @classmethod
-    def current_dir_path(cls):
+    def current_dir_path(cls) -> Path:
         if cls.current_dir:
             return cls.current_dir
-        return str(Path.cwd())
+        return Path.cwd()
 
     @classmethod
-    def build_path(cls):
+    def build_path(cls) -> Path:
         """Default to <currend_dir>/build if save is None"""
-        return cls.save or str(Path(cls.current_dir_path()) / "build")
+        return Path(cls.save or Path(cls.current_dir_path()) / "build")
 
     @classmethod
-    def coreneuron_datadir_path(cls, create=False):
+    def coreneuron_datadir_path(cls, create=False) -> Path:
         """Default to output_root if none is provided"""
-        ans = cls.coreneuron_datadir or str(Path(cls.build_path()) / "coreneuron_input")
+        res = Path(cls.coreneuron_datadir or cls.build_path() / "coreneuron_input")
         if create:
-            Path(ans).mkdir(parents=True, exist_ok=True)
-        return ans
+            res.mkdir(parents=True, exist_ok=True)
+        return res
 
     @classmethod
-    def coreneuron_datadir_restore_path(cls):
+    def coreneuron_datadir_restore_path(cls) -> Path:
         """Default to output_root if none is provided"""
-        return str(Path(cls.restore) / "coreneuron_input")
+        return Path(cls.restore) / "coreneuron_input"
 
     @classmethod
-    def populations_offset_restore_path(cls):
-        return str(Path(cls.restore) / "populations_offset.dat")
+    def populations_offset_restore_path(cls) -> Path:
+        return Path(cls.restore) / "populations_offset.dat"
 
     @classmethod
     def populations_offset_save_path(cls, create=False):
@@ -343,10 +343,6 @@ class _SimConfig:
 
     @classmethod
     def _init_config_parser(cls, config_file):
-        if not config_file.endswith(".json"):
-            raise ConfigurationError(
-                "Invalid configuration file format. The configuration file must be a .json file."
-            )
         try:
             config_parser = SonataConfig(config_file)
         except Exception as e:
@@ -597,12 +593,6 @@ def _validate_circuit_morphology(config_dict, required=True):
     if not morph_path:
         log_verbose(" > Morphology src: <Disabled> MorphologyType: %s, ", morph_type or "<None>")
         return
-    if morph_type is None:
-        logging.warning("MorphologyType not set. Assuming ascii and legacy /ascii subdir")
-        morph_type = "asc"
-        morph_path = os.path.join(morph_path, "ascii")
-        config_dict["MorphologyType"] = morph_type
-        config_dict["MorphologyPath"] = morph_path
     assert morph_type in {"asc", "swc", "h5", "hoc"}, "Invalid MorphologyType"
     log_verbose(" > MorphologyType = %s, src: %s", morph_type, morph_path)
 
@@ -821,7 +811,7 @@ def _current_dir(config: _SimConfig):
                 raise ConfigurationError("CurrentDir: Relative paths not allowed")
             curdir = os.path.abspath(curdir)
         if not os.path.isdir(curdir):
-            raise ConfigurationError("CurrentDir doesnt exist: " + curdir)
+            raise ConfigurationError("CurrentDir does not exist: " + curdir)
 
     log_verbose("CurrentDir = %s", curdir)
     config.run_conf["CurrentDir"] = curdir

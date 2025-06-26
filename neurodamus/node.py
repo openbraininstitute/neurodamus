@@ -10,7 +10,6 @@ import shutil
 import typing
 from collections import defaultdict
 from contextlib import contextmanager
-from os import path as ospath
 from pathlib import Path
 
 import libsonata
@@ -321,15 +320,6 @@ class Node:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
-        assert isinstance(config_file, str), "`config_file` should be a string"
-        assert config_file, "`config_file` cannot be empty"
-
-        if config_file.endswith("BlueConfig"):
-            raise ConfigurationError(
-                "Legacy format BlueConfig is not supported, please migrate to SONATA config"
-            )
-        import libsonata
-
         conf = libsonata.SimulationConfig.from_file(config_file)
         Nd.init(log_filename=conf.output.log_file)
 
@@ -473,13 +463,12 @@ class Node:
         return load_balancer
 
     def _memory_mode_load_balancing(self):
-        filename = f"allocation_r{MPI.size}_c{SimConfig.modelbuilding_steps}.pkl.gz"
+        filename = Path(f"allocation_r{MPI.size}_c{SimConfig.modelbuilding_steps}.pkl.gz")
 
-        file_exists = ospath.exists(filename)
         MPI.barrier()
 
         self._dry_run_stats = DryRunStats()
-        if file_exists:
+        if filename.exists():
             alloc = self._dry_run_stats.import_allocation_stats(filename, self._cycle_i)
         else:
             logging.warning("Allocation file not found. Generating on-the-fly.")
@@ -1007,7 +996,7 @@ class Node:
 
         report_on = rep_conf["ReportOn"]
         return self.ReportParams(
-            os.path.basename(rep_conf.get("FileName", rep_name)),
+            str(Path(rep_conf.get("FileName", rep_name)).name),
             rep_type,  # rep type is case sensitive !!
             report_on,
             rep_conf["Unit"],
@@ -1315,7 +1304,7 @@ class Node:
                 logging.info("SHM file transfer mode for CoreNEURON enabled")
 
                 # Create SHM folder and links to GPFS for the global data structures
-                os.makedirs(corenrn_datadir_shm, exist_ok=True)
+                corenrn_datadir_shm.makedirs(exist_ok=True)
 
                 # Important: These three files must be available on every node, as they are shared
                 #            across all of the processes. The trick here is to fool NEURON into
@@ -1323,12 +1312,12 @@ class Node:
                 #            written on GPFS. The workflow is identical, meaning that rank 0 writes
                 #            the content and every other rank reads it afterwards in CoreNEURON.
                 for filename in ("bbcore_mech.dat", "files.dat", "globals.dat"):
-                    path = os.path.join(corenrn_datadir, filename)
-                    path_shm = os.path.join(corenrn_datadir_shm, filename)
+                    path = corenrn_datadir / filename
+                    path_shm = corenrn_datadir_shm / filename
 
                     try:
-                        os.close(os.open(path, os.O_CREAT))
-                        os.symlink(path, path_shm)
+                        path.open("w").close()
+                        path_shm.symlink_to(path)
                     except FileExistsError:
                         pass  # Ignore if other process has already created it
 
@@ -1347,7 +1336,6 @@ class Node:
             corenrn_datadir if not self._shm_enabled else corenrn_datadir_shm
         )
 
-    # -
     @timeit(name="corewrite")
     def _coreneuron_write_sim_config(self, corenrn_restore=False):
         log_stage("Dataset generation for CoreNEURON")
@@ -1356,7 +1344,7 @@ class Node:
             CompartmentMapping(self._circuits.global_manager).register_mapping()
             if not SimConfig.coreneuron_direct_mode:
                 with self._coreneuron_ensure_all_ranks_have_gids(CoreConfig.datadir):
-                    self._pc.nrnbbcore_write(CoreConfig.datadir)
+                    self._pc.nrnbbcore_write(str(CoreConfig.datadir))
                     MPI.barrier()  # wait for all ranks to finish corenrn data generation
 
         prcellgid = self._dump_cell_state_gids[0] if self._dump_cell_state_gids else -1
@@ -1648,7 +1636,7 @@ class Node:
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
-    def __init__(self, config_file, auto_init=True, logging_level=None, **user_opts):
+    def __init__(self, config_file: Path, auto_init=True, logging_level=None, **user_opts):
         """Creates and initializes a neurodamus run node
 
         As part of Initiazation it calls:
@@ -1659,7 +1647,7 @@ class Neurodamus(Node):
          * Activate reports if requested
 
         Args:
-            config_file: The simulation config recipe file
+            config_file: The simulation config file
             logging_level: (int) Redefine the global logging level.
                 0 - Only warnings / errors
                 1 - Info messages (default)
@@ -1689,11 +1677,9 @@ class Neurodamus(Node):
         elif SimConfig.build_model:
             self._instantiate_simulation()
 
-        # Remove .SUCCESS file if exists
-        self._success_file = SimConfig.config_file + ".SUCCESS"
-        self._remove_file(self._success_file)
+        self._success_file = Path(str(SimConfig.config_file) + ".SUCCESS")
+        self._success_file.unlink(missing_ok=True)
 
-    # -
     def _build_single_model(self):
         """Construct the model for a single cycle.
 
@@ -1754,17 +1740,16 @@ class Neurodamus(Node):
         coreneuron_datadir = CoreConfig.datadir
         cn_entries = []
         for i in range(ncycles):
-            log_verbose(f"files_{i}.dat")
-            filename = ospath.join(coreneuron_datadir, f"files_{i}.dat")
-            with open(filename, encoding="utf-8") as fd:
+            name = f"files_{i}.dat"
+            log_verbose(name)
+            with (coreneuron_datadir / name).open(encoding="utf-8") as fd:
                 first_line = fd.readline()
                 nlines = int(fd.readline())
                 for _ in range(nlines):
                     line = fd.readline()
                     cn_entries.append(line)
 
-        cnfilename = ospath.join(coreneuron_datadir, "files.dat")
-        with open(cnfilename, "w", encoding="utf-8") as cnfile:
+        with (coreneuron_datadir / "files.dat").open("w", encoding="utf-8") as cnfile:
             cnfile.write(first_line)
             cnfile.write(str(len(cn_entries)) + "\n")
             cnfile.writelines(cn_entries)
@@ -1912,7 +1897,7 @@ class Neurodamus(Node):
 
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
-                base_filesdat = ospath.join(CoreConfig.datadir, "files")
+                base_filesdat = CoreConfig.datadir / "files"
                 os.rename(base_filesdat + ".dat", base_filesdat + f"_{cycle_i}.dat")
             # Archive timers for this cycle
             TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
