@@ -9,7 +9,6 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
-from itertools import accumulate
 
 class SectionIdError(Exception):
     pass
@@ -24,40 +23,7 @@ _section_layout = [
     ("node", lambda c: getattr(c, "node", []), lambda c: int(getattr(c, "nSecNodal", 0))),
     ("myelin", lambda c: getattr(c, "myelin", []), lambda c: int(getattr(c, "nSecMyelinated", 0))),
 ]
-# todoremove
-# def get_section_id(cell, section):
-#     section_name = str(section).rsplit(".", 1)[-1]
-#     try:
-#         section_type, index_str = section_name.rsplit("[", maxsplit=1)
-#         local_idx = int(index_str.rstrip("]"))
-#         if local_idx < 0:
-#             raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
-#     except ValueError as e:
-#         raise SectionIdError(f"Cannot parse section name: {section_name}") from e
 
-#     counts = [int(count_fn(cell)) if (count := count_fn(cell)) is not None else None for _, _, count_fn in _section_layout]
-
-#     # can_guess[i] is True if counts[i] is known or can safely be guessed (i.e. all later counts are None)
-#     can_guess = list(reversed([
-#         c is not None or not any_rest
-#         for c, any_rest in zip(
-#             reversed(counts),
-#             accumulate(reversed(counts), lambda acc, c: acc or c is not None, initial=False)
-#         )
-#     ]))
-
-#     offset = 0
-#     for i, (name, _, _) in enumerate(_section_layout):
-#         count = counts[i]
-#         if name in section_type:
-#             if count is not None and local_idx >= count:
-#                 raise SectionIdError(f"Index {local_idx} out of range for section type '{name}' (count={count})")
-#             if count is None and not can_guess[i]:
-#                 raise SectionIdError(f"Cannot resolve index for section '{name}': ID space is ambiguous")
-#             return offset + local_idx
-#         offset += count if count is not None else 0
-
-#     raise SectionIdError(f"Unknown section type in: {section_type}")
 
 def get_section_id(cell, section):
     """Calculate the global index of a given section within its cell.
