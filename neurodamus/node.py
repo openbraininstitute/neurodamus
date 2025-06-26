@@ -942,11 +942,6 @@ class Node:
 
             if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
                 try:
-                    # Custom reporting. TODO: Move `_report_setup` to cellManager.enable_report
-                    # e.g.
-                    #   target_population = target_spec.population or self._target_spec.population
-                    #   cell_manager = self._circuits.get_node_manager(target_population)
-                    #   cell_manager.enable_report(report, target, SimConfig.use_coreneuron)
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
                 except Exception:
                     logging.exception("Error setting up report '%s'", rep_name)
@@ -1078,7 +1073,6 @@ class Node:
         CoreConfig.write_report_config(*core_report_params)
 
     def _report_setup(self, report, rep_conf, target, rep_type):
-        # TODO: Move to Cell Distributor and avoid inner loop conditions
         global_manager = self._circuits.global_manager
 
         if rep_type == "compartment_set":
