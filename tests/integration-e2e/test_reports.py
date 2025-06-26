@@ -48,15 +48,32 @@ def _read_sonata_report(report_file):
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 40.0
+                },
+                "compartment_v": {
+                    "type": "compartment",
+                    "sections": "soma",
+                    "compartment": "all",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0
+                },
+                "compartment_set_v": {
+                    "type": "compartment_set",
+                    "compartment_set": "cs1",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0
                 }
-            }
+            },
         }
     }
 ], indirect=True)
 @pytest.mark.slow
 def test_v5_sonata_reports(create_tmp_simulation_config_file):
-    output_dir = Path(SimConfig.output_root)
     nd = Neurodamus(create_tmp_simulation_config_file)
+    output_dir = Path(SimConfig.output_root)
     nd.run()
 
     report_refs = {
