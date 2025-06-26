@@ -9,21 +9,55 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
+from itertools import accumulate
 
 class SectionIdError(Exception):
     pass
 
 
 _section_layout = [
-    ("soma", lambda c: c.soma, lambda c: c.nSecSoma),
-    ("axon", lambda c: c.axon, lambda c: c.nSecAxonalOrig),
-    ("dend", lambda c: c.dend, lambda c: c.nSecBasal),
-    ("apic", lambda c: c.apic, lambda c: c.nSecApical),
-    ("ais", lambda c: getattr(c, "ais", []), lambda c: getattr(c, "nSecLastAIS", 0)),
-    ("node", lambda c: getattr(c, "node", []), lambda c: getattr(c, "nSecNodal", 0)),
-    ("myelin", lambda c: getattr(c, "myelin", []), lambda c: getattr(c, "nSecMyelinated", 0)),
+    ("soma", lambda c: c.soma, lambda c: int(c.nSecSoma)),
+    ("axon", lambda c: c.axon, lambda c: int(c.nSecAxonalOrig)),
+    ("dend", lambda c: c.dend, lambda c: int(c.nSecBasal)),
+    ("apic", lambda c: c.apic, lambda c: int(c.nSecApical)),
+    ("ais", lambda c: getattr(c, "ais", []), lambda c: int(getattr(c, "nSecLastAIS", 0))),
+    ("node", lambda c: getattr(c, "node", []), lambda c: int(getattr(c, "nSecNodal", 0))),
+    ("myelin", lambda c: getattr(c, "myelin", []), lambda c: int(getattr(c, "nSecMyelinated", 0))),
 ]
+# todoremove
+# def get_section_id(cell, section):
+#     section_name = str(section).rsplit(".", 1)[-1]
+#     try:
+#         section_type, index_str = section_name.rsplit("[", maxsplit=1)
+#         local_idx = int(index_str.rstrip("]"))
+#         if local_idx < 0:
+#             raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
+#     except ValueError as e:
+#         raise SectionIdError(f"Cannot parse section name: {section_name}") from e
 
+#     counts = [int(count_fn(cell)) if (count := count_fn(cell)) is not None else None for _, _, count_fn in _section_layout]
+
+#     # can_guess[i] is True if counts[i] is known or can safely be guessed (i.e. all later counts are None)
+#     can_guess = list(reversed([
+#         c is not None or not any_rest
+#         for c, any_rest in zip(
+#             reversed(counts),
+#             accumulate(reversed(counts), lambda acc, c: acc or c is not None, initial=False)
+#         )
+#     ]))
+
+#     offset = 0
+#     for i, (name, _, _) in enumerate(_section_layout):
+#         count = counts[i]
+#         if name in section_type:
+#             if count is not None and local_idx >= count:
+#                 raise SectionIdError(f"Index {local_idx} out of range for section type '{name}' (count={count})")
+#             if count is None and not can_guess[i]:
+#                 raise SectionIdError(f"Cannot resolve index for section '{name}': ID space is ambiguous")
+#             return offset + local_idx
+#         offset += count if count is not None else 0
+
+#     raise SectionIdError(f"Unknown section type in: {section_type}")
 
 def get_section_id(cell, section):
     """Calculate the global index of a given section within its cell.
@@ -39,14 +73,24 @@ def get_section_id(cell, section):
     original cell structure.
     """
     section_name = str(section).rsplit(".", 1)[-1]
-    section_type, index_str = section_name.rsplit("[", maxsplit=1)
-    local_idx = int(index_str.rstrip("]"))
+    try:
+        section_type, index_str = section_name.rsplit("[", maxsplit=1)
+        local_idx = int(index_str.rstrip("]"))
+        if local_idx < 0:
+            raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
+    except ValueError as e:
+        raise SectionIdError(f"Cannot parse section name: {section_name}") from e
 
     offset = 0
     for name, _, count_fn in _section_layout:
+        count = count_fn(cell)
         if name in section_type:
+            if local_idx >= count:
+                raise SectionIdError(
+                    f"Index {local_idx} out of range for section type '{name}' (count={count})"
+                )
             return offset + local_idx
-        offset += int(count_fn(cell))
+        offset += count
 
     raise SectionIdError(f"Unknown section type in: {section_type}")
 
