@@ -50,7 +50,7 @@ def get_section_id(cell, section):
     offset = 0
     for name, _, count_fn in _section_layout:
         count = count_fn(cell)
-        if name in section_type:
+        if name == section_type:
             if local_idx >= count:
                 raise SectionIdError(
                     f"Index {local_idx} out of range for section type '{name}' (count={count})"
