@@ -264,6 +264,10 @@ class EnableReportsCumulativeError(Exception):
         return "enable_reports failed with multiple errors:\n" + "\n".join(messages)
 
 
+class ReportSetupError(Exception):
+    pass
+
+
 class Node:
     """The Node class is the main entity for a distributed Neurodamus execution.
 
@@ -930,15 +934,11 @@ class Node:
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
-            rep_params = self._report_build_params(rep_name, rep_conf)
-            if rep_params is None:
-                errors.append(
-                    (
-                        "_report_build_params",
-                        rep_name,
-                        ValueError(f"Report params is None for '{rep_name}'"),
-                    )
-                )
+            try:
+                rep_params = self._report_build_params(rep_name, rep_conf)
+            except Exception as e:
+                logging.exception("Error setting up report parameters '%s'", rep_name)
+                errors.append(("_report_setup", rep_name, e))
                 continue
 
             if SimConfig.restore_coreneuron:
@@ -984,6 +984,15 @@ class Node:
             self._reports_init(pop_offsets_alias)
 
     def _report_build_params(self, rep_name, rep_conf):
+        """Build and validate report parameters from configuration.
+
+        Ensures report timing and settings are consistent with simulation constraints,
+        raises ReportSetupError on invalid configurations (e.g., missing LFP setup,
+        invalid time ranges, or incompatible time steps).
+
+        Returns:
+            ReportParams: A populated report parameters object.
+        """
         sim_end = self._run_conf["Duration"]
         rep_type = rep_conf["Type"]
         start_time = rep_conf["StartTime"]
@@ -993,11 +1002,10 @@ class Node:
 
         lfp_disabled = not self._circuits.global_manager._lfp_manager._lfp_file
         if rep_type == "lfp" and lfp_disabled:
-            logging.error(
-                "LFP reports are disabled. Electrodes file might be missing"
-                " or simulator is not set to CoreNEURON"
+            raise ReportSetupError(
+                "LFP report setup failed: electrodes file may be missing "
+                "or simulator is not set to CoreNEURON."
             )
-            return None
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
@@ -1011,14 +1019,16 @@ class Node:
             end_time += Nd.t
         end_time = min(end_time, sim_end)
         if start_time > end_time:
-            if MPI.rank == 0:
-                logging.error("Report/Sim End-time (%s) before Start (%g).", end_time, start_time)
-            return None
+            raise ReportSetupError(
+                f"Invalid report configuration: end time ({end_time}) is before "
+                f"start time ({start_time})."
+            )
 
         if rep_dt < Nd.dt:
-            if MPI.rank == 0:
-                logging.error("Invalid report dt %f < %f simulation dt", rep_dt, Nd.dt)
-            return None
+            raise ReportSetupError(
+                f"Invalid report configuration: report dt ({rep_dt}) is smaller than "
+                f"simulation dt ({Nd.dt})."
+            )
 
         rep_target = TargetSpec(rep_conf["Target"])
         population_name = (

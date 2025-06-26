@@ -73,7 +73,7 @@ def test_report_config_error(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(EnableReportsCumulativeError, match="Report params is None|_ref_wrong was not made to point to anything"):
+    with pytest.raises(EnableReportsCumulativeError, match="is before start time|is smaller than simulation dt|_ref_wrong was not made to point to anything"):
         n.enable_reports()
 
 
