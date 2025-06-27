@@ -5,7 +5,7 @@ from libsonata import SonataError
 
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.node import EnableReportsCumulativeError, Node
+from neurodamus.node import ReportsCumulativeError, Node
 from tests.utils import (check_signal_peaks, read_ascii_report,
                          record_compartment_report, write_ascii_report)
 
@@ -73,7 +73,7 @@ def test_report_config_error(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(EnableReportsCumulativeError, match="is before start time|is smaller than simulation dt|_ref_wrong was not made to point to anything"):
+    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|_ref_wrong was not made to point to anything"):
         n.enable_reports()
 
 
@@ -167,7 +167,7 @@ def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(EnableReportsCumulativeError, match=r"Mechanism 'ProbAMPANMDA_EMS' not found"):
+    with pytest.raises(ReportsCumulativeError, match=r"Mechanism 'ProbAMPANMDA_EMS' not found"):
         n.enable_reports()
 
 

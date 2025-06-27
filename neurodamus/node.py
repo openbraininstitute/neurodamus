@@ -252,7 +252,7 @@ class CircuitManager:
         del self.node_managers
 
 
-class EnableReportsCumulativeError(Exception):
+class ReportsCumulativeError(Exception):
     def __init__(self, errors):
         self.errors = errors
         super().__init__(self._format_message())
@@ -976,7 +976,7 @@ class Node:
             CoreConfig.update_report_config(substitutions)
 
         if errors:
-            raise EnableReportsCumulativeError(errors)
+            raise ReportsCumulativeError(errors)
 
         MPI.check_no_errors()
 
