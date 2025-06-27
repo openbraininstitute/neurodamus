@@ -97,8 +97,8 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     n.run()
 
     # Check RingA cells spikes
-    spike_gid_ref = np.array([1001, 1002, 1003, 1004, 1005])
-    timestamps_ref = np.array([2.075, 2.075, 2.075, 2.075, 2.075])
+    spike_gid_ref = np.array(range(1001, 1008))
+    timestamps_ref = np.array([2.075]*len(spike_gid_ref))
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
     spike_gids = np.array(ringA_spikes[1])
