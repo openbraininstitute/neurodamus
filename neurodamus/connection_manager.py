@@ -558,6 +558,48 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
+    @staticmethod
+    def _get_allowed_ranges(src_target, sgids, sgids_ranges, conn_count):
+        """Return n_yielded_conns and allowed_ranges, handling src_target=None.
+
+        Helper function for _iterate_conn_params
+        """
+        if src_target:
+            unique_sgids = sgids[sgids_ranges[:-1]]
+            allowed_sgids = set(unique_sgids[src_target.contains(unique_sgids, raw_gids=True)])
+            allowed_ranges = [
+                (sgids_ranges[i], sgids_ranges[i + 1])
+                for i in range(conn_count)
+                if sgids[sgids_ranges[i]] in allowed_sgids
+            ]
+            n_yielded_conns = len(allowed_sgids)
+        else:
+            n_yielded_conns = conn_count
+            allowed_ranges = [(sgids_ranges[i], sgids_ranges[i + 1]) for i in range(conn_count)]
+
+        return n_yielded_conns, allowed_ranges
+
+    @staticmethod
+    def _compute_sgids_ranges(syns_params):
+        """Compute source GIDs, their change points, and total connections count.
+
+        Helper function for _iterate_conn_params
+        """
+        sgids = syns_params[syns_params.dtype.names[0]].astype("int64")
+        sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
+        conn_count = len(sgids_ranges) - 1
+        return sgids, sgids_ranges, conn_count
+
+    def _get_extra_fields(self, base_tgid):
+        """Get extra fields for the synapse parameters, e.g. synapse_index.
+
+        Helper function for _iterate_conn_params
+        """
+        if self._load_offsets:
+            syn_index = self._synapse_reader.get_property(base_tgid, "synapse_index")
+            return {"synapse_index": syn_index}
+        return {}
+
     def _iterate_conn_params(  # noqa: PLR0914
         self,
         src_target,
@@ -587,7 +629,6 @@ class ConnectionManagerBase:
 
         self._synapse_reader.configure_override(mod_override)
         self._synapse_reader.preload_data(gids, minimal_mode=SimConfig.cli_options.crash_test)
-        extra_fields = {}  # Without extra fields, reuse this object
 
         # NOTE: This routine is quite critical, sitting at the core of synapse processing
         # so it has been carefully optimized with numpy vectorized operations, even if
@@ -605,32 +646,21 @@ class ConnectionManagerBase:
             syns_params = self._synapse_reader.get_synapse_parameters(base_tgid)
             logging.debug("GID %d Syn count: %d", tgid, len(syns_params))
 
-            if self._load_offsets:
-                syn_index = self._synapse_reader.get_property(base_tgid, "synapse_index")
-                extra_fields = {"synapse_index": syn_index}
+            sgids, sgids_ranges, conn_count = self._compute_sgids_ranges(syns_params)
+            conn_debugger = self.ConnDebugger()
+            if conn_count == 0:
+                logging.debug("No synapses for GID %d. Nothing to do.", tgid)
+                continue
+
+            extra_fields = self._get_extra_fields(base_tgid)
 
             # We yield ranges of contiguous parameters belonging to the same connection,
             # and given we have data for a single tgid, enough to group by sgid.
             # The first row of a range is found by numpy.diff
 
-            sgids = syns_params[syns_params.dtype.names[0]].astype("int64")  # src gid in field 0
-            sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
-            conn_count = len(sgids_ranges) - 1
-            conn_debugger = self.ConnDebugger()
-
-            if src_target:
-                # create a set with the gids that belong both to the synapses and the target
-                unique_sgids = sgids[sgids_ranges[:-1]]
-                allowed_sgids = set(unique_sgids[src_target.contains(unique_sgids, raw_gids=True)])
-                n_yielded_conns = len(allowed_sgids)
-                allowed_ranges = [
-                    (sgids_ranges[i], sgids_ranges[i + 1])
-                    for i in range(conn_count)
-                    if sgids[sgids_ranges[i]] in allowed_sgids
-                ]
-            else:
-                n_yielded_conns = conn_count
-                allowed_ranges = [(sgids_ranges[i], sgids_ranges[i + 1]) for i in range(conn_count)]
+            n_yielded_conns, allowed_ranges = self._get_allowed_ranges(
+                src_target, sgids, sgids_ranges, conn_count
+            )
 
             for range_start, range_end in allowed_ranges:
                 sgid = int(sgids[range_start])
