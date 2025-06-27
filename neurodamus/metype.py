@@ -10,6 +10,86 @@ from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
 
 
+class SectionIdError(Exception):
+    pass
+
+
+_section_layout = [
+    ("soma", lambda c: c.soma, lambda c: int(c.nSecSoma)),
+    ("axon", lambda c: c.axon, lambda c: int(c.nSecAxonalOrig)),
+    ("dend", lambda c: c.dend, lambda c: int(c.nSecBasal)),
+    ("apic", lambda c: c.apic, lambda c: int(c.nSecApical)),
+    ("ais", lambda c: getattr(c, "ais", []), lambda c: int(getattr(c, "nSecLastAIS", 0))),
+    ("node", lambda c: getattr(c, "node", []), lambda c: int(getattr(c, "nSecNodal", 0))),
+    ("myelin", lambda c: getattr(c, "myelin", []), lambda c: int(getattr(c, "nSecMyelinated", 0))),
+]
+
+
+def get_section_id(cell, section):
+    """Calculate the global index of a given section within its cell.
+
+    :param cell: The cell instance containing the section of interest
+    :param section: The specific section for which the index is required
+    :return: The global index of the section, applicable for neuron mapping
+
+    Note: section_id is based on the original cell, before removing the axon.
+
+    Warning: this method returns the original section_id, which may not be valid
+    if the axon was removed. The offsets are still calculated based on the
+    original cell structure.
+    """
+    section_name = str(section).rsplit(".", 1)[-1]
+    try:
+        section_type, index_str = section_name.rsplit("[", maxsplit=1)
+        local_idx = int(index_str.rstrip("]"))
+        if local_idx < 0:
+            raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
+    except ValueError as e:
+        raise SectionIdError(f"Cannot parse section name: {section_name}") from e
+
+    offset = 0
+    for name, _, count_fn in _section_layout:
+        count = count_fn(cell)
+        if name == section_type:
+            if local_idx >= count:
+                raise SectionIdError(
+                    f"Index {local_idx} out of range for section type '{name}' (count={count})"
+                )
+            return offset + local_idx
+        offset += count
+
+    raise SectionIdError(f"Unknown section type in: {section_type}")
+
+
+def get_sec(cell, section_id):
+    """Inverse of get_section_id. Given a global section_id, returns the section from the cell.
+
+    :param cell: The cell instance used for offsets
+    :param section_id: The global index of the section
+    :return: Reference to the section in the cell
+
+    Note: section_id is based on the original cell, before removing the axon.
+    Asking for one of the removed sections will raise an error. Asking for one of
+    the two remaining sections is still possible. The offsets are still
+    calculated based on the original cell structure.
+    """
+    idx = section_id
+    for name, accessor_fn, count_fn in _section_layout:
+        count = int(count_fn(cell))
+        if idx < count:
+            section_list = accessor_fn(cell)
+            if name == "axon" and len(section_list) <= idx:
+                raise SectionIdError(
+                    f"The axon was removed ({cell.nSecAxonalOrig} -> {len(section_list)}). "
+                    f"The section_id {section_id} refers to a removed axon section "
+                    f"(local index {idx})."
+                )
+            return section_list[idx]
+        idx -= count
+
+    raise SectionIdError(f"Section ID {section_id} is out of bounds.")
+
+
 class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 

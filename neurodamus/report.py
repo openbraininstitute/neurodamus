@@ -1,50 +1,7 @@
 import logging
 
 from .core import NeuronWrapper as Nd
-
-
-def get_section_index(cell, section):
-    """Calculate the global index of a given section within its cell.
-    :param cell: The cell instance containing the section of interest
-    :param section: The specific section for which the index is required
-    :return: The global index of the section, applicable for neuron mapping
-    """
-    section_name = str(section)
-    base_offset = 0
-    section_index = 0
-    if "soma" in section_name:
-        pass  # base_offset is 0
-    elif "axon" in section_name:
-        base_offset = cell.nSecSoma
-    elif "dend" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig
-    elif "apic" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal
-    elif "ais" in section_name:
-        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical
-    elif "node" in section_name:
-        base_offset = (
-            cell.nSecSoma
-            + cell.nSecAxonalOrig
-            + cell.nSecBasal
-            + cell.nSecApical
-            + getattr(cell, "nSecLastAIS", 0)
-        )
-    elif "myelin" in section_name:
-        base_offset = (
-            cell.nSecSoma
-            + cell.nSecAxonalOrig
-            + cell.nSecBasal
-            + cell.nSecApical
-            + getattr(cell, "nSecLastAIS", 0)
-            + getattr(cell, "nSecNodal", 0)
-        )
-
-    # Extract the index from the section name
-    index_str = section_name.rsplit("[", maxsplit=1)[-1].rstrip("]")
-    section_index = int(index_str)
-
-    return int(base_offset + section_index)
+from .metype import get_section_id
 
 
 class Report:
@@ -97,8 +54,8 @@ class Report:
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
-            section_index = get_section_index(cell_obj, section)
-            self.report.AddVar(var_ref, section_index, gid, pop_name)
+            section_id = get_section_id(cell_obj, section)
+            self.report.AddVar(var_ref, section_id, gid, pop_name)
 
     def add_summation_report(
         self, cell_obj, point, collapsed, vgid, pop_name="default", pop_offset=0
@@ -123,8 +80,8 @@ class Report:
             self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
 
             if not collapsed:
-                section_index = get_section_index(cell_obj, section)
-                self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
+                section_id = get_section_id(cell_obj, section)
+                self.add_summation_var_and_commit_alu(alu_helper, section_id, gid, pop_name)
         if collapsed:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
@@ -276,7 +233,7 @@ class Report:
 
         return tokens_with_vars
 
-    def add_summation_var_and_commit_alu(self, alu_helper, section_index, gid, population_name):
-        self.report.AddVar(alu_helper._ref_output, section_index, gid, population_name)
+    def add_summation_var_and_commit_alu(self, alu_helper, section_id, gid, population_name):
+        self.report.AddVar(alu_helper._ref_output, section_id, gid, population_name)
         # Append ALUhelper to the list of ALU objects
         self.alu_list.append(alu_helper)
