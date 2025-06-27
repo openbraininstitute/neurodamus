@@ -986,7 +986,7 @@ def _model_building_steps(config: _SimConfig):
 def _report_vars(config: _SimConfig):
     """Compartment reports read voltages or i_membrane only. Other types must be summation"""
     mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
-    report_types = {"compartment", "Summation", "Synapse", "PointType", "lfp"}
+    report_types = {"compartment", "summation", "synapse", "lfp"}
     non_negatives = ("StartTime", "EndTime", "Dt")
     report_configs_dict = {}
 
