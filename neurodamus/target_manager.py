@@ -528,7 +528,7 @@ class NodesetTarget:
             list of TPointList containing the compartment position and retrieved section references
         """
         section_type = kw.get("sections") or "soma"
-        compartment_type = kw.get("compartments") or ("center" if section_type == "soma" else "all")
+        compartment_type = kw.get("compartments")
         pointList = compat.List()
         for gid in self.get_local_gids():
             point = TPointList(gid)
