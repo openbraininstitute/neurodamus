@@ -6,75 +6,60 @@ import sys
 import argparse
 
 # Example data
-methods = ['LB Memory', 'WholeCell']
+methods = []
 
 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("mem_file", type=str, help="Path to file containing lb memory stats")
-parser.add_argument("wholecell_file", type=str, help="Path to file contatining lb wholecell stats")
+parser.add_argument("input_files", type=str, nargs='+', help="Paths to one or more stats files")
 parser.add_argument("-lb", action="store_true", help="Show load balance compute time")
 args = parser.parse_args()
 
 
-memory_file = sys.argv[1]
-wholecell_file = sys.argv[2]
-
-df = pd.read_csv(memory_file)
-mpi_ranks = df["ranks"].tolist()
-memory_A = df["mem"].tolist()
-memory_A_max = df["mem_max"].tolist()
-memory_A_min = df["mem_min"].tolist()
-compute_lb_A = df["compute_lb"].tolist()
-cell_creation_A = df["cell_creation"].tolist()
-run_time_A = df["run_time"].tolist()
-
-df = pd.read_csv(wholecell_file)
-memory_B = df["mem"].tolist()
-memory_B_max = df["mem_max"].tolist()
-memory_B_min = df["mem_min"].tolist()
-compute_lb_B = df["compute_lb"].tolist()
-cell_creation_B = df["cell_creation"].tolist()
-run_time_B = df["run_time"].tolist()
-
-
-mem_max = max(memory_A_max + memory_B_max)
-compute_lb_max = max(compute_lb_A + compute_lb_B)
-creation_max = max(cell_creation_A + cell_creation_B)
-run_max = max(run_time_A + run_time_B)
-
-mem_min = min(memory_A_min + memory_B_min)
-compute_lb_min = min(compute_lb_A + compute_lb_B)
-creation_min = min(cell_creation_A + cell_creation_B)
-run_min = min(run_time_A + run_time_B)
-
-mem_max *= 1.05
-compute_lb_max *= 1.05
-creation_max *= 1.05
-run_max *= 1.05
-
-mem_min *= 0.95
-compute_lb_min *= 0.95
-creation_min *= 0.95
-run_min *= 0.95
-
-
+memory = []
+memory_max = []
+memory_min = []
+memory_yerr = []
+compute_lb = []
+cell_creation = []
+run_time = []
 
 def compute_yerr(avg, minv, maxv):
     return [np.array(avg) - np.array(minv), np.array(maxv) - np.array(avg)]
 
-memory_A_yerr = compute_yerr(memory_A, memory_A_min, memory_A_max)
-memory_B_yerr = compute_yerr(memory_B, memory_B_min, memory_B_max)
+methods = [f.split("_")[1].split(".")[0] for f in args.input_files]
+for file in args.input_files:
+    df = pd.read_csv(file)
+    mpi_ranks = df["ranks"].tolist()
+    mem = df["mem"].tolist()
+    memory.append(mem)
+    mmax = df["mem_max"].tolist()
+    memory_max.append(mmax)
+    mmin = df["mem_min"].tolist()
+    memory_min.append(mmin)
+    compute_lb.append(df["compute_lb"].tolist())
+    cell_creation.append(df["cell_creation"].tolist())
+    run_time.append(df["run_time"].tolist())
+    memory_yerr.append(compute_yerr(mem, mmin, mmax))
+
+mem_max = max([max(v) for v in memory_max]) * 1.05
+mem_min = min([min(v) for v in memory_min]) * 0.95
+compute_lb_max = max([max(v) for v in compute_lb]) * 1.05 
+compute_lb_min = min([min(v) for v in compute_lb]) * 0.95
+creation_max = max([max(v) for v in cell_creation]) * 1.05 
+creation_min = min([min(v) for v in cell_creation]) * 0.95 
+run_max = max([max(v) for v in run_time]) * 1.05 
+run_min = min([min(v) for v in run_time]) * 0.95
 
 
+colors = plt.get_cmap("tab10")
+method_colors = [colors(i) for i, method in enumerate(methods)]
 
-rr_color = "red"
-memory_color = "blue"
 
-
-errorbar_style_0 = { 'ecolor': memory_color, 'elinewidth': 2, 'capsize': 8, 'capthick': 2}
-errorbar_style_1 = {'ecolor': rr_color, 'elinewidth': 2, 'capsize': 8, 'capthick': 2}
+errorbar_style = []
+for i in range(len(methods)):
+    errorbar_style.append({ 'ecolor': method_colors[i], 'elinewidth': 2, 'capsize': 8, 'capthick': 2})
 
 if args.lb:
     fig, axs = plt.subplots(1, 4, figsize=(15, 5))
@@ -90,8 +75,8 @@ else:
 
 
 if args.lb:
-    lb_axs.errorbar(mpi_ranks, compute_lb_A, label=methods[0], color=memory_color)
-    lb_axs.errorbar(mpi_ranks, compute_lb_B, label=methods[1], color=rr_color)
+    for i in range(len(methods)):
+        lb_axs.errorbar(mpi_ranks, compute_lb[i], label=methods[i], color=method_colors[i])
     lb_axs.set_title('Compute LB')
     lb_axs.set_xlabel("MPI Ranks")
     lb_axs.set_ylabel('Seconds')
@@ -100,8 +85,8 @@ if args.lb:
     lb_axs.set_ylim(compute_lb_min, compute_lb_max)
     lb_axs.minorticks_on()
 
-mem_axs.errorbar(mpi_ranks, memory_A, yerr=memory_A_yerr, label=methods[0], color=memory_color, **errorbar_style_0)
-mem_axs.errorbar(mpi_ranks, memory_B, yerr=memory_B_yerr, label=methods[1], color=rr_color, **errorbar_style_1)
+for i in range(len(methods)):
+    mem_axs.errorbar(mpi_ranks, memory[i], yerr=memory_yerr[i], label=methods[i], color=method_colors[i], **errorbar_style[i])
 mem_axs.set_title("Memory Usage")
 mem_axs.set_xlabel("MPI Ranks")
 mem_axs.set_ylabel("Memory per Rank(MB)")
@@ -111,8 +96,8 @@ mem_axs.set_ylim(mem_min, mem_max)
 mem_axs.minorticks_on()
 
 # Generation time plot
-creation_axs.errorbar(mpi_ranks, cell_creation_A, label=methods[0], color=memory_color)
-creation_axs.errorbar(mpi_ranks, cell_creation_B, label=methods[1], color=rr_color)
+for i in range(len(methods)):
+    creation_axs.errorbar(mpi_ranks, cell_creation[i], label=methods[i], color=method_colors[i])
 creation_axs.set_title('Cell creation')
 creation_axs.set_xlabel("MPI Ranks")
 creation_axs.set_ylabel('Seconds')
@@ -122,8 +107,8 @@ creation_axs.set_ylim(creation_min, creation_max)
 creation_axs.minorticks_on()
 
 # Run time 
-run_axs.errorbar(mpi_ranks, run_time_A, label=methods[0], color=memory_color)
-run_axs.errorbar(mpi_ranks, run_time_B, label=methods[1], color=rr_color)
+for i in range(len(methods)):
+    run_axs.errorbar(mpi_ranks, run_time[i], label=methods[i], color=method_colors[i])
 run_axs.set_title('finished Run')
 run_axs.set_xlabel("MPI Ranks")
 run_axs.set_ylabel('Seconds')
