@@ -46,7 +46,7 @@ jobs:
           # macOS is only run with Python 3.12.6 due to github action cache size limits
           - os: macOS-15
             python-version: '3.12.6'
-      fail-fast: false
+      fail-fast: true
 
     steps:
     - name: Setup Python
@@ -280,8 +280,8 @@ jobs:
       run: |
         tox -e scientific
 
-    # - name: live debug session, comment out
-    #   if: failure()
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #    timeout-minutes: 60  # or any other value you need
+    - name: live debug session, comment out
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+       timeout-minutes: 60  # or any other value you need
