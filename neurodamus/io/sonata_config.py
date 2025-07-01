@@ -341,7 +341,6 @@ class SonataConfig:
 
     @property
     def parsedReports(self):
-        report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
         reports = {}
         for name in self._sim_conf.list_report_names:
             rep = self._translate_dict("reports", self._sim_conf.report(name))
@@ -349,7 +348,6 @@ class SonataConfig:
             self._adapt_libsonata_fields(rep)
             # Format is SONATA with sonata_config
             rep["Format"] = "SONATA"
-            rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
 
