@@ -69,7 +69,7 @@ jobs:
           ${{ matrix.os }}-pip-
 
     - name: Get latest tags
-      - env:
+      env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
