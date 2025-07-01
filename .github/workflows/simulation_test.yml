@@ -91,13 +91,13 @@ jobs:
         LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
         if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
-    - name: Install system dependencies
+    - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
 
-    - name: Install homebrew packages
+    - name: Install macOS homebrew packages
       if: startsWith(matrix.os, 'macOS')
       run: |
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
@@ -188,7 +188,7 @@ jobs:
     - name: Install mpi4py
       # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-        pip install mpi4py
+        MPICC=mpicc pip install --no-binary=mpi4py mpi4py
 
     - name: Build h5py with the local hdf5
       run: |
@@ -199,7 +199,6 @@ jobs:
           export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
           export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
-        python -m pip install --upgrade pip setuptools
         CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
