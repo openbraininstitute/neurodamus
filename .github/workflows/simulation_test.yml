@@ -106,17 +106,17 @@ jobs:
         brew unlink fmt
         echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
 
-    # - name: Cache python virtual env
-    #   id: cache-venv
-    #   uses: actions/cache@v3
-    #   env:
-    #     cache-name: cache-venv
-    #   with:
-    #     path: venv
-    #     key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
+    - name: Cache python virtual env
+      id: cache-venv
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-venv
+      with:
+        path: venv
+        key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
 
     - name: Upgrade pip and install base Python packages
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
+      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         python -m venv venv
         . ./venv/bin/activate
@@ -127,7 +127,7 @@ jobs:
       run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
 
     - name: Install libsonata
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
+      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
@@ -186,7 +186,7 @@ jobs:
         cmake --build nrn/build --target install
 
     - name: Install mpi4py
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
+      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         pip install mpi4py
 
@@ -199,7 +199,8 @@ jobs:
           export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
           export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
-        CC="mpicc" HDF5_MPI="ON" pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
+          pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
     - name: Install neurodamus
       run: |
