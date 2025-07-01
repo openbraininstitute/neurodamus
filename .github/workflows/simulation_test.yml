@@ -34,12 +34,14 @@ jobs:
 
     strategy:
       matrix:
-        include:
-        - os: ubuntu-22.04
-          python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
-        - os: macOS-15
-          python-version: ['3.12.6'] # because of the actions cache limit, test with one python version
+        os: [ubuntu-22.04, macOS-15]
+        python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
       fail-fast: false
+
+    # because of the cache limit in actions, we run macOS only with Python 3.12.6
+    if: >
+      startsWith(matrix.os, 'ubuntu') ||
+      (startsWith(matrix.os, 'macOS' && matrix.python-version == '3.12.6')
 
     steps:
     - name: Setup Python
