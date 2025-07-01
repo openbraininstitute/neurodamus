@@ -34,8 +34,11 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-22.04]
-        python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+        include:
+        - os: ubuntu-22.04
+          python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+        - os: macOS-15
+          python-version: ['3.12.6'] # because of the actions cache limit, test with one python version
       fail-fast: false
 
     steps:
@@ -80,9 +83,19 @@ jobs:
         if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
     - name: Install system dependencies
+      if: statswith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
+
+    - name: Install homebrew packages
+      if: statswith(matrix.os, 'maxOS')
+      run: |
+        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+        brew unlink fmt
+        echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
 
     - name: Cache python virtual env
       id: cache-venv
@@ -170,8 +183,14 @@ jobs:
 
     - name: Build h5py with the local hdf5
       run: |
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
-          pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+          export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
+          export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
+        else
+          export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
+          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
+        fi
+        CC="mpicc" HDF5_MPI="ON" pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
     - name: Install neurodamus
       run: |
@@ -201,8 +220,13 @@ jobs:
         export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
         export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
         export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
-        export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-        export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
+          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
+        else
+          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
+          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+        fi
         export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
