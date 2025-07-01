@@ -96,7 +96,7 @@ jobs:
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
 
     - name: Install homebrew packages
-      if: startsWith(matrix.os, 'maxOS')
+      if: startsWith(matrix.os, 'macOS')
       run: |
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
         brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
