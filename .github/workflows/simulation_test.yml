@@ -41,7 +41,7 @@ jobs:
     # because of the cache limit in actions, we run macOS only with Python 3.12.6
     if: >
       startsWith(matrix.os, 'ubuntu') ||
-      (startsWith(matrix.os, 'macOS' && matrix.python-version == '3.12.6')
+      (startsWith(matrix.os, 'macOS') && matrix.python-version == '3.12.6')
 
     steps:
     - name: Setup Python
