@@ -83,13 +83,13 @@ jobs:
         if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
     - name: Install system dependencies
-      if: statswith(matrix.os, 'ubuntu')
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
 
     - name: Install homebrew packages
-      if: statswith(matrix.os, 'maxOS')
+      if: startsWith(matrix.os, 'maxOS')
       run: |
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
         brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
