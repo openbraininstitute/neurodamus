@@ -320,7 +320,6 @@ class SonataConfig:
 
     @property
     def parsedReports(self):
-        report_type_translation = {"summation": "Summation", "synapse": "Synapse"}
         item_translation = {
             "type": "Type",
             "cells": "Target",
@@ -382,7 +381,11 @@ class SonataConfig:
     @staticmethod
     def _translate_dict(item_translation, libsonata_obj) -> dict:
         """Translate SONATA/libsonata key names (snake_case) to Neurodamus internal paramters"""
-        attrs = [x for x in dir(obj) if not x.startswith("__") and not callable(getattr(obj, x))]
+        attrs = [
+            x
+            for x in dir(libsonata_obj)
+            if not x.startswith("__") and not callable(getattr(libsonata_obj, x))
+        ]
         result = {}
         for att in attrs:
             key = item_translation.get(att, snake_to_camel(att))
