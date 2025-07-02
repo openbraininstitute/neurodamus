@@ -57,12 +57,10 @@ class Feature(Enum):
 class CliOptions(ConfigT):
     build_model = None
     simulate_model = True
-    model_path = None  # Currently is output-path
     output_path = None
     keep_build = False
     lb_mode = None
     modelbuilding_steps = None
-    experimental_stims = False
     enable_coord_mapping = False
     save = False
     restore = None
@@ -88,13 +86,12 @@ class CliOptions(ConfigT):
     restrict_features = NoRestriction  # can also be a list
     restrict_node_populations = NoRestriction
     restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
-    restrict_stimulus = NoRestriction  # possible list of Stim names
 
 
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    nrnPath = ConfigT.REQUIRED
+    nrnPath = ConfigT.REQUIRED  # noqa: N815
     CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None
@@ -110,20 +107,6 @@ class RNGConfig(ConfigT):
     StimulusSeed = None
     MinisSeed = None
     SynapseSeed = None
-
-
-class NeuronStdrunDefaults:
-    """Neuron stdrun default (src: share/lib/hoc/stdrun.hoc"""
-
-    using_cvode_ = 0
-    stdrun_quiet = 0
-    realtime = 0
-    tstop = 5
-    stoprun = 0
-    steps_per_ms = 1 / 0.025
-    nstep_steprun = 1
-    global_ra = 35.4
-    v_init = -65
 
 
 class LoadBalanceMode(Enum):
@@ -216,10 +199,8 @@ class _SimConfig:
     buffer_time = 25
     save = None
     restore = None
-    coreneuron_outputdir = None
     coreneuron_datadir = None
     extracellular_calcium = None
-    secondorder = None
     use_coreneuron = False
     use_neuron = True
     corenrn_buff_size = 8
@@ -355,7 +336,8 @@ class _SimConfig:
         try:
             config_parser = SonataConfig(config_file)
         except Exception as e:
-            raise ConfigurationError(f"Failed to initialize SonataConfig with {config_file}: {e}")
+            msg = f"Failed to initialize SonataConfig with {config_file}"
+            raise ConfigurationError(msg) from e
         return config_parser
 
     @classmethod
@@ -421,53 +403,7 @@ class _SimConfig:
 SimConfig = _SimConfig()
 
 
-def find_input_file(filepath, search_paths=(), alt_filename=None):
-    """Determine the full path of input files.
-
-    Relative paths are built from Run configuration entries, and never pwd.
-    In case filepath points to a file, alt_filename is disregarded
-
-    Args:
-        filepath: The relative or absolute path of the file to find
-        path_conf_entries: (tuple) Run configuration entries to build the absolute path
-        alt_filename: When the filepath is a directory, attempt finding a given filename
-    Returns:
-        The absolute path to the data file
-    Raises:
-        (ConfigurationError) If the file could not be found
-    """
-    search_paths += (SimConfig.current_dir, SimConfig.simulation_config_dir)
-
-    def try_find_in(fullpath):
-        if os.path.isfile(fullpath):
-            return fullpath
-        if not os.path.exists(fullpath):
-            return None
-        if alt_filename is not None:
-            alt_file_path = os.path.join(fullpath, alt_filename)
-            if os.path.isfile(alt_file_path):
-                return alt_file_path
-        logging.warning("Deprecated: Data source found is not a file")
-        return fullpath
-
-    if os.path.isabs(filepath):
-        # if it's absolute path then can be used immediately
-        file_found = try_find_in(filepath)
-    else:
-        file_found = None
-        for path in search_paths:
-            file_found = try_find_in(os.path.join(path, filepath))
-            if file_found:
-                break
-
-    if not file_found:
-        raise ConfigurationError(f"Could not find file {filepath}")
-
-    logging.debug("data file %s path: %s", filepath, file_found)
-    return file_found
-
-
-def _check_params(
+def _check_params(  # noqa: C901
     section_name,
     data,
     required_fields,
@@ -486,10 +422,10 @@ def _check_params(
         val = data.get(param)
         try:
             val and float(val)
-        except ValueError:
+        except ValueError as e:
             raise ConfigurationError(
                 f"simulation config param must be numeric: [{section_name}] {param}"
-            )
+            ) from e
     for param in non_negatives:
         val = data.get(param)
         if val and float(val) < 0:
@@ -1036,7 +972,7 @@ def _model_building_steps(config: _SimConfig):
 def _report_vars(config: _SimConfig):
     """Compartment reports read voltages or i_membrane only. Other types must be summation"""
     mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
-    report_types = {"compartment", "Summation", "Synapse", "PointType", "lfp"}
+    report_types = {"compartment", "summation", "synapse", "lfp"}
     non_negatives = ("StartTime", "EndTime", "Dt")
     report_configs_dict = {}
 
@@ -1152,7 +1088,7 @@ def get_debug_cell_gids(cli_options):
         return gids
 
 
-def check_connections_configure(SimConfig, target_manager):
+def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C901, PLR0912, PLR0915
     """Check connection block configuration and raise warnings for:
     1. Global variable should be set in the Conditions block,
     2. Connection overriding chains (t=0)
@@ -1186,7 +1122,9 @@ def check_connections_configure(SimConfig, target_manager):
             is_overriding = True
             # If there isn't a full override for zero weights, we must raise exception (later)
             if not conn2.get("_full_overridden"):
-                conn2["_full_overridden"] = target_manager.pathways_overlap(conn, conn2, True)
+                conn2["_full_overridden"] = target_manager.pathways_overlap(
+                    conn, conn2, equal_only=True
+                )
         if not is_overriding:
             logging.warning(
                 "Delayed connection %s is not overriding any weight=0 Connection", conn["_name"]
@@ -1212,10 +1150,10 @@ def check_connections_configure(SimConfig, target_manager):
             conn = conn.get("_overrides")
 
     logging.info("Checking Connection Configurations")
-    all_conn_blocks = SimConfig.connections.values()
+    all_conn_blocks = config.connections.values()
 
     # On a first phase process only for t=0
-    for name, conn_conf in zip(SimConfig.connections, all_conn_blocks):
+    for name, conn_conf in zip(config.connections, all_conn_blocks):
         conn_conf["_name"] = name
         if float(conn_conf.get("Delay", 0)) > 0.0:
             continue

@@ -55,22 +55,6 @@ addopts = [
 ]
 markers = ["slow: marks tests as slow"]
 
-[tool.flake8]
-exclude = [".*", "__pycache__", ".eggs", "*.egg", "build", "dist", "docs", "venv", "*.egg-info", "_benchmarks", "core", ".tox"]
-extend-ignore = [
-    "E127",  # continuation line over-indented for visual indent
-    "E203",  # whitespace before ':'
-    "E221",  # multiple spaces before operator
-    "E226",  # missing whitespace around arithmetic operator
-    "E701",  # multiple statements on one line (colon)
-    "E731",  # do not assign a lambda expression, use a def
-    "PT001", # use @pytest.fixture over @pytest.fixture()
-    "PT023", # use @pytest.mark.foo over @pytest.mark.foo()
-    "W503",  # line break before binary operator
-    "W504",  # line break after binary operator
-]
-max-line-length = 100
-
 [tool.coverage.run]
 branch = false
 parallel = false
@@ -115,6 +99,7 @@ ignore = [
     "S101",    # Use of `assert` detected
     "RET504", # unnecessary-assign
     "S606",   # start-process-with-no-shell
+    "PLW2901",# redefined-loop-name
 
     ### TODO: remove rules temporarily ignored
     "D205",    # missing-blank-line-after-summary
@@ -124,6 +109,7 @@ ignore = [
     "DOC501",  # Raised exception missing from docstring
     "LOG015",  # `info()` call on root logger
     "FIX001", # line-contains-fixme
+    "INP001", # implicit-namespace-package
 
     ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/108
     "D100",   # undocumented-public-module
@@ -134,39 +120,21 @@ ignore = [
     "D107",   # undocumented-public-init
     "D417",   # undocumented-param
 
+    ### to be done when have memory tracking
+    "PLC0415",# import-outside-top-level
+
     ### to be removed through: https://github.com/openbraininstitute/neurodamus/issues/47
     "TRY003", # raise-vanilla-args
     "SLF001", # private-member-access
     "EM101",  # raw-string-in-exception
     "EM102",  # f-string-in-exception
-    "PLC0415",# import-outside-top-level
     "RUF012", # mutable-class-default
     "TRY002", # raise-vanilla-class
     "N806",   # non-lowercase-variable-in-function
     "ARG002", # unused-method-argument
     "ERA001", # commented-out-code
-    "PLW1514",# unspecified-encoding
-    "FBT003", # boolean-positional-value-in-call
     "PLR2004",# magic-value-comparison
-    "PLW2901",# redefined-loop-name
-    "C901",   # complex-structure
     "G001",   # logging-string-format
-    "N803",   # invalid-argument-name
-    "B904",   # raise-without-from-inside-except
-    "T201",   # print
-    "N815",   # mixed-case-variable-in-class-scope
-    "BLE001", # blind-except
-    "N805",   # invalid-first-argument-name-for-method
-    "S603",   # subprocess-without-shell-equals-true
-    "N801",   # invalid-class-name
-    "PLR0915",# too-many-statements
-    "FURB189",# subclass-builtin
-    "PLR0912",# too-many-branches
-    "PLR0914",# too-many-locals
-    "S102",   # exec-builtin
-    "SIM112", # uncapitalized-environment-variables
-    "INP001", # implicit-namespace-package
-    "PLR1702",# too-many-nested-blocks
 ]
 
 [tool.ruff.lint.isort]

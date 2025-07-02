@@ -14,6 +14,7 @@ import numpy as np
 from .connection_manager import ConnectionManagerBase
 from .core import (
     MPI,
+    MComplexLoadBalancer,
     NeuronWrapper as Nd,
     ProgressBarRank0 as ProgressBar,
     mpi_no_errors,
@@ -25,7 +26,6 @@ from .core.configuration import (
     LoadBalanceMode,
     LogLevel,
     SimConfig,
-    find_input_file,
 )
 from .core.nodeset import NodeSet
 from .io import cell_readers
@@ -83,9 +83,6 @@ class _CellManager(abc.ABC):
     @abc.abstractmethod
     def getGidListForProcessor(self): ...
 
-    def getMEType(self, gid):
-        return self.get_cell(gid)
-
     def getCell(self, gid):
         return self.get_cellref(gid)
 
@@ -122,7 +119,6 @@ class CellManagerBase(_CellManager):
         self._total_cells = 0  # total cells in target, being simulated
         self._gid2cell = {}
 
-        self._global_seed = 0
         self._ionchannel_seed = 0
         self._binfo = None
         self._pc = Nd.pc
@@ -163,8 +159,6 @@ class CellManagerBase(_CellManager):
         return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
-        if not os.path.isabs(circuit_conf.CellLibraryFile):
-            circuit_conf.CellLibraryFile = find_input_file(circuit_conf.CellLibraryFile)
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
@@ -247,14 +241,16 @@ class CellManagerBase(_CellManager):
         targetspec: TargetSpec = self._target_spec
 
         population = targetspec.population
-        all_gids = load_balancer.get(population, {}).get((MPI.rank, cycle_i), [])
-        all_gids = np.array(all_gids, dtype="uint32")
-        logging.debug("Loading %d cells in rank %d", len(all_gids), MPI.rank)
-        total_cells = len(all_gids)
-        if total_cells == 0:
-            return [], [], 0, 0
-        gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
-        return gidvec, me_infos, total_cells, full_size
+        if population in load_balancer:
+            all_gids = load_balancer.get(population).get((MPI.rank, cycle_i), [])
+            all_gids = np.array(all_gids, dtype="uint32")
+            total_cells = len(all_gids)
+            logging.debug("Loading %d cells in rank %d", total_cells, MPI.rank)
+            if total_cells == 0:
+                return [], [], 0, 0
+            gidvec, me_infos, full_size = loader_f(self._circuit_conf, all_gids)
+            return gidvec, me_infos, total_cells, full_size
+        return self._load_nodes(loader_f)
 
     # -
     def finalize(self, **opts):
@@ -272,12 +268,12 @@ class CellManagerBase(_CellManager):
         self._local_nodes.clear_cell_info()
 
     @mpi_no_errors
-    def _instantiate_cells(self, _CellType=None, **_opts):
-        CellType = _CellType or self.CellType
+    def _instantiate_cells(self, cell_type=None, **_opts):
+        cell_type = cell_type or self.CellType
         if SimConfig.crash_test_mode:
-            CellType = PointCell
+            cell_type = PointCell
 
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Instantiating cells... (%d in Rank 0)", len(self._local_nodes))
@@ -289,18 +285,18 @@ class CellManagerBase(_CellManager):
             gid_info_items = ProgressBar.iter(self._local_nodes.items(), len(self._local_nodes))
 
         for gid, cell_info in gid_info_items:
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
     @mpi_no_errors
-    def _instantiate_cells_dry(self, CellType, skip_metypes, **_opts):
+    def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
 
         Args:
-            CellType: The cell type class
+            cell_type: The cell type class
             full_memory_counter: The memory counter to be updated for each metype
         """
-        assert CellType is not None, "Undefined CellType in Manager"
+        assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
@@ -338,7 +334,7 @@ class CellManagerBase(_CellManager):
                 metype_n_cells = 0
             if metype_n_cells >= MAX_CELLS:
                 continue
-            cell = CellType(gid, cell_info, self._circuit_conf)
+            cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
             prev_metype = metype
             metype_n_cells += 1
@@ -380,15 +376,6 @@ class CellManagerBase(_CellManager):
 
         pc.multisplit()
 
-    def enable_report(self, report_conf, target_name, use_coreneuron):
-        """Placeholder for Engines implementing their own reporting
-
-        Args:
-            report_conf: The dict containing the report configuration
-            target_name: The target of the report
-            use_coreneuron: Whether the simulator is CoreNeuron
-        """
-
     def load_artificial_cell(self, gid, artificial_cell):
         logging.info(" > Adding Artificial cell for CoreNeuron")
         cell = EmptyCell(gid, artificial_cell)
@@ -399,7 +386,6 @@ class CellManagerBase(_CellManager):
 
     def _init_rng(self):
         rng_info = Nd.RNGSettings()
-        self._global_seed = rng_info.getGlobalSeed()
         self._ionchannel_seed = rng_info.getIonChannelSeed()
         return rng_info
 
@@ -554,19 +540,19 @@ class CellDistributor(CellManagerBase):
             return super()._instantiate_cells(self.CellType)
 
         conf = self._circuit_conf
-        CellType = Cell_V6
+        cell_type = Cell_V6
         if conf.MorphologyType:
-            CellType.morpho_extension = conf.MorphologyType
+            cell_type.morpho_extension = conf.MorphologyType
 
         log_verbose("Loading metypes from: %s", conf.METypePath)
         log_verbose(
-            "Loading '%s' morphologies from: %s", CellType.morpho_extension, conf.MorphologyPath
+            "Loading '%s' morphologies from: %s", cell_type.morpho_extension, conf.MorphologyPath
         )
         if dry_run_stats_obj is None:
-            super()._instantiate_cells(CellType, **opts)
+            super()._instantiate_cells(cell_type, **opts)
         else:
             cur_metypes_mem = dry_run_stats_obj.metype_memory
-            memory_dict = self._instantiate_cells_dry(CellType, cur_metypes_mem, **opts)
+            memory_dict = self._instantiate_cells_dry(cell_type, cur_metypes_mem, **opts)
             log_verbose("Updating global dry-run memory counters with %d items", len(memory_dict))
             cur_metypes_mem.update(memory_dict)
 
@@ -707,7 +693,7 @@ class LoadBalance:
         )
 
         # Write the new cx file since Neuron needs it to do CPU assignment
-        with open(new_cx_filename, "w") as newfile:
+        with open(new_cx_filename, "w", encoding="utf-8") as newfile:
             self._write_msdat_dict(newfile, cx_other, target_gids)
         # register
         self._cx_targets.add(target_spec.simple_name)
@@ -743,7 +729,7 @@ class LoadBalance:
         if not cxpath.is_file():
             log_verbose("  - cxpath doesnt exist: %s", cxpath)
             return False
-        with open(cxpath) as f:
+        with open(cxpath, encoding="utf-8") as f:
             cx_saved = cls._read_msdat(f)
         if not set(cx_saved.keys()) >= set(target_gids):
             log_verbose("  - Not all GIDs in target %s %s", set(cx_saved.keys()), set(target_gids))
@@ -761,7 +747,7 @@ class LoadBalance:
             cell_distributor: the cell distributor object to which we can query
                 the cells to be load balanced
         """
-        mcomplex = Nd.MComplexLoadBalancer()  # init mcomplex before building circuit
+        mcomplex = MComplexLoadBalancer()  # init mcomplex before building circuit
         yield
         target_str = target_spec.simple_name
         self._compute_save_complexities(target_str, mcomplex, cell_distributor)
@@ -799,7 +785,7 @@ class LoadBalance:
 
         all_ranks_cx = MPI.py_gather(ostring.getvalue(), 0)
         if MPI.rank == 0:
-            with open(out_filename, "w") as fp:
+            with open(out_filename, "w", encoding="utf-8") as fp:
                 fp.write(f"1\n{cell_distributor.total_cells}\n")
                 fp.writelines(all_ranks_cx)
 
@@ -839,7 +825,7 @@ class LoadBalance:
         Results are written to file. basename.<NCPU>.dat
         """
         logging.info("Assigning Cells <-> %d CPUs [mymetis3]", self.target_cpu_count)
-        base_filename = self._cx_filename(target_name, True)
+        base_filename = self._cx_filename(target_name, basename_str=True)
         Nd.mymetis3(base_filename, self.target_cpu_count)
 
     @staticmethod
@@ -850,7 +836,6 @@ class LoadBalance:
         piece_count = int(ms.x[2])
         fp.write(f" {piece_count}\n")
         i = 2
-        tcx = 0  # Total accum complexity
 
         for _ in range(piece_count):
             i += 1
@@ -859,7 +844,6 @@ class LoadBalance:
             for _ in range(subtree_count):
                 i += 1
                 cx = ms.x[i]  # subtree complexity
-                tcx += cx
                 i += 1
                 children_count = int(ms.x[i])
                 fp.write(f"   {cx:g} {children_count}\n")
@@ -911,7 +895,7 @@ class LoadBalance:
         """Loads a load-balance info for a given target.
         NOTE: Please ensure the load balance exists or is derived before calling this function
         """
-        bal_filename = self._cx_filename(target_spec.simple_name, True)
+        bal_filename = self._cx_filename(target_spec.simple_name, basename_str=True)
         return Nd.BalanceInfo(bal_filename, MPI.rank, MPI.size)
 
     @classmethod

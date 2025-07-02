@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import libsonata
+
 from .core.configuration import ConfigurationError
 from .utils.multimap import GroupedMultiMap
 from .utils.timeit import timeit
@@ -50,8 +52,6 @@ class SpikeManager:
 
     @classmethod
     def _read_spikes_sonata(cls, filename, population):
-        import libsonata
-
         spikes_file = libsonata.SpikeReader(filename)
         if population not in spikes_file.get_population_names():
             raise MissingSpikesPopulationError("Spikes population not found: " + population)

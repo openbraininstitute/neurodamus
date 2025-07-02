@@ -13,7 +13,7 @@ import numpy as np
 
 from .connection import Connection, ReplayMode
 from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
-from .core.configuration import ConfigurationError, GlobalConfig, SimConfig, find_input_file
+from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
@@ -234,7 +234,7 @@ class ConnectionManagerBase:
         name = self.__class__.__name__
         return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
-    def open_edge_location(self, syn_source, circuit_conf, **kw):
+    def open_edge_location(self, syn_source, _circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
         pop_name = pop[0] if pop else None
         return self.open_synapse_file(edge_file, pop_name, **kw)
@@ -247,9 +247,6 @@ class ConnectionManagerBase:
             edge_population: The population of the edges
             src_name: The source pop name, normally matching that of the source cell manager
         """
-        if not ospath.isabs(synapse_file):
-            synapse_file = find_input_file(synapse_file)
-            log_verbose("Relative path for edge file resolved to: %s", synapse_file)
         if not ospath.exists(synapse_file):
             raise ConfigurationError(f"Connectivity (Edge) file not found: {synapse_file}")
         if ospath.isdir(synapse_file):
@@ -561,7 +558,13 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
-    def _iterate_conn_params(self, src_target, dst_target, show_progress=None, mod_override=None):
+    def _iterate_conn_params(  # noqa: PLR0914
+        self,
+        src_target,
+        dst_target,
+        show_progress=None,
+        mod_override=None,
+    ):
         """A generator which loads synapse data and yields tuples(sgid, tgid, synapses)
 
         Args:
@@ -659,7 +662,7 @@ class ConnectionManagerBase:
                 pathway_repr = f"Pathway {src_target.name} -> {dst_target.name}"
             logging.info(" * %s. Created %d connections", pathway_repr, all_created)
 
-    def _get_conn_stats(self, dst_target, src_target=None):
+    def _get_conn_stats(self, dst_target, src_target=None):  # noqa: PLR0914
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:
@@ -702,7 +705,6 @@ class ConnectionManagerBase:
             #  - Blocks increase as a geometric progression for handling very large sets
 
             metype_estimate = 0
-            sampled_gids_count = 0
 
             for (
                 start,
@@ -746,7 +748,6 @@ class ConnectionManagerBase:
                 )
                 block_syns_per_cell = new_syns_count / sample_len
                 logging.debug(" - Synapses: %d (Avg: %.2f)", new_syns_count, block_syns_per_cell)
-                sampled_gids_count += sample_len
                 metype_estimate += block_syns_per_cell * block_len
 
             # Info on the whole metype (subject to selected target)

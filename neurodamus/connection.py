@@ -112,12 +112,6 @@ class ConnectionBase:
         for syn in self._synapses:
             syn.g = new_g
 
-    def update_synapse_parameters(self, **params):
-        """A generic function to update several parameters of all synapses"""
-        for syn in self._synapses:
-            for key, val in params.items():
-                setattr(syn, key, val)
-
     def update_weights(self, weight):
         """Change the weights of the netcons generated when connecting
         the source and target gids represented in this connection
@@ -269,7 +263,8 @@ class Connection(ConnectionBase):
         """
         n_synapses = len(synapses_params)
         synapse_ids = np.arange(base_id, base_id + n_synapses, dtype="uint64")
-        mask = np.full(n_synapses, True)  # We may need to skip invalid synapses (e.g. on Axon)
+        # We may need to skip invalid synapses (e.g. on Axon)
+        mask = np.full(n_synapses, fill_value=True)
         for i, syn_params in enumerate(synapses_params):
             syn_point = target_manager.location_to_point(
                 self.tgid, syn_params["isec"], syn_params["ipt"], syn_params["offset"]
@@ -648,7 +643,7 @@ class ArtificialStim:
 class SpontMinis(ArtificialStim):
     """A class creating/holding spont minis of a connection"""
 
-    __slots__ = ("_keep_alive", "_rng_info", "rate_vec")
+    __slots__ = ("_rng_info", "rate_vec")
 
     tbins_vec = None
     """Neurodamus uses a constant rate, so tbin is always containing only 0
@@ -663,7 +658,6 @@ class SpontMinis(ArtificialStim):
         super().__init__()
         self.tbins_vec or self._cls_init()
         self._rng_info = Nd.RNGSettings()
-        self._keep_alive = []
         self.rate_vec = None
 
         if minis_spont_rate is not None:  # Allow None (used by subclass)
@@ -686,7 +680,7 @@ class SpontMinis(ArtificialStim):
     def has_data(self):
         return self.rate_vec is not None
 
-    def create_on(self, conn, sec, position, syn_obj, syn_params, base_seed, _rate_vec=None):
+    def create_on(self, conn, sec, position, syn_obj, syn_params, _base_seed, _rate_vec=None):
         """Inserts a SpontMini stim into the given synapse"""
         rate_vec = _rate_vec or self.rate_vec  # allow override (private API)
         if GlobalConfig.debug_conn in ([conn.tgid], [conn.sgid, conn.tgid]):
@@ -738,9 +732,6 @@ class SpontMinis(ArtificialStim):
 
 class InhExcSpontMinis(SpontMinis):
     """Extends SpontMinis to handle two spont rates: Inhibitory & Excitatory"""
-
-    rate_vec_inh = property(lambda self: self.rate_vec)
-    """The inhibitory spont rate vector (alias to base class .rate_vec)"""
 
     def __init__(self, spont_rate_inh, spont_rate_exc):
         super().__init__(spont_rate_inh or None)  # positive rate, otherwise None

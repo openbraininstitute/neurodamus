@@ -13,17 +13,6 @@ class TestSignalSource:
         self.base_amp = 2.0
         self.stim = st.SignalSource(rng=rng, base_amp=self.base_amp, delay=self.base_delay)
 
-    def test_reset(self):
-        """Reset from delay.
-
-        Test that something changed
-        """
-        assert list(self.stim.time_vec) == [0]
-        assert list(self.stim.stim_vec) == [self.base_amp]
-        self.stim.reset()
-        assert list(self.stim.time_vec) == []
-        assert list(self.stim.stim_vec) == []
-
     def test_delay(self):
         """Add delay.
 
@@ -193,15 +182,6 @@ class TestSignalSource:
         assert np.allclose(
             self.stim.stim_vec, [self.base_amp] + [0, 1, 0, -1] * 2 + [0, self.base_amp]
         )
-
-    def test_add_pulses(self):
-        """Test `add_pulses` with multiple amplitudes, verifying time and stimulus vectors."""
-        self.stim.add_pulses(0.5, 1, 2, 3, 4, base_amp=0.1)
-        expected = (
-            np.array([-self.base_delay, 0, 0, 0.5, 0.5, 1, 1, 1.5, 1.5, 2, 2]) + self.base_delay
-        )
-        assert np.allclose(self.stim.time_vec, expected)
-        assert np.allclose(self.stim.stim_vec, [self.base_amp, 0.1, 1, 1, 2, 2, 3, 3, 4, 4, 0.1])
 
     def test_add_noise(self):
         """Test `add_noise` with given duration and amplitude, checking time and stimulus
@@ -416,13 +396,6 @@ class TestSignalSource:
             st.SignalSource,
         )
 
-    def test_not_implemented_methods(self):
-        """Test that not implemented methods raise NotImplementedError."""
-        with pytest.raises(NotImplementedError):
-            self.stim.add_sinspec(0, 10)
-        with pytest.raises(NotImplementedError):
-            self.stim + st.SignalSource()
-
 
 def create_ball_and_stick():
     from neurodamus.core import Neuron
@@ -471,28 +444,6 @@ class TestIClampSource:
 
     def test_clamp_attach_detach(self):
         clamp_attach_detach(self.stim, "IClamp")
-
-    def test_constant_attach_detach(self):
-        sec1, soma = create_ball_and_stick()
-        duration = 3.0
-        assert "IClamp" not in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-
-        stim = st.CurrentSource.Constant(
-            amp=self.base_amp,
-            duration=duration,
-            delay=self.base_delay,
-            represents_physical_electrode=True,
-        )
-        clamp07 = stim.attach_to(soma, position=0.72)
-        assert "IClamp" in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(stim._clamps) == 1
-        assert np.allclose(clamp07.clamp.get_loc(), 0.7)
-        clamp07.detach()
-        assert "IClamp" not in soma.psection()["point_processes"]
-        assert "IClamp" not in sec1.psection()["point_processes"]
-        assert len(stim._clamps) == 0
 
 
 class TestMembraneCurrentSource:

@@ -33,7 +33,7 @@ class SonataConfig:
     def __init__(self, config_path):
         self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
 
-        with open(config_path) as fd:
+        with open(config_path, encoding="utf-8") as fd:
             if inputs := json.load(fd).get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
             else:
@@ -104,7 +104,7 @@ class SonataConfig:
 
         return {"Conditions": conditions}
 
-    def _extract_circuits_info(self) -> dict:
+    def _extract_circuits_info(self) -> dict:  # noqa: C901
         """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
         return a dictionary of circuit info as:
         {
@@ -239,20 +239,25 @@ class SonataConfig:
                     "Type": projection_type_convert.get(pop_type),
                 }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
-                if projection.get("Type") == ConnectionTypes.NeuroGlial:
+                if projection["Type"] == ConnectionTypes.NeuroGlial:
                     projection["Source"], projection["Destination"] = (
                         projection["Destination"],
                         projection["Source"],
                     )
-                if projection.get("Type") == ConnectionTypes.GlioVascular:
-                    for node_file_info in networks["nodes"]:
-                        for pop_name, pop_info in node_file_info["populations"].items():
-                            if pop_info.get("type") == "vasculature":
-                                projection["VasculaturePath"] = (
-                                    self._circuit_conf.node_population_properties(
-                                        pop_name
-                                    ).elements_path
-                                )
+                elif projection["Type"] == ConnectionTypes.GlioVascular:
+                    vasculature_popnames = [
+                        name
+                        for node_info in networks["nodes"]
+                        for name, pop_info in node_info["populations"].items()
+                        if pop_info.get("type") == "vasculature"
+                    ]
+                    if vasculature_popnames:
+                        assert len(vasculature_popnames) == 1
+                        projection["VasculaturePath"] = (
+                            self._circuit_conf.node_population_properties(
+                                vasculature_popnames[0]
+                            ).elements_path
+                        )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
                 projections[proj_name] = projection
@@ -337,7 +342,6 @@ class SonataConfig:
             self._adapt_libsonata_fields(rep)
             # Format is SONATA with sonata_config
             rep["Format"] = "SONATA"
-            rep["Type"] = report_type_translation.get(rep["Type"], rep["Type"])
             reports[name] = rep
             rep["Scaling"] = snake_to_camel(rep["Scaling"])
 

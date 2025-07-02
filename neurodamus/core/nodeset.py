@@ -156,10 +156,6 @@ class _NodeSetBase:
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
 
-    @classmethod
-    def unregister_all(cls):
-        PopulationNodes.reset()
-
     def __len__(self):
         raise NotImplementedError("__len__ not implemented")
 
@@ -186,7 +182,7 @@ class NodeSet(_NodeSetBase):
     so that different population's gids dont overlap
     """
 
-    def __init__(self, gids=None, gid_info=None, **metadata):
+    def __init__(self, gids=None, gid_info=None):
         """Create a NodeSet.
 
         Args:
@@ -198,11 +194,8 @@ class NodeSet(_NodeSetBase):
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
         self._gid_info = {}
-        self._metadata = metadata
         if gids is not None:
             self.add_gids(gids, gid_info)
-
-    meta = property(lambda self: self._metadata)
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed"""
@@ -261,24 +254,20 @@ class SelectionNodeSet(_NodeSetBase):
     def raw_gids(self):
         return np.add(self._selection.flatten(), 1, dtype="uint32")
 
-    def raw_gids_iter(self):
-        for r_start, r_end in self._selection.ranges:
-            yield from range(r_start + 1, r_end + 1)
-
-    def final_gids_iter(self):
-        for gid in self.raw_gids_iter():
-            yield gid + self._offset
-
     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
-        """Computes intersection of two nodesets."""
-        # NOTE: A _quick_check param can be set to True so that we effectively only check for
-        # intersection (True/False) instead of computing the actual intersection (internal).
+        """Computes intersection of two nodesets.
+
+        A _quick_check param can be set to True so that we effectively only check for
+        intersection (True/False) instead of computing the actual intersection (internal).
+        """
         if self.population_name != other.population_name:
             return []
 
         sel2 = getattr(other, "_selection", None)
         if sel2:
-            intersect = _ranges_overlap(self._selection.ranges, sel2.ranges, True, _quick_check)
+            intersect = _ranges_overlap(
+                self._selection.ranges, sel2.ranges, quick_check=_quick_check
+            )
         else:
             # Selection ranges are 0-based. We must bring gids to 0-based
             base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
@@ -298,7 +287,7 @@ class SelectionNodeSet(_NodeSetBase):
         return self.intersection(other, _quick_check=True)
 
 
-def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dtype="uint32"):
+def _ranges_overlap(ranges1, ranges2, quick_check=False):
     """Detect overlaps between two lists of ranges.
     This is especially important for nodesets since we can access the ranges in no time
     without the need to flatten and consume GBs of memory
@@ -306,9 +295,7 @@ def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dt
     Args:
         ranges1: The first list of ranges
         ranges2: The second list of ranges
-        flattened_out (bool): Whether to return the overlaps as a flat list. Otherwise range list
         quick_check: Whether to short-circuit and return True if any overlap exists
-        dtype: The output dtype in case flattened_out is requested [default: "uint32"]
     """
     if not ranges1 or not ranges2:
         return []
@@ -341,11 +328,9 @@ def _ranges_overlap(ranges1, ranges2, flattened_out=False, quick_check=False, dt
 
     if quick_check:
         return False  # We know it's False as quick_check returns True in the loop
-    if not flattened_out:
-        return all_ranges
     if not all_ranges:
         return []
-    return np.concatenate([np.arange(*r, dtype=dtype) for r in all_ranges])
+    return np.concatenate([np.arange(*r, dtype="uint32") for r in all_ranges])
 
 
 def _ranges_vec_overlap(ranges1, vector, quick_check=False):

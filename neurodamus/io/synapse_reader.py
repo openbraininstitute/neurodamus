@@ -84,7 +84,7 @@ class SynapseParameters:
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @staticmethod
-    def _constrained_hill(K_half, y):
+    def _constrained_hill(K_half, y):  # noqa: N803
         """Constrained Hill function for scaling synaptic parameters.
 
         Note: it is iused only in scale_U_param. It is its own function
@@ -231,7 +231,9 @@ class SonataReader:
         try:
             from mpi4py import MPI
 
-            hdf5_reader = libsonata.make_collective_reader(MPI.COMM_WORLD, False, True)
+            hdf5_reader = libsonata.make_collective_reader(
+                MPI.COMM_WORLD, collective_metadata=False, collective_transfer=True
+            )
         except ModuleNotFoundError:
             hdf5_reader = libsonata.Hdf5Reader()
 
@@ -269,7 +271,7 @@ class SonataReader:
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
             self._preload_data_chunk(gids[start:end], minimal_mode)
 
-    def _preload_data_chunk(self, gids, minimal_mode=False):
+    def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}

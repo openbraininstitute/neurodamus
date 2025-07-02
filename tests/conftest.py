@@ -27,6 +27,7 @@ pytest.register_assert_rewrite("tests.utils")
 
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
+V5_SONATA = SIM_DIR / "v5_sonata"
 PLATFORM_SYSTEM = platform.system()
 RINGTEST_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest"
 NGV_DIR = Path(__file__).parent.absolute() / "simulations" / "ngv"
@@ -82,6 +83,14 @@ def ringtest_baseconfig():
         }
     )
 
+@pytest.fixture
+def v5_sonata_config():
+    config_path = V5_SONATA / "simulation_config_mini.json"
+    with open(config_path, "r") as f:
+        d = json.load(f)
+    d["network"] = str(V5_SONATA / "sub_mini5" / "circuit_config.json")
+    return d
+
 
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_path):
@@ -94,12 +103,11 @@ def change_test_dir(monkeypatch, tmp_path):
 def copy_memory_files(change_test_dir):
     # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {
-        "MTYPE0-ETYPE0": 100.0,
+        "MTYPE0-ETYPE0": 1000.0,
+        "MTYPE0-ETYPE1": 100.0,
         "MTYPE1-ETYPE1": 200.0,
-        "MTYPE2-ETYPE2": 1000.0,
+        "MTYPE2-ETYPE2": 200.0,
     }
-    with Path("memory_per_metype.json").open("w") as f:
-        json.dump(metypes_memory, f, indent=4)
     with Path("cell_memory_usage.json").open("w") as f:
         json.dump(metypes_memory, f, indent=4)
 

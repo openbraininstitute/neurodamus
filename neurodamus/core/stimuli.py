@@ -26,10 +26,6 @@ class SignalSource:
             self._add_point(base_amp)
             self._cur_t = delay
 
-    def reset(self):
-        self.stim_vec.resize(0)
-        self.time_vec.resize(0)
-
     def _add_point(self, amp):
         """Appends a single point to the time-signal source.
         Note: It doesnt advance time, not supposed to be called directly
@@ -141,29 +137,6 @@ class SignalSource:
         self._add_point(base_amp)  # Last point
         return self
 
-    def add_sinspec(self, start, dur):
-        raise NotImplementedError("add_sinspec not implemented")
-
-    def add_pulses(self, pulse_duration, amp, *more_amps, **kw):
-        """Appends a set of pulsed signals without returning to zero
-           Each pulse is applied 'dur' time.
-
-        Args:
-          pulse_duration: The duration of each pulse
-          amp: The amplitude of the first pulse
-          *more_amps: 2nd, 3rd, ... pulse amplitudes
-          **kw: Additional params:
-            - base_amp [default: 0]
-        """
-        # First and last are base_amp
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
-        self.add_segment(amp, pulse_duration)
-        for more_amp in more_amps:
-            self.add_segment(more_amp, pulse_duration)
-        self._add_point(base_amp)
-        return self
-
     def add_noise(self, mean, variance, duration, dt=0.5):
         """Adds a noise component to the signal."""
         rng = self._rng or RNG()  # Creates a default RNG
@@ -184,7 +157,16 @@ class SignalSource:
         self._add_point(self._base_amp)
         return self
 
-    def add_shot_noise(self, tau_D, tau_R, rate, amp_mean, amp_var, duration, dt=0.25):
+    def add_shot_noise(  # noqa: PLR0914
+        self,
+        tau_D,  # noqa: N803
+        tau_R,  # noqa: N803
+        rate,
+        amp_mean,
+        amp_var,
+        duration,
+        dt=0.25,
+    ):
         """Adds a Poisson shot noise signal with gamma-distributed amplitudes and
         bi-exponential impulse response: https://paulbourke.net/miscellaneous/functions/
 
@@ -363,17 +345,12 @@ class SignalSource:
         return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
 
     @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):
+    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # noqa: N803
         return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
 
     @classmethod
     def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
         return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
-
-    # Operations
-    def __add__(self, other):
-        """# Adds signals. Two added signals sum amplitudes"""
-        raise NotImplementedError("Adding signals is not available yet")
 
 
 class CurrentSource(SignalSource):
@@ -434,35 +411,11 @@ class CurrentSource(SignalSource):
             section,
             position,
             self._clamps,
-            True,
-            self.time_vec,
-            self.stim_vec,
+            stim_vec_mode=True,
+            time_vec=self.time_vec,
+            stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
         )
-
-    # Constant has a special attach_to and doesnt share any composing method
-    class Constant:
-        """Class implementing a minimal IClamp for a Constant current."""
-
-        _clamps = set()
-
-        def __init__(self, amp, duration, delay=0, represents_physical_electrode=False):
-            self._amp = amp
-            self._dur = duration
-            self._delay = delay
-            self.represents_physical_electrode = represents_physical_electrode
-
-        def attach_to(self, section, position=0.5):
-            return CurrentSource._Clamp(
-                section,
-                position,
-                self._clamps,
-                False,
-                amp=self._amp,
-                delay=self._delay,
-                dur=self._dur,
-                represents_physical_electrode=self.represents_physical_electrode,
-            )
 
 
 class ConductanceSource(SignalSource):

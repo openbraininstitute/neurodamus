@@ -2,7 +2,6 @@
 # This file needs to be updated as new files are added/removed
 
 # ruff: noqa: F401
-# flake8: noqa
 import neurodamus.__init__
 import neurodamus.cell_distributor
 import neurodamus.commands
@@ -15,14 +14,11 @@ import neurodamus.core._neurodamus
 import neurodamus.core._neuron
 import neurodamus.core._shmutils
 import neurodamus.core._utils
-import neurodamus.core.cell
 import neurodamus.core.configuration
 import neurodamus.core.coreneuron_configuration
-import neurodamus.core.mechanisms
 import neurodamus.core.nodeset
 import neurodamus.core.random
 import neurodamus.core.stimuli
-import neurodamus.core.synapses
 import neurodamus.gap_junction
 import neurodamus.gap_junction_user_corrections
 import neurodamus.io.__init__

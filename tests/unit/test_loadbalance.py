@@ -3,11 +3,11 @@
 import logging
 import re
 import shutil
+import pytest
 from pathlib import Path
 
-import pytest
 
-from ..conftest import RINGTEST_DIR
+from tests.conftest import RINGTEST_DIR
 from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 
 base_dir = Path("sim_conf")

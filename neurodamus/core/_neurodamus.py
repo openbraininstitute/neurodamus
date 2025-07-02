@@ -8,7 +8,6 @@ from ._mpi import MPI
 from ._neuron import _Neuron
 from .configuration import GlobalConfig
 from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
-from neurodamus.utils.pyutils import classproperty
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
 LOG_FILENAME = "pydamus_{}.log".format(strftime("%Y-%m-%d_%Hh%M"))
@@ -22,11 +21,11 @@ class _NeuronWrapper(_Neuron):
     __slots__ = ()
     _pc = None
 
-    @classproperty
-    def h(cls):
+    @property
+    def h(self):
         """The neuron hoc interpreter, initializing if needed"""
-        cls._pc or cls._init()
-        return cls._h
+        self._pc or self._init()
+        return self._h
 
     @classmethod
     def _init(cls, **kwargs):
@@ -38,7 +37,7 @@ class _NeuronWrapper(_Neuron):
         # Init logging
         log_name = kwargs.get("log_filename") or LOG_FILENAME
         if MPI.rank == 0:
-            open(log_name, "w").close()  # Truncate
+            open(log_name, "w", encoding="utf-8").close()  # Truncate
         MPI.barrier()  # Sync so that all processes see the file
         setup_logging(GlobalConfig.verbosity, log_name, MPI.rank)
         log_stage("Initializing Neurodamus... Logfile: " + log_name)

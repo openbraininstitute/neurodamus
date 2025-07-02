@@ -24,12 +24,8 @@ class Vector(array):
         array.extend(self, other)
         return self
 
-    def as_hoc(self):
-        """When API compat is not enough, convert to a true hov Vector"""
-        return hoc_vector(self)
 
-
-class List(list):
+class List(list):  # noqa: FURB189
     """Behavior similar to Hoc List"""
 
     __slots__ = ()

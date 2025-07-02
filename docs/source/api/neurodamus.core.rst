@@ -27,12 +27,9 @@ Sub-Modules
 ===========
 
 .. autosummary::
-   cell
    configuration
-   mechanisms
    random
    stimuli
-   synapses
 
 
 Module API
@@ -54,7 +51,7 @@ Module API
    :members:
 
 .. autoclass:: neurodamus.core._neuron._Neuron
-   :members: h, load_dll, load_hoc, require, run_sim, section_in_stack
+   :members: h, load_dll, load_hoc, require, section_in_stack
 
 
 **Decorators**

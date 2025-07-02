@@ -14,7 +14,7 @@ from numpy.linalg import eig, norm
     These functions are needed for soma points computation (a la import3d).
     TODO: Once we have something stable, integrate nse/morph-tool
 """
-X, Y, Z, R = 0, 1, 2, 3
+X, Y, R = 0, 1, 3
 
 
 def split_morphology_path(morphology_path):
@@ -36,9 +36,6 @@ def split_morphology_path(morphology_path):
 
 def contourcenter(xyz):
     """Python implementation of NEURON code: lib/hoc/import3d/import3d_sec.hoc"""
-    # xyz = xyz.astype('d')
-    # print(xyz.dtype)
-    # print(xyz[0])
     POINTS = 101
 
     points = np.vstack((np.diff(xyz[:, [X, Y]], axis=0), xyz[0, [X, Y]]))
@@ -203,8 +200,6 @@ class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
 
     morph = property(lambda self: self._morph)
-    section_index2name_dict = property(lambda self: self._sec_idx2names)
-    section_typeid_distrib = property(lambda self: self._sec_typeid_distrib)
 
     def __init__(self, input_file, options=0):
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)

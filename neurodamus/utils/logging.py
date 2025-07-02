@@ -120,7 +120,7 @@ def setup_logging(loglevel, logfile=None, rank=None):
             use_color = False
         except OSError:
             pass
-    hdlr.setFormatter(_LevelColorFormatter(False, rank, use_color))
+    hdlr.setFormatter(_LevelColorFormatter(with_time=False, rank=rank, use_color=use_color))
     if rank == 0:
         _logging.root.setLevel(verbosity_levels[loglevel])
     else:
@@ -131,7 +131,7 @@ def setup_logging(loglevel, logfile=None, rank=None):
 
     if logfile:
         fileh = _logging.FileHandler(logfile, encoding="utf-8")
-        fileh.setFormatter(_LevelColorFormatter(rank=rank, use_color=False))
+        fileh.setFormatter(_LevelColorFormatter(with_time=True, rank=rank, use_color=False))
         _logging.root.addHandler(fileh)
 
     setup_logging.logging_initted = True

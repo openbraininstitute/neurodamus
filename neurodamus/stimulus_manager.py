@@ -56,9 +56,9 @@ class StimulusManager:
 
     @staticmethod
     def reset_helpers():
-        ShotNoise.stimCount = 0
-        Noise.stimCount = 0
-        OrnsteinUhlenbeck.stimCount = 0
+        ShotNoise.stim_count = 0
+        Noise.stim_count = 0
+        OrnsteinUhlenbeck.stim_count = 0
 
     @classmethod
     def register_type(cls, stim_class):
@@ -87,7 +87,7 @@ class OrnsteinUhlenbeck(BaseStim):
     """Ornstein-Uhlenbeck process, injected as current or conductance"""
 
     IsNoise = True
-    stimCount = 0  # global count for seeding
+    stim_count = 0  # global count for seeding
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -98,7 +98,7 @@ class OrnsteinUhlenbeck(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # setup random seeds
-        seed1 = OrnsteinUhlenbeck.stimCount + 2997  # stimulus block seed
+        seed1 = OrnsteinUhlenbeck.stim_count + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 291204  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
@@ -134,7 +134,7 @@ class OrnsteinUhlenbeck(BaseStim):
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
                 self.stimList.append(cs)  # save source
 
-        OrnsteinUhlenbeck.stimCount += 1  # increment global count
+        OrnsteinUhlenbeck.stim_count += 1  # increment global count
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.dt = float(stim_info.get("Dt", 0.25))  # stimulus timestep [ms]
@@ -222,7 +222,7 @@ class ShotNoise(BaseStim):
     """
 
     IsNoise = True
-    stimCount = 0  # global count for seeding
+    stim_count = 0  # global count for seeding
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -233,7 +233,7 @@ class ShotNoise(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # setup random seeds
-        seed1 = ShotNoise.stimCount + 2997  # stimulus block seed
+        seed1 = ShotNoise.stim_count + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 19216  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
@@ -276,7 +276,7 @@ class ShotNoise(BaseStim):
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
-        ShotNoise.stimCount += 1  # increment global count
+        ShotNoise.stim_count += 1  # increment global count
 
     def parse_check_all_parameters(self, stim_info: dict):
         if stim_info["Mode"] not in {"Current", "Conductance"}:
@@ -565,7 +565,7 @@ class Noise(BaseStim):
     """Inject a noisy (gaussian) current step, relative to cell threshold or not."""
 
     IsNoise = True
-    stimCount = 0  # global count for seeding
+    stim_count = 0  # global count for seeding
 
     def __init__(self, target, stim_info: dict, cell_manager):
         super().__init__(target, stim_info, cell_manager)
@@ -585,7 +585,7 @@ class Noise(BaseStim):
             self.compute_parameters(cell)
 
             rng = random.Random123(
-                Noise.stimCount + 100, SimConfig.rng_info.getStimulusSeed() + 500, gid + 300
+                Noise.stim_count + 100, SimConfig.rng_info.getStimulusSeed() + 500, gid + 300
             )
 
             # draw already used numbers
@@ -611,7 +611,7 @@ class Noise(BaseStim):
                 cs.attach_to(sc.sec, tpoint_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
-        Noise.stimCount += 1  # increment global count
+        Noise.stim_count += 1  # increment global count
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.dt = float(stim_info.get("Dt", 0.5))  # stimulus timestep [ms]

@@ -7,7 +7,7 @@ import libsonata
 import numpy as np
 
 from .core import NeuronWrapper as Nd
-from .core.configuration import ConfigurationError, find_input_file
+from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
 from .utils.logging import log_verbose
@@ -119,7 +119,7 @@ class TargetManager:
 
         nodes_file = circuit.get("CellLibraryFile")
         if nodes_file and _is_sonata_file(nodes_file) and self._nodeset_reader:
-            self._nodeset_reader.register_node_file(find_input_file(nodes_file))
+            self._nodeset_reader.register_node_file(nodes_file)
 
     @classmethod
     def create_global_target(cls):
@@ -215,23 +215,6 @@ class TargetManager:
         if not isinstance(target, NodesetTarget):
             target = self.get_target(target)
         return target.getPointList(self._cell_manager, **kw)
-
-    def getMETypes(self, target_name):
-        """Convenience function for objects like StimulusManager to get access to METypes of cell
-        objects without having a direct line to the CellDistributor object.
-
-        :param target_name: Target Name to get the GIDs and collect references to cell MEtypes
-        :return: List containing MEtypes for each cell object associated with the target
-        """
-        result_list = compat.List()
-        target = self.get_target(target_name)
-        gids = target.get_local_gids()
-
-        for gid in gids:
-            metype = self._cell_manager.getMEType(gid)
-            result_list.append(metype)
-
-        return result_list
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
@@ -458,9 +441,6 @@ class NodesetTarget:
 
     def is_void(self):
         return len(self.nodesets) == 0
-
-    def get_hoc_target(self):
-        return self  # impersonate a hoc target
 
     def update_local_nodes(self, local_nodes):
         """Allows setting the local gids"""

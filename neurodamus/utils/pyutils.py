@@ -8,22 +8,6 @@ from enum import EnumMeta
 import numpy as np
 
 
-class classproperty:
-    def __init__(self, getter):
-        self.getter = getter
-
-    def __get__(self, instance, owner):
-        return self.getter(owner)
-
-    def __set__(self, instance, value):
-        raise AttributeError("Class properties can't be override")
-
-
-def dict_filter(dic, filter_):
-    """Creates a generator for filtering elements in a dictionary"""
-    return ((key, val) for key, val in dic.items() if filter_(key, val))
-
-
 def dict_filter_map(dic, mapp):
     """Filters a dict and converts the keys according to a given map"""
     return {mapp[key]: val for key, val in dic.items() if key in mapp}
@@ -43,7 +27,7 @@ def docopt_sanitize(docopt_opts):
     return opts
 
 
-class WeakList(list):
+class WeakList(list):  # noqa: FURB189
     def append(self, item):
         list.append(self, weakref.ref(item, self.remove))
 
@@ -77,10 +61,6 @@ class ConfigT:
         self._init(self, opt_dict)
 
     @classmethod
-    def set_defaults(cls, **opts):
-        cls._init(cls, opts)
-
-    @classmethod
     def _init(cls, obj, opts):
         for name, value in opts.items():
             if value is not None and not name.startswith("_") and hasattr(obj, name):
@@ -109,20 +89,6 @@ class ConfigT:
         return name in self._all
 
     all = property(lambda self: self._all)
-
-    @staticmethod
-    def _apply_f(obj, opts_dict):
-        for key, val in opts_dict.items():
-            setattr(obj, key, val)
-
-    def apply(self, obj, subset=None, excludes=(), **overrides):
-        """Applies the configuration to one or multiple objects (if tuple)"""
-        opts = self.as_dict(subset, excludes)
-        opts.update(overrides)
-        if not isinstance(obj, (tuple, list)):
-            obj = (obj,)
-        for o in obj:
-            self._apply_f(o, opts)
 
     def as_dict(self, subset=None, excludes=()):
         return {
@@ -177,10 +143,6 @@ class ConsoleColors:
         return cls._RESET_SEQ
 
     @classmethod
-    def set_text_color(cls, color):
-        return cls._CHANGE_SEQ.format(color)
-
-    @classmethod
     def format_text(cls, text, color, style=None):
         style = (style or color) >> 8
         format_seq = str(color & 0x00FF) + ((";" + str(style)) if style else "")
@@ -219,4 +181,4 @@ def rmtree(path):
     See:
     https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
     """  # noqa: E501
-    subprocess.call(["/bin/rm", "-rf", path])
+    subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603

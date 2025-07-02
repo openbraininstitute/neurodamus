@@ -15,10 +15,6 @@ from neurodamus.utils.logging import log_verbose
 EMPTY_GIDVEC = np.empty(0, dtype="uint32")
 
 
-class CellReaderError(Exception):
-    pass
-
-
 def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
     """Splits a numpy ndarray[uint32] round-robin.
     If the array is None generates new arrays based on the nr of total cells
@@ -74,7 +70,7 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
 
-def load_sonata(
+def load_sonata(  # noqa: C901, PLR0915
     circuit_conf,
     all_gids,
     stride=1,

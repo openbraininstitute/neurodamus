@@ -44,7 +44,6 @@ neurodamus.utils.multimap
 
    .. autosummary::
       GroupedMultiMap
-      MultiMap
 
 
 neurodamus.utils.progressbar
@@ -72,7 +71,6 @@ neurodamus.utils.pyutils
 
    .. autosummary::
       bin_search
-      dict_filter
       docopt_sanitize
 
    .. rubric:: Classes
@@ -80,7 +78,5 @@ neurodamus.utils.pyutils
    .. autosummary::
       ConfigT
       ConsoleColors
-      classproperty
       WeakList
-      dict_filter
       dict_filter_map
