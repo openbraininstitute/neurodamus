@@ -3,21 +3,18 @@ They are then available as singletons objects in neurodamus.core package
 """
 
 import logging
-import os  # os.environ
-import os.path
+import os
 from contextlib import contextmanager
 
 from .configuration import GlobalConfig, SimConfig
 
 
-#
 # Singleton, instantiated right below
-#
 class _Neuron:
     """A wrapper over the neuron simulator."""
 
     __name__ = "_Neuron"
-    _h = None  # We dont import it at module-level to avoid starting neuron
+    _h = None  # We don't import it at module-level to avoid starting neuron
     _hocs_loaded = set()
 
     # No new attributes. __setattr__ can rely on it
@@ -108,11 +105,6 @@ class _Neuron:
         except AttributeError:
             setattr(self.h, key, value)
 
-    # public shortcuts
-    LoadBalance = None  # type: type
-    Section = None
-    Segment = None
-
 
 Neuron = _Neuron()
 """A singleton wrapper for the Neuron library"""
@@ -148,7 +140,3 @@ class MComplexLoadBalancer:
 
     def __getattr__(self, item):
         return getattr(self._lb, item)
-
-
-# shortcuts
-_Neuron.MComplexLoadBalancer = MComplexLoadBalancer
