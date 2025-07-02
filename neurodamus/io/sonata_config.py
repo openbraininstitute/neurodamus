@@ -46,10 +46,9 @@ class SonataConfig:
     def beta_features(self):
         return self._sim_conf.beta_features
 
-    _translation = {
-        # Section fields
-        # --------------
-        "run": {
+    @property
+    def parsedRun(self):
+        item_translation = {
             # Mandatory
             "tstop": "Duration",
             "dt": "Dt",
@@ -59,44 +58,8 @@ class SonataConfig:
             "spike_threshold": "SpikeThreshold",
             "integration_method": "SecondOrder",
             "electrodes_file": "LFPWeightsPath",
-        },
-        "conditions": {"randomize_gaba_rise_time": "randomize_Gaba_risetime"},
-        "connection_overrides": {
-            "target": "Destination",
-            "modoverride": "ModOverride",
-            "synapse_delay_override": "SynDelayOverride",
-            "neuromodulation_dtc": "NeuromodDtc",
-            "neuromodulation_strength": "NeuromodStrength",
-        },
-        "inputs": {
-            "module": "Pattern",
-            "input_type": "Mode",
-            "random_seed": "Seed",
-            "series_resistance": "RS",
-            "node_set": "Target",
-            "sd_percent": "SDPercent",
-            "relative_skew": "RelativeSkew",
-        },
-        "reports": {
-            "type": "Type",
-            "cells": "Target",
-            "sections": "Sections",
-            "scaling": "Scaling",
-            "compartments": "Compartments",
-            "variable_name": "ReportOn",
-            "unit": "Unit",
-            "dt": "Dt",
-            "start_time": "StartTime",
-            "end_time": "EndTime",
-            "file_name": "FileName",
-            "enabled": "Enabled",
-        },
-        "modifications": {"node_set": "Target"},
-    }
-
-    @property
-    def parsedRun(self):
-        parsed_run = self._translate_dict("run", self._sim_conf.run)
+        }
+        parsed_run = self._translate_dict(item_translation, self._sim_conf.run)
 
         self._adapt_libsonata_fields(parsed_run)
 
@@ -118,6 +81,7 @@ class SonataConfig:
 
     @property
     def Conditions(self):
+        item_translation = {"randomize_gaba_rise_time": "randomize_Gaba_risetime"}
         conditions = {}
         blacklist = (
             "Celsius",
@@ -126,7 +90,7 @@ class SonataConfig:
             "ListModificationNames",
             "SpikeLocation",
         )
-        for key, value in self._translate_dict("conditions", self._sim_conf.conditions).items():
+        for key, value in self._translate_dict(item_translation, self._sim_conf.conditions).items():
             if key in blacklist:
                 continue
             if key == "Mechanisms":
@@ -302,8 +266,15 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
+        item_translation = {
+            "target": "Destination",
+            "modoverride": "ModOverride",
+            "synapse_delay_override": "SynDelayOverride",
+            "neuromodulation_dtc": "NeuromodDtc",
+            "neuromodulation_strength": "NeuromodStrength",
+        }
         connects = {
-            libsonata_conn.name: self._translate_dict("connection_overrides", libsonata_conn)
+            libsonata_conn.name: self._translate_dict(item_translation, libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
         return connects
@@ -313,6 +284,15 @@ class SonataConfig:
         """Read the inputs information parsed by libsonata,
         and convert them to the internal parameters used by StimulusManager
         """
+        item_translation = {
+            "module": "Pattern",
+            "input_type": "Mode",
+            "random_seed": "Seed",
+            "series_resistance": "RS",
+            "node_set": "Target",
+            "sd_percent": "SDPercent",
+            "relative_skew": "RelativeSkew",
+        }
         input_type_translation = {
             "spikes": "Current",
             "current_clamp": "Current",
@@ -327,7 +307,7 @@ class SonataConfig:
         # The order of stimulus injection could lead to minor difference on the results
         # so need to preserve it as in the config file
         for name in self._stable_inputs_order:
-            stimulus = self._translate_dict("inputs", self._sim_conf.input(name))
+            stimulus = self._translate_dict(item_translation, self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(
                 stimulus["Pattern"], snake_to_camel(stimulus["Pattern"])
@@ -340,9 +320,23 @@ class SonataConfig:
 
     @property
     def parsedReports(self):
+        item_translation = {
+            "type": "Type",
+            "cells": "Target",
+            "sections": "Sections",
+            "scaling": "Scaling",
+            "compartments": "Compartments",
+            "variable_name": "ReportOn",
+            "unit": "Unit",
+            "dt": "Dt",
+            "start_time": "StartTime",
+            "end_time": "EndTime",
+            "file_name": "FileName",
+            "enabled": "Enabled",
+        }
         reports = {}
         for name in self._sim_conf.list_report_names:
-            rep = self._translate_dict("reports", self._sim_conf.report(name))
+            rep = self._translate_dict(item_translation, self._sim_conf.report(name))
             # Adapt enums and variable names read from libsonata
             self._adapt_libsonata_fields(rep)
             # Format is SONATA with sonata_config
@@ -354,17 +348,14 @@ class SonataConfig:
 
     @property
     def parsedModifications(self):
+        item_translation = {"node_set": "Target"}
         result = {}
         for modification in self._sim_conf.conditions.modifications():
-            setting = self._translate_dict("modifications", modification)
+            setting = self._translate_dict(item_translation, modification)
             self._adapt_libsonata_fields(setting)
             result[modification.name] = setting
 
         return result
-
-    @staticmethod
-    def _dir(obj):
-        return [x for x in dir(obj) if not x.startswith("__") and not callable(getattr(obj, x))]
 
     @staticmethod
     def _adapt_libsonata_fields(rep):
@@ -387,13 +378,16 @@ class SonataConfig:
             elif key == "SecondOrder":
                 rep[key] = int(rep[key])
 
-    def _translate_dict(self, section_name, libsonata_obj=None) -> dict:
-        """Translate SONATA/libsonata key names (snake_case) to
-        Neurodamus internal paramters (rename w.r.t _translation[section_name] or CamelCase)
-        """
-        item_translation = self._translation[section_name]
+    @staticmethod
+    def _translate_dict(item_translation, libsonata_obj) -> dict:
+        """Translate SONATA/libsonata key names (snake_case) to Neurodamus internal paramters"""
+        attrs = [
+            x
+            for x in dir(libsonata_obj)
+            if not x.startswith("__") and not callable(getattr(libsonata_obj, x))
+        ]
         result = {}
-        for att in self._dir(libsonata_obj):
+        for att in attrs:
             key = item_translation.get(att, snake_to_camel(att))
             parsed_value = getattr(libsonata_obj, att)
             if parsed_value is not None:
