@@ -8,11 +8,7 @@ on:
 
 jobs:
   coverage:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-15]
-      fail-fast: false
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -23,18 +19,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip tox coverage
-
-      - name: Install dependencies for ${{ matrix.os }}
-        run: |
-          if [[ $RUNNER_OS == 'Linux' ]]; then
-            sudo apt-get update
-            sudo apt-get install -y libopenmpi-dev openmpi-bin
-          elif [[ $RUNNER_OS == 'macOS' ]]; then
-            # Install MPI and Python dependencies for macOS
-            brew update
-            brew install open-mpi
-          fi
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
           python -m pip install --upgrade pip tox coverage
 
       - name: Run tox baseline
@@ -54,7 +40,6 @@ jobs:
           tox -e unit-mpi
 
       - name: Upload baseline coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +48,6 @@ jobs:
           parallel: true
 
       - name: Upload unit coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +56,6 @@ jobs:
           parallel: true
 
       - name: Upload unit-ngv-mpi coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -81,7 +64,6 @@ jobs:
           parallel: true
 
       - name: Upload unit-mpi coverage to Coveralls
-        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

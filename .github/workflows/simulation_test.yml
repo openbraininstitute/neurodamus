@@ -46,7 +46,7 @@ jobs:
           # macOS is only run with Python 3.12.6 due to github action cache size limits
           - os: macOS-15
             python-version: '3.12.6'
-      fail-fast: true
+      fail-fast: false
 
     steps:
     - name: Setup Python
@@ -59,14 +59,6 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
-
-    # - name: Cache pip
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: ~/.cache/pip
-    #     key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-v1
-    #     restore-keys: |
-    #       ${{ matrix.os }}-pip-
 
     - name: Get latest tags
       env:
@@ -106,17 +98,7 @@ jobs:
         brew unlink fmt
         echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
 
-    # - name: Cache python virtual env
-    #   id: cache-venv
-    #   uses: actions/cache@v3
-    #   env:
-    #     cache-name: cache-venv
-    #   with:
-    #     path: venv
-    #     key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ matrix.python-version }}
-
     - name: Upgrade pip and install base Python packages
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         python -m venv venv
         . ./venv/bin/activate
@@ -126,8 +108,7 @@ jobs:
     - name: Add virtual environment to PATH
       run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
 
-    - name: Install libsonata
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
+    - name: Install libsonata from source
       run: |
         CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
@@ -186,7 +167,6 @@ jobs:
         cmake --build nrn/build --target install
 
     - name: Install mpi4py
-      # if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         MPICC=mpicc pip install --no-binary=mpi4py mpi4py
 
@@ -283,8 +263,8 @@ jobs:
       run: |
         tox -e scientific
 
-    - name: live debug session, comment out
-      if: failure()
-      uses: mxschmitt/action-tmate@v3
-      with:
-       timeout-minutes: 60  # or any other value you need
+    # - name: live debug session, comment out
+    #   if: failure()
+    #   uses: mxschmitt/action-tmate@v3
+    #   with:
+    #    timeout-minutes: 60  # or any other value you need
