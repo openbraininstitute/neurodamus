@@ -1,6 +1,7 @@
 """Mechanisms to load and balance cells across the computing resources."""
 
 import abc
+import functools
 import hashlib
 import logging  # active only in rank 0 (init)
 import os
@@ -159,22 +160,9 @@ class CellManagerBase(_CellManager):
         return np.array(self.local_nodes.final_gids())
 
     def _init_config(self, circuit_conf, pop):
-        if not pop:  # Last attempt to get pop name
-            pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
-            logging.info(" -> Discovered node population name: %s", pop)
+        assert pop
         self._population_name = pop
         self._local_nodes = NodeSet().register_global(pop)
-
-    @staticmethod
-    def _get_sonata_population_name(node_file):
-        import libsonata  # only for SONATA
-
-        pop_names = libsonata.NodeStorage(node_file).population_names
-        if len(pop_names) != 1:
-            raise ConfigurationError(
-                "Could not determine population name from sonata file circuit."
-            )
-        return next(iter(pop_names), None)
 
     def load_nodes(self, load_balancer=None, *, _loader=None, loader_opts=None):
         """Top-level loader of nodes."""
@@ -252,7 +240,6 @@ class CellManagerBase(_CellManager):
             return gidvec, me_infos, total_cells, full_size
         return self._load_nodes(loader_f)
 
-    # -
     def finalize(self, **opts):
         """Instantiates cells and initializes the network in the simulator.
 
@@ -445,14 +432,13 @@ class GlobalCellManager(_CellManager):
         self._cell_managers.sort(key=lambda x: x.local_nodes.offset)
 
     # Accessor methods (Keep CamelCase API for compatibility with existing hoc)
-    # ----------------
     def getGidListForProcessor(self):
         def _hoc_append(vec_a, vec_b):
             return vec_a.append(vec_b)
 
-        from functools import reduce
-
-        return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
+        return functools.reduce(
+            _hoc_append, (man.getGidListForProcessor() for man in self._cell_managers)
+        )
 
     def get_final_gids(self):
         return np.concatenate([man.get_final_gids() for man in self._cell_managers])
