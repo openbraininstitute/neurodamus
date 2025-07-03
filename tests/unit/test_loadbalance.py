@@ -3,22 +3,46 @@
 import logging
 import re
 import shutil
-import pytest
 from pathlib import Path
 
+import pytest
 
+from neurodamus.cell_distributor import CellDistributor, LoadBalance
+from neurodamus.core.configuration import (
+    CircuitConfig,
+    ConfigurationError,
+    LoadBalanceMode,
+)
+from neurodamus.core.nodeset import NodeSet
+from neurodamus.target_manager import NodesetTarget, TargetSpec
 from tests.conftest import RINGTEST_DIR
-from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 
 base_dir = Path("sim_conf")
 pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
 
+class MockedTargetManager:
+    """A mock target manager, for the single purpose of returning the provided targets"""
+
+    def __init__(self, *targets) -> None:
+        self.targets = {t.name.split(":")[-1]: t for t in targets}
+
+    def get_target(self, target_spec, target_pop=None):
+        if not isinstance(target_spec, TargetSpec):
+            target_spec = TargetSpec(target_spec)
+        if target_pop:
+            target_spec.population = target_pop
+        target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
+        target_pop = target_spec.population
+        target = self.targets[target_name]
+        return target if target_pop is None else target.make_subtarget(target_pop)
+
+    def register_local_nodes(*_):
+        pass
+
+
 @pytest.fixture
 def target_manager():
-    from neurodamus.core.nodeset import NodeSet
-    from neurodamus.target_manager import NodesetTarget
-
     nodes_t1 = NodeSet([1, 2, 3]).register_global("RingA")
     nodes_t2 = NodeSet([1]).register_global("RingA")
     t1 = NodesetTarget("All", [nodes_t1], [nodes_t1])
@@ -36,8 +60,6 @@ def test_loadbalance_mode():
 
 
 def test_loadbal_no_cx(target_manager, caplog):
-    from neurodamus.cell_distributor import LoadBalance, TargetSpec
-
     lbal = LoadBalance(1, "/gpfs/fake_path_to_nodes_1", "pop", target_manager, 4)
     assert not lbal._cx_targets
     assert not lbal._valid_loadbalance
@@ -48,8 +70,6 @@ def test_loadbal_no_cx(target_manager, caplog):
 
 def test_loadbal_subtarget(target_manager, caplog):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
-    from neurodamus.cell_distributor import LoadBalance, TargetSpec
-
     nodes_file = "/gpfs/fake_node_path"
     lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "RingA")
     shutil.copyfile(RINGTEST_DIR / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
@@ -73,37 +93,31 @@ def test_loadbal_subtarget(target_manager, caplog):
 @pytest.fixture
 def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
-    from neurodamus.core.configuration import CircuitConfig
-
     circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
         CellLibraryFile=circuit_base + "/nodes_A_bigcell.h5",
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath=False,  # no connectivity
-        CircuitTarget="All",
+        CircuitTarget="RingA:All",
     )
 
 
 @pytest.fixture
 def circuit_conf():
     """Test nodes file contains 3 small cells with 2 dendrites each"""
-    from neurodamus.core.configuration import CircuitConfig
-
     circuit_base = str(RINGTEST_DIR)
     return CircuitConfig(
         CellLibraryFile=circuit_base + "/nodes_A.h5",
         METypePath=circuit_base + "/hoc",
         MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath=False,  # no connectivity
-        CircuitTarget="All",
+        CircuitTarget="RingA:All",
     )
 
 
 def test_load_balance_integrated(target_manager, circuit_conf):
     """Comprehensive test using real cells and deriving cx for a sub-target"""
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
 
@@ -131,8 +145,6 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     """Comprehensive test using ring circuit including one big cell,
     multi-split and complexity derivation
     """
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
     cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
@@ -182,8 +194,6 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
 
 def test_MultiSplit(target_manager, circuit_conf, capsys):
     """Comprehensive test using ringtest cells, multi-split and complexity derivation"""
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
@@ -218,8 +228,6 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
 
 def test_WholeCell(target_manager, circuit_conf, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
     cell_manager = CellDistributor(circuit_conf, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
@@ -242,8 +250,6 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
 
 def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
-    from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
-
     cell_manager = CellDistributor(circuit_conf_bigcell, target_manager)
     cell_manager.load_nodes()
     lbal = LoadBalance(
@@ -260,27 +266,3 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
-
-
-class MockedTargetManager:
-    """
-    A mock target manager, for the single purpose of returning the provided targets
-    """
-
-    def __init__(self, *targets) -> None:
-        self.targets = {t.name.split(":")[-1]: t for t in targets}
-
-    def get_target(self, target_spec, target_pop=None):
-        from neurodamus.target_manager import TargetSpec
-
-        if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
-        if target_pop:
-            target_spec.population = target_pop
-        target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
-        target_pop = target_spec.population
-        target = self.targets[target_name]
-        return target if target_pop is None else target.make_subtarget(target_pop)
-
-    def register_local_nodes(*_):
-        pass
