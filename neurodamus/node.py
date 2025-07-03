@@ -1006,6 +1006,10 @@ class Node:
                 "LFP report setup failed: electrodes file may be missing "
                 "or simulator is not set to CoreNEURON."
             )
+        if rep_type == "compartment_set" and SimConfig.use_coreneuron:
+            raise ReportSetupError(
+                "Compartment set reports are not supported with CoreNEURON at the moment."
+            )
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
@@ -1103,20 +1107,26 @@ class Node:
             return
         global_manager = self._circuits.global_manager
 
-        # Go through the target members, one cell at a time. We give a cell reference
-        # For summation targets - check if we were given a Cell target because we really
-        # want all points of the cell which will ultimately be collapsed to a single
-        # value on the soma. Otherwise, get target points as normal.
-        sections = rep_conf.get("Sections")
-        compartments = rep_conf.get("Compartments")
-        sum_currents_into_soma = sections == "soma" and compartments == "center"
-        # In case of summation in the soma, we need all points anyway
-        if sum_currents_into_soma and rep_type.lower() == "summation":
-            sections = "all"
-            compartments = "all"
-        points = self._target_manager.getPointList(
-            target, sections=sections, compartments=compartments
-        )
+        sum_currents_into_soma = False
+        if rep_type == "compartment_set":
+            compartment_set = rep_conf.get("CompartmentSet")
+            points = self._target_manager.get_point_list(target, compartment_set=compartment_set)
+        else:
+            # Go through the target members, one cell at a time. We give a cell reference
+            # For summation targets - check if we were given a Cell target because we really
+            # want all points of the cell which will ultimately be collapsed to a single
+            # value on the soma. Otherwise, get target points as normal.
+            sections = rep_conf.get("Sections")
+            compartments = rep_conf.get("Compartments")
+
+            sum_currents_into_soma = sections == "soma" and compartments == "center"
+            # In case of summation in the soma, we need all points anyway
+            if sum_currents_into_soma and rep_type == "Summation":
+                sections = "all"
+                compartments = "all"
+            points = self._target_manager.get_point_list(
+                target, sections=sections, compartments=compartments
+            )
         for point in points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)

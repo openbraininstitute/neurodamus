@@ -205,7 +205,11 @@ class MorphIOWrapper:
         self._collection_dir, self._morph_name, self._morph_ext = split_morphology_path(input_file)
         self._options = options
         self._build_morph()
-        self.section_names = self._get_section_names()
+        # This logic is similar to what's in BaseCell, but at this point we are still
+        # constructing the cell, so we don't yet have access to a fully initialized instance.
+        # Therefore, we cannot reuse the BaseCell implementation directly and need
+        # a custom solution here.
+        self._section_names = self._get_section_names()
         self._build_sec_typeid_distrib()
 
     def _build_morph(self):
@@ -336,12 +340,12 @@ class MorphIOWrapper:
         # generate sections connect + their respective 3D points commands
         for i, sec in enumerate(self._morph.sections):
             index = i + 1
-            tstr = self.section_names[index]
+            tstr = self._section_names[index]
 
             if not sec.is_root:
                 if sec.parent is not None:
                     parent_index = sec.parent.id + 1
-                    tstr1 = self.section_names[parent_index]
+                    tstr1 = self._section_names[parent_index]
                     tstr1 = f"{tstr1} connect {tstr}(0), {1}"
                     cmds.append(tstr1)
             else:

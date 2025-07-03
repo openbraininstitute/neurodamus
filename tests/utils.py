@@ -314,7 +314,7 @@ def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
     if sum_currents_into_soma and rep_type == "Summation":
         sections = "all"
         compartments = "all"
-    points = target_manager.getPointList(target, sections=sections, compartments=compartments)
+    points = target_manager.get_point_list(target, sections=sections, compartments=compartments)
     recorder = []
     for point in points:
         gid = point.gid

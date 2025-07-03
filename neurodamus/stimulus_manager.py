@@ -10,7 +10,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 >>> class ShotNoise:
 >>>
 >>> def __init__(self, target, stim_info: dict, cell_manager):
->>>     tpoints = target.getPointList(cell_manager)
+>>>     tpoints = target.get_point_list(cell_manager)
 >>>     for point in tpoints:
 >>>         gid = point.gid
 >>>         cell = cell_manager.get_cell(gid)
@@ -103,7 +103,7 @@ class OrnsteinUhlenbeck(BaseStim):
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -238,7 +238,7 @@ class ShotNoise(BaseStim):
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -463,7 +463,7 @@ class Linear(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -577,7 +577,7 @@ class Noise(BaseStim):
         sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -673,7 +673,7 @@ class Pulse(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split
@@ -714,7 +714,7 @@ class Sinusoidal(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split
@@ -757,7 +757,7 @@ class SEClamp(BaseStim):
         self.parse_check_all_parameters(stim_info)
 
         # apply stim to each point in target
-        tpoints = target.getPointList(cell_manager)
+        tpoints = target.get_point_list(cell_manager)
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split
