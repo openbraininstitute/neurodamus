@@ -51,7 +51,7 @@ from .io.sonata_config import ConnectionTypes
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
-from .report import Report
+from .report import create_report
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
@@ -249,6 +249,22 @@ class CircuitManager:
         del self.edge_managers
         del self.virtual_node_managers
         del self.node_managers
+
+
+class ReportsCumulativeError(Exception):
+    def __init__(self, errors):
+        self.errors = errors
+        super().__init__(self._format_message())
+
+    def _format_message(self):
+        messages = []
+        for func_name, value, err in self.errors:
+            messages.append(f"{func_name}({value}): {type(err).__name__} -> {err}")
+        return "enable_reports failed with multiple errors:\n" + "\n".join(messages)
+
+
+class ReportSetupError(Exception):
+    pass
 
 
 class Node:
@@ -841,8 +857,8 @@ class Node:
 
     # Reporting
     class ReportParams(typing.NamedTuple):
-        name: str
         rep_type: str
+        name: str
         report_on: str
         unit: str
         format: str
@@ -880,7 +896,7 @@ class Node:
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 
-        n_errors = 0
+        errors = []
         # filter: only the enabled ones
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
         self._report_list = []
@@ -907,9 +923,11 @@ class Node:
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
-            rep_params = self._report_build_params(rep_name, rep_conf)
-            if rep_params is None:
-                n_errors += 1
+            try:
+                rep_params = self._report_build_params(rep_name, rep_conf)
+            except Exception as e:
+                logging.exception("Error setting up report parameters '%s'", rep_name)
+                errors.append(("_report_setup", rep_name, e))
                 continue
 
             if SimConfig.restore_coreneuron:
@@ -920,7 +938,11 @@ class Node:
                 self._coreneuron_write_report_config(rep_conf, target, rep_params)
 
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
-            report = Report(*rep_params, SimConfig.use_coreneuron) if has_gids else None
+            report = (
+                create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
+                if has_gids
+                else None
+            )
 
             # With coreneuron direct mode, enable fast membrane current calculation
             # for i_membrane
@@ -929,12 +951,12 @@ class Node:
             ) or rep_params.rep_type == "lfp":
                 Nd.cvode.use_fast_imem(1)
 
-            if not SimConfig.use_coreneuron or rep_params.rep_type == "Synapse":
+            if not SimConfig.use_coreneuron or rep_params.rep_type == "synapse":
                 try:
                     self._report_setup(report, rep_conf, target, rep_params.rep_type)
-                except Exception:
+                except Exception as e:
                     logging.exception("Error setting up report '%s'", rep_name)
-                    n_errors += 1
+                    errors.append(("_report_setup", rep_name, e))
                     continue
 
             self._report_list.append(report)
@@ -942,9 +964,8 @@ class Node:
         if SimConfig.restore_coreneuron:
             CoreConfig.update_report_config(substitutions)
 
-        if n_errors > 0:
-            msg = f"{n_errors} reporting errors detected. Terminating"
-            raise Exception(msg)
+        if errors:
+            raise ReportsCumulativeError(errors)
 
         MPI.check_no_errors()
 
@@ -952,6 +973,15 @@ class Node:
             self._reports_init(pop_offsets_alias)
 
     def _report_build_params(self, rep_name, rep_conf):
+        """Build and validate report parameters from configuration.
+
+        Ensures report timing and settings are consistent with simulation constraints,
+        raises ReportSetupError on invalid configurations (e.g., missing LFP setup,
+        invalid time ranges, or incompatible time steps).
+
+        Returns:
+            ReportParams: A populated report parameters object.
+        """
         sim_end = self._run_conf["Duration"]
         rep_type = rep_conf["Type"]
         start_time = rep_conf["StartTime"]
@@ -961,11 +991,10 @@ class Node:
 
         lfp_disabled = not self._circuits.global_manager._lfp_manager._lfp_file
         if rep_type == "lfp" and lfp_disabled:
-            logging.error(
-                "LFP reports are disabled. Electrodes file might be missing"
-                " or simulator is not set to CoreNEURON"
+            raise ReportSetupError(
+                "LFP report setup failed: electrodes file may be missing "
+                "or simulator is not set to CoreNEURON."
             )
-            return None
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
@@ -979,14 +1008,16 @@ class Node:
             end_time += Nd.t
         end_time = min(end_time, sim_end)
         if start_time > end_time:
-            if MPI.rank == 0:
-                logging.error("Report/Sim End-time (%s) before Start (%g).", end_time, start_time)
-            return None
+            raise ReportSetupError(
+                f"Invalid report configuration: end time ({end_time}) is before "
+                f"start time ({start_time})."
+            )
 
         if rep_dt < Nd.dt:
-            if MPI.rank == 0:
-                logging.error("Invalid report dt %f < %f simulation dt", rep_dt, Nd.dt)
-            return None
+            raise ReportSetupError(
+                f"Invalid report configuration: report dt ({rep_dt}) is smaller than "
+                f"simulation dt ({Nd.dt})."
+            )
 
         rep_target = TargetSpec(rep_conf["Target"])
         population_name = (
@@ -996,8 +1027,8 @@ class Node:
 
         report_on = rep_conf["ReportOn"]
         return self.ReportParams(
-            str(Path(rep_conf.get("FileName", rep_name)).name),
             rep_type,  # rep type is case sensitive !!
+            os.path.basename(rep_conf.get("FileName", rep_name)),
             report_on,
             rep_conf["Unit"],
             rep_format,
@@ -1057,6 +1088,8 @@ class Node:
         CoreConfig.write_report_config(*core_report_params)
 
     def _report_setup(self, report, rep_conf, target, rep_type):
+        if report is None:
+            return
         global_manager = self._circuits.global_manager
 
         # Go through the target members, one cell at a time. We give a cell reference
@@ -1067,7 +1100,7 @@ class Node:
         compartments = rep_conf.get("Compartments")
         sum_currents_into_soma = sections == "soma" and compartments == "center"
         # In case of summation in the soma, we need all points anyway
-        if sum_currents_into_soma and rep_type == "Summation":
+        if sum_currents_into_soma and rep_type.lower() == "summation":
             sections = "all"
             compartments = "all"
         points = self._target_manager.getPointList(
@@ -1079,15 +1112,9 @@ class Node:
             cell = global_manager.get_cellref(gid)
             spgid = global_manager.getSpGid(gid)
 
-            # may need to take different actions based on report type
-            if rep_type == "compartment":
-                report.add_compartment_report(cell, point, spgid, pop_name, pop_offset)
-            elif rep_type == "Summation":
-                report.add_summation_report(
-                    cell, point, sum_currents_into_soma, spgid, pop_name, pop_offset
-                )
-            elif rep_type == "Synapse":
-                report.add_synapse_report(cell, point, spgid, pop_name, pop_offset)
+            report.register_gid_section(
+                cell, point, spgid, pop_name, pop_offset, sum_currents_into_soma
+            )
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]

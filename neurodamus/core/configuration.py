@@ -108,20 +108,6 @@ class RNGConfig(ConfigT):
     SynapseSeed = None
 
 
-class NeuronStdrunDefaults:
-    """Neuron stdrun default (src: share/lib/hoc/stdrun.hoc"""
-
-    using_cvode_ = 0
-    stdrun_quiet = 0
-    realtime = 0
-    tstop = 5
-    stoprun = 0
-    steps_per_ms = 1 / 0.025
-    nstep_steprun = 1
-    global_ra = 35.4
-    v_init = -65
-
-
 class LoadBalanceMode(Enum):
     """An enumeration, inc parser, of the load balance modes."""
 
@@ -976,7 +962,7 @@ def _model_building_steps(config: _SimConfig):
 def _report_vars(config: _SimConfig):
     """Compartment reports read voltages or i_membrane only. Other types must be summation"""
     mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
-    report_types = {"compartment", "Summation", "Synapse", "PointType", "lfp"}
+    report_types = {"compartment", "summation", "synapse", "lfp"}
     non_negatives = ("StartTime", "EndTime", "Dt")
     report_configs_dict = {}
 

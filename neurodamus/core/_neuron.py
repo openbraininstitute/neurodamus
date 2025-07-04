@@ -7,17 +7,15 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 
-from .configuration import GlobalConfig, NeuronStdrunDefaults, SimConfig
+from .configuration import GlobalConfig, SimConfig
 
 
-#
 # Singleton, instantiated right below
-#
 class _Neuron:
     """A wrapper over the neuron simulator."""
 
     __name__ = "_Neuron"
-    _h = None  # We dont import it at module-level to avoid starting neuron
+    _h = None  # We don't import it at module-level to avoid starting neuron
     _hocs_loaded = set()
 
     # No new attributes. __setattr__ can rely on it
@@ -108,83 +106,9 @@ class _Neuron:
         except AttributeError:
             setattr(self.h, key, value)
 
-    # public shortcuts
-    HocEntity = None  # type: HocEntity
-    Simulation = None  # type: Simulation
-    LoadBalance = None  # type: type
-    Section = None
-    Segment = None
-
 
 Neuron = _Neuron()
 """A singleton wrapper for the Neuron library"""
-
-
-class HocEntity:
-    _hoc_cls = None
-    _hoc_obj = None
-    _hoc_cldef = """
-begintemplate {cls_name}
-endtemplate {cls_name}
-"""
-
-    def __new__(cls, *_args, **_kw):
-        if cls is HocEntity:
-            raise TypeError("HocEntity must be subclassed")
-        if cls._hoc_cls is None:
-            h = Neuron.h
-            # Create a HOC template to be able to use as context
-            h(cls._hoc_cldef.format(cls_name=cls.__name__))
-            cls._hoc_cls = getattr(h, cls.__name__)
-
-        o = object.__new__(cls)
-        o._hoc_obj = cls._hoc_cls()
-        return o
-
-    @property
-    def h(self):
-        return self._hoc_obj
-
-
-class Simulation:
-    # Some defaults from stdrun
-    v_init = NeuronStdrunDefaults.v_init  # -65V
-
-    def __init__(self, **args):
-        args.setdefault("v_init", self.v_init)
-        self.args = args
-        self.t_vec = None
-        self.recordings = {}
-
-    def run(self, t_stop):
-        h = Neuron.h
-        self.t_vec = h.Vector()  # Time stamp vector
-        self.t_vec.record(h._ref_t)
-
-        Neuron.h.tstop = t_stop
-        for key, val in self.args.items():
-            setattr(Neuron.h, key, val)
-        Neuron.h.run()
-
-    def plot(self):
-        try:
-            from matplotlib import pyplot as plt
-        except Exception:
-            logging.exception("Matplotlib is not installed. Please install pyneurodamus[full]")
-            return
-        if len(self.recordings) == 0:
-            logging.error("No recording sections defined")
-            return
-        if not self.t_vec:
-            logging.error("No Simulation data. Please run it first.")
-            return
-
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)  # (nrows, ncols, axnum)
-        for name, y in self.recordings.items():
-            ax.plot(self.t_vec, y, label=name)
-        ax.legend()
-        fig.show()
 
 
 class MComplexLoadBalancer:
@@ -216,9 +140,3 @@ class MComplexLoadBalancer:
 
     def __getattr__(self, item):
         return getattr(self._lb, item)
-
-
-# shortcuts
-_Neuron.HocEntity = HocEntity
-_Neuron.Simulation = Simulation
-_Neuron.MComplexLoadBalancer = MComplexLoadBalancer
