@@ -25,9 +25,9 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
     # Check allocation for RingA population
     local_cells_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
     if rank == 0:
-        local_cells_gids_ref = [1001, 1003, 1005]
+        local_cells_gids_ref = [1001, 1003, 1005, 1007]
     elif rank == 1:
-        local_cells_gids_ref = [1002, 1004]
+        local_cells_gids_ref = [1002, 1004, 1006]
     npt.assert_allclose(local_cells_gids, local_cells_gids_ref)
 
     # Check allocation for Astrocites
@@ -42,11 +42,11 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
 
     # Check RingA cells spikes
     if rank == 0:
-        spike_gid_ref = np.array([1001, 1003, 1005])
-        timestamps_ref = np.array([2.075, 2.075, 2.075])
+        spike_gid_ref = np.array([1001, 1003, 1005, 1007])
+        timestamps_ref = np.array([2.075]*len(spike_gid_ref))
     elif rank == 1:
-        spike_gid_ref = np.array([1002, 1004])
-        timestamps_ref = np.array([2.075, 2.075])
+        spike_gid_ref = np.array([1002, 1004, 1006])
+        timestamps_ref = np.array([2.075]*len(spike_gid_ref))
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
     spike_gids = np.array(ringA_spikes[1])
