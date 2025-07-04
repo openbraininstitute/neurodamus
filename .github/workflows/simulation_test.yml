@@ -120,8 +120,7 @@ jobs:
       run: |
         python -m venv venv
         . ./venv/bin/activate
-        python -m pip install --upgrade pip
-        pip install --upgrade setuptools
+        python -m pip install --upgrade pip setuptools
         pip install cython numpy wheel pkgconfig
 
     - name: Add virtual environment to PATH
@@ -200,6 +199,9 @@ jobs:
           export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
           export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
+        # Upgrade setuptools again, to avoid build error of `project.license`
+        # It should have been done in the previous step, no idea why
+        pip install --upgrade setuptools
         CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
