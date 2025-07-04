@@ -12,9 +12,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from .connection import Connection, ReplayMode
-from .core import MPI, run_only_rank0
-from .core import NeuronWrapper as Nd
-from .core import ProgressBarRank0 as ProgressBar
+from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
@@ -239,7 +237,7 @@ class ConnectionManagerBase:
     def open_edge_location(self, syn_source, _circuit_conf, **kw):
         edge_file, *pop = syn_source.split(":")
         pop_name = pop[0] if pop else None
-        return self.open_synapse_file(edge_file, pop_name, **kw)
+        return self.open_synapse_file(Path(edge_file), pop_name, **kw)
 
     def open_synapse_file(self, synapse_file, edge_population, *, src_pop_name=None, **_kw):
         """Initializes a reader for Synapses config objects and associated population

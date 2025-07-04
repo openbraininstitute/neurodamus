@@ -13,9 +13,9 @@ def test_cli_prcellgid():
     from neurodamus import Neurodamus
     test_folder = tempfile.TemporaryDirectory("cli-test-prcellgid")  # auto removed
     test_folder_path = Path(test_folder.name)
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
         with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
             json.dump(sim_config_data, f, indent=2)
 
@@ -30,9 +30,9 @@ def test_cli_prcellgid():
 def test_cli_disable_reports():
     test_folder = tempfile.TemporaryDirectory("cli-test-disable-reports")  # auto removed
     test_folder_path = Path(test_folder.name)
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
         with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
             json.dump(sim_config_data, f, indent=2)
 
@@ -62,11 +62,11 @@ def test_cli_disable_reports():
 
 def test_cli_keep_build():
     from neurodamus import Neurodamus
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
         sim_config_data["target_simulator"] = "CORENEURON"
         sim_config_data["output"]["output_dir"] = "output_keep_build"
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
 
     test_folder = tempfile.TemporaryDirectory("cli-test-keep-build")  # auto removed
     test_folder_path = Path(test_folder.name)
@@ -81,10 +81,10 @@ def test_cli_keep_build():
 
 
 def test_cli_build_model():
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
         sim_config_data["target_simulator"] = "CORENEURON"
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
 
     test_folder = tempfile.TemporaryDirectory("cli-test-build-model")  # auto removed
     test_folder_path = Path(test_folder.name)
@@ -127,9 +127,9 @@ def test_cli_build_model():
 def test_cli_lb_mode():
     test_folder = tempfile.TemporaryDirectory("cli-test-lb-mode")  # auto removed
     test_folder_path = Path(test_folder.name)
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
         with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
             json.dump(sim_config_data, f, indent=2)
 
@@ -150,9 +150,9 @@ def test_cli_output_path():
     from neurodamus import Neurodamus
     test_folder = tempfile.TemporaryDirectory("cli-test-output-path")  # auto removed
     test_folder_path = Path(test_folder.name)
-    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+    with open(SIM_DIR / CONFIG_FILE_MINI) as f:
         sim_config_data = json.load(f)
-        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        sim_config_data["network"] = SIM_DIR / CIRCUIT_DIR / "circuit_config.json"
         with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
             json.dump(sim_config_data, f, indent=2)
 
