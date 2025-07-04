@@ -562,6 +562,7 @@ def make_circuit_config(config_dict, req_morphology=True):
         config_dict["CellLibraryFile"] = False
         config_dict["nrnPath"] = False
         config_dict["MorphologyPath"] = False
+        config_dict["MorphologyType"] = False
     elif config_dict.get("nrnPath") == "<NONE>":
         config_dict["nrnPath"] = False
     _validate_circuit_morphology(config_dict, req_morphology)
@@ -573,8 +574,8 @@ def make_circuit_config(config_dict, req_morphology=True):
 def _validate_circuit_morphology(config_dict, required=True):
     morph_path = config_dict.get("MorphologyPath")
     morph_type = config_dict.get("MorphologyType")
-    if morph_path is None and required:
-        raise ConfigurationError("No morphology path provided (Required!)")
+    if required and (morph_path is None or morph_type is None):
+        raise ConfigurationError("Both morphology path and type are required!")
     # Some circuit types may not require morphology files
     if not morph_path:
         log_verbose(" > Morphology src: <Disabled> MorphologyType: %s, ", morph_type or "<None>")

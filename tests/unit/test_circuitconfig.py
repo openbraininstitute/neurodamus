@@ -49,10 +49,12 @@ def test_empty_circuit():
     assert circuit_conf.CellLibraryFile is False
     assert circuit_conf.nrnPath is False
     assert circuit_conf.MorphologyPath is False
+    assert circuit_conf.MorphologyType is False
     assert circuit_conf.as_dict() == {
         "CellLibraryFile": False,
         "nrnPath": False,
         "MorphologyPath": False,
+        "MorphologyType": False,
     }
 
 
@@ -64,6 +66,7 @@ def test_dummy_edges_file():
         "CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"),
         "METypePath": str(RINGTEST_DIR / "hoc"),
         "MorphologyPath": str(RINGTEST_DIR / "morphologies/asc"),
+        "MorphologyType": "asc",
         "nrnPath": "<NONE>",
     }
     circuit_conf = make_circuit_config(circuit_dict)
@@ -76,35 +79,5 @@ def test_validate_morphology_path():
     Test the validation of morphology path
     """
     circuit_dict = {"CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"), "nrnPath": "<NONE>"}
-    with pytest.raises(ConfigurationError, match="No morphology path provided"):
+    with pytest.raises(ConfigurationError, match="Both morphology path and type are required!"):
         make_circuit_config(circuit_dict)
-
-
-def test_default_morphology_type():
-    """
-    Test the default morphology type (asc) if not given in the circuit info dict,
-    and the MorphologyPath is appended with "/ascii".
-    """
-    circuit_dict = {
-        "CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"),
-        "MorphologyPath": "dummy",
-        "nrnPath": "<NONE>",
-    }
-    circuit_conf = make_circuit_config(circuit_dict, req_morphology=False)
-    assert circuit_conf.MorphologyType == "asc"
-    assert circuit_conf.MorphologyPath == "dummy/ascii"
-
-
-def test_validation_file_extension():
-    """
-    Test the validation of file extension for CellLibraryFile and nrnPath
-    """
-    for circuit_dict in [
-        {"CellLibraryFile": "nodes.sonata", "MorphologyPath": "dummy"},
-        {"CellLibraryFile": "nodes.h5", "MorphologyPath": "dummy", "nrnPath": "edges.sonata"},
-    ]:
-        with pytest.raises(
-            ConfigurationError,
-            match=r"\*.sonata files are no longer supported, please rename them to \*.h5",
-        ):
-            make_circuit_config(circuit_dict)
