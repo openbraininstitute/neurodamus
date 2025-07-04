@@ -1,9 +1,10 @@
 import json
-import numpy
-import numpy.testing as npt
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+import numpy as np
+import numpy.testing as npt
 
 USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 SAMPLE_DATA_DIR = Path(__file__).parent.parent.absolute() / "sample_data"
@@ -32,7 +33,7 @@ def test_replay_sim(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
-    config_file = replay_sim_config(sonata_config, [str(USECASE3 / "input.h5")])
+    config_file = replay_sim_config(sonata_config, [USECASE3 / "input.h5"])
     nd = Neurodamus(
         config_file.name,
         restrict_node_populations=["NodeA"],
@@ -62,7 +63,7 @@ def test_replay_sim(sonata_config):
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
     assert gids[0] == 3
-    assert numpy.allclose(times, [0.75])
+    assert np.allclose(times, [0.75])
 
     os.unlink(config_file.name)
 
@@ -71,7 +72,7 @@ def test_many_replay_sim(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
-    replay_files = [str(USECASE3 / file) for file in ["input.h5", "input1.h5", "input2.h5"]]
+    replay_files = [USECASE3 / file for file in ["input.h5", "input1.h5", "input2.h5"]]
     config_file = replay_sim_config(sonata_config, replay_files)
     nd = Neurodamus(
         config_file.name,
@@ -102,7 +103,7 @@ def test_many_replay_sim(sonata_config):
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
     assert gids[0] == 3
-    assert numpy.allclose(times, [0.75])
+    assert np.allclose(times, [0.75])
 
     os.unlink(config_file.name)
 
@@ -113,7 +114,7 @@ def test_replay_sonata_spikes(sonata_config):
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import Feature
 
-    config_file = replay_sim_config(sonata_config, [str(SAMPLE_DATA_DIR / "out.h5")])
+    config_file = replay_sim_config(sonata_config, [SAMPLE_DATA_DIR / "out.h5"])
     nd = Neurodamus(
         config_file.name,
         restrict_features=[Feature.Replay],

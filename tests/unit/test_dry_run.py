@@ -1,10 +1,11 @@
-import pytest
+import unittest.mock
+
 import numpy as np
 import numpy.testing as npt
-import unittest.mock
-from pathlib import Path
+import pytest
 
 from tests.utils import defaultdict_to_standard_types
+
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
 
@@ -115,7 +116,7 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
 @pytest.mark.forked
 def test_dry_run_ngv_fail():
     with pytest.raises(Exception, match="Dry run not available for ngv circuit"):
-        Neurodamus(str(NGV_DIR / "simulation_config.json"),  dry_run=True)
+        Neurodamus(NGV_DIR / "simulation_config.json", dry_run=True)
 
 
 @pytest.mark.forked

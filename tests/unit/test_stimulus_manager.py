@@ -19,7 +19,7 @@ target_onecell = "RingA_oneCell"
 
 @pytest.fixture
 def ringtest_stimulus_manager():
-    n = Node(str(RINGTEST_DIR / "simulation_config.json"))
+    n = Node(RINGTEST_DIR / "simulation_config.json")
     n.load_targets()
     n.create_cells()
     # for testing certain stimuli, set dummy values to cell threshold_current and holding_current

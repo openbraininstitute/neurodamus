@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 from time import strftime
 
 from ._engine import EngineBase
@@ -85,8 +86,8 @@ class _NeuronWrapper(_Neuron):
                 return False
 
             for libpath in mechlib.split(":"):
-                libpath = libpath.strip()
-                if os.path.isfile(libpath):
+                libpath = Path(libpath.strip())
+                if libpath.is_file():
                     logging.info("Loading MECH lib: %s", libpath)
                     cls.load_dll(libpath)
                 else:

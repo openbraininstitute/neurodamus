@@ -1,9 +1,11 @@
 import json
-import numpy
 import os
-import pytest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+import libsonata
+import numpy as np
+import pytest
 
 USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 
@@ -72,12 +74,11 @@ def sonata_config_file(sonata_config, request):
 
 # Read the soma report and return a list with the voltages
 def _read_sonata_soma_report(report_name):
-    import libsonata
     report = libsonata.SomaReportReader(report_name)
     pop_name = report.get_population_names()[0]
     ids = report[pop_name].get_node_ids()
     data = report[pop_name].get(node_ids=[ids[0]])
-    return numpy.array(data.data).flatten().tolist()
+    return np.array(data.data).flatten().tolist()
 
 
 @pytest.mark.parametrize(
@@ -94,8 +95,8 @@ def test_synapse_delay_override(sonata_config_file):
     """
     Test that the 'synapse_delay_override' property works as expected
     """
-    from neurodamus.connection_manager import Nd, SynapseRuleManager
     from neurodamus import Neurodamus
+    from neurodamus.connection_manager import Nd, SynapseRuleManager
     from neurodamus.core.configuration import Feature
 
     config_file, params = sonata_config_file
@@ -156,9 +157,9 @@ def test_synapse_delay_override(sonata_config_file):
         voltage_vec = _read_sonata_soma_report(soma_report_path)
 
     # Find impact on voltage. See test_spont_minis for an explanation
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = np.nonzero(window_sum < -0.03)[0]
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))
-    expected_positions = numpy.array([119, 120]) if enable_synapse_delay else numpy.array([96, 97])
-    assert numpy.array_equal(strong_reduction_pos, expected_positions)
+    expected_positions = np.array([119, 120]) if enable_synapse_delay else np.array([96, 97])
+    assert np.array_equal(strong_reduction_pos, expected_positions)
