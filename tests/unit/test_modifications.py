@@ -21,7 +21,7 @@ def test_applyTTX():
     # NeuronWrapper needs to be imported at function level
     from neurodamus.core import NeuronWrapper as Nd
 
-    n = Node(str(SIMULATION_CONFIG_FILE))
+    n = Node(SIMULATION_CONFIG_FILE)
 
     # setup sim
     n.load_targets()

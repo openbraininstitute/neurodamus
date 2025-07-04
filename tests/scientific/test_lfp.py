@@ -150,7 +150,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
     from neurodamus.core.coreneuron_configuration import CoreConfig
 
     _, lfp_weights_file = test_weights_file
-    with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
+    with open(SIM_DIR / "v5_sonata" / "simulation_config_mini.json") as f:
         sim_config_data = json.load(f)
     params = {
         "extra_config": {

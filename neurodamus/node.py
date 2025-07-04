@@ -1331,7 +1331,7 @@ class Node:
                 logging.info("SHM file transfer mode for CoreNEURON enabled")
 
                 # Create SHM folder and links to GPFS for the global data structures
-                corenrn_datadir_shm.makedirs(exist_ok=True)
+                corenrn_datadir_shm.mkdir(exist_ok=True, parents=True)
 
                 # Important: These three files must be available on every node, as they are shared
                 #            across all of the processes. The trick here is to fool NEURON into
@@ -1924,8 +1924,9 @@ class Neurodamus(Node):
 
             # Move generated files aside (to be merged later)
             if MPI.rank == 0:
-                base_filesdat = CoreConfig.datadir / "files"
-                os.rename(base_filesdat + ".dat", base_filesdat + f"_{cycle_i}.dat")
+                (CoreConfig.datadir / "files.dat").rename(
+                    CoreConfig.datadir / f"files_{cycle_i}.dat"
+                )
             # Archive timers for this cycle
             TimerManager.archive(archive_name=f"Cycle Run {cycle_i + 1:d}")
 

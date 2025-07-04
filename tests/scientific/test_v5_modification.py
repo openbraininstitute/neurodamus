@@ -18,7 +18,7 @@ def test_TTX_modification():
     from neurodamus.node import Node
 
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE_MINI))
+    n = Node(CONFIG_FILE_MINI)
 
     # setup sim
     n.load_targets()
@@ -59,7 +59,7 @@ def test_ConfigureAllSections_modification():
     from neurodamus.node import Node
 
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE_MINI))
+    n = Node(CONFIG_FILE_MINI)
 
     # setup sim
     n.load_targets()

@@ -9,12 +9,11 @@ from pathlib import Path
 
 from docopt import docopt
 
-from neurodamus.node import Neurodamus
-from neurodamus.utils.timeit import TimerManager
-
 from .core import MPI, OtherRankError
 from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
 from .utils.pyutils import docopt_sanitize
+from neurodamus.node import Neurodamus
+from neurodamus.utils.timeit import TimerManager
 
 
 def neurodamus(args=None):
@@ -149,7 +148,8 @@ def show_exception_abort(err_msg, exc_info):
 
 
 def _attempt_launch_special(config_file):
-    special = Path(shutil.which("special"))
+    special = shutil.which("special")
+
     local_special = Path("x86_64/special")
     if local_special.exists():  # prefer locally compiled special
         special = local_special.absolute()
@@ -160,6 +160,8 @@ def _attempt_launch_special(config_file):
             "-> DO NOT USE WITH PRODUCTION RUNS"
         )
         return
+
+    special = Path(special)
 
     neurodamus_py_root = os.environ.get("NEURODAMUS_PYTHON")
     if not neurodamus_py_root:

@@ -39,8 +39,6 @@ def test_simulation_sonata_config(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_v5_sonata_config(create_tmp_simulation_config_file):
-    import numpy as np
-    import numpy.testing as npt
     from neurodamus import Neurodamus
 
     config_file = create_tmp_simulation_config_file

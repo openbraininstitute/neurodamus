@@ -13,7 +13,6 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "neuromodula
     }
 ], indirect=True)
 def test_neuromodulation_sims_neuron(create_tmp_simulation_config_file):
-    import numpy.testing as npt
     from neurodamus import Neurodamus
 
     config_file = create_tmp_simulation_config_file
