@@ -199,6 +199,9 @@ jobs:
           export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
           export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
+        # Upgrade setuptools again, to avoid build error from `project.license`
+        # Neuron installed older setuptools but it doesn't work for h5py
+        python -m pip install --upgrade pip setuptools
         CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
