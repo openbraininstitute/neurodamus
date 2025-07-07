@@ -23,8 +23,7 @@ def test_synapses_params():
 
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    config_file = str(SSCX_V7 / "simulation_config_base.json")
-    n = Node(config_file)
+    n = Node(SSCX_V7 / "simulation_config_base.json")
     conn_weight = 0.8  # for testing
 
     # append Connection blocks programmatically

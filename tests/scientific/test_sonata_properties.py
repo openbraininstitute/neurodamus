@@ -12,7 +12,7 @@ def test_input_resistance():
     """
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE))
+    n = Node(CONFIG_FILE)
 
     # append Stimulus and StimulusInject blocks programmatically
     # relativeOU
@@ -65,7 +65,7 @@ def test_input_resistance_2():
     """
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE))
+    n = Node(CONFIG_FILE)
 
     # append Stimulus and StimulusInject blocks programmatically
     # relativeSN

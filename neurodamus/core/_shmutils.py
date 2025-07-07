@@ -19,20 +19,17 @@ class SHMUtil:
         from neurodamus.core import MPI
 
         shmdir = SHMUtil.get_datadir_shm("/.__pydamus_nodeinfo_sync")
-        path = os.path.join(shmdir, str(MPI.rank))
+        path = shmdir / str(MPI.rank)
 
         # Create SHM folder and files to sync the process count per node
-        try:
-            os.makedirs(shmdir, exist_ok=True)
-            os.close(os.open(path, os.O_CREAT))
-        except FileExistsError:
-            pass  # Ignore if we have already created the files
+        shmdir.mkdir(exist_ok=True)
+        path.open("w").close()
 
         MPI.barrier()
 
         # Get a filelist sorted by rank ID and store the local node info
-        listdir = sorted(os.listdir(shmdir), key=int)
-        rank0_node = int(listdir[0])
+        listdir = sorted(int(p.name) for p in shmdir.iterdir())
+        rank0_node = listdir[0]
         nranks_node = len(listdir)
 
         # Calculate node ID based on the entries that contain a process count
@@ -81,7 +78,7 @@ class SHMUtil:
             SHMUtil._set_node_info()
 
         # Aggregate the individual memory consumption per node
-        process = psutil.Process(os.getpid())
+        process = psutil.Process()
         rss = Neuron.Vector(SHMUtil.nnodes, 0.0)
         rss[SHMUtil.node_id] = process.memory_info().rss
 
@@ -112,12 +109,12 @@ class SHMUtil:
         return psutil.disk_usage(SHM).free
 
     @staticmethod
-    def get_datadir_shm(datadir=""):
+    def get_datadir_shm(datadir="") -> Path:
         shmdir = os.environ.get("SHMDIR")
         if not shmdir or not shmdir.startswith(SHM):
             return None
 
-        return str(Path(shmdir) / Path(datadir).resolve().relative_to("/"))
+        return Path(shmdir) / Path(datadir).resolve().relative_to("/")
 
     @staticmethod
     def get_shm_factor():
