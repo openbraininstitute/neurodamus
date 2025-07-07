@@ -27,6 +27,8 @@ on:
 env:
   NEURON_COMMIT_ID: '7175203'
   RDMAV_FORK_SAFE: '1'
+  # todo remove
+  NEURON_BRANCH: 'katta/corenrn_reports'
 
 jobs:
   simulation:
@@ -243,6 +245,7 @@ jobs:
       
     - name: integration-e2e
       run: |
+        echo $NEURON_BRANCH
         tox -e integration-e2e
 
     - name: scientific
