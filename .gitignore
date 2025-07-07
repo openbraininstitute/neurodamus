@@ -34,4 +34,4 @@ sdist/*
 docs/build/
 cover/*
 MANIFEST
-removeme
+removeme*

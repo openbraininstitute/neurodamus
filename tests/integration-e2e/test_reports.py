@@ -223,4 +223,3 @@ def test_summation_vs_compartment_reports(create_tmp_simulation_config_file):
         _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
 
         assert np.allclose(compartment_data_sum_by_gid, summation_data.data, atol=1e-6)
-
