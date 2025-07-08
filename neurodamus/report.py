@@ -153,16 +153,35 @@ class Report:
         point_processes = Report.get_point_processes(section, mechanism)
         # if not a point process, it is a current of voltage. Directly return the reference
         if not point_processes:
-            return getattr(section(x), "_ref_" + mechanism)
+            var_name = "_ref_" + mechanism
+            if hasattr(section(x), var_name):
+                return True, getattr(section(x), "_ref_" + mechanism)
+            return False, None
         # search among the point processes the ones that at at position x and return the reference
         for point_process in point_processes:
             if Report.is_point_process_at_location(point_process, section, x):
-                return getattr(point_process, "_ref_" + variable_name)
-        # if we did not return yet, it means the mechanism is a point process
-        # but it is not present at position x
-        raise AttributeError(
-            f"Point process '{mechanism}' exists in the section, but not at location {x}."
-        )
+                var_name = "_ref_" + variable_name
+                if hasattr(point_process, var_name):
+                    return True, getattr(point_process, var_name)
+                return False, None
+
+        return False, None
+        # # if we did not return yet, it means the mechanism is a point process
+        # # but it is not present at position x
+        # raise AttributeError(
+        #     f"Point process '{mechanism}' exists in the section, but not at location {x}."
+        # )
+
+    def get_scaling_factor(self, section, x, mechanism):
+        """Scaling factors for some special variables"""
+        ans = 1.0
+        if mechanism in self.CURRENT_INJECTING_PROCESSES:
+            ans *= -1
+
+        if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA:
+            ans *= section(x).area() / 100.0
+
+        return ans
 
 
 class CompartmentReport(Report):
@@ -188,11 +207,24 @@ class CompartmentReport(Report):
         gid = cell_obj.gid
         vgid = vgid or gid
 
+        mechanism, variable_name = self.variables[0]
         self.report.AddNode(gid, pop_name, pop_offset)
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            var_ref = self.get_var_ref(section, x, *self.variables[0])
+            is_valid, var_ref = self.get_var_ref(section, x, mechanism, variable_name)
+            if not is_valid:
+                raise AttributeError(
+                    f"Variable '{variable_name}' for mechanism '{mechanism}' "
+                    f"not found at location {x}."
+                )
+            scaling_factor = self.get_scaling_factor(section, x, mechanism)
+            if scaling_factor != 1.0:
+                logging.warning(
+                    "Scaling factors are not supported for compartment reports. "
+                    "The scaling factor for mechanism %s will be ignored.",
+                    mechanism,
+                )
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
@@ -231,7 +263,7 @@ class SummationReport(Report):
             if not sum_currents_into_soma:
                 alu_helper = self.setup_alu_for_summation(x)
 
-            self.handle_currents_and_point_processes(section, x, alu_helper)
+            self.process_mechanisms(self, section, x, alu_helper)
 
             if not sum_currents_into_soma:
                 section_index = get_section_id(cell_obj, section)
@@ -240,51 +272,21 @@ class SummationReport(Report):
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
-    def handle_currents_and_point_processes(self, section, x, alu_helper):
-        """Handle both intrinsic currents and point processes for summation report."""
-        area_at_x = section(x).area()
+    def process_mechanisms(self, section, x, alu_helper):
+        """Add the ref variable identified by x, mechanism, and variable_name
+        to alu_helper multiplied by the scaling_factor.
+        
+        Note: compartments without the variable are silently skipped.
+        """
         for mechanism, variable in self.variables:
-            self.process_mechanism(section, x, alu_helper, mechanism, variable, area_at_x)
-
-    def process_mechanism(self, section, x, alu_helper, mechanism, variable, area_at_x):
-        """Process a single mechanism, whether it's an intrinsic current or a point process."""
-        point_processes = self.get_point_processes(section, mechanism)
-        if point_processes:
-            self.handle_point_processes(section, x, alu_helper, point_processes, variable)
-        elif area_at_x:
-            self.handle_intrinsic_current(section, x, alu_helper, mechanism, area_at_x)
-        else:
-            logging.warning(
-                "Skipping intrinsic current '%s' at a location with area = 0", mechanism
-            )
-
-    def handle_point_processes(self, section, x, alu_helper, point_processes, variable):
-        """Handle point processes for a given mechanism."""
-        for point_process in point_processes:
-            if self.is_point_process_at_location(point_process, section, x):
-                is_inverted = any(
-                    proc in point_process.hname() for proc in self.CURRENT_INJECTING_PROCESSES
-                )
-                scalar = -1 if is_inverted else 1
-                self.add_variable_to_alu(alu_helper, point_process, variable, scalar)
-
-    def handle_intrinsic_current(self, section, x, alu_helper, mechanism, area_at_x):
-        """Handle an intrinsic current mechanism."""
-        scalar = (
-            area_at_x / 100.0
-            if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA
-            else 1
-        )
-        self.add_variable_to_alu(alu_helper, section(x), mechanism, scalar)
-
-    def add_variable_to_alu(self, alu_helper, obj, variable, scalar):
-        """Add a variable to the ALU helper with error handling."""
-        try:
-            var_ref = getattr(obj, "_ref_" + variable)
-            alu_helper.addvar(var_ref, scalar)
-        except AttributeError:
-            if variable in self.INTRINSIC_CURRENTS:
-                logging.warning("'%s' does not exist at %s", variable, obj)
+            is_valid, var_ref = Report.get_var_ref(section, x, mechanism, variable)
+            if is_valid:
+                scaling_factor = self.get_scaling_factor(section, x, mechanism)
+                if scaling_factor == 0:
+                    logging.warning(
+                        "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+                    )
+                alu_helper.addvar(var_ref, scaling_factor)
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
@@ -325,7 +327,6 @@ class SynapseReport(Report):
                     # Mark synapse as selected for report
                     if hasattr(synapse, "selected_for_report"):
                         synapse.selected_for_report = True
-                Nd.pop_section()
 
         if not synapse_list:
             raise AttributeError(f"Mechanism '{mechanism}' not found.")
@@ -349,7 +350,6 @@ _report_classes = {
     "synapse": SynapseReport,
     "lfp": NOT_SUPPORTED,
 }
-
 
 def create_report(params, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
