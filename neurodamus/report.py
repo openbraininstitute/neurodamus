@@ -217,8 +217,8 @@ class CompartmentReport(Report):
             if scaling_factor != 1.0:
                 logging.warning(
                     "Scaling factors are not supported for compartment reports. "
-                    "The scaling factor for mechanism %s will be ignored.",
-                    mechanism,
+                    "The scaling factor %d for mechanism %s will be ignored.",
+                    scaling_factor, mechanism,
                 )
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
@@ -258,7 +258,7 @@ class SummationReport(Report):
             if not sum_currents_into_soma:
                 alu_helper = self.setup_alu_for_summation(x)
 
-            self.process_mechanisms(self, section, x, alu_helper)
+            self.process_mechanisms(section, x, alu_helper)
 
             if not sum_currents_into_soma:
                 section_index = get_section_id(cell_obj, section)
