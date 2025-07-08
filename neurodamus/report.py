@@ -98,7 +98,10 @@ class Report:
         :return: True if the point process is at the specified position, False otherwise.
         """
         # Get the location of the point process within the section
+        # warning: this pushes sec into neuron stack. Remember to pop_section!
         dist = point_process.get_loc()
+        # Pop immediately after get_loc to avoid requiring caller to remember
+        Nd.pop_section()
         # Calculate the compartment ID based on the location and number of segments
         compartment_id = int(dist * section.nseg)
         # Check if the compartment ID matches the desired location
@@ -144,6 +147,22 @@ class Report:
                 tokens_with_vars.append((val, "i"))  # Default internal variable
 
         return tokens_with_vars
+
+    @staticmethod
+    def get_var_ref(section, x, mechanism, variable_name):
+        point_processes = Report.get_point_processes(section, mechanism)
+        # if not a point process, it is a current of voltage. Directly return the reference
+        if not point_processes:
+            return getattr(section(x), "_ref_" + variable_name)
+        # search among the point processes the ones that at at position x and return the reference
+        for point_process in point_processes:
+            if Report.is_point_process_at_location(point_process, section, x):
+                return getattr(point_process, "_ref_" + variable_name)
+        # if we did not return yet, it means the mechanism is a point process
+        # but it is not present at position x
+        raise AttributeError(
+            f"Point process '{mechanism}' exists in the section, but not at location {x}."
+        )
 
 
 class CompartmentReport(Report):
@@ -250,11 +269,14 @@ class SummationReport(Report):
                 )
                 scalar = -1 if is_inverted else 1
                 self.add_variable_to_alu(alu_helper, point_process, variable, scalar)
-            Nd.pop_section()
 
     def handle_intrinsic_current(self, section, x, alu_helper, mechanism, area_at_x):
         """Handle an intrinsic current mechanism."""
-        scalar = area_at_x / 100.0 if mechanism != "i_membrane_" and self.scaling_mode == 1 else 1
+        scalar = (
+            area_at_x / 100.0
+            if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA
+            else 1
+        )
         self.add_variable_to_alu(alu_helper, section(x), mechanism, scalar)
 
     def add_variable_to_alu(self, alu_helper, obj, variable, scalar):
@@ -264,7 +286,7 @@ class SummationReport(Report):
             alu_helper.addvar(var_ref, scalar)
         except AttributeError:
             if variable in self.INTRINSIC_CURRENTS:
-                logging.warning("Current '%s' does not exist at %s", variable, obj)
+                logging.warning("'%s' does not exist at %s", variable, obj)
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
