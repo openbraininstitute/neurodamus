@@ -270,7 +270,7 @@ class SummationReport(Report):
     def process_mechanisms(self, section, x, alu_helper):
         """Add the ref variable identified by x, mechanism, and variable_name
         to alu_helper multiplied by the scaling_factor.
-        
+
         Note: compartments without the variable are silently skipped.
         """
         for mechanism, variable in self.variables:
@@ -345,6 +345,7 @@ _report_classes = {
     "synapse": SynapseReport,
     "lfp": NOT_SUPPORTED,
 }
+
 
 def create_report(params, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
