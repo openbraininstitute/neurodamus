@@ -153,7 +153,7 @@ class Report:
         point_processes = Report.get_point_processes(section, mechanism)
         # if not a point process, it is a current of voltage. Directly return the reference
         if not point_processes:
-            return getattr(section(x), "_ref_" + variable_name)
+            return getattr(section(x), "_ref_" + mechanism)
         # search among the point processes the ones that at at position x and return the reference
         for point_process in point_processes:
             if Report.is_point_process_at_location(point_process, section, x):
@@ -188,13 +188,11 @@ class CompartmentReport(Report):
         gid = cell_obj.gid
         vgid = vgid or gid
 
-        variable_name = self.variables[0][0]
-
         self.report.AddNode(gid, pop_name, pop_offset)
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            var_ref = getattr(section(x), "_ref_" + variable_name)
+            var_ref = self.get_var_ref(section, x, *self.variables[0])
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
