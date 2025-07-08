@@ -54,7 +54,14 @@ class Report:
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
-        self.variable_name = params.report_on
+        self.type = params.rep_type.lower()
+        self.variables = self.parse_variable_names(params.report_on)
+        if len(self.variables) != 1 and self.type != "summation":
+            raise ValueError(
+                f"Report type '{self.type}' requires exactly one variable, "
+                f"but received: {params.report_on}"
+            )
+
         self.report_dt = params.dt
         self.scaling_mode = self.ScalingMode.from_option(params.scaling)
         self.use_coreneuron = use_coreneuron
@@ -80,21 +87,6 @@ class Report:
         :raises NotImplementedError: Always, unless overridden in subclass.
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
-
-    @staticmethod
-    def enable_fast_imem(mechanism):
-        """Adjust the mechanism name for fast membrane current calculation if necessary.
-
-        If the mechanism is 'i_membrane', enables fast membrane current calculation in NEURON
-        and changes the mechanism name to 'i_membrane_'.
-
-        :param mechanism: The original mechanism name.
-        :return: The adjusted mechanism name.
-        """
-        if mechanism == "i_membrane":
-            Nd.cvode.use_fast_imem(1)
-            mechanism = "i_membrane_"
-        return mechanism
 
     @staticmethod
     def is_point_process_at_location(point_process, section, x):
@@ -128,22 +120,28 @@ class Report:
         ]
         return synapses
 
-    def parse_variable_names(self):
+    @staticmethod
+    def parse_variable_names(report_on):
         """Parse variable names from a user-specified string into mechanism-variable tuples.
+
+        Also, activate fast_i_mem if necessary.
 
         E.g., "hh.ina pas.i" → [("hh", "ina"), ("pas", "i")]
 
         :return: List of (mechanism, variable) tuples.
         """
         tokens_with_vars = []
-        tokens = self.variable_name.split()  # Splitting by whitespace
+        tokens = report_on.split()  # Splitting by whitespace
 
-        for token in tokens:
-            if "." in token:
-                mechanism, var = token.split(".", 1)  # Splitting by the first period
+        for val in tokens:
+            if "." in val:
+                mechanism, var = val.split(".", 1)  # Splitting by the first period
                 tokens_with_vars.append((mechanism, var))
             else:
-                tokens_with_vars.append((token, "i"))  # Default internal variable
+                if val == "i_membrane":
+                    Nd.cvode.use_fast_imem(1)
+                    val = "i_membrane_"
+                tokens_with_vars.append((val, "i"))  # Default internal variable
 
         return tokens_with_vars
 
@@ -171,13 +169,13 @@ class CompartmentReport(Report):
         gid = cell_obj.gid
         vgid = vgid or gid
 
+        variable_name = self.variables[0][0]
+
         self.report.AddNode(gid, pop_name, pop_offset)
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            # Enable fast_imem calculation in Neuron
-            self.variable_name = self.enable_fast_imem(self.variable_name)
-            var_ref = getattr(section(x), "_ref_" + self.variable_name)
+            var_ref = getattr(section(x), "_ref_" + variable_name)
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
@@ -206,18 +204,17 @@ class SummationReport(Report):
         vgid = vgid or gid
 
         self.report.AddNode(gid, pop_name, pop_offset)
-        variable_names = self.parse_variable_names()
 
         if sum_currents_into_soma:
-            alu_helper = self.setup_alu_for_summation(0.5, sum_currents_into_soma)
+            alu_helper = self.setup_alu_for_summation(0.5)
 
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
             if not sum_currents_into_soma:
-                alu_helper = self.setup_alu_for_summation(x, sum_currents_into_soma)
+                alu_helper = self.setup_alu_for_summation(x)
 
-            self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
+            self.handle_currents_and_point_processes(section, x, alu_helper)
 
             if not sum_currents_into_soma:
                 section_index = get_section_id(cell_obj, section)
@@ -226,10 +223,10 @@ class SummationReport(Report):
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
-    def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
+    def handle_currents_and_point_processes(self, section, x, alu_helper):
         """Handle both intrinsic currents and point processes for summation report."""
         area_at_x = section(x).area()
-        for mechanism, variable in variable_names:
+        for mechanism, variable in self.variables:
             self.process_mechanism(section, x, alu_helper, mechanism, variable, area_at_x)
 
     def process_mechanism(self, section, x, alu_helper, mechanism, variable, area_at_x):
@@ -257,8 +254,7 @@ class SummationReport(Report):
 
     def handle_intrinsic_current(self, section, x, alu_helper, mechanism, area_at_x):
         """Handle an intrinsic current mechanism."""
-        scalar = area_at_x / 100.0 if mechanism != "i_membrane" and self.scaling_mode == 1 else 1
-        mechanism = self.enable_fast_imem(mechanism)
+        scalar = area_at_x / 100.0 if mechanism != "i_membrane_" and self.scaling_mode == 1 else 1
         self.add_variable_to_alu(alu_helper, section(x), mechanism, scalar)
 
     def add_variable_to_alu(self, alu_helper, obj, variable, scalar):
@@ -270,7 +266,7 @@ class SummationReport(Report):
             if variable in self.INTRINSIC_CURRENTS:
                 logging.warning("Current '%s' does not exist at %s", variable, obj)
 
-    def setup_alu_for_summation(self, alu_x, collapsed):
+    def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
         alu_helper = Nd.ALU(alu_x, self.report_dt)
         alu_helper.setop("summation")
@@ -296,7 +292,7 @@ class SynapseReport(Report):
 
         # Initialize lists for storing synapses and their locations
         synapse_list = []
-        mechanism, variable = self.parse_variable_names()[0]
+        mechanism, variable = self.variables[0]
         # Evaluate which synapses to report on
         for i, sc in enumerate(point.sclst):
             section = sc.sec

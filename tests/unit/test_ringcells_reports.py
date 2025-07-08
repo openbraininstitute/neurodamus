@@ -346,7 +346,7 @@ def test_enable_summation_report(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
-    assert n.reports[0].variable_name == "i_membrane  IClamp"
+    assert n.reports[0].variables == [("i_membrane_", "i"), ("IClamp", "i")]
 
     if SimConfig.use_coreneuron:
         assert Path(CoreConfig.report_config_file_save).exists()
