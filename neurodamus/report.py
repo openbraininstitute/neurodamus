@@ -166,11 +166,6 @@ class Report:
                 return False, None
 
         return False, None
-        # # if we did not return yet, it means the mechanism is a point process
-        # # but it is not present at position x
-        # raise AttributeError(
-        #     f"Point process '{mechanism}' exists in the section, but not at location {x}."
-        # )
 
     def get_scaling_factor(self, section, x, mechanism):
         """Scaling factors for some special variables"""
