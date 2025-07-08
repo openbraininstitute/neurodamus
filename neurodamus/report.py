@@ -218,7 +218,8 @@ class CompartmentReport(Report):
                 logging.warning(
                     "Scaling factors are not supported for compartment reports. "
                     "The scaling factor %d for mechanism %s will be ignored.",
-                    scaling_factor, mechanism,
+                    scaling_factor,
+                    mechanism,
                 )
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
