@@ -159,14 +159,6 @@ class Report:
             # in a mechanism (not point process)
             if hasattr(section(x), mechanism):
                 mech = getattr(section(x), mechanism)
-                # l = Report.get_point_processes(section, "")
-                # print(l)
-                # v = mech
-                # print(v, type(v))
-                # for i in dir(v):
-                #     print(i)
-                # print(v._ref_i)
-                # print(var_name)
                 var_name = "_ref_" + variable_name
                 if hasattr(mech, var_name):
                     return True, getattr(mech, var_name)

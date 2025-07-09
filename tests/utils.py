@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import logging
 
 import numpy as np
 from libsonata import EdgeStorage, SpikeReader
@@ -10,6 +11,7 @@ from collections.abc import Iterable
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
+from neurodamus.report import Report
 
 
 def merge_dicts(parent: dict, child: dict):
@@ -290,57 +292,61 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     peaks_pos = find_peaks(x, prominence=threshold)[0]
     np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
-
-def record_compartment_report(rep_conf: dict, target_manager: TargetManager):
+def record_compartment_reports(target_manager: TargetManager):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()
     """
-    rep_type = rep_conf["Type"]
-    assert rep_type == "compartment", "Report type is not supported"
-    sections = rep_conf.get("Sections")
-    compartments = rep_conf.get("Compartments")
-    variable_name = rep_conf["ReportOn"]
-    start_time = rep_conf["StartTime"]
-    stop_time = rep_conf["EndTime"]
-    dt = rep_conf["Dt"]
+    ascii_recorders = {}
+    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
+    for rep_name, rep_conf in reports_conf.items():
+        rep_type = rep_conf["Type"].lower()
+        if rep_type != "compartment":
+            logging.warning("report `%s` skipped", rep_type)
+            continue
+        sections = rep_conf.get("Sections")
+        compartments = rep_conf.get("Compartments")
+        variables = Report.parse_variable_names(rep_conf["ReportOn"])
+        mechanism, variable_name = variables[0]
+        start_time = rep_conf["StartTime"]
+        stop_time = rep_conf["EndTime"]
+        dt = rep_conf["Dt"]
 
-    tvec = Nd.Vector()
-    tvec.indgen(start_time, stop_time, dt)
+        tvec = Nd.Vector()
+        tvec.indgen(start_time, stop_time, dt)
+        target_spec = TargetSpec(rep_conf["Target"])
+        target = target_manager.get_target(target_spec)
+        points = target_manager.get_point_list(target, sections=sections, compartments=compartments)
+        recorder = []
+        for point in points:
+            gid = point.gid
+            for i, sc in enumerate(point.sclst):
+                section = sc.sec
+                x = point.x[i]
 
-    target_spec = TargetSpec(rep_conf["Target"])
-    target = target_manager.get_target(target_spec)
-    sum_currents_into_soma = sections == "soma" and compartments == "center"
-    # In case of summation in the soma, we need all points anyway
-    if sum_currents_into_soma and rep_type == "Summation":
-        sections = "all"
-        compartments = "all"
-    points = target_manager.get_point_list(target, sections=sections, compartments=compartments)
-    recorder = []
-    for point in points:
-        gid = point.gid
-        for i, sc in enumerate(point.sclst):
-            section = sc.sec
-            x = point.x[i]
-            # Enable fast_imem calculation in Neuron
-            if variable_name == "i_membrane":
-                Nd.cvode.use_fast_imem(1)
-                variable_name = "i_membrane_"
-            var_ref = getattr(section(x), "_ref_" + variable_name)
-            voltage_vec = Nd.Vector()
-            voltage_vec.record(var_ref, tvec)
-            segname = str(section(x))
-            segname = segname[segname.find(".") + 1:]
-            recorder.append((gid, segname, voltage_vec))
-    return recorder, tvec
+                is_valid, var_ref = Report.get_var_ref(section, x, mechanism, variable_name)
+                if not is_valid:
+                    raise AttributeError(
+                        f"Variable '{variable_name}' for mechanism '{mechanism}' "
+                        f"not found at location {x}."
+                    )
+                trace = Nd.Vector()
+                trace.record(var_ref, tvec)
+                segname = str(section(x))
+                segname = segname[segname.find(".") + 1:]
+                recorder.append((gid, segname, trace))
 
+        ascii_recorders[rep_name] = (recorder, tvec)
+    return ascii_recorders
 
-def write_ascii_report(filename, recorder, tvec):
+def write_ascii_reports(ascii_recorders, output_path):
     """Write out the report in ASCII format"""
-    with open(filename, "w") as f:
-        f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
-        for gid, secname, data_vec in recorder:
-            f.writelines(f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
-                         for t, data in zip(tvec, data_vec))
+    for rep_name, (recorder, tvec) in ascii_recorders.items():
+        filename = Path(output_path) / (rep_name + ".txt")
+        with open(filename, "w") as f:
+            f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
+            for gid, secname, data_vec in recorder:
+                f.writelines(f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
+                            for t, data in zip(tvec, data_vec))
 
 
 def read_ascii_report(filename):
