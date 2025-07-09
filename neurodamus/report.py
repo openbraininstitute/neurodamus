@@ -12,7 +12,6 @@ class Report:
     required by subclasses to append specific data (e.g., compartments or currents).
     """
 
-    INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
 
     class ScalingMode(IntEnum):
@@ -154,8 +153,23 @@ class Report:
         # if not a point process, it is a current of voltage. Directly return the reference
         if not point_processes:
             var_name = "_ref_" + mechanism
+            # directly on section(x)
             if hasattr(section(x), var_name):
-                return True, getattr(section(x), "_ref_" + mechanism)
+                return True, getattr(section(x), var_name)
+            # in a mechanism (not point process)
+            if hasattr(section(x), mechanism):
+                mech = getattr(section(x), mechanism)
+                # l = Report.get_point_processes(section, "")
+                # print(l)
+                # v = mech
+                # print(v, type(v))
+                # for i in dir(v):
+                #     print(i)
+                # print(v._ref_i)
+                # print(var_name)
+                var_name = "_ref_" + variable_name
+                if hasattr(mech, var_name):
+                    return True, getattr(mech, var_name)
             return False, None
         # search among the point processes the ones that at at position x and return the reference
         for point_process in point_processes:
@@ -212,14 +226,6 @@ class CompartmentReport(Report):
                 raise AttributeError(
                     f"Variable '{variable_name}' for mechanism '{mechanism}' "
                     f"not found at location {x}."
-                )
-            scaling_factor = self.get_scaling_factor(section, x, mechanism)
-            if scaling_factor != 1.0:
-                logging.warning(
-                    "Scaling factors are not supported for compartment reports. "
-                    "The scaling factor %d for mechanism %s will be ignored.",
-                    scaling_factor,
-                    mechanism,
                 )
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
