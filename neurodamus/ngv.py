@@ -18,7 +18,7 @@ from .core import (
 from .core.configuration import ConfigurationError, GlobalConfig, LogLevel
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
-from .metype import BaseCell, get_sec
+from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
 from .utils.pyutils import append_recarray
 
@@ -105,14 +105,14 @@ class Astrocyte(BaseCell):
         sec.insert("vascouplingB")
         sec(0.5).vascouplingB.R0pas = R0pas
         # connect to parent sec
-        parent_sec = get_sec(self._cellref, parent_id + 1)
+        parent_sec = self.get_sec(parent_id + 1)
         sec.connect(parent_sec)
 
     def get_glut(self, section_id):
         """Return cached GlutReceive object for a section, creating it if needed."""
         if section_id in self._gluts:
             return self._gluts[section_id]
-        sec = get_sec(self._cellref, section_id)
+        sec = self.get_sec(section_id)
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
         sec(0.5).cadifus._ref_glu2 = glut._ref_glut
         self._gluts[section_id] = glut

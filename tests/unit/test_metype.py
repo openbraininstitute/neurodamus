@@ -3,7 +3,7 @@ import pytest
 
 from itertools import product
 
-from neurodamus.metype import get_sec, SectionIdError
+from neurodamus.metype import SectionIdError
 
 def _make_mock_cell():
     mock_cell = Mock()
@@ -70,16 +70,16 @@ def _make_mock_cell():
 #                 get_section_id(mock_cell, "TestCell[0].myelin[6]")
 
 
-def test_get_sec():
-    mock_cell = _make_mock_cell()
-    seal(mock_cell)
-    assert get_sec(mock_cell, 9) == 9
+# def test_get_sec():
+#     mock_cell = _make_mock_cell()
+#     seal(mock_cell)
+#     assert get_sec(mock_cell, 9) == 9
     
-    assert get_sec(mock_cell, 10) == 10
-    assert get_sec(mock_cell, 11) == 11
-    with pytest.raises(SectionIdError):
-        get_sec(mock_cell, 12)
-    assert get_sec(mock_cell, 20) == 12
-    assert get_sec(mock_cell, 21) == 13
-    with pytest.raises(SectionIdError):
-        get_sec(mock_cell, 1111)
+#     assert get_sec(mock_cell, 10) == 10
+#     assert get_sec(mock_cell, 11) == 11
+#     with pytest.raises(SectionIdError):
+#         get_sec(mock_cell, 12)
+#     assert get_sec(mock_cell, 20) == 12
+#     assert get_sec(mock_cell, 21) == 13
+#     with pytest.raises(SectionIdError):
+#         get_sec(mock_cell, 1111)

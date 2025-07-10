@@ -9,7 +9,6 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
-from .metype import get_sec
 from .utils import compat
 from .utils.logging import log_verbose
 
@@ -491,8 +490,8 @@ class NodesetTarget:
         for cl in compartment_set.filtered_iter(sel_node_set._selection):
             gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
             gid = sel_node_set.selection_gid_2_final_gid(gid)
-            cell_obj = cell_manager.get_cellref(gid)
-            sec = get_sec(cell_obj, section_id)
+            cell = cell_manager.get_cell(gid)
+            sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
                 point_list[-1].append(Nd.SectionRef(sec), offset)
             else:
