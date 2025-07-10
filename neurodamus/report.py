@@ -178,11 +178,14 @@ class Report:
             ans *= section(x).area() / 100.0
 
         return ans
+
+
 class CompartmentReport(Report):
     """Concrete Report subclass for reporting compartment-level variables.
 
     Appends variable references at specific compartment locations for a given cell.
     """
+
     def __init__(
         self,
         params,
@@ -314,8 +317,7 @@ class SynapseReport(Report):
         super().__init__(params=params, use_coreneuron=use_coreneuron)
         if len(self.variables) != 1:
             raise ValueError(
-                f"Synapse reports requires exactly one variable, "
-                f"but received: `{self.variables}`"
+                f"Synapse reports requires exactly one variable, but received: `{self.variables}`"
             )
 
     def register_gid_section(
