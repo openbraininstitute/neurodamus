@@ -2,7 +2,6 @@ import logging
 from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
-from .metype import get_section_id
 
 
 class Report:
@@ -179,7 +178,7 @@ class CompartmentReport(Report):
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
             section_id = cell_obj.get_section_id(section)
-            
+
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
 
