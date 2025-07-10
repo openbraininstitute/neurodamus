@@ -55,11 +55,6 @@ class Report:
 
         self.type = params.rep_type.lower()
         self.variables = self.parse_variable_names(params.report_on)
-        if len(self.variables) != 1 and self.type != "summation":
-            raise ValueError(
-                f"Report type '{self.type}' requires exactly one variable, "
-                f"but received: {params.report_on}"
-            )
 
         self.report_dt = params.dt
         self.scaling_mode = self.ScalingMode.from_option(params.scaling)
@@ -183,13 +178,22 @@ class Report:
             ans *= section(x).area() / 100.0
 
         return ans
-
-
 class CompartmentReport(Report):
     """Concrete Report subclass for reporting compartment-level variables.
 
     Appends variable references at specific compartment locations for a given cell.
     """
+    def __init__(
+        self,
+        params,
+        use_coreneuron,
+    ):
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        if len(self.variables) != 1:
+            raise ValueError(
+                f"Compartment reports requires exactly one variable, "
+                f"but received: `{self.variables}`"
+            )
 
     def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
@@ -302,6 +306,18 @@ class SummationReport(Report):
 
 
 class SynapseReport(Report):
+    def __init__(
+        self,
+        params,
+        use_coreneuron,
+    ):
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        if len(self.variables) != 1:
+            raise ValueError(
+                f"Synapse reports requires exactly one variable, "
+                f"but received: `{self.variables}`"
+            )
+
     def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):

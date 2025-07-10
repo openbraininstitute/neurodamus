@@ -60,11 +60,11 @@ from tests.utils import (check_signal_peaks, read_ascii_report,
                     }
                 }
             },
-        }
+        },
     ],
     indirect=True,
 )
-def test_report_config_error(create_tmp_simulation_config_file):
+def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
     """Test error handling in enable_reports:
     1. wrong variable name
     2. dt < simulation dt
@@ -73,9 +73,45 @@ def test_report_config_error(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|Variable 'i' for mechanism 'wrong' not found at location"):
+    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|Variable 'i' for mechanism 'wrong' not found at location|reports requires exactly one variable, but received"):
         n.enable_reports()
 
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "reports": {
+                    "report": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "sections": "all",
+                        "compartments": "all",
+                        "variable_name": "i_membrane,IClamp",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_config_addional_errors(create_tmp_simulation_config_file):
+    """Test error handling in enable_reports:
+    1. wrong variable name
+    2. dt < simulation dt
+    3. start_time > end_time
+    """
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    with pytest.raises(ValueError, match="reports requires exactly one variable, but received"):
+        n.enable_reports()
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -341,7 +377,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
                     }
                 },
             },
-        }
+        },
     ],
     indirect=True,
 )
