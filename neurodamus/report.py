@@ -178,7 +178,8 @@ class CompartmentReport(Report):
             # Enable fast_imem calculation in Neuron
             self.variable_name = self.enable_fast_imem(self.variable_name)
             var_ref = getattr(section(x), "_ref_" + self.variable_name)
-            section_id = get_section_id(cell_obj, section)
+            section_id = cell_obj.get_section_id(section)
+            
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
 
@@ -220,7 +221,7 @@ class SummationReport(Report):
             self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
 
             if not sum_currents_into_soma:
-                section_index = get_section_id(cell_obj, section)
+                section_index = cell_obj.get_section_id(section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
         if sum_currents_into_soma:
             # soma

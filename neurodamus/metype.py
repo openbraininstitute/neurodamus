@@ -133,7 +133,18 @@ class METype(BaseCell):
         "exc_mini_frequency",
         "extra_attrs",
         "inh_mini_frequency",
+        "_section_counts"
     )
+
+    _section_layout = [
+        ("soma", lambda c: c.soma),
+        ("axon", lambda c: c.axon, lambda c: int(c.nSecAxonalOrig)),
+        ("dend", lambda c: c.dend),
+        ("apic", lambda c: c.apic),
+        ("ais", lambda c: getattr(c, "ais", [])),
+        ("node", lambda c: getattr(c, "node", [])),
+        ("myelin", lambda c: getattr(c, "myelin", [])),
+    ]
 
     def __init__(self, gid, etype_path, emodel, morpho_path, meinfos=None, detailed_axon=False):
         """Instantite a new Cell from METype
@@ -156,6 +167,8 @@ class METype(BaseCell):
         self.extra_attrs = None
 
         self._instantiate_cell(gid, etype_path, emodel, morpho_path, meinfos, detailed_axon)
+        self._section_counts = [len(i[1](self._cellref)) if len(i) == 2 else i[2](self._cellref) for i in METype._section_layout]
+
 
     gid = property(
         lambda self: int(self._cellref.gid), lambda self, val: setattr(self._cellref, "gid", val)
@@ -169,6 +182,41 @@ class METype(BaseCell):
     @property
     def synlist(self):
         return self._synapses
+
+    def get_section_id(self, section):
+        """Calculate the global index of a given section within its cell.
+
+        :param cell: The cell instance containing the section of interest
+        :param section: The specific section for which the index is required
+        :return: The global index of the section, applicable for neuron mapping
+
+        Note: section_id is based on the original cell, before removing the axon.
+
+        Warning: this method returns the original section_id, which may not be valid
+        if the axon was removed. The offsets are still calculated based on the
+        original cell structure.
+        """
+        section_name = str(section).rsplit(".", 1)[-1]
+        try:
+            section_type, index_str = section_name.rsplit("[", maxsplit=1)
+            local_idx = int(index_str.rstrip("]"))
+            if local_idx < 0:
+                raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
+        except ValueError as e:
+            raise SectionIdError(f"Cannot parse section name: {section_name}") from e
+
+        offset = 0
+        for name, count in zip(_section_layout, self._section_counts):
+            name = name[0]
+            if name == section_type:
+                if local_idx >= count:
+                    raise SectionIdError(
+                        f"Index {local_idx} out of range for section type '{name}' (count={count})"
+                    )
+                return offset + local_idx
+            offset += count
+
+        raise SectionIdError(f"Unknown section type in: {section_type}")
 
     # Named for compat with still existing HOC modules
     def getThreshold(self):

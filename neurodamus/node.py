@@ -1130,7 +1130,7 @@ class Node:
         for point in points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)
-            cell = global_manager.get_cellref(gid)
+            cell = global_manager.get_cell(gid)
             spgid = global_manager.getSpGid(gid)
 
             report.register_gid_section(
