@@ -54,14 +54,6 @@ class TargetSpec:
             return self.GLOBAL_TARGET_NAME
         return str(self).replace(":", "_")
 
-    @property
-    def is_full(self):
-        return (self.name or "Mosaic") == "Mosaic"
-
-    def matches(self, pop, target_name):
-        """Check if it matches a given target. Mosaic and (empty) are equivalent"""
-        return pop == self.population and (target_name or "Mosaic") == (self.name or "Mosaic")
-
     def disjoint_populations(self, other):
         # When a population is None we cannot draw conclusions
         #  - In Sonata there's no filtering and target may have multiple
@@ -71,7 +63,7 @@ class TargetSpec:
         return self.population != other.population
 
     def overlap_byname(self, other):
-        return self.is_full or other.is_full or self.name == other.name
+        return not self.name or not other.name or self.name == other.name
 
     def overlap(self, other):
         """Are these target specs bound to overlap?
@@ -80,7 +72,7 @@ class TargetSpec:
         return self.population == other.population and self.overlap_byname(other)
 
     def __eq__(self, other):
-        return self.matches(other.population, other.name)
+        return other.population == self.population and other.name == self.name
 
     __hash__ = None
 
@@ -477,13 +469,9 @@ class NodesetTarget:
             assert len(self.nodesets) == 1, "Multiple populations when asking for raw gids"
             return pop_gid_intersect(self.nodesets[0], raw_gids=True)
 
-        # If target is named Mosaic, basically we don't filter and use local_gids
-        if self.name == "Mosaic" or self.name.startswith("Mosaic#"):
-            gids_groups = tuple(n.final_gids() for n in self.local_nodes)
-        else:
-            gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
+        gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
 
-        return np.concatenate(gids_groups) if gids_groups else np.empty(0)
+        return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
 
     def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
         """Builds a list of points grouped by GID from a compartment set,
