@@ -5,6 +5,51 @@ from .core import NeuronWrapper as Nd
 from .metype import get_section_id
 
 
+def get_section_index(cell, section):
+    """Calculate the global index of a section within a cell, based on section type and local index.
+    The function determines the offset for the section type (soma, axon, dend, etc.) and adds
+    the section-specific index (e.g., [0], [1], etc.) to compute a unique global index.
+    :param cell: The cell instance containing various sections and section counts.
+    :param section: The specific NEURON section for which the index is required.
+    :return: Integer global index of the section within the cell.
+    """
+    section_name = str(section)
+    base_offset = 0
+    section_index = 0
+    if "soma" in section_name:
+        pass  # base_offset is 0
+    elif "axon" in section_name:
+        base_offset = cell.nSecSoma
+    elif "dend" in section_name:
+        base_offset = cell.nSecSoma + cell.nSecAxonalOrig
+    elif "apic" in section_name:
+        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal
+    elif "ais" in section_name:
+        base_offset = cell.nSecSoma + cell.nSecAxonalOrig + cell.nSecBasal + cell.nSecApical
+    elif "node" in section_name:
+        base_offset = (
+            cell.nSecSoma
+            + cell.nSecAxonalOrig
+            + cell.nSecBasal
+            + cell.nSecApical
+            + getattr(cell, "nSecLastAIS", 0)
+        )
+    elif "myelin" in section_name:
+        base_offset = (
+            cell.nSecSoma
+            + cell.nSecAxonalOrig
+            + cell.nSecBasal
+            + cell.nSecApical
+            + getattr(cell, "nSecLastAIS", 0)
+            + getattr(cell, "nSecNodal", 0)
+        )
+
+    # Extract the index from the section name
+    index_str = section_name.rsplit("[", maxsplit=1)[-1].rstrip("]")
+    section_index = int(index_str)
+
+    return int(base_offset + section_index)
+
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
 
@@ -151,12 +196,12 @@ class Report:
     def get_var_ref(section, x, mechanism, variable_name):
         point_processes = Report.get_point_processes(section, mechanism)
         # if not a point process, it is a current of voltage. Directly return the reference
+
         if not point_processes:
             var_name = "_ref_" + mechanism
             # directly on section(x)
             if hasattr(section(x), var_name):
                 return True, getattr(section(x), var_name)
-            # in a mechanism (not point process)
             if hasattr(section(x), mechanism):
                 mech = getattr(section(x), mechanism)
                 var_name = "_ref_" + variable_name
@@ -221,6 +266,8 @@ class CompartmentReport(Report):
                 )
             section_id = get_section_id(cell_obj, section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
+            # section_id = get_section_id(cell_obj, section)
+            # self.report.AddVar(var_ref, section_id, gid, pop_name)
 
 
 class SummationReport(Report):
@@ -260,7 +307,7 @@ class SummationReport(Report):
             self.process_mechanisms(section, x, alu_helper)
 
             if not sum_currents_into_soma:
-                section_index = get_section_id(cell_obj, section)
+                section_index = get_section_index(cell_obj, section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
         if sum_currents_into_soma:
             # soma
@@ -280,7 +327,9 @@ class SummationReport(Report):
                     logging.warning(
                         "Skipping intrinsic current '%s' at a location with area = 0", mechanism
                     )
+                    continue
                 alu_helper.addvar(var_ref, scaling_factor)
+            # simply skip if not valid. No logging or error is necessary
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""

@@ -1120,6 +1120,7 @@ class Node:
             compartments = rep_conf.get("Compartments")
 
             sum_currents_into_soma = sections == "soma" and compartments == "center"
+
             # In case of summation in the soma, we need all points anyway
             if sum_currents_into_soma and rep_type == "Summation":
                 sections = "all"
