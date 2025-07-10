@@ -50,6 +50,7 @@ def get_section_index(cell, section):
 
     return int(base_offset + section_index)
 
+
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
 
