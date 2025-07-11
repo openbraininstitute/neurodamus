@@ -11,7 +11,6 @@ class Report:
     required by subclasses to append specific data (e.g., compartments or currents).
     """
 
-    INTRINSIC_CURRENTS = {"i_membrane", "i_membrane_", "ina", "ica", "ik", "i_pas", "i_cap"}
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
 
     class ScalingMode(IntEnum):
@@ -53,7 +52,9 @@ class Report:
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
-        self.variable_name = params.report_on
+        self.type = params.rep_type.lower()
+        self.variables = self.parse_variable_names(params.report_on)
+
         self.report_dt = params.dt
         self.scaling_mode = self.ScalingMode.from_option(params.scaling)
         self.use_coreneuron = use_coreneuron
@@ -81,21 +82,6 @@ class Report:
         raise NotImplementedError("Subclasses must implement register_gid_section()")
 
     @staticmethod
-    def enable_fast_imem(mechanism):
-        """Adjust the mechanism name for fast membrane current calculation if necessary.
-
-        If the mechanism is 'i_membrane', enables fast membrane current calculation in NEURON
-        and changes the mechanism name to 'i_membrane_'.
-
-        :param mechanism: The original mechanism name.
-        :return: The adjusted mechanism name.
-        """
-        if mechanism == "i_membrane":
-            Nd.cvode.use_fast_imem(1)
-            mechanism = "i_membrane_"
-        return mechanism
-
-    @staticmethod
     def is_point_process_at_location(point_process, section, x):
         """Check if a point process is located at a specific position within a section.
 
@@ -105,7 +91,10 @@ class Report:
         :return: True if the point process is at the specified position, False otherwise.
         """
         # Get the location of the point process within the section
+        # warning: this pushes sec into neuron stack. Remember to pop_section!
         dist = point_process.get_loc()
+        # Pop immediately after get_loc to avoid requiring caller to remember
+        Nd.pop_section()
         # Calculate the compartment ID based on the location and number of segments
         compartment_id = int(dist * section.nseg)
         # Check if the compartment ID matches the desired location
@@ -127,24 +116,67 @@ class Report:
         ]
         return synapses
 
-    def parse_variable_names(self):
+    @staticmethod
+    def parse_variable_names(report_on):
         """Parse variable names from a user-specified string into mechanism-variable tuples.
+
+        Also, activate fast_i_mem if necessary.
 
         E.g., "hh.ina pas.i" → [("hh", "ina"), ("pas", "i")]
 
         :return: List of (mechanism, variable) tuples.
         """
         tokens_with_vars = []
-        tokens = self.variable_name.split()  # Splitting by whitespace
+        tokens = report_on.split()  # Splitting by whitespace
 
-        for token in tokens:
-            if "." in token:
-                mechanism, var = token.split(".", 1)  # Splitting by the first period
+        for val in tokens:
+            if "." in val:
+                mechanism, var = val.split(".", 1)  # Splitting by the first period
                 tokens_with_vars.append((mechanism, var))
             else:
-                tokens_with_vars.append((token, "i"))  # Default internal variable
+                if val == "i_membrane":
+                    Nd.cvode.use_fast_imem(1)
+                    val = "i_membrane_"
+                tokens_with_vars.append((val, "i"))  # Default internal variable
 
         return tokens_with_vars
+
+    @staticmethod
+    def get_var_ref(section, x, mechanism, variable_name):
+        point_processes = Report.get_point_processes(section, mechanism)
+        # if not a point process, it is a current of voltage. Directly return the reference
+
+        if not point_processes:
+            var_name = "_ref_" + mechanism
+            # directly on section(x)
+            if hasattr(section(x), var_name):
+                return True, getattr(section(x), var_name)
+            if hasattr(section(x), mechanism):
+                mech = getattr(section(x), mechanism)
+                var_name = "_ref_" + variable_name
+                if hasattr(mech, var_name):
+                    return True, getattr(mech, var_name)
+            return False, None
+        # search among the point processes the ones that at at position x and return the reference
+        for point_process in point_processes:
+            if Report.is_point_process_at_location(point_process, section, x):
+                var_name = "_ref_" + variable_name
+                if hasattr(point_process, var_name):
+                    return True, getattr(point_process, var_name)
+                return False, None
+
+        return False, None
+
+    def get_scaling_factor(self, section, x, mechanism):
+        """Scaling factors for some special variables"""
+        ans = 1.0
+        if mechanism in self.CURRENT_INJECTING_PROCESSES:
+            ans *= -1
+
+        if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA:
+            ans *= section(x).area() / 100.0
+
+        return ans
 
 
 class CompartmentReport(Report):
@@ -152,6 +184,18 @@ class CompartmentReport(Report):
 
     Appends variable references at specific compartment locations for a given cell.
     """
+
+    def __init__(
+        self,
+        params,
+        use_coreneuron,
+    ):
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        if len(self.variables) != 1:
+            raise ValueError(
+                f"Compartment reports requires exactly one variable, "
+                f"but received: `{self.variables}`"
+            )
 
     def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
@@ -170,15 +214,18 @@ class CompartmentReport(Report):
         gid = cell_obj.gid
         vgid = vgid or gid
 
+        mechanism, variable_name = self.variables[0]
         self.report.AddNode(gid, pop_name, pop_offset)
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            # Enable fast_imem calculation in Neuron
-            self.variable_name = self.enable_fast_imem(self.variable_name)
-            var_ref = getattr(section(x), "_ref_" + self.variable_name)
+            is_valid, var_ref = self.get_var_ref(section, x, mechanism, variable_name)
+            if not is_valid:
+                raise AttributeError(
+                    f"Variable '{variable_name}' for mechanism '{mechanism}' "
+                    f"not found at location {x}."
+                )
             section_id = cell_obj.get_section_id(section)
-
             self.report.AddVar(var_ref, section_id, gid, pop_name)
 
 
@@ -206,18 +253,17 @@ class SummationReport(Report):
         vgid = vgid or gid
 
         self.report.AddNode(gid, pop_name, pop_offset)
-        variable_names = self.parse_variable_names()
 
         if sum_currents_into_soma:
-            alu_helper = self.setup_alu_for_summation(0.5, sum_currents_into_soma)
+            alu_helper = self.setup_alu_for_summation(0.5)
 
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
             if not sum_currents_into_soma:
-                alu_helper = self.setup_alu_for_summation(x, sum_currents_into_soma)
+                alu_helper = self.setup_alu_for_summation(x)
 
-            self.handle_currents_and_point_processes(section, x, alu_helper, variable_names)
+            self.process_mechanisms(section, x, alu_helper)
 
             if not sum_currents_into_soma:
                 section_index = cell_obj.get_section_id(section)
@@ -226,51 +272,25 @@ class SummationReport(Report):
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
-    def handle_currents_and_point_processes(self, section, x, alu_helper, variable_names):
-        """Handle both intrinsic currents and point processes for summation report."""
-        area_at_x = section(x).area()
-        for mechanism, variable in variable_names:
-            self.process_mechanism(section, x, alu_helper, mechanism, variable, area_at_x)
+    def process_mechanisms(self, section, x, alu_helper):
+        """Add the ref variable identified by x, mechanism, and variable_name
+        to alu_helper multiplied by the scaling_factor.
 
-    def process_mechanism(self, section, x, alu_helper, mechanism, variable, area_at_x):
-        """Process a single mechanism, whether it's an intrinsic current or a point process."""
-        point_processes = self.get_point_processes(section, mechanism)
-        if point_processes:
-            self.handle_point_processes(section, x, alu_helper, point_processes, variable)
-        elif area_at_x:
-            self.handle_intrinsic_current(section, x, alu_helper, mechanism, area_at_x)
-        else:
-            logging.warning(
-                "Skipping intrinsic current '%s' at a location with area = 0", mechanism
-            )
+        Note: compartments without the variable are silently skipped.
+        """
+        for mechanism, variable in self.variables:
+            is_valid, var_ref = Report.get_var_ref(section, x, mechanism, variable)
+            if is_valid:
+                scaling_factor = self.get_scaling_factor(section, x, mechanism)
+                if scaling_factor == 0:
+                    logging.warning(
+                        "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+                    )
+                    continue
+                alu_helper.addvar(var_ref, scaling_factor)
+            # simply skip if not valid. No logging or error is necessary
 
-    def handle_point_processes(self, section, x, alu_helper, point_processes, variable):
-        """Handle point processes for a given mechanism."""
-        for point_process in point_processes:
-            if self.is_point_process_at_location(point_process, section, x):
-                is_inverted = any(
-                    proc in point_process.hname() for proc in self.CURRENT_INJECTING_PROCESSES
-                )
-                scalar = -1 if is_inverted else 1
-                self.add_variable_to_alu(alu_helper, point_process, variable, scalar)
-            Nd.pop_section()
-
-    def handle_intrinsic_current(self, section, x, alu_helper, mechanism, area_at_x):
-        """Handle an intrinsic current mechanism."""
-        scalar = area_at_x / 100.0 if mechanism != "i_membrane" and self.scaling_mode == 1 else 1
-        mechanism = self.enable_fast_imem(mechanism)
-        self.add_variable_to_alu(alu_helper, section(x), mechanism, scalar)
-
-    def add_variable_to_alu(self, alu_helper, obj, variable, scalar):
-        """Add a variable to the ALU helper with error handling."""
-        try:
-            var_ref = getattr(obj, "_ref_" + variable)
-            alu_helper.addvar(var_ref, scalar)
-        except AttributeError:
-            if variable in self.INTRINSIC_CURRENTS:
-                logging.warning("Current '%s' does not exist at %s", variable, obj)
-
-    def setup_alu_for_summation(self, alu_x, collapsed):
+    def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
         alu_helper = Nd.ALU(alu_x, self.report_dt)
         alu_helper.setop("summation")
@@ -286,6 +306,17 @@ class SummationReport(Report):
 
 
 class SynapseReport(Report):
+    def __init__(
+        self,
+        params,
+        use_coreneuron,
+    ):
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        if len(self.variables) != 1:
+            raise ValueError(
+                f"Synapse reports requires exactly one variable, but received: `{self.variables}`"
+            )
+
     def register_gid_section(
         self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
     ):
@@ -296,7 +327,7 @@ class SynapseReport(Report):
 
         # Initialize lists for storing synapses and their locations
         synapse_list = []
-        mechanism, variable = self.parse_variable_names()[0]
+        mechanism, variable = self.variables[0]
         # Evaluate which synapses to report on
         for i, sc in enumerate(point.sclst):
             section = sc.sec
@@ -309,7 +340,6 @@ class SynapseReport(Report):
                     # Mark synapse as selected for report
                     if hasattr(synapse, "selected_for_report"):
                         synapse.selected_for_report = True
-                Nd.pop_section()
 
         if not synapse_list:
             raise AttributeError(f"Mechanism '{mechanism}' not found.")
