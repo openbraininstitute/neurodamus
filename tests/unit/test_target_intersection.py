@@ -1,5 +1,4 @@
 import numpy.testing as npt
-import pytest
 
 from neurodamus.core.nodeset import NodeSet
 from neurodamus.target_manager import TargetSpec
@@ -7,7 +6,6 @@ from neurodamus.target_manager import TargetSpec
 null_target_spec = TargetSpec("")
 
 
-@pytest.mark.forked
 def test_targetspec_overlap_name():
     assert null_target_spec.overlap_byname(null_target_spec)
     t1_spec = TargetSpec("t1")
@@ -38,7 +36,6 @@ def test_targetspec_overlap():
     assert not TargetSpec("pop1:t1").overlap(TargetSpec("pop1:t2"))
 
 
-@pytest.mark.forked
 def test_nodeset_target_intersect():
     from neurodamus.target_manager import NodesetTarget
     nodes_popA = NodeSet([1, 2]).register_global("pop_A")
@@ -59,7 +56,6 @@ def test_nodeset_target_intersect():
     assert not t1.intersects(t2)
 
 
-@pytest.mark.forked
 def test_nodeset_gids():
     from neurodamus.target_manager import NodesetTarget
     local_nodes_popA = NodeSet(range(5, 10)).register_global("pop_A")

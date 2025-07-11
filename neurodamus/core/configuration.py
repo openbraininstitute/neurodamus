@@ -109,20 +109,6 @@ class RNGConfig(ConfigT):
     SynapseSeed = None
 
 
-class NeuronStdrunDefaults:
-    """Neuron stdrun default (src: share/lib/hoc/stdrun.hoc"""
-
-    using_cvode_ = 0
-    stdrun_quiet = 0
-    realtime = 0
-    tstop = 5
-    stoprun = 0
-    steps_per_ms = 1 / 0.025
-    nstep_steprun = 1
-    global_ra = 35.4
-    v_init = -65
-
-
 class LoadBalanceMode(Enum):
     """An enumeration, inc parser, of the load balance modes."""
 

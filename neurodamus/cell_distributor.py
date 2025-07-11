@@ -14,6 +14,7 @@ import numpy as np
 from .connection_manager import ConnectionManagerBase
 from .core import (
     MPI,
+    MComplexLoadBalancer,
     NeuronWrapper as Nd,
     ProgressBarRank0 as ProgressBar,
     mpi_no_errors,
@@ -746,7 +747,7 @@ class LoadBalance:
             cell_distributor: the cell distributor object to which we can query
                 the cells to be load balanced
         """
-        mcomplex = Nd.MComplexLoadBalancer()  # init mcomplex before building circuit
+        mcomplex = MComplexLoadBalancer()  # init mcomplex before building circuit
         yield
         target_str = target_spec.simple_name
         self._compute_save_complexities(target_str, mcomplex, cell_distributor)

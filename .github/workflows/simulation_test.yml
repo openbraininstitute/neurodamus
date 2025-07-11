@@ -6,6 +6,14 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'neurodamus/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+      - 'ci/**'
+      - 'pyproject.toml'
+      - 'tox.ini'
+      - 'requirements.txt'
   push:
     branches:
       - main
@@ -34,8 +42,18 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-22.04]
-        python-version: ['3.9.20', '3.10.15', '3.11.10', '3.12.6']
+        include:
+          - os: ubuntu-22.04
+            python-version: '3.9.20'
+          - os: ubuntu-22.04
+            python-version: '3.10.15'
+          - os: ubuntu-22.04
+            python-version: '3.11.10'
+          - os: ubuntu-22.04
+            python-version: '3.12.6'
+          # macOS is only run with Python 3.12.6 due to github action cache size limits
+          - os: macOS-15
+            python-version: '3.12.6'
       fail-fast: false
 
     steps:
@@ -50,22 +68,16 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-v1
-        restore-keys: |
-          ${{ matrix.os }}-pip-
-
     - name: Get latest tags
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
-        LIBSONATA_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonata/tags | jq -r '.[0].name')
+        LIBSONATA_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonata/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
         echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
-        LIBSONATA_REPORT_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/libsonatareport/tags | jq -r '.[0].name')
+        LIBSONATA_REPORT_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonatareport/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
         echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-        NEURODAMUS_MODELS_LATEST=$(curl -s https://api.github.com/repos/openbraininstitute/neurodamus-models/tags | jq -r '.[0].name')
+        NEURODAMUS_MODELS_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/neurodamus-models/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
         echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
     - name: Get HEAD commit message and look for branches
@@ -79,10 +91,20 @@ jobs:
         LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
         if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
-    - name: Install system dependencies
+    - name: Install ubuntu system dependencies
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
+
+    - name: Install macOS homebrew packages
+      if: startsWith(matrix.os, 'macOS')
+      run: |
+        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+        brew unlink fmt
+        echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
 
     - name: Cache python virtual env
       id: cache-venv
@@ -104,7 +126,7 @@ jobs:
     - name: Add virtual environment to PATH
       run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
 
-    - name: Install libsonata
+    - name: Install libsonata from source
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
@@ -166,11 +188,21 @@ jobs:
     - name: Install mpi4py
       if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-        pip install mpi4py
+        MPICC=mpicc pip install --no-binary=mpi4py mpi4py
 
     - name: Build h5py with the local hdf5
       run: |
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich \
+        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+          export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
+          export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
+        else
+          export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
+          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
+        fi
+        # Upgrade setuptools again, to avoid build error from `project.license`
+        # Neuron installed older setuptools but it doesn't work for h5py
+        python -m pip install --upgrade pip setuptools
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
     - name: Install neurodamus
@@ -201,8 +233,13 @@ jobs:
         export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
         export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
         export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
-        export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-        export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
+          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
+        else
+          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
+          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+        fi
         export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;

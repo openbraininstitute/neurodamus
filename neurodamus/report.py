@@ -2,7 +2,6 @@ import logging
 from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
-from .metype import get_section_id
 
 
 class Report:
@@ -226,10 +225,8 @@ class CompartmentReport(Report):
                     f"Variable '{variable_name}' for mechanism '{mechanism}' "
                     f"not found at location {x}."
                 )
-            section_id = get_section_id(cell_obj, section)
+            section_id = cell_obj.get_section_id(section)
             self.report.AddVar(var_ref, section_id, gid, pop_name)
-            # section_id = get_section_id(cell_obj, section)
-            # self.report.AddVar(var_ref, section_id, gid, pop_name)
 
 
 class SummationReport(Report):
@@ -269,7 +266,7 @@ class SummationReport(Report):
             self.process_mechanisms(section, x, alu_helper)
 
             if not sum_currents_into_soma:
-                section_index = get_section_id(cell_obj, section)
+                section_index = cell_obj.get_section_id(section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
         if sum_currents_into_soma:
             # soma

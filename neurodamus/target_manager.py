@@ -9,7 +9,6 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
-from .metype import get_sec
 from .utils import compat
 from .utils.logging import log_verbose
 
@@ -54,14 +53,6 @@ class TargetSpec:
             return self.GLOBAL_TARGET_NAME
         return str(self).replace(":", "_")
 
-    @property
-    def is_full(self):
-        return (self.name or "Mosaic") == "Mosaic"
-
-    def matches(self, pop, target_name):
-        """Check if it matches a given target. Mosaic and (empty) are equivalent"""
-        return pop == self.population and (target_name or "Mosaic") == (self.name or "Mosaic")
-
     def disjoint_populations(self, other):
         # When a population is None we cannot draw conclusions
         #  - In Sonata there's no filtering and target may have multiple
@@ -71,7 +62,7 @@ class TargetSpec:
         return self.population != other.population
 
     def overlap_byname(self, other):
-        return self.is_full or other.is_full or self.name == other.name
+        return not self.name or not other.name or self.name == other.name
 
     def overlap(self, other):
         """Are these target specs bound to overlap?
@@ -80,7 +71,7 @@ class TargetSpec:
         return self.population == other.population and self.overlap_byname(other)
 
     def __eq__(self, other):
-        return self.matches(other.population, other.name)
+        return other.population == self.population and other.name == self.name
 
     __hash__ = None
 
@@ -477,13 +468,9 @@ class NodesetTarget:
             assert len(self.nodesets) == 1, "Multiple populations when asking for raw gids"
             return pop_gid_intersect(self.nodesets[0], raw_gids=True)
 
-        # If target is named Mosaic, basically we don't filter and use local_gids
-        if self.name == "Mosaic" or self.name.startswith("Mosaic#"):
-            gids_groups = tuple(n.final_gids() for n in self.local_nodes)
-        else:
-            gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
+        gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
 
-        return np.concatenate(gids_groups) if gids_groups else np.empty(0)
+        return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
 
     def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
         """Builds a list of points grouped by GID from a compartment set,
@@ -503,8 +490,8 @@ class NodesetTarget:
         for cl in compartment_set.filtered_iter(sel_node_set._selection):
             gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
             gid = sel_node_set.selection_gid_2_final_gid(gid)
-            cell_obj = cell_manager.get_cellref(gid)
-            sec = get_sec(cell_obj, section_id)
+            cell = cell_manager.get_cell(gid)
+            sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
                 point_list[-1].append(Nd.SectionRef(sec), offset)
             else:
