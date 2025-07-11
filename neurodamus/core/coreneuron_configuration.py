@@ -5,7 +5,6 @@ from pathlib import Path
 from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
-from neurodamus.report import get_section_index
 
 
 class CompartmentMapping:
@@ -25,14 +24,14 @@ class CompartmentMapping:
 
         return num_segments
 
-    def process_section(self, cell, sections, num_electrodes, all_lfp_factors, section_offset):
+    def process_section(self, cell, section, num_electrodes, all_lfp_factors, section_offset):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
-        section_attr = getattr(cell, sections[0], None)
+        section_attr = getattr(cell._cellref, section[0], None)
         if section_attr:
             for sec in section_attr:
-                section_index = get_section_index(cell, sec)
-                num_segments += self.create_section_vectors(section_index, sec, secvec, segvec)
+                section_id = cell.get_section_id(sec)
+                num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
 
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
             start_idx = section_offset * num_electrodes
@@ -40,7 +39,7 @@ class CompartmentMapping:
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
         self.pc.nrnbbcore_register_mapping(
-            cell.gid, sections[1], secvec, segvec, lfp_factors, num_electrodes
+            cell.gid, section[1], secvec, segvec, lfp_factors, num_electrodes
         )
         return num_segments
 
@@ -56,7 +55,7 @@ class CompartmentMapping:
         ]
         gidvec = self.cell_distributor.getGidListForProcessor()
         for activegid in gidvec:
-            cellref = self.cell_distributor.getCell(activegid)
+            cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
             num_electrodes = 0
             lfp_manager = getattr(self.cell_distributor, "_lfp_manager", None)
@@ -68,7 +67,7 @@ class CompartmentMapping:
             section_offset = 0
             for section in sections:
                 processed_segments = self.process_section(
-                    cellref, section, num_electrodes, all_lfp_factors, section_offset
+                    cell, section, num_electrodes, all_lfp_factors, section_offset
                 )
                 section_offset += processed_segments
 

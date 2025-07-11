@@ -7,7 +7,7 @@ from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.node import ReportsCumulativeError, Node
 from tests.utils import (check_signal_peaks, read_ascii_report,
-                         record_compartment_report, write_ascii_report)
+                         record_compartment_reports, write_ascii_reports)
 
 
 @pytest.mark.parametrize(
@@ -60,11 +60,11 @@ from tests.utils import (check_signal_peaks, read_ascii_report,
                     }
                 }
             },
-        }
+        },
     ],
     indirect=True,
 )
-def test_report_config_error(create_tmp_simulation_config_file):
+def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
     """Test error handling in enable_reports:
     1. wrong variable name
     2. dt < simulation dt
@@ -73,9 +73,45 @@ def test_report_config_error(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|_ref_wrong was not made to point to anything"):
+    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|Variable 'i' for mechanism 'wrong' not found at location|reports requires exactly one variable, but received"):
         n.enable_reports()
 
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "reports": {
+                    "report": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "sections": "all",
+                        "compartments": "all",
+                        "variable_name": "i_membrane,IClamp",
+                        "unit": "nA",
+                        "dt": 10,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_config_addional_errors(create_tmp_simulation_config_file):
+    """Test error handling in enable_reports:
+    1. wrong variable name
+    2. dt < simulation dt
+    3. start_time > end_time
+    """
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    with pytest.raises(ValueError, match="reports requires exactly one variable, but received"):
+        n.enable_reports()
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -201,7 +237,6 @@ def test_report_disabled(create_tmp_simulation_config_file):
     n.enable_reports()
     assert len(n.reports) == 0
 
-
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -242,6 +277,15 @@ def test_report_disabled(create_tmp_simulation_config_file):
                         "start_time": 0.0,
                         "end_time": 40.0,
                     },
+                    "compartment_pas": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
                 },
             },
         }
@@ -258,21 +302,15 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     from neurodamus.core.configuration import SimConfig
 
     n = Neurodamus(create_tmp_simulation_config_file)
-    assert len(n.reports) == 2
+    assert len(n.reports) == 3
 
-    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
-    ascii_recorders = {}
-    for rep_name, rep_conf in reports_conf.items():
-        rep_type = rep_conf["Type"]
-        if rep_type == "compartment":
-            ascii_recorders[rep_name] = record_compartment_report(rep_conf, n._target_manager)
+    ascii_recorders = record_compartment_reports(n._target_manager)
+
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
 
     # Write ASCII reports
-    for rep_name, (recorder, tvec) in ascii_recorders.items():
-        ascii_report = Path(n._run_conf["OutputRoot"]) / (rep_name + ".txt")
-        write_ascii_report(ascii_report, recorder, tvec)
+    write_ascii_reports(ascii_recorders, n._run_conf["OutputRoot"])
 
     # Read ASCII reports
     soma_report = Path(n._run_conf["OutputRoot"]) / ("soma_v.txt")
@@ -283,15 +321,21 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
     check_signal_peaks(cell_voltage_vec, [92, 291])
 
-    compartment_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
-    assert compartment_report.exists()
-    data = read_ascii_report(compartment_report)
+    compartment_i_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
+    assert compartment_i_report.exists()
+    data = read_ascii_report(compartment_i_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
     cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
 
     check_signal_peaks(cell_current_vec, [9,  29,  50,  70, 110, 132, 152, 173, 193],
                        threshold=0.05)
-
+    
+    compartment_pas_report = Path(n._run_conf["OutputRoot"]) / ("compartment_pas.txt")
+    assert compartment_pas_report.exists()
+    data = read_ascii_report(compartment_pas_report)
+    assert len(data) == 1025  # 45 time steps * 5*5 compartments
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    assert any(cell_current_vec), "The pas current is always 0. This is very suspicious"
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -333,7 +377,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
                     }
                 },
             },
-        }
+        },
     ],
     indirect=True,
 )
@@ -346,7 +390,7 @@ def test_enable_summation_report(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
-    assert n.reports[0].variable_name == "i_membrane  IClamp"
+    assert n.reports[0].variables == [("i_membrane_", "i"), ("IClamp", "i")]
 
     if SimConfig.use_coreneuron:
         assert Path(CoreConfig.report_config_file_save).exists()
