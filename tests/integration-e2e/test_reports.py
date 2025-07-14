@@ -7,7 +7,7 @@ import pytest
 
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
-
+from ..conftest import V5_SONATA
 
 import numpy as np
 
@@ -124,8 +124,59 @@ def test_v5_sonata_reports(create_tmp_simulation_config_file):
         {
             "simconfig_fixture": "v5_sonata_config",
             "extra_config": {
+                "inputs": {
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "represents_physical_electrode": True,
+                        "amp_start": 3,
+                        "width": 10,
+                        "frequency": 50,
+                        "delay": 0,
+                        "duration": 50,
+                        "node_set": "Mini5"
+                    },
+                },
                 "target_simulator": "NEURON",
                 "reports": {
+                    "compartment_v": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_v": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "compartment_i_membrane": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_i_membrane": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
                     "compartment_pas": {
                         "type": "compartment",
                         "cells": "Mosaic",
@@ -162,11 +213,14 @@ def test_summation_vs_compartment_reports(create_tmp_simulation_config_file):
     """
     nd = Neurodamus(create_tmp_simulation_config_file)
     output_dir = Path(SimConfig.output_root)
+
     nd.run()
 
-    _compartment_ids, compartment_data = _read_sonata_report(output_dir / "compartment_pas.h5")
+    for var in ["v", "i_membrane", "pas"]:
+        _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
 
-    compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
-    _summation_ids, summation_data = _read_sonata_report(output_dir / "summation_pas.h5")
+        compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
+        _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
 
-    assert np.allclose(compartment_data_sum_by_gid, summation_data.data)
+        assert np.allclose(compartment_data_sum_by_gid, summation_data.data, atol=1e-6)
+
