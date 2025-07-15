@@ -286,8 +286,8 @@ jobs:
       run: |
         tox -e scientific
 
-    # - name: live debug session, comment out
-    #   if: failure()
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #    timeout-minutes: 60  # or any other value you need
+    - name: live debug session, comment out
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+       timeout-minutes: 60  # or any other value you need
