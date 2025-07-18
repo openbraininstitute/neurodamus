@@ -895,7 +895,6 @@ class Node:
         else:
             # restore way
             pop_offsets, alias_pop, virtual_pop_offsets = CircuitManager.read_population_offsets()
-
         self._circuits.write_population_offsets(
             pop_offsets, alias_pop, virtual_pop_offsets=virtual_pop_offsets
         )
@@ -1303,7 +1302,7 @@ class Node:
 
         mapping_file = Path(corenrn_data, f"{fake_gid}_3.dat")
         if not mapping_file.is_file():
-            mapping_file.write_text(f"{coredata_version}\n0\n")
+            mapping_file.write_text(f"{coredata_version}\n0\n", encoding="utf-8")
 
     def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
         """Configures the CoreNEURON data directory and handles shared memory (SHM) setup.
