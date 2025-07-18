@@ -23,6 +23,7 @@ def test_write_report_config(tmpdir):
     end_time = 10.0
     gids = [1, 2, 3]
     buffer_size = 8
+    scaling = "none"
 
     report_count = 1
     population_count = 20
@@ -32,8 +33,8 @@ def test_write_report_config(tmpdir):
     # Call the methods with the test parameters
     CoreConfig.write_report_count(report_count)
     CoreConfig.write_report_config(report_name, target_name, report_type, report_variable, unit,
-                                    report_format, target_type, dt, start_time, end_time, gids,
-                                    buffer_size)
+                                    report_format, target_type, dt, start_time, end_time, gids, 
+                                    buffer_size,scaling)
     CoreConfig.write_population_count(population_count)
     CoreConfig.write_spike_population(population_name, population_offset)
     CoreConfig.write_spike_filename(spikes_name)
@@ -59,6 +60,7 @@ def test_write_report_config(tmpdir):
         assert float(parts[9]) == end_time
         assert int(parts[10]) == len(gids)
         assert int(parts[11]) == buffer_size
+        assert parts[12] == scaling
         # Read the binary data and unpack it into a list of integers
         gids_from_file = struct.unpack(f'{len(gids)}i', lines[2].strip())
         assert gids_from_file == tuple(gids), "GIDs from file do not match original GIDs"

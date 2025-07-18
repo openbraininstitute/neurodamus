@@ -190,7 +190,8 @@ class _CoreNEURONConfig:
         start_time,
         end_time,
         gids,
-        buffer_size=8,
+        buffer_size,
+        scaling,
     ):
         """Here we append just one report entry to report.conf. We are not writing the full file as
         this is done incrementally in Node.enable_reports
@@ -205,7 +206,7 @@ class _CoreNEURONConfig:
             # Write the formatted string to the file
             fp.write(
                 (
-                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d\n"  # noqa: UP031
+                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d %s\n"  # noqa: UP031
                     % (
                         report_name,
                         target_name,
@@ -219,6 +220,7 @@ class _CoreNEURONConfig:
                         end_time,
                         num_gids,
                         buffer_size,
+                        scaling,
                     )
                 ).encode()
             )

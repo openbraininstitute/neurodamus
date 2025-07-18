@@ -1098,7 +1098,10 @@ class Node:
             *rep_params[3:5],
             *(target_type,),
             *rep_params[5:8],
-            *(target.get_gids(), SimConfig.corenrn_buff_size),
+            *(target.get_gids(), 
+              SimConfig.corenrn_buff_size,
+              rep_params.scaling,
+              ),
         )
         CoreConfig.write_report_config(*core_report_params)
 
