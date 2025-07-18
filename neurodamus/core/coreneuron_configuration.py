@@ -257,7 +257,7 @@ class _CoreNEURONConfig:
         logging.info("Writing sim config file: %s", simconf)
         simconf.parent.mkdir(parents=True, exist_ok=True)
 
-        with simconf.open("w") as fp:
+        with simconf.open("w", encoding="utf-8") as fp:
             fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
             fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
             fp.write(f"tstop={tstop}\n")
@@ -293,7 +293,7 @@ class _CoreNEURONConfig:
     def write_spike_population(self, population_name, population_offset=None):
         report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
-        with report_config.open("a") as fp:
+        with report_config.open("a", encoding="utf-8") as fp:
             fp.write(population_name)
             if population_offset is not None:
                 fp.write(f" {int(population_offset)}")
@@ -303,7 +303,7 @@ class _CoreNEURONConfig:
     def write_spike_filename(self, filename):
         report_config = Path(self.report_config_file_save)
         report_config.parent.mkdir(parents=True, exist_ok=True)
-        with report_config.open("a") as fp:
+        with report_config.open("a", encoding="utf-8") as fp:
             fp.write(filename)
             fp.write("\n")
 
