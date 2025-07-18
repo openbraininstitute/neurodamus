@@ -122,7 +122,7 @@ def _sum_data_by_gid(data):
     "create_tmp_simulation_config_file",
     [
         {
-            "simconfig_fixture": "v5_sonata_config",
+            "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "inputs": {
                     "Stimulus": {
@@ -134,49 +134,49 @@ def _sum_data_by_gid(data):
                         "frequency": 50,
                         "delay": 0,
                         "duration": 50,
-                        "node_set": "Mini5"
+                        "node_set": "Mosaic"
                     },
                 },
-                "target_simulator": "NEURON",
+                "target_simulator": "CORENEURON",
                 "reports": {
-                    # "compartment_v": {
-                    #     "type": "compartment",
-                    #     "cells": "Mosaic",
-                    #     "variable_name": "v",
-                    #     "sections": "all",
-                    #     "dt": 1,
-                    #     "start_time": 0.0,
-                    #     "end_time": 40.0,
-                    # },
-                    "summation_pas": {
+                    "compartment_v": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_v": {
                         "type": "summation",
                         "cells": "Mosaic",
-                        "variable_name": "i_pas",
+                        "variable_name": "v",
                         "sections": "soma",
                         "dt": 1,
                         "start_time": 0.0,
                         "end_time": 40.0,
                         "scaling": "none",
                     },
-                    # "compartment_i_membrane": {
-                    #     "type": "compartment",
-                    #     "cells": "Mosaic",
-                    #     "variable_name": "i_membrane",
-                    #     "sections": "all",
-                    #     "dt": 1,
-                    #     "start_time": 0.0,
-                    #     "end_time": 40.0,
-                    # },
-                    # "summation_i_membrane": {
-                    #     "type": "summation",
-                    #     "cells": "Mosaic",
-                    #     "variable_name": "i_membrane",
-                    #     "sections": "soma",
-                    #     "dt": 1,
-                    #     "start_time": 0.0,
-                    #     "end_time": 40.0,
-                    #     "scaling": "none",
-                    # },
+                    "compartment_i_membrane": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_i_membrane": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
                     # "compartment_pas": {
                     #     "type": "compartment",
                     #     "cells": "Mosaic",
@@ -186,16 +186,16 @@ def _sum_data_by_gid(data):
                     #     "start_time": 0.0,
                     #     "end_time": 40.0,
                     # },
-                    # "summation_pas": {
-                    #     "type": "summation",
-                    #     "cells": "Mosaic",
-                    #     "variable_name": "i_pas",
-                    #     "sections": "soma",
-                    #     "dt": 1,
-                    #     "start_time": 0.0,
-                    #     "end_time": 40.0,
-                    #     "scaling": "none",
-                    # },
+                    "summation_pas": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
                 },
             },
         }
@@ -216,10 +216,10 @@ def test_summation_vs_compartment_reports(create_tmp_simulation_config_file):
 
     nd.run()
 
-    # for var in ["v"]:
-    #     _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
+    for var in ["v", "i_membrane"]:
+        _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
 
-    #     compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
-    #     _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
+        compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
+        _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
 
-    #     assert np.allclose(compartment_data_sum_by_gid[:, :], summation_data.data[:,:], atol=1e-6)
+        assert np.allclose(compartment_data_sum_by_gid[:, :], summation_data.data[:,:], atol=1e-6)
