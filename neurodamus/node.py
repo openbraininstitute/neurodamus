@@ -895,7 +895,6 @@ class Node:
         else:
             # restore way
             pop_offsets, alias_pop, virtual_pop_offsets = CircuitManager.read_population_offsets()
-
         self._circuits.write_population_offsets(
             pop_offsets, alias_pop, virtual_pop_offsets=virtual_pop_offsets
         )
