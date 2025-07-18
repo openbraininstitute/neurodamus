@@ -156,11 +156,6 @@ class SonataConfig:
                     and edge_pop_name == "default"
                 ):
                     return edge_properties.elements_path + ":" + edge_pop_name
-                # if (
-                #    edge_storage.source == edge_storage.target == node_pop_name
-                #    and edge_properties.type == "chemical"
-                # ):
-                #    return edge_properties.elements_path + ":" + edge_pop_name
             return False
 
         def make_circuit(node_pop_name, node_prop):
