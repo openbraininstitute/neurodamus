@@ -147,6 +147,7 @@ def _sum_data_by_gid(data):
                         "dt": 1,
                         "start_time": 0.0,
                         "end_time": 40.0,
+                        "scaling": "none"
                     },
                     "summation_v": {
                         "type": "summation",

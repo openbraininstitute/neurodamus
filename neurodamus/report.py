@@ -18,12 +18,10 @@ class Report:
 
         SCALING_NONE: No scaling.
         SCALING_AREA: Scale by membrane area.
-        SCALING_ELECTRODE: Custom/electrode-based scaling (fallback/default).
         """
 
         SCALING_NONE = 0
         SCALING_AREA = 1
-        SCALING_ELECTRODE = 2
 
         @classmethod
         def from_option(cls, option):
@@ -34,10 +32,10 @@ class Report:
             """
             mapping = {
                 None: cls.SCALING_AREA,
-                "Area": cls.SCALING_AREA,
-                "None": cls.SCALING_NONE,
+                "area": cls.SCALING_AREA,
+                "none": cls.SCALING_NONE,
             }
-            return mapping.get(option, cls.SCALING_ELECTRODE)
+            return mapping[option.lower()]
 
     def __init__(
         self,
