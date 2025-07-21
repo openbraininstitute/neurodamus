@@ -62,7 +62,6 @@ class Astrocyte(BaseCell):
         self.glut_soma = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
 
         self.gid = gid
-        self.set_section_counts()
 
     def _init_basic_section(self, sec):
         """Initialize a basic NEURON section with standard mechanisms.
