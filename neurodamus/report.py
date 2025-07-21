@@ -140,41 +140,58 @@ class Report:
         return tokens_with_vars
 
     @staticmethod
-    def get_var_ref(section, x, mechanism, variable_name):
+    def get_var_refs(section, x, mechanism, variable_name):
+        """Retrieve references to a variable within a mechanism at a specific location on a section.
+
+        This method returns a list of variable references (_ref_<variable_name>) either from:
+        - The point processes of the given mechanism located at position x on the section, or
+        - Directly from the section or its inserted mechanism if no point processes are present.
+
+        Parameters:
+        section : h.Section
+            The NEURON section to query.
+        x : float
+            The location along the section (0 <= x <= 1).
+        mechanism : str
+            The name of the mechanism or point process.
+        variable_name : str
+            The name of the variable whose reference is requested.
+
+        Returns:
+        list
+            A list of variable references (typically hoc references) matching the query.
+        """
         point_processes = Report.get_point_processes(section, mechanism)
         # if not a point process, it is a current of voltage. Directly return the reference
 
         if not point_processes:
+            sec_x = section(x)
             var_name = "_ref_" + mechanism
-            # directly on section(x)
-            if hasattr(section(x), var_name):
-                return True, getattr(section(x), var_name)
-            if hasattr(section(x), mechanism):
-                mech = getattr(section(x), mechanism)
+            if hasattr(sec_x, var_name):
+                return [getattr(sec_x, var_name)]
+            if hasattr(sec_x, mechanism):
+                mech = getattr(sec_x, mechanism)
                 var_name = "_ref_" + variable_name
                 if hasattr(mech, var_name):
-                    return True, getattr(mech, var_name)
-            return False, None
+                    return [getattr(mech, var_name)]
+            return []
         # search among the point processes the ones that at at position x and return the reference
-        for point_process in point_processes:
-            if Report.is_point_process_at_location(point_process, section, x):
-                var_name = "_ref_" + variable_name
-                if hasattr(point_process, var_name):
-                    return True, getattr(point_process, var_name)
-                return False, None
-
-        return False, None
+        return [
+            getattr(pp, "_ref_" + variable_name)
+            for pp in point_processes
+            if Report.is_point_process_at_location(pp, section, x)
+            and hasattr(pp, "_ref_" + variable_name)
+        ]
 
     def get_scaling_factor(self, section, x, mechanism):
         """Scaling factors for some special variables"""
-        ans = 1.0
         if mechanism in self.CURRENT_INJECTING_PROCESSES:
-            ans *= -1
+            return -1.0  # Negative for current injecting processes
 
         if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA:
-            ans *= section(x).area() / 100.0
+            return section(x).area() / 100.0
 
-        return ans
+        return 1.0
 
 
 class CompartmentReport(Report):
@@ -217,14 +234,14 @@ class CompartmentReport(Report):
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            is_valid, var_ref = self.get_var_ref(section, x, mechanism, variable_name)
-            if not is_valid:
+            var_refs = self.get_var_refs(section, x, mechanism, variable_name)
+            if len(var_refs) != 1:
                 raise AttributeError(
-                    f"Variable '{variable_name}' for mechanism '{mechanism}' "
-                    f"not found at location {x}."
+                    f"Expected exactly one reference for variable '{variable_name}' "
+                    f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
                 )
             section_id = cell_obj.get_section_id(section)
-            self.report.AddVar(var_ref, section_id, gid, pop_name)
+            self.report.AddVar(var_refs[0], section_id, gid, pop_name)
 
 
 class SummationReport(Report):
@@ -277,8 +294,8 @@ class SummationReport(Report):
         Note: compartments without the variable are silently skipped.
         """
         for mechanism, variable in self.variables:
-            is_valid, var_ref = Report.get_var_ref(section, x, mechanism, variable)
-            if is_valid:
+            var_refs = Report.get_var_refs(section, x, mechanism, variable)
+            for var_ref in var_refs:
                 scaling_factor = self.get_scaling_factor(section, x, mechanism)
                 if scaling_factor == 0:
                     logging.warning(

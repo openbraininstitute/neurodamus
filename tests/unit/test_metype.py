@@ -49,7 +49,6 @@ def test_get_section_id():
             mock_cell.CellRef.myelin = list(range(32+offset, 42+offset))
             mock_cell.CellRef.nSecMyelinated = 10
         seal(mock_cell.CellRef)
-        mock_cell.set_section_counts()
 
         assert mock_cell.get_section_id("TestCell[0].soma[0]") == 0 * 10
         assert mock_cell.get_section_id("TestCell[0].axon[1]") == 1 * 10 + 1
@@ -77,7 +76,6 @@ def test_get_sec():
 
     This test:
     - Creates a mock cell with predefined soma, axon, dend, and apic sections.
-    - Calls `set_section_counts` to initialize section offsets.
     - Verifies that valid global indices return the expected local section indices.
     - Confirms that out-of-range indices raise a `SectionIdError`.
 
@@ -87,7 +85,6 @@ def test_get_sec():
     """
     mock_cell = _make_mock_cell()
     seal(mock_cell.CellRef)
-    mock_cell.set_section_counts()
     assert mock_cell.get_sec(9) == 9
     
     assert mock_cell.get_sec(10) == 10

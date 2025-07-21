@@ -323,14 +323,14 @@ def record_compartment_reports(target_manager: TargetManager):
                 section = sc.sec
                 x = point.x[i]
 
-                is_valid, var_ref = Report.get_var_ref(section, x, mechanism, variable_name)
-                if not is_valid:
+                var_refs = Report.get_var_refs(section, x, mechanism, variable_name)
+                if len(var_refs) != 1:
                     raise AttributeError(
-                        f"Variable '{variable_name}' for mechanism '{mechanism}' "
-                        f"not found at location {x}."
+                        f"Expected exactly one reference for variable '{variable_name}' "
+                        f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
                     )
                 trace = Nd.Vector()
-                trace.record(var_ref, tvec)
+                trace.record(var_refs[0], tvec)
                 segname = str(section(x))
                 segname = segname[segname.find(".") + 1:]
                 recorder.append((gid, segname, trace))

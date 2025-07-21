@@ -73,7 +73,7 @@ def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|Variable 'i' for mechanism 'wrong' not found at location|reports requires exactly one variable, but received"):
+    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|one reference for variable 'i' of mechanism 'wrong'|reports requires exactly one variable, but received"):
         n.enable_reports()
 
 @pytest.mark.parametrize(
