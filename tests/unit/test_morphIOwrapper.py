@@ -14,7 +14,7 @@ def test_section_names():
     cell.AddHocMorph(morph.morph_as_hoc())
 
     morph_section_names = [f"Cell[0].{i}"
-                           for i in morph.section_names]
+                           for i in morph._section_names]
     nrn_section_names = [i.name() for i in cell.all]
 
     assert morph_section_names == nrn_section_names
