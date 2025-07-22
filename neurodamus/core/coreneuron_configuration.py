@@ -1,10 +1,30 @@
 import logging
 import os
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
+
+
+@dataclass
+class CoreneuronReportConfigParameters:
+    report_name: str
+    target_name: str
+    report_type: str
+    report_variable: str
+    unit: str
+    report_format: str
+    target_type: str
+    dt: float
+    start_time: float
+    end_time: float
+    gids: Sequence[int]
+    buffer_size: int
+    scaling: Literal["none", "area"]
 
 
 class CompartmentMapping:
@@ -177,29 +197,14 @@ class _CoreNEURONConfig:
             f.writelines(lines)
 
     @run_only_rank0
-    def write_report_config(
-        self,
-        report_name,
-        target_name,
-        report_type,
-        report_variable,
-        unit,
-        report_format,
-        target_type,
-        dt,
-        start_time,
-        end_time,
-        gids,
-        buffer_size,
-        scaling,
-    ):
+    def write_report_config(self, config: CoreneuronReportConfigParameters):
         """Here we append just one report entry to report.conf. We are not writing the full file as
         this is done incrementally in Node.enable_reports
         """
         import struct
 
-        num_gids = len(gids)
-        logging.info("Adding report %s for CoreNEURON with %s gids", report_name, num_gids)
+        num_gids = len(config.gids)
+        logging.info("Adding report %s for CoreNEURON with %s gids", config.report_name, num_gids)
         report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
         with report_conf.open("ab") as fp:
@@ -208,24 +213,24 @@ class _CoreNEURONConfig:
                 (
                     "%s %s %s %s %s %s %d %lf %lf %lf %d %d %s\n"  # noqa: UP031
                     % (
-                        report_name,
-                        target_name,
-                        report_type,
-                        report_variable,
-                        unit,
-                        report_format,
-                        target_type,
-                        dt,
-                        start_time,
-                        end_time,
+                        config.report_name,
+                        config.target_name,
+                        config.report_type,
+                        config.report_variable,
+                        config.unit,
+                        config.report_format,
+                        config.target_type,
+                        config.dt,
+                        config.start_time,
+                        config.end_time,
                         num_gids,
-                        buffer_size,
-                        scaling,
+                        config.buffer_size,
+                        config.scaling,
                     )
                 ).encode()
             )
             # Write the array of integers to the file in binary format
-            fp.write(struct.pack(f"{num_gids}i", *gids))
+            fp.write(struct.pack(f"{num_gids}i", *config.gids))
             fp.write(b"\n")
 
     @run_only_rank0

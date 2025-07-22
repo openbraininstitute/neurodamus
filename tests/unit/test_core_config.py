@@ -2,7 +2,7 @@ import os
 import struct
 
 from neurodamus.core.configuration import _SimConfig
-from neurodamus.core.coreneuron_configuration import CoreConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig, CoreneuronReportConfigParameters
 from pathlib import Path
 
 
@@ -11,19 +11,21 @@ def test_write_report_config(tmpdir):
     _SimConfig.coreneuron_datadir = str(tmpdir.join("datpath"))
 
     # Define your test parameters
-    report_name = "soma"
-    target_name = "Mosaic"
-    report_type = "compartment"
-    report_variable = "v"
-    unit = "mV"
-    report_format = "SONATA"
-    target_type = 1
-    dt = 0.1
-    start_time = 0.0
-    end_time = 10.0
-    gids = [1, 2, 3]
-    buffer_size = 8
-    scaling = "none"
+    core_report_params = CoreneuronReportConfigParameters(
+        report_name="soma",
+        target_name="Mosaic",
+        report_type="compartment",
+        report_variable="v",
+        unit="mV",
+        report_format="SONATA",
+        target_type=1,
+        dt=0.1,
+        start_time=0.0,
+        end_time=10.0,
+        gids=[1, 2, 3],
+        buffer_size=8,
+        scaling="none",
+    )
 
     report_count = 1
     population_count = 20
@@ -32,9 +34,7 @@ def test_write_report_config(tmpdir):
     spikes_name = "spikes.h5"
     # Call the methods with the test parameters
     CoreConfig.write_report_count(report_count)
-    CoreConfig.write_report_config(report_name, target_name, report_type, report_variable, unit,
-                                    report_format, target_type, dt, start_time, end_time, gids, 
-                                    buffer_size,scaling)
+    CoreConfig.write_report_config(core_report_params)
     CoreConfig.write_population_count(population_count)
     CoreConfig.write_spike_population(population_name, population_offset)
     CoreConfig.write_spike_filename(spikes_name)
@@ -48,22 +48,22 @@ def test_write_report_config(tmpdir):
         lines = fp.readlines()
         assert lines[0].strip().decode() == f"{report_count}"
         parts = lines[1].strip().decode().split()
-        assert parts[0] == report_name
-        assert parts[1] == target_name
-        assert parts[2] == report_type
-        assert parts[3] == report_variable
-        assert parts[4] == unit
-        assert parts[5] == report_format
-        assert int(parts[6]) == target_type
-        assert float(parts[7]) == dt
-        assert float(parts[8]) == start_time
-        assert float(parts[9]) == end_time
-        assert int(parts[10]) == len(gids)
-        assert int(parts[11]) == buffer_size
-        assert parts[12] == scaling
+        assert parts[0] == core_report_params.report_name
+        assert parts[1] == core_report_params.target_name
+        assert parts[2] == core_report_params.report_type
+        assert parts[3] == core_report_params.report_variable
+        assert parts[4] == core_report_params.unit
+        assert parts[5] == core_report_params.report_format
+        assert int(parts[6]) == core_report_params.target_type
+        assert float(parts[7]) == core_report_params.dt
+        assert float(parts[8]) == core_report_params.start_time
+        assert float(parts[9]) == core_report_params.end_time
+        assert int(parts[10]) == len(core_report_params.gids)
+        assert int(parts[11]) == core_report_params.buffer_size
+        assert parts[12] == core_report_params.scaling
         # Read the binary data and unpack it into a list of integers
-        gids_from_file = struct.unpack(f'{len(gids)}i', lines[2].strip())
-        assert gids_from_file == tuple(gids), "GIDs from file do not match original GIDs"
+        gids_from_file = struct.unpack(f'{len(core_report_params.gids)}i', lines[2].strip())
+        assert gids_from_file == tuple(core_report_params.gids), "GIDs from file do not match original GIDs"
         assert lines[3].strip().decode() == f"{population_count}"
         assert lines[4].strip().decode() == f"{population_name} {population_offset}"
         assert lines[5].strip().decode() == f"{spikes_name}"

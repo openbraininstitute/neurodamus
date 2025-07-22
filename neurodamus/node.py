@@ -45,7 +45,11 @@ from .core.configuration import (
     get_debug_cell_gids,
     make_circuit_config,
 )
-from .core.coreneuron_configuration import CompartmentMapping, CoreConfig
+from .core.coreneuron_configuration import (
+    CompartmentMapping,
+    CoreConfig,
+    CoreneuronReportConfigParameters,
+)
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
 from .io.sonata_config import ConnectionTypes
@@ -1089,20 +1093,23 @@ class Node:
             target_type = _compute_corenrn_target_type(section_type, compartment_type)
 
         reporton_comma_separated = ",".join(rep_params.report_on.split())
-        core_report_params = (
-            rep_params.name,
-            target_spec.name,
-            rep_params.rep_type,
-            reporton_comma_separated,
-            *rep_params[3:5],
-            *(target_type,),
-            *rep_params[5:8],
-            *(target.get_gids(), 
-              SimConfig.corenrn_buff_size,
-              rep_params.scaling,
-              ),
+
+        core_report_params = CoreneuronReportConfigParameters(
+            report_name=rep_params.name,
+            target_name=target_spec.name,
+            report_type=rep_params.rep_type,
+            report_variable=reporton_comma_separated,
+            unit=rep_params.unit,
+            report_format=rep_params.format,
+            target_type=target_type,
+            dt=rep_params.dt,
+            start_time=rep_params.start,
+            end_time=rep_params.end,
+            gids=target.get_gids(),
+            buffer_size=SimConfig.corenrn_buff_size,
+            scaling=rep_params.scaling,
         )
-        CoreConfig.write_report_config(*core_report_params)
+        CoreConfig.write_report_config(core_report_params)
 
     def _report_setup(self, report, rep_conf, target, rep_type):
         if report is None:
