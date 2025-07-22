@@ -1,4 +1,5 @@
 import json
+import h5py
 from pathlib import Path
 import logging
 
@@ -384,3 +385,24 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
     events2 = load_and_filter(file2)
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
+
+def compare_h5_files(file1, file2, rtol=1e-5, atol=1e-8):
+    with h5py.File(file1, 'r') as f1, h5py.File(file2, 'r') as f2:
+        def compare_groups(g1, g2, path='/'):
+            keys1 = set(g1.keys())
+            keys2 = set(g2.keys())
+            assert keys1 == keys2, f"Different keys at {path}: {keys1.symmetric_difference(keys2)}"
+            for key in keys1:
+                item1 = g1[key]
+                item2 = g2[key]
+                if isinstance(item1, h5py.Dataset) and isinstance(item2, h5py.Dataset):
+                    data1 = item1[()]
+                    data2 = item2[()]
+                    assert np.allclose(data1, data2, rtol=rtol, atol=atol), f"Different data at {path}{key} comparring {file1} and {file2}"
+                elif isinstance(item1, h5py.Group) and isinstance(item2, h5py.Group):
+                    compare_groups(item1, item2, path + key + '/')
+                else:
+                    assert False, f"Type mismatch at {path}{key}"
+
+        compare_groups(f1, f2)
+
