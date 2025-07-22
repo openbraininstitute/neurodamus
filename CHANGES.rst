@@ -10,10 +10,12 @@ Version 3.9.0
   * Compartment sets (neuron: #308) (coreneuron: coming soon)
 
 *Improvements*
-  * Lint and format checks
-  * Remove legacy code and refactoring
+  * Lint and format checks (#344, #303, #295, #247, #116, #109)
+  * Remove legacy code and refactoring (#335, #331, #294, #324, #296, #304, #299, #266, #280, #265, #254, #133, #120, #255, #250, #245, #121, #224, #205, #131, #196, #208, #207, #206, #183, #187, #161, #158, #126, #117, #111, #115, #106, #305, #218)
   * Refactor Report (#317)
-  * Improve tests and coverage, add MacOS CI
+  * Add MacOS CI (#334, #330)
+  * Work around for mpi4py supplying wheels (#326, #325)
+  * Improve tests and coverage (#323, #293, #260, #248, #236, #239, #213, #228, #211, #201, #184, #166, #130, #156, #129, #165, #144, #119, #124, #127, #107, #92)
   * Load balance memory and dry run (#319, #312, #300, #275, #216)
   * ngv refactoring, tests, docs (#269, #284, #242, #252, #164, #231, #159)
   * Refactor save/restore (#177)
