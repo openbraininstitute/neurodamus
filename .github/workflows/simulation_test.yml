@@ -35,6 +35,8 @@ on:
 env:
   NEURON_COMMIT_ID: '7175203'
   RDMAV_FORK_SAFE: '1'
+  # todo remove after https://github.com/neuronsimulator/nrn/pull/3507 is merged
+  NEURON_BRANCH: 'katta/corenrn_reports'
 
 jobs:
   simulation:
@@ -157,7 +159,10 @@ jobs:
         cache-name: cache-neuron
       with:
         path: nrn
-        key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
+        # todo revert after https://github.com/neuronsimulator/nrn/pull/3507 is merged
+        # key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
+        key: ${{ matrix.os }}-neuron-katta_corenrn_reports-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
+
 
     - name: Install NEURON
       if: steps.cache-neuron.outputs.cache-hit != 'true'
