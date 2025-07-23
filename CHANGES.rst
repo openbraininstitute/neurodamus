@@ -7,15 +7,15 @@ Version 3.9.0
 **23 July 2025**
 
 *New Features*
-  * compartment sets (#308)
+  * Compartment sets (#308)
 
 *Improvements*
   * Lint and format checks
   * Remove legacy code and refactoring
   * Refactor Report (#317)
   * Improve tests and coverage, add MacOS CI
-  * Load balance memory and dry run
-  * ngv refactoring, tests, docs
+  * Load balance memory and dry run (#319, #312, #300, #275, #216)
+  * ngv refactoring, tests, docs (#269, #284, #242, #252, #164, #231, #159)
   * Refactor save/restore (#177)
 
 
