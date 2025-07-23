@@ -7,7 +7,7 @@ Version 3.9.0
 **23 July 2025**
 
 *New Features*
-  * Compartment sets (#308)
+  * Compartment sets (neuron: #308) (coreneuron: coming soon)
 
 *Improvements*
   * Lint and format checks
