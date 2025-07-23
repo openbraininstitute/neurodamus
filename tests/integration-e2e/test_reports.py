@@ -23,7 +23,6 @@ def _read_sonata_report(report_file):
 
 def _sum_data_by_gid(data):
     """ Sum data by gid to mirror a summation report (without scaling) """
-    
     data_np = np.array(data.data) 
     gids = np.array([i[0] for i in data.ids])
     unique_gids, inverse_indices = np.unique(gids, return_inverse=True)
