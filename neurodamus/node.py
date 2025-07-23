@@ -1009,10 +1009,6 @@ class Node:
                 "LFP report setup failed: electrodes file may be missing "
                 "or simulator is not set to CoreNEURON."
             )
-        if rep_type == "compartment_set" and SimConfig.use_coreneuron:
-            raise ReportSetupError(
-                "Compartment set reports are not supported with CoreNEURON at the moment."
-            )
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
