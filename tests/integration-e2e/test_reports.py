@@ -335,7 +335,7 @@ def _sum_data_by_gid(data):
     "create_tmp_simulation_config_file",
     [
         {
-            "simconfig_fixture": "v5_sonata_config",
+            "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "inputs": {
                     "Stimulus": {
@@ -347,18 +347,77 @@ def _sum_data_by_gid(data):
                         "frequency": 50,
                         "delay": 0,
                         "duration": 50,
-                        "node_set": "Mini5"
+                        "node_set": "Mosaic"
                     },
                 },
-                "target_simulator": "CORENEURON",
+                "target_simulator": "NEURON",
                 "reports": {
-                    "compartment_set_v": {
-                        "type": "compartment_set",
-                        "compartment_set": "cs1",
+                    "compartment_v": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
                         "variable_name": "v",
-                        "dt": 0.1,
+                        "sections": "all",
+                        "dt": 1,
                         "start_time": 0.0,
-                        "end_time": 40.0
+                        "end_time": 40.0,
+                        "scaling": "none"
+                    },
+                    "summation_v": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "compartment_i_membrane": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_i_membrane": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "compartment_pas": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_pas": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "summation_v_area_scaling": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
                     },
                 },
             },
@@ -375,23 +434,22 @@ def test_summation_vs_compartment_reports(create_tmp_simulation_config_file):
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file, keep_build=True)
-    # output_dir = Path(SimConfig.output_root)
-    # reference_dir = RINGTEST_DIR / "reference" / "reports"
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = RINGTEST_DIR / "reference" / "reports"
 
-    # nd.run()
-    assert False
+    nd.run()
 
-    # for var in ["v", "i_membrane", "pas"]:
-    #     _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
+    for var in ["v", "i_membrane", "pas"]:
+        _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
 
-    #     compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
-    #     _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
+        compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)
+        _summation_ids, summation_data = _read_sonata_report(output_dir / f"summation_{var}.h5")
 
-    #     assert np.allclose(compartment_data_sum_by_gid[:, :], summation_data.data[:,:], atol=1e-6)
+        assert np.allclose(compartment_data_sum_by_gid[:, :], summation_data.data[:,:], atol=1e-6)
 
-    # # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
-    # # coreneuron reorders the compartments
-    # # TODO improve compare_h5_files to handle reordering or fix coreneuron to match neuron sorting
-    # for file in output_dir.glob("summation*.h5"):
-    #     compare_h5_files(file, reference_dir / file.name)
+    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    # coreneuron reorders the compartments
+    # TODO improve compare_h5_files to handle reordering or fix coreneuron to match neuron sorting
+    for file in output_dir.glob("summation*.h5"):
+        compare_h5_files(file, reference_dir / file.name)

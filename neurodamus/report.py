@@ -2,7 +2,7 @@ import logging
 from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
-
+from .report_parameters import ReportType, ReportParameters, Scaling
 
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
@@ -12,30 +12,6 @@ class Report:
     """
 
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
-
-    class ScalingMode(IntEnum):
-        """Enum to define scaling modes used in report generation.
-
-        SCALING_NONE: No scaling.
-        SCALING_AREA: Scale by membrane area.
-        """
-
-        SCALING_NONE = 0
-        SCALING_AREA = 1
-
-        @classmethod
-        def from_option(cls, option):
-            """Map user-provided scaling option to a ScalingMode enum.
-
-            :param option: User-specified string or None.
-            :return: Corresponding ScalingMode.
-            """
-            mapping = {
-                None: cls.SCALING_AREA,
-                "area": cls.SCALING_AREA,
-                "none": cls.SCALING_NONE,
-            }
-            return mapping[option.lower()]
 
     def __init__(
         self,
@@ -50,11 +26,11 @@ class Report:
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
-        self.type = params.rep_type.lower()
+        self.type = params.type
         self.variables = self.parse_variable_names(params.report_on)
 
         self.report_dt = params.dt
-        self.scaling_mode = self.ScalingMode.from_option(params.scaling)
+        self.scaling = params.scaling
         self.use_coreneuron = use_coreneuron
 
         self.alu_list = []
@@ -78,6 +54,17 @@ class Report:
         :raises NotImplementedError: Always, unless overridden in subclass.
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
+    
+    def setup(self, rep_params: ReportParameters, points, global_manager):
+        for point in points:
+            gid = point.gid
+            pop_name, pop_offset = global_manager.getPopulationInfo(gid)
+            cell = global_manager.get_cell(gid)
+            spgid = global_manager.getSpGid(gid)
+
+            self.register_gid_section(
+                cell, point, spgid, pop_name, pop_offset, rep_params.collapse_into_soma
+            )
 
     @staticmethod
     def is_point_process_at_location(point_process, section, x):
@@ -188,7 +175,7 @@ class Report:
         if mechanism in self.CURRENT_INJECTING_PROCESSES:
             return -1.0  # Negative for current injecting processes
 
-        if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA:
+        if mechanism != "i_membrane_" and self.scaling == Scaling.AREA:
             return section(x).area() / 100.0
 
         return 1.0
@@ -372,19 +359,19 @@ class SynapseReport(Report):
 
 NOT_SUPPORTED = object()
 _report_classes = {
-    "compartment": CompartmentReport,
-    "compartment_set": CompartmentReport,
-    "summation": SummationReport,
-    "synapse": SynapseReport,
-    "lfp": NOT_SUPPORTED,
+    ReportType.COMPARTMENT: CompartmentReport,
+    ReportType.COMPARTMENT_SET: CompartmentReport,
+    ReportType.SUMMATION: SummationReport,
+    ReportType.SYNAPSE: SynapseReport,
+    ReportType.LFP: NOT_SUPPORTED,
 }
 
 
-def create_report(params, use_coreneuron):
+def create_report(params: ReportParameters, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
-    cls = _report_classes.get(params.rep_type.lower())
+    cls = _report_classes.get(params.type)
     if cls is None:
-        raise ValueError(f"Unknown report type: {params.rep_type}")
+        raise ValueError(f"Unknown report type: {params.type.to_string()}")
     if cls is NOT_SUPPORTED:
         return None
     return cls(params, use_coreneuron)

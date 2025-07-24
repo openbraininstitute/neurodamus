@@ -11,6 +11,8 @@ from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .utils import compat
 from .utils.logging import log_verbose
+from .report_parameters import SectionType, Compartments, ReportType
+
 
 
 class TargetError(Exception):
@@ -203,7 +205,7 @@ class TargetManager:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
-    def get_point_list(self, target, **kwargs):
+    def get_point_list(self, rep_params):
         """Dispatcher: it helps to retrieve the points of a target.
         Returns the result of calling get_point_list directly on the target.
         Selects a target if unknown.
@@ -214,15 +216,20 @@ class TargetManager:
 
         Returns: The target list of points
         """
-        if not isinstance(target, NodesetTarget):
-            target = self.get_target(target)
 
-        if "compartment_set" in kwargs:
-            return target.get_point_list_from_compartment_set(
+        if rep_params.type == ReportType.COMPARTMENT_SET:
+            return rep_params.target.get_point_list_from_compartment_set(
+                            cell_manager=self._cell_manager,
+                            compartment_set=rep_params.compartment_set,
+                        )
+        else:
+            print("AAAAAAAAA", rep_params.sections, rep_params.compartments)
+
+            return rep_params.target.get_point_list(
                 cell_manager=self._cell_manager,
-                compartment_set=self._compartment_sets[kwargs["compartment_set"]],
+                sections=rep_params.sections,
+                compartments=rep_params.compartments,
             )
-        return target.get_point_list(self._cell_manager, **kwargs)
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
@@ -500,29 +507,26 @@ class NodesetTarget:
                 point_list.append(point)
         return point_list
 
-    def get_point_list(self, cell_manager, **kw):
+    def get_point_list(self, cell_manager, sections=SectionType.SOMA, compartments=Compartments.ALL):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
             cell_manager: a cell manager or global cell manager
-            sections: section type, such as "soma", "axon", "dend", "apic" and "all",
-                      default = "soma"
-            compartments: compartment type, such as "center" and "all",
-                          default = "center" for "soma", default = "all" for others
+            sections: SectionType, default = "soma"
+            compartments: Compartments, default = "center" for "soma", default = "all" for others
 
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
-        section_type = kw.get("sections") or "soma"
-        compartment_type = kw.get("compartments")
+        section_type_str = sections.to_string()
         pointList = compat.List()
         for gid in self.get_local_gids():
             point = TPointList(gid)
             cellObj = cell_manager.get_cellref(gid)
-            secs = getattr(cellObj, section_type)
+            secs = getattr(cellObj, section_type_str)
             for sec in secs:
-                if compartment_type == "center":
+                if compartments == Compartments.CENTER:
                     point.append(Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
