@@ -6,40 +6,6 @@ from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
 
-# # for sonata config, compute target_type from user inputs
-# if "Sections" in rep_conf and "Compartments" in rep_conf:
-
-#     def _compute_corenrn_target_type(section_type, compartment_type):
-#         sections = ["all", "soma", "axon", "dend", "apic"]
-#         compartments = ["center", "all"]
-#         if section_type == "all":  # for "all sections", support only target_type=0
-#             return 0
-#         # 0=Compartment, Section { 2=Soma, 3=Axon, 4=Dendrite, 5=Apical,
-#         # 6=SomaAll ... }
-#         return sections.index(section_type) + 1 + 4 * compartments.index(compartment_type)
-
-#     section_type = rep_conf.get("Sections")
-#     compartment_type = rep_conf.get("Compartments")
-#     target_type = _compute_corenrn_target_type(section_type, compartment_type)
-
-# @dataclass
-# class CoreneuronReportConfigParameters:
-#     report_name: str
-#     target_name: str
-#     report_type: str
-#     report_variable: str
-#     unit: str
-#     report_format: str
-#     sections: Literal["all", "soma", "axon", "dend", "apic", "invalid"]
-#     all_compartments: bool
-#     compartment_sets: bool
-#     dt: float
-#     start_time: float
-#     end_time: float
-#     gids: Sequence[int]
-#     buffer_size: int
-#     scaling: Literal["none", "area"]
-
 
 class CompartmentMapping:
     """Interface to register section segment mapping with NEURON."""
