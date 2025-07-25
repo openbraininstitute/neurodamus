@@ -1,12 +1,12 @@
+import logging
 from dataclasses import dataclass
-from typing import Literal
 from enum import IntEnum
 from pathlib import Path
-import logging
 
 
 class ReportSetupError(Exception):
     pass
+
 
 class StrEnumBase(IntEnum):
     __mapping__: list[tuple[str, int]] = []
@@ -17,7 +17,7 @@ class StrEnumBase(IntEnum):
 
     @classmethod
     def from_string(cls, s: str):
-        if (s is None or s == ""):
+        if not s:
             return cls(cls.__default__)
         mapping = dict(cls.__mapping__)
         return cls(mapping.get(s.lower(), cls.__invalid__))
@@ -28,6 +28,7 @@ class StrEnumBase(IntEnum):
 
     def __str__(self):
         return f"{self.__class__.__name__}.{self.name}"
+
 
 class SectionType(StrEnumBase):
     ALL = 0
@@ -48,6 +49,7 @@ class SectionType(StrEnumBase):
     __default__ = SOMA
     __invalid__ = INVALID
 
+
 class Compartments(StrEnumBase):
     ALL = 0
     CENTER = 1
@@ -61,6 +63,7 @@ class Compartments(StrEnumBase):
     __default__ = CENTER
     __invalid__ = INVALID
 
+
 class Scaling(StrEnumBase):
     NONE = 0
     AREA = 1
@@ -70,6 +73,7 @@ class Scaling(StrEnumBase):
         ("area", AREA),
     ]
     __default__ = AREA
+
 
 class ReportType(StrEnumBase):
     COMPARTMENT = 0
@@ -104,9 +108,11 @@ class ReportParameters:
     sections: SectionType
     compartments: Compartments
     compartment_set: str
-    collapse_into_soma: bool
 
-def check_report_parameters(rep_params: ReportParameters, Nd_dt: float, lfp_active: bool) -> None:
+
+def check_report_parameters(
+    rep_params: ReportParameters, nd_dt: float, *, lfp_active: bool
+) -> None:
     """Validate report parameters against simulation constraints."""
     if rep_params.start > rep_params.end:
         raise ReportSetupError(
@@ -114,10 +120,10 @@ def check_report_parameters(rep_params: ReportParameters, Nd_dt: float, lfp_acti
             f"start time ({rep_params.start})."
         )
 
-    if rep_params.dt < Nd_dt:
+    if rep_params.dt < nd_dt:
         raise ReportSetupError(
             f"Invalid report configuration: report dt ({rep_params.dt}) is smaller than "
-            f"simulation dt ({Nd_dt})."
+            f"simulation dt ({nd_dt})."
         )
 
     if rep_params.type == ReportType.LFP and not lfp_active:
@@ -126,22 +132,19 @@ def check_report_parameters(rep_params: ReportParameters, Nd_dt: float, lfp_acti
             "or simulator is not set to CoreNEURON."
         )
 
-def create_report_parameters(duration, Nd_t, output_root, rep_name, rep_conf, target, buffer_size):
+
+def create_report_parameters(duration, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
     """Create report parameters from configuration."""
     start_time = rep_conf["StartTime"]
     end_time = rep_conf.get("EndTime", duration)
     rep_dt = rep_conf["Dt"]
     rep_type = ReportType.from_string(rep_conf["Type"])
-    if Nd_t > 0:
-        start_time += Nd_t
-        end_time += Nd_t
+    if nd_t > 0:
+        start_time += nd_t
+        end_time += nd_t
 
-    sections=SectionType.from_string(rep_conf.get("Sections"))
-    compartments=Compartments.from_string(rep_conf.get("Compartments"))
-    collapse_into_soma = (sections == SectionType.SOMA) and (compartments == Compartments.CENTER) and rep_type != ReportType.COMPARTMENT_SET
-    if rep_type == ReportType.SUMMATION and collapse_into_soma:
-        sections = SectionType.ALL
-        compartments = Compartments.ALL
+    sections = SectionType.from_string(rep_conf.get("Sections"))
+    compartments = Compartments.from_string(rep_conf.get("Compartments"))
 
     logging.info(
         " * %s (Type: %s, Target: %s, Dt: %f)",
@@ -167,10 +170,7 @@ def create_report_parameters(duration, Nd_t, output_root, rep_name, rep_conf, ta
         sections=sections,
         compartments=compartments,
         compartment_set=rep_conf.get("CompartmentSet"),
-        collapse_into_soma=collapse_into_soma
     )
-
-
 
     # def _report_build_params(self, rep_name, rep_conf):
     #     """Build and validate report parameters from configuration.
@@ -182,8 +182,6 @@ def create_report_parameters(duration, Nd_t, output_root, rep_name, rep_conf, ta
     #     Returns:
     #         ReportParams: A populated report parameters object.
     #     """
-
-        
 
     #     sim_end = self._run_conf["Duration"]
     #     rep_type = rep_conf["Type"]
@@ -241,6 +239,3 @@ def create_report_parameters(duration, Nd_t, output_root, rep_name, rep_conf, ta
     #         SimConfig.output_root,
     #         rep_conf.get("Scaling"),
     #     )
-
-
-    

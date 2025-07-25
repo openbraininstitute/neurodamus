@@ -12,7 +12,6 @@ from contextlib import contextmanager
 from os import path as ospath
 from pathlib import Path
 
-
 import libsonata
 
 # Internal Plugins
@@ -56,7 +55,11 @@ from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import create_report
-from .report_parameters import create_report_parameters, check_report_parameters, ReportSetupError, ReportType, SectionType, Compartments
+from .report_parameters import (
+    ReportType,
+    check_report_parameters,
+    create_report_parameters,
+)
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
@@ -75,7 +78,6 @@ class METypeEngine(EngineBase):
         ConnectionTypes.NeuroModulation: NeuroModulationManager,
     }
     CircuitPrecedence = 0
-
 
 
 class CircuitManager:
@@ -922,8 +924,20 @@ class Node:
 
             # Build final config. On errors log, stop only after all reports processed
             try:
-                rep_params = create_report_parameters(duration=self._run_conf["Duration"], Nd_t =Nd.t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=SimConfig.corenrn_buff_size)
-                check_report_parameters(rep_params, Nd.dt, self._circuits.global_manager._lfp_manager._lfp_file)
+                rep_params = create_report_parameters(
+                    duration=self._run_conf["Duration"],
+                    Nd_t=Nd.t,
+                    output_root=SimConfig.output_root,
+                    rep_name=rep_name,
+                    rep_conf=rep_conf,
+                    target=target,
+                    buffer_size=SimConfig.corenrn_buff_size,
+                )
+                check_report_parameters(
+                    rep_params,
+                    Nd.dt,
+                    lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
+                )
             except Exception as e:
                 logging.exception("Error setting up report '%s'", rep_name)
                 errors.append(("create_report_parameters", rep_name, e))
@@ -953,7 +967,11 @@ class Node:
             if report and (not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE):
                 try:
                     points = self._target_manager.get_point_list(rep_params)
-                    report.setup(rep_params=rep_params, points=points, global_manager=self._circuits.global_manager)
+                    report.setup(
+                        sections=rep_params.sections,
+                        points=points,
+                        global_manager=self._circuits.global_manager,
+                    )
                 except Exception as e:
                     logging.exception("Error setting up report '%s'", rep_name)
                     errors.append(("report.setup", rep_name, e))
@@ -975,9 +993,11 @@ class Node:
     def _report_setup(self, report, rep_params):
         if report is None:
             return
-        
+
         points = self._target_manager.get_point_list(self, rep_params)
-        report.setup(rep_params=rep_params, points=points, global_manager=self._circuits.global_manager)
+        report.setup(
+            rep_params=rep_params, points=points, global_manager=self._circuits.global_manager
+        )
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]

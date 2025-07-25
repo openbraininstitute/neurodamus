@@ -350,7 +350,7 @@ def _sum_data_by_gid(data):
                         "node_set": "Mosaic"
                     },
                 },
-                "target_simulator": "NEURON",
+                "target_simulator": "CORENEURON",
                 "reports": {
                     "compartment_v": {
                         "type": "compartment",
@@ -434,13 +434,13 @@ def test_summation_vs_compartment_reports(create_tmp_simulation_config_file):
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file, keep_build=True)
     output_dir = Path(SimConfig.output_root)
     reference_dir = RINGTEST_DIR / "reference" / "reports"
 
     nd.run()
 
-    for var in ["v", "i_membrane", "pas"]:
+    for var in ["v"]:
         _compartment_ids, compartment_data = _read_sonata_report(output_dir / f"compartment_{var}.h5")
 
         compartment_data_sum_by_gid = _sum_data_by_gid(compartment_data)

@@ -1,8 +1,8 @@
 import logging
-from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
-from .report_parameters import ReportType, ReportParameters, Scaling
+from .report_parameters import ReportParameters, ReportType, Scaling, SectionType
+
 
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
@@ -47,24 +47,22 @@ class Report:
         Nd.BBSaveState().ignore(self.report)
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Abstract method to be implemented by subclasses to add section-level report data.
 
         :raises NotImplementedError: Always, unless overridden in subclass.
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
-    
-    def setup(self, rep_params: ReportParameters, points, global_manager):
+
+    def setup(self, sections: SectionType, points, global_manager):
         for point in points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)
             cell = global_manager.get_cell(gid)
             spgid = global_manager.getSpGid(gid)
 
-            self.register_gid_section(
-                cell, point, spgid, pop_name, pop_offset, rep_params.collapse_into_soma
-            )
+            self.register_gid_section(cell, point, spgid, pop_name, pop_offset, sections)
 
     @staticmethod
     def is_point_process_at_location(point_process, section, x):
@@ -200,7 +198,7 @@ class CompartmentReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, _sections: SectionType
     ):
         """Append section-based report data for a single cell and its compartments.
 
@@ -238,7 +236,7 @@ class SummationReport(Report):
     """
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Append summed variable data for a given cell across sections.
 
@@ -247,7 +245,7 @@ class SummationReport(Report):
         :param vgid: Optional virtual GID.
         :param pop_name: Population name.
         :param pop_offset: Population GID offset.
-        :param sum_currents_into_soma: If True, collapses sum into soma.
+        :param sections: Sum into soma if section is soma
         """
         if self.use_coreneuron:
             return
@@ -256,21 +254,21 @@ class SummationReport(Report):
 
         self.report.AddNode(gid, pop_name, pop_offset)
 
-        if sum_currents_into_soma:
+        if sections == SectionType.SOMA:
             alu_helper = self.setup_alu_for_summation(0.5)
 
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            if not sum_currents_into_soma:
+            if sections == SectionType.ALL:
                 alu_helper = self.setup_alu_for_summation(x)
 
             self.process_mechanisms(section, x, alu_helper)
 
-            if not sum_currents_into_soma:
+            if sections == SectionType.ALL:
                 section_index = cell_obj.get_section_id(section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
-        if sum_currents_into_soma:
+        if sections == SectionType.SOMA:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
@@ -320,7 +318,7 @@ class SynapseReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Append synapse variables for a given cell to the report grouped by gid."""
         gid = cell_obj.gid

@@ -9,10 +9,9 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
+from .report_parameters import Compartments, ReportType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
-from .report_parameters import SectionType, Compartments, ReportType
-
 
 
 class TargetError(Exception):
@@ -216,20 +215,14 @@ class TargetManager:
 
         Returns: The target list of points
         """
-
         if rep_params.type == ReportType.COMPARTMENT_SET:
             return rep_params.target.get_point_list_from_compartment_set(
-                            cell_manager=self._cell_manager,
-                            compartment_set=rep_params.compartment_set,
-                        )
-        else:
-            print("AAAAAAAAA", rep_params.sections, rep_params.compartments)
-
-            return rep_params.target.get_point_list(
                 cell_manager=self._cell_manager,
-                sections=rep_params.sections,
-                compartments=rep_params.compartments,
+                compartment_set=rep_params.compartment_set,
             )
+        return rep_params.target.get_point_list(
+            cell_manager=self._cell_manager, rep_params=rep_params
+        )
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
@@ -507,7 +500,7 @@ class NodesetTarget:
                 point_list.append(point)
         return point_list
 
-    def get_point_list(self, cell_manager, sections=SectionType.SOMA, compartments=Compartments.ALL):
+    def get_point_list(self, cell_manager, rep_params=None):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
@@ -519,6 +512,20 @@ class NodesetTarget:
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
+        # defaults:
+        sections = SectionType.SOMA
+        compartments = Compartments.ALL
+        if rep_params is None:
+            sections = SectionType.SOMA
+            compartments = Compartments.ALL
+        if rep_params is not None:
+            sections = rep_params.sections
+            compartments = rep_params.compartments
+            # special case for summation, soma: soma collects all the values
+            if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
+                sections = SectionType.ALL
+                compartments = Compartments.ALL
+
         section_type_str = sections.to_string()
         pointList = compat.List()
         for gid in self.get_local_gids():
