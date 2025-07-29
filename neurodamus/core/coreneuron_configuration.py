@@ -157,7 +157,7 @@ class _CoreNEURONConfig:
                     # of the report and tstop is the tstop of this simulation
                     # (potentially between a restore and a save)
                     new_tend = substitutions[key]
-                    parts[9] = f"{new_tend:.6f}"
+                    parts[10] = f"{new_tend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
                     applied_subs.add(key)
             except (UnicodeDecodeError, IndexError):  # noqa: PERF203

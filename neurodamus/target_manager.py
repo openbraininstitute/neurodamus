@@ -218,7 +218,7 @@ class TargetManager:
         if rep_params.type == ReportType.COMPARTMENT_SET:
             return rep_params.target.get_point_list_from_compartment_set(
                 cell_manager=self._cell_manager,
-                compartment_set=rep_params.compartment_set,
+                compartment_set=self._compartment_sets[rep_params.compartment_set],
             )
         return rep_params.target.get_point_list(
             cell_manager=self._cell_manager, rep_params=rep_params

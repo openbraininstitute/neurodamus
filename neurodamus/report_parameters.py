@@ -133,15 +133,16 @@ def check_report_parameters(
         )
 
 
-def create_report_parameters(duration, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
+def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
     """Create report parameters from configuration."""
     start_time = rep_conf["StartTime"]
-    end_time = rep_conf.get("EndTime", duration)
+    end_time = rep_conf.get("EndTime", sim_end)
     rep_dt = rep_conf["Dt"]
     rep_type = ReportType.from_string(rep_conf["Type"])
     if nd_t > 0:
         start_time += nd_t
         end_time += nd_t
+    end_time = min(end_time, sim_end)
 
     sections = SectionType.from_string(rep_conf.get("Sections"))
     compartments = Compartments.from_string(rep_conf.get("Compartments"))
@@ -161,7 +162,7 @@ def create_report_parameters(duration, nd_t, output_root, rep_name, rep_conf, ta
         unit=rep_conf["Unit"],
         format=rep_conf["Format"],
         dt=rep_dt,
-        start=rep_conf["StartTime"],
+        start=start_time,
         end=end_time,
         output_dir=output_root,
         buffer_size=buffer_size,

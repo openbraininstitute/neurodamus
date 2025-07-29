@@ -912,6 +912,7 @@ class Node:
                 shutil.copy(
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
+
             else:
                 CoreConfig.write_report_count(len(reports_conf))
 
@@ -925,8 +926,8 @@ class Node:
             # Build final config. On errors log, stop only after all reports processed
             try:
                 rep_params = create_report_parameters(
-                    duration=self._run_conf["Duration"],
-                    Nd_t=Nd.t,
+                    sim_end=self._run_conf["Duration"],
+                    nd_t=Nd.t,
                     output_root=SimConfig.output_root,
                     rep_name=rep_name,
                     rep_conf=rep_conf,
