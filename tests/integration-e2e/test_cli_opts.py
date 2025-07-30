@@ -165,3 +165,24 @@ def test_cli_output_path():
     assert not (test_folder_path / simconfig_output_path).is_dir(), \
            f"Directory '{simconfig_output_path}' should NOT exist."
     assert (test_folder_path / output_path).is_dir(), f"Directory '{output_path}' not found."
+
+def test_cli_report_buff_size():
+    test_folder = tempfile.TemporaryDirectory("cli-test-report-buff-size")  # auto removed
+    test_folder_path = Path(test_folder.name)
+    with open(SIM_DIR / CONFIG_FILE_MINI, "r") as f:
+        sim_config_data = json.load(f)
+        sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
+        with open(test_folder_path / CONFIG_FILE_MINI, "w") as f:
+            json.dump(sim_config_data, f, indent=2)
+
+    custom_env = os.environ.copy()
+    custom_env["SPDLOG_LEVEL"] = "debug"
+    result = subprocess.run(
+        ["neurodamus", CONFIG_FILE_MINI, f"--report-buffer-size=64"],
+            check=True,
+            cwd=test_folder_path,
+            capture_output=True,
+            text=True,
+            env=custom_env
+        )
+    assert f"Max Buffer size: 67108864" in result.stdout
