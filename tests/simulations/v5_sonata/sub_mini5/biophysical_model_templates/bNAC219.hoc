@@ -5,27 +5,21 @@ Created by BluePyOpt(1.9.80) at 2020-12-10 15:12:40.993828
 {load_file("import3d.hoc")}
 
 begintemplate bNAC219
-public all    
-public apic   
-public apical 
-public axon   
-public axonal 
-public basal  
-public dend   
-public soma   
-public somatic
-public myelinated
-public APC
-  //public init, morphology, geom_nseg_fixed, geom_nsec, getCell, getCCell, setCCell, gid, getCell
-  //public channel_seed, channel_seed_set
-  //public connect2target, clear, ASCIIrpt
-  //public soma, dend, apic, axon, myelin
-  create soma[1], dend[1], apic[1], axon[1], myelin[1]
-  //public nSecAll, nSecSoma, nSecApical, nSecBasal, nSecMyelinated, nSecAxonalOrig, nSecAxonal
-  //public CellRef, synHelperList, synlist
-  objref this, CellRef, segCounts, ASCIIrpt, synHelperList, synlist
+  public all
+  public apic
+  public apical
+  public axon
+  public axonal
+  public basal
+  public dend
+  public soma
+  public somatic
+  public myelinated
+  public APC
 
-  //public all, somatic, apical, axonal, basal, myelinated, APC
+  create soma[1], dend[1], apic[1], axon[1], myelin[1]
+
+  objref this, CellRef, segCounts, ASCIIrpt, synHelperList, synlist
   objref all, somatic, apical, axonal, basal, myelinated, APC
 
 

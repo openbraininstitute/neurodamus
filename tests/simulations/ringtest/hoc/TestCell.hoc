@@ -18,19 +18,6 @@ public APC
 public clear
 public nSecAxonalOrig
 
-//public connect2target
-//public synHelperList
-//public synlist
-
-//public gid
-
-//public nSecAxonal
-//public nSecAll
-//public nSecSoma
-//public nSecApical
-//public nSecBasal
-
-
 /*!
  * Constructor to create a TestCell object usable in the bbp toolchain
  *
