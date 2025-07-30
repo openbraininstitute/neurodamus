@@ -466,6 +466,7 @@ proc delete_axon(){ local nSec, D1, D2, dist, i1, i2, count
             diam = $4
             v(0.0001) = i1
         }
+        nSecMyelinated += 1
         connect myelin(0), axon[1](1)
     }
 

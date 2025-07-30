@@ -445,6 +445,7 @@ proc geom_nsec() { local nSec
                     all.append()
                     myelinated.append()
             }
+            nSecMyelinated += 1
             connect myelin(0), axon[1](1)
         }
     }

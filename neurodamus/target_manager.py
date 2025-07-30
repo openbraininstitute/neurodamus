@@ -84,6 +84,7 @@ class TargetManager:
         self._targets = {}
         self._section_access = {}
         self._nodeset_reader = self._init_nodesets(run_conf)
+        self._compartment_sets = self._init_compartment_sets(run_conf)
         # A list of the local node sets
         self.local_nodes = []
 
@@ -97,6 +98,14 @@ class TargetManager:
                 simulation_nodesets_file = target_file
         return (config_nodeset_file or simulation_nodesets_file) and NodeSetReader(
             config_nodeset_file, simulation_nodesets_file
+        )
+
+    @staticmethod
+    def _init_compartment_sets(run_conf):
+        return (
+            libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"])
+            if run_conf["compartment_sets_file"]
+            else None
         )
 
     def load_targets(self, circuit):
@@ -194,9 +203,10 @@ class TargetManager:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
-    def getPointList(self, target, **kw):
-        """Helper to retrieve the points of a target.
-        Returns the result of calling getPointList directly on the target.
+    def get_point_list(self, target, **kwargs):
+        """Dispatcher: it helps to retrieve the points of a target.
+        Returns the result of calling get_point_list directly on the target.
+        Selects a target if unknown.
 
         Args:
             target: The target name or object
@@ -206,7 +216,13 @@ class TargetManager:
         """
         if not isinstance(target, NodesetTarget):
             target = self.get_target(target)
-        return target.getPointList(self._cell_manager, **kw)
+
+        if "compartment_set" in kwargs:
+            return target.get_point_list_from_compartment_set(
+                cell_manager=self._cell_manager,
+                compartment_set=self._compartment_sets[kwargs["compartment_set"]],
+            )
+        return target.get_point_list(self._cell_manager, **kwargs)
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
@@ -456,7 +472,35 @@ class NodesetTarget:
 
         return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
 
-    def getPointList(self, cell_manager, **kw):
+    def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
+        """Builds a list of points grouped by GID from a compartment set,
+        mapping sections and offsets for each relevant population.
+
+        Note:
+            The compartment locations in `compartment_set` are expected to be
+            sorted and without duplicates. This is ensured by libsonata.
+        """
+        point_list = compat.List()
+        population_name = compartment_set.population
+
+        if population_name not in self.population_names:
+            return point_list
+        sel_node_set = self.populations[population_name]
+
+        for cl in compartment_set.filtered_iter(sel_node_set._selection):
+            gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
+            gid = sel_node_set.selection_gid_2_final_gid(gid)
+            cell = cell_manager.get_cell(gid)
+            sec = cell.get_sec(section_id)
+            if len(point_list) and point_list[-1].gid == gid:
+                point_list[-1].append(Nd.SectionRef(sec), offset)
+            else:
+                point = TPointList(gid)
+                point.append(Nd.SectionRef(sec), offset)
+                point_list.append(point)
+        return point_list
+
+    def get_point_list(self, cell_manager, **kw):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
@@ -471,7 +515,7 @@ class NodesetTarget:
             list of TPointList containing the compartment position and retrieved section references
         """
         section_type = kw.get("sections") or "soma"
-        compartment_type = kw.get("compartments") or ("center" if section_type == "soma" else "all")
+        compartment_type = kw.get("compartments")
         pointList = compat.List()
         for gid in self.get_local_gids():
             point = TPointList(gid)
