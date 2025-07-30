@@ -1,15 +1,7 @@
 {
   "TestCell": {
     "gid": 1001.0,
-    "nSecAll": 3.0,
-    "nSecApical": 0.0,
-    "nSecAxonal": 0.0,
     "nSecAxonalOrig": 0.0,
-    "nSecBasal": 2.0,
-    "nSecSoma": 1.0,
-    "x": 0.0,
-    "y": 0.0,
-    "z": 0.0,
     "sections": [
       {
         "name": "soma[0]",

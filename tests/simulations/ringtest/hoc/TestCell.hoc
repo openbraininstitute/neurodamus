@@ -1,12 +1,22 @@
 {load_file("import3d.hoc")}
 
 begintemplate TestCell
-public is_art
-public init, AddMorph, getCCell, setCCell, geom_nsec, biophys, biophys_inhomo, connect2target
-public soma, dend, apic, axon, nSecAxonal, nSecAxonalOrig, synHelperList
-public synlist, all, apical, basal, somatic, axonal, gid, nSecAll, nSecSoma, nSecApical, nSecBasal, clear, x, y, z, position
 objref synlist, all, apical, basal, somatic, axonal, this, CCellRef, synHelperList
 
+public all
+public apic
+public apical
+public axon
+public axonal
+public basal
+public dend
+public soma
+public somatic
+public myelinated
+public APC
+
+public clear
+public nSecAxonalOrig
 
 /*!
  * Constructor to create a TestCell object usable in the bbp toolchain
@@ -34,9 +44,8 @@ proc init() {
 
     synlist = new List()
     synHelperList = new List()
-    x = y = z = 0 // only change via position
-
 }
+
 create soma[1], dend[1], apic[1], axon[1]
 
 proc AddMorph(){ localobj morph, import, strobj, morphPath, extension
@@ -95,8 +104,6 @@ proc biophys(){
     }
 }
 
-proc biophys_inhomo(){}
-
 proc geom_nsec() { local nSec
     nSec = 0
     forsec all {
@@ -141,8 +148,6 @@ proc indexSections() { local index
     }
 }
 
-proc clear() { }
-
 /*!
  * @param $o1 NetCon source (can be nil)
  * @param $o2 Variable where generated NetCon will be placed
@@ -160,7 +165,7 @@ proc synapses() {
     syn_.e = -80
 }
 
-func is_art() { return 0 }
+proc clear() { }
 
 
 proc re_init_rng() {
