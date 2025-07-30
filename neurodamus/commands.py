@@ -67,6 +67,9 @@ def neurodamus(args=None):
         --num-target-ranks=<number>  Number of ranks to target for dry-run load balancing
         --coreneuron-direct-mode     Run CoreNeuron in direct memory mode transfered from Neuron,
                                      without writing model data to disk.
+        --report-buffer-size=<number> Override the size in MB each rank will allocate for each 
+                                      report buffer to hold data. When the buffer is full, the
+                                      ranks will aggregate data for writing to disk.
     """
     from . import __version__
 

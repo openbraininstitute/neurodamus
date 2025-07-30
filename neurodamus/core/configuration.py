@@ -55,6 +55,7 @@ class Feature(Enum):
 
 
 class CliOptions(ConfigT):
+    report_buffer_size = None
     build_model = None
     simulate_model = True
     output_path = None
@@ -942,6 +943,18 @@ def _keep_coreneuron_data(config: _SimConfig):
             keep_core_data = True
         config.delete_corenrn_data = not keep_core_data
     log_verbose("delete_corenrn_data = %s", config.delete_corenrn_data)
+
+
+@SimConfig.validator
+def _corenrn_buff_size(config: _SimConfig):
+    user_config = config.cli_options
+    if user_config.report_buffer_size is not None:
+        corenrn_buff_size = int(user_config.report_buffer_size)    
+    else:
+        return
+    
+    assert corenrn_buff_size > 0, "Report buffer size must be > 0"
+    config.corenrn_buff_size = corenrn_buff_size
 
 
 @SimConfig.validator
