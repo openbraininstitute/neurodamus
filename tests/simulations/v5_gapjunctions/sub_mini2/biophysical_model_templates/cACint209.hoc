@@ -17,6 +17,8 @@ begintemplate cACint209
   public myelinated
   public APC
 
+  public re_init_rng
+
   create soma[1], dend[1], apic[1], axon[1], myelin[1]
   objref this, CellRef, segCounts, ASCIIrpt, synHelperList, synlist
   objref all, somatic, apical, axonal, basal, myelinated, APC
