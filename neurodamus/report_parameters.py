@@ -108,6 +108,7 @@ class ReportParameters:
     sections: SectionType
     compartments: Compartments
     compartment_set: str
+    points = None # this is filled later with get_point_list
 
 
 def check_report_parameters(

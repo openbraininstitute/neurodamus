@@ -2,6 +2,7 @@ import itertools
 import logging
 from collections import defaultdict
 from functools import lru_cache
+from typing import Iterator, Tuple, Union
 
 import libsonata
 import numpy as np
@@ -12,6 +13,7 @@ from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .report_parameters import Compartments, ReportType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
+
 
 
 class TargetError(Exception):
@@ -271,12 +273,12 @@ class TargetManager:
         tmp_section = cell_sections.isec2sec[int(isec)]
 
         if tmp_section is None:  # Assume we are in LoadBalance mode
-            result_point.append(None, -1)
+            result_point.append(-1, None, -1)
         elif ipt == -1:
             # Sonata spec have a pre-calculated distance field.
             # In such cases, segment (ipt) is -1 and offset is that distance.
             offset = max(min(offset, 0.9999999), 0.0000001)
-            result_point.append(tmp_section, offset)
+            result_point.append(int(isec), tmp_section, offset)
         else:
             # Adjust for section orientation and calculate distance
             section = tmp_section.sec
@@ -291,7 +293,7 @@ class TargetManager:
             if section.orientation() == 1:
                 distance = 1 - distance
 
-            result_point.append(tmp_section, distance)
+            result_point.append(int(isec), tmp_section, distance)
         return result_point
 
 
@@ -493,11 +495,12 @@ class NodesetTarget:
             cell = cell_manager.get_cell(gid)
             sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
-                point_list[-1].append(Nd.SectionRef(sec), offset)
+                point_list[-1].append(section_id, Nd.SectionRef(sec), offset)
             else:
                 point = TPointList(gid)
-                point.append(Nd.SectionRef(sec), offset)
+                point.append(section_id, Nd.SectionRef(sec), offset)
                 point_list.append(point)
+
         return point_list
 
     def get_point_list(self, cell_manager, rep_params=None):
@@ -527,19 +530,22 @@ class NodesetTarget:
                 compartments = Compartments.ALL
 
         section_type_str = sections.to_string()
-        pointList = compat.List()
+        point_lists = compat.List()
+
         for gid in self.get_local_gids():
-            point = TPointList(gid)
-            cellObj = cell_manager.get_cellref(gid)
-            secs = getattr(cellObj, section_type_str)
+            point_list = TPointList(gid)
+            cell = cell_manager.get_cell(gid)
+            secs = getattr(cell.CellRef, section_type_str)
+            
             for sec in secs:
+                section_id = cell.get_section_id(sec)          
                 if compartments == Compartments.CENTER:
-                    point.append(Nd.SectionRef(sec), 0.5)
+                    point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
-                        point.append(Nd.SectionRef(sec), seg.x)
-            pointList.append(point)
-        return pointList
+                        point_list.append(section_id, Nd.SectionRef(sec), seg.x)
+            point_lists.append(point_list)
+        return point_lists
 
     def generate_subtargets(self, n_parts):
         """Generate sub NodeSetTarget per population for multi-cycle runs
@@ -627,40 +633,35 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
-
-
 class TPointList:
-    def __init__(self, gid):
-        self.gid = gid
-        self.sclst = []  # To store section references
-        self.x = []  # To store point values
+    def __init__(self, gid: int):
+        self.gid: int = gid
+        self.sclst_ids: list = [] # List of section ids
+        self.sclst: list = []  # List of section references
+        self.x: list = []      # List of point values
 
-    def append(self, *args):
-        """Appends a point, optionally with a section or another TPointList object.
-        Can be called with just a point (e.g., append(0.5)),
-        with a section and a point (e.g., append(section, 0.5)),
-        or with another TPointList object (e.g., append(tpointList)).
-        """
-        if len(args) == 1:
-            arg = args[0]
-            if isinstance(arg, TPointList):
-                # Append points and sections from another TPointList object
-                for secRef, point in zip(arg.sclst, arg.x):
-                    self.x.append(point)
-                    self.sclst.append(secRef)
-            else:
-                # Called with just a point
-                point = arg
-                self.x.append(point)
-                self.sclst.append(Nd.SectionRef())  # Append new SectionRef to maintain alignment
-        elif len(args) == 2:
-            # Called with a section and a point
-            section, point = args
-            self.x.append(point)
-            self.sclst.append(section)  # Create and append a SectionRef
-        else:
-            raise ValueError(f"append() takes 1 or 2 arguments ({len(args)} given)")
+    def append(self, section_id: int, section: object, point: float) -> None:
+        self.x.append(point)
+        self.sclst.append(section)
+        self.sclst_ids.append(section_id)
 
-    def count(self):
-        """Returns the number of points in the list."""
+    def extend(self, other: 'TPointList') -> None:
+        self.x.extend(other.x)
+        self.sclst.extend(other.sclst)
+        self.sclst_ids.extend(other.sclst_ids)
+
+    def validate(self) -> None:
+        if len(self.x) != len(self.sclst):
+            raise RuntimeError(
+                f"TPointList invariant violated: x has {len(self.x)} elements, "
+                f"sclst has {len(self.sclst)} elements. Expected both lists to be of equal length."
+            )
+
+    def __len__(self) -> int:
+        self.validate()
         return len(self.sclst)
+
+    def __iter__(self) -> Iterator[Tuple[int, object, float]]:
+        self.validate()
+        return iter(zip(self.sclst_ids, self.sclst, self.x))
+

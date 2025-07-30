@@ -948,16 +948,6 @@ class Node:
                 substitutions[rep_params.name, target_spec.name] = rep_params.end
                 continue  # we dont even need to initialize reports
 
-            if SimConfig.use_coreneuron:
-                CoreConfig.write_report_config(rep_params=rep_params)
-
-            has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
-            report = (
-                create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
-                if has_gids
-                else None
-            )
-
             # With coreneuron direct mode, enable fast membrane current calculation
             # for i_membrane
             if (
@@ -965,12 +955,32 @@ class Node:
             ) or rep_params.type == ReportType.LFP:
                 Nd.cvode.use_fast_imem(1)
 
-            if report and (not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE):
+            has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
+            if not has_gids:
+                self._report_list.append(None)
+                continue
+            
+            try:
+                report = create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
+            except Exception as e:
+                logging.exception("Error setting up report '%s'", rep_name)
+                errors.append(("create_report", rep_name, e))
+                continue
+
+            try:
+                rep_params.points = self._target_manager.get_point_list(rep_params)
+            except Exception as e:
+                logging.exception("Error setting up report '%s'", rep_name)
+                errors.append(("_target_manager.get_point_list", rep_name, e))
+                continue
+
+            if SimConfig.use_coreneuron:
+                CoreConfig.write_report_config(rep_params=rep_params)
+
+            if not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE:
                 try:
-                    points = self._target_manager.get_point_list(rep_params)
                     report.setup(
-                        sections=rep_params.sections,
-                        points=points,
+                        rep_params=rep_params,
                         global_manager=self._circuits.global_manager,
                     )
                 except Exception as e:
@@ -990,15 +1000,6 @@ class Node:
 
         if not SimConfig.restore_coreneuron:
             self._reports_init(pop_offsets_alias)
-
-    def _report_setup(self, report, rep_params):
-        if report is None:
-            return
-
-        points = self._target_manager.get_point_list(self, rep_params)
-        report.setup(
-            rep_params=rep_params, points=points, global_manager=self._circuits.global_manager
-        )
 
     def _reports_init(self, pop_offsets_alias):
         pop_offsets = pop_offsets_alias[0]

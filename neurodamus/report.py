@@ -55,14 +55,14 @@ class Report:
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
 
-    def setup(self, sections: SectionType, points, global_manager):
-        for point in points:
+    def setup(self, rep_params: ReportParameters, global_manager):
+        for point in rep_params.points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)
             cell = global_manager.get_cell(gid)
             spgid = global_manager.getSpGid(gid)
 
-            self.register_gid_section(cell, point, spgid, pop_name, pop_offset, sections)
+            self.register_gid_section(cell, point, spgid, pop_name, pop_offset, rep_params.sections)
 
     @staticmethod
     def is_point_process_at_location(point_process, section, x):
