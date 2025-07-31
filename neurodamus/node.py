@@ -1154,7 +1154,7 @@ class Node:
             CoreConfig.write_spike_filename(file_name)
         else:
             # once all reports are created, we finalize the communicator for any reports
-            self._sonatareport_helper.set_max_buffer_size_hint( SimConfig.report_buff_size )
+            self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buff_size)
             self._sonatareport_helper.make_comm()
             self._sonatareport_helper.prepare_datasets()
 

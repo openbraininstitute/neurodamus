@@ -949,10 +949,10 @@ def _keep_coreneuron_data(config: _SimConfig):
 def _report_buff_size(config: _SimConfig):
     user_config = config.cli_options
     if user_config.report_buffer_size is not None:
-        report_buff_size = int(user_config.report_buffer_size)    
+        report_buff_size = int(user_config.report_buffer_size)
     else:
         return
-    
+
     assert report_buff_size > 0, "Report buffer size must be > 0"
     config.report_buff_size = report_buff_size
 

@@ -177,12 +177,14 @@ def test_cli_report_buff_size():
 
     custom_env = os.environ.copy()
     custom_env["SPDLOG_LEVEL"] = "debug"
-    result = subprocess.run(
-        ["neurodamus", CONFIG_FILE_MINI, f"--report-buffer-size=64"],
-            check=True,
-            cwd=test_folder_path,
-            capture_output=True,
-            text=True,
-            env=custom_env
-        )
-    assert f"Max Buffer size: 67108864" in result.stdout
+    for simulator in ("NEURON", "CORENEURON"):
+        sim_config_data["target_simulator"] = simulator
+        result = subprocess.run(
+            ["neurodamus", CONFIG_FILE_MINI, f"--report-buffer-size=64"],
+                check=True,
+                cwd=test_folder_path,
+                capture_output=True,
+                text=True,
+                env=custom_env
+            )
+        assert "Max Buffer size: 67108864" in result.stdout
