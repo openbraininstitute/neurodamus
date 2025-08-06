@@ -218,6 +218,9 @@ class TargetManager:
         Returns: The target list of points
         """
         if rep_params.type == ReportType.COMPARTMENT_SET:
+
+            print(self._compartment_sets)
+
             return rep_params.target.get_point_list_from_compartment_set(
                 cell_manager=self._cell_manager,
                 compartment_set=self._compartment_sets[rep_params.compartment_set],

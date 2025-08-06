@@ -428,6 +428,7 @@ class Report:
             node_ids = sorted(pop.get_node_ids())
             data = pop.get()
 
+            # stable sort for ties
             df = pd.DataFrame(
                 data.data,
                 columns=pd.MultiIndex.from_arrays(data.ids.T),
@@ -477,7 +478,25 @@ class Report:
 
         self.populations = new_populations
 
+    def reduce_to_compartment_set_report(self, population: str, positions: List[int]) -> None:
+        if population not in self.populations:
+            raise ValueError(f"Population '{population}' not found in report.")
 
+        nodes, df = self.populations[population]
+
+        if not isinstance(df.columns, pd.MultiIndex) or df.columns.nlevels != 2:
+            raise ValueError("Expected columns to be a 2-level MultiIndex.")
+
+        # Use .iloc to select columns by position, preserving duplicates and order
+        new_df = df.iloc[:, positions]
+
+        # No need to rebuild MultiIndex — iloc preserves it
+        # Extract node IDs from level 0 (with repetitions, in order)
+        new_nodes = sorted(list(set([col[0] for col in new_df.columns])))
+
+        self.populations = {
+            population: (new_nodes, new_df)
+        }
 
     def __repr__(self) -> str:
         lines = [f"Report with {len(self.populations)} populations:"]
@@ -487,10 +506,7 @@ class Report:
             lines.append(f"      node_ids: [{nodes_str}]")
 
             columns = df.columns
-            if isinstance(columns, pd.MultiIndex):
-                cols_str = ", ".join(f"({a},{b})" for a, b in columns)
-            else:
-                cols_str = ", ".join(str(c) for c in columns)
+            cols_str = ", ".join(f"({a},{b})" for a, b in columns)
 
             lines.append(f"      columns: [{cols_str}]")
 
