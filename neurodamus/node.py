@@ -959,7 +959,7 @@ class Node:
             if not has_gids:
                 self._report_list.append(None)
                 continue
-            
+
             try:
                 report = create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
             except Exception as e:

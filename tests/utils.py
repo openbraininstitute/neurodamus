@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 import numpy as np
-from libsonata import EdgeStorage, SpikeReader
+from libsonata import EdgeStorage, SpikeReader, ElementReportReader
 from scipy.signal import find_peaks
 from collections import defaultdict
 from collections.abc import Iterable
@@ -14,10 +14,20 @@ from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
 
+from typing import List, Dict, Tuple
+import pandas as pd
+import copy
+
+
 
 def merge_dicts(parent: dict, child: dict):
     """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
     for ties. Values of matching keys must match or a TypeError is raised.
+
+    Special values/keys:
+    - If a key in `child` has value "delete_field", it will be removed from the result.
+    - If a dictionary (nested or not) in `child` contains the key "override_field", it replaces the corresponding 
+      `parent` sub-dictionary entirely (ignoring merging).
 
     Imported from MultiscaleRun.
 
@@ -36,6 +46,16 @@ def merge_dicts(parent: dict, child: dict):
         {"A":2, "B":{"a":2, "b":2, "c":3}, "C": 2, "D": 3}
     """
 
+    def sanitize_dict(d):
+        if isinstance(d, dict):
+            # Delete the key if present
+            d.pop("override_field", None)
+            for key, value in d.items():
+                sanitize_dict(value)
+        elif isinstance(d, list):
+            for item in d:
+                sanitize_dict(item)
+
     def merge_vals(k, parent: dict, child: dict):
         """Merging logic.
 
@@ -50,10 +70,11 @@ def merge_dicts(parent: dict, child: dict):
         Returns:
             value type: merged version of the values possibly found in child and/or parent.
         """
-        if k not in parent:
-            return child[k]
+
         if k not in child:
             return parent[k]
+        if k not in parent:
+            return child[k]
         if type(parent[k]) is not type(child[k]):
             if not isinstance(parent[k], (int, float)) or not isinstance(child[k], (int, float)):
                 raise TypeError(
@@ -61,10 +82,21 @@ def merge_dicts(parent: dict, child: dict):
                     f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
                 )
         if isinstance(parent[k], dict):
+            if "override_field" in child[k]:
+                return child[k]
+
             return merge_dicts(parent[k], child[k])
         return child[k]
+    
+    ans = {
+        k: merge_vals(k, parent, child)
+        for k in set(parent) | set(child)
+        if not isinstance(child, dict) or k not in child or child[k] != "delete_field"
+    } if "override_field" not in child else copy.deepcopy(child)
+    sanitize_dict(ans)
+    return ans
 
-    return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
 
 
 def defaultdict_to_standard_types(obj):
@@ -386,23 +418,89 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
-def compare_h5_files(file1, file2, rtol=1e-5, atol=1e-8):
-    with h5py.File(file1, 'r') as f1, h5py.File(file2, 'r') as f2:
-        def compare_groups(g1, g2, path='/'):
-            keys1 = set(g1.keys())
-            keys2 = set(g2.keys())
-            assert keys1 == keys2, f"Different keys at {path}: {keys1.symmetric_difference(keys2)}"
-            for key in keys1:
-                item1 = g1[key]
-                item2 = g2[key]
-                if isinstance(item1, h5py.Dataset) and isinstance(item2, h5py.Dataset):
-                    data1 = item1[()]
-                    data2 = item2[()]
-                    assert np.allclose(data1, data2, rtol=rtol, atol=atol), f"Different data at {path}{key} comparring {file1} and {file2}"
-                elif isinstance(item1, h5py.Group) and isinstance(item2, h5py.Group):
-                    compare_groups(item1, item2, path + key + '/')
-                else:
-                    assert False, f"Type mismatch at {path}{key}"
+class Report:
+    def __init__(self, file: str):
+        self._reader = ElementReportReader(file)
+        self.populations: Dict[str, Tuple[List[int], pd.DataFrame]] = {}
 
-        compare_groups(f1, f2)
+        for name in sorted(self._reader.get_population_names()):
+            pop = self._reader[name]
+            node_ids = sorted(pop.get_node_ids())
+            data = pop.get()
+
+            df = pd.DataFrame(
+                data.data,
+                columns=pd.MultiIndex.from_arrays(data.ids.T),
+                index=data.times
+            ).sort_index(axis=1)
+
+            self.populations[name] = (node_ids, df)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Report):
+            return NotImplemented
+
+        if set(self.populations.keys()) != set(other.populations.keys()):
+            return False
+
+        for name in self.populations:
+            nodes1, df1 = self.populations[name]
+            nodes2, df2 = other.populations[name]
+
+            if nodes1 != nodes2:
+                return False
+
+            # coreneuron has sometimes garbage for the first line
+            # erro thresholds as for old bb5 itegration report tests
+            if not np.allclose(df1.values[1:], df2.values[1:], rtol=1e-6, atol=1e-6):
+                return False
+
+        return True
+    
+    def convert_to_summation(self) -> None:
+        new_populations = {}
+
+        for name, (nodes, df) in self.populations.items():
+            if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1:
+                new_df = df.groupby(level=0, axis=1).sum()
+                # force 2-level MultiIndex with second level zeros
+                new_df.columns = pd.MultiIndex.from_arrays([
+                    new_df.columns,
+                    [0] * len(new_df.columns)
+                ])
+                new_nodes = sorted(new_df.columns.get_level_values(0).tolist())
+            else:
+                new_df = df.copy()
+                new_nodes = nodes
+
+            new_populations[name] = (new_nodes, new_df)
+
+        self.populations = new_populations
+
+
+
+    def __repr__(self) -> str:
+        lines = [f"Report with {len(self.populations)} populations:"]
+        for name, (nodes, df) in self.populations.items():
+            nodes_str = ", ".join(str(n) for n in nodes)
+            lines.append(f"  - {name}: {len(nodes)} nodes, shape={df.shape}")
+            lines.append(f"      node_ids: [{nodes_str}]")
+
+            columns = df.columns
+            if isinstance(columns, pd.MultiIndex):
+                cols_str = ", ".join(f"({a},{b})" for a, b in columns)
+            else:
+                cols_str = ", ".join(str(c) for c in columns)
+
+            lines.append(f"      columns: [{cols_str}]")
+
+        return "\n".join(lines)
+
+
+
+
+
+
+
+
 

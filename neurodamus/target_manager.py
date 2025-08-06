@@ -1,8 +1,9 @@
 import itertools
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from functools import lru_cache
-from typing import Iterator, Tuple, Union
+from typing import Tuple
 
 import libsonata
 import numpy as np
@@ -13,7 +14,6 @@ from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .report_parameters import Compartments, ReportType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
-
 
 
 class TargetError(Exception):
@@ -536,15 +536,16 @@ class NodesetTarget:
             point_list = TPointList(gid)
             cell = cell_manager.get_cell(gid)
             secs = getattr(cell.CellRef, section_type_str)
-            
+
             for sec in secs:
-                section_id = cell.get_section_id(sec)          
+                section_id = cell.get_section_id(sec)
                 if compartments == Compartments.CENTER:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
                         point_list.append(section_id, Nd.SectionRef(sec), seg.x)
             point_lists.append(point_list)
+
         return point_lists
 
     def generate_subtargets(self, n_parts):
@@ -633,19 +634,21 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
+
+
 class TPointList:
     def __init__(self, gid: int):
         self.gid: int = gid
-        self.sclst_ids: list = [] # List of section ids
+        self.sclst_ids: list = []  # List of section ids
         self.sclst: list = []  # List of section references
-        self.x: list = []      # List of point values
+        self.x: list = []  # List of point values
 
     def append(self, section_id: int, section: object, point: float) -> None:
         self.x.append(point)
         self.sclst.append(section)
         self.sclst_ids.append(section_id)
 
-    def extend(self, other: 'TPointList') -> None:
+    def extend(self, other: "TPointList") -> None:
         self.x.extend(other.x)
         self.sclst.extend(other.sclst)
         self.sclst_ids.extend(other.sclst_ids)
@@ -665,3 +668,8 @@ class TPointList:
         self.validate()
         return iter(zip(self.sclst_ids, self.sclst, self.x))
 
+    def __str__(self) -> str:
+        self.validate()
+        ids = np.array(self.sclst_ids)
+        xs = np.array(self.x)
+        return f"TPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"

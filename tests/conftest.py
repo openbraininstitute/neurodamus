@@ -90,7 +90,8 @@ def v5_sonata_config():
         d = json.load(f)
     d["compartment_sets_file"] = str(V5_SONATA / "compartment_sets.json")
     d["network"] = str(V5_SONATA / "sub_mini5" / "circuit_config.json")
-    del d["reports"]
+    # del d["reports"]
+    # del d["inputs"]
     return d
 
 

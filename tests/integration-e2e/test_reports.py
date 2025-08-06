@@ -8,33 +8,177 @@ import pytest
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
 from ..conftest import V5_SONATA, RINGTEST_DIR
-from ..utils import compare_h5_files
+from ..utils import Report
+import copy
 
-import numpy as np
 
+base_extra_config = {
+            "simconfig_fixture": "TO_BE_REPLACED",
+            "extra_config": {
+                "target_simulator": "TO_BE_REPLACED",
+                "inputs": {
+                    "override_field": 1,
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "represents_physical_electrode": True,
+                        "amp_start": 3,
+                        "width": 10,
+                        "frequency": 50,
+                        "delay": 0,
+                        "duration": 50,
+                        "node_set": "TO_BE_REPLACED",
+                    },
+                },
+                "reports": {
+                    "compartment_v": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none"
+                    },
+                    "summation_v": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "compartment_i_membrane": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_i_membrane": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "i_membrane",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "compartment_pas": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                    "summation_pas": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "pas",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
+                    "summation_v_area_scaling": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "soma",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                    },
+                },
+            },
+        }
 
-def _read_sonata_report(report_file):
-    """Return node IDs and data from a SONATA report file."""
-    report = libsonata.ElementReportReader(report_file)
-    pop_name = report.get_population_names()[0]
-    node_ids = report[pop_name].get_node_ids()
-    data = report[pop_name].get()
-    return node_ids, data
+def make_extra_config(base, simulator):
+    ans = copy.deepcopy(base_extra_config)
 
-def _sum_data_by_gid(data):
-    """ Sum data by gid to mirror a summation report (without scaling) """
-    data_np = np.array(data.data) 
-    gids = np.array([i[0] for i in data.ids])
-    unique_gids, inverse_indices = np.unique(gids, return_inverse=True)
-    ans = np.zeros((data_np.shape[0], len(unique_gids)))
-    np.add.at(ans, (slice(None), inverse_indices), data_np)
+    assert base in ["v5_sonata_config", "ringtest_baseconfig"]
+    ans["simconfig_fixture"] = base
+    ans["extra_config"]["target_simulator"] = simulator
+    ans["extra_config"]["inputs"]["Stimulus"]["node_set"] = "Mini5" if base == "v5_sonata_config" else "RingA"
     return ans
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        make_extra_config("v5_sonata_config", "NEURON"),
+        make_extra_config("v5_sonata_config", "CORENEURON"),
+        make_extra_config("ringtest_baseconfig", "NEURON"),
+        make_extra_config("ringtest_baseconfig", "CORENEURON")
+    ],
+    indirect=True,
+)
+@pytest.mark.slow
+def test_reports_summation_vs_compartment_vs_reference(create_tmp_simulation_config_file):
+    """
+    Test that the summation report matches the summed compartment report.
+
+    Runs a simulation generating both compartment and summation reports for 'pas',
+    then asserts that summing compartment data per gid equals the summation report data,
+    within numerical tolerance.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = V5_SONATA / "reference" / "reports" if "output_sonata2" in str(output_dir) else RINGTEST_DIR / "reference" / "reports"
+
+    nd.run()
+
+    # compartment vs summation
+    for var in ["v", "i_membrane", "pas"]:
+        r_compartment = Report(output_dir / f"compartment_{var}.h5")
+        r_summation = Report(output_dir / f"summation_{var}.h5")
+
+        r_compartment.convert_to_summation()
+        assert r_compartment == r_summation, f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
+
+    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    
+    for ref_file in reference_dir.glob("*.h5"):
+        r_reference = Report(ref_file)   
+        file = output_dir / ref_file.name 
+        r = Report(file)
+
+        assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
+
+
+
+# def _read_sonata_report(report_file):
+#     """Return node IDs and data from a SONATA report file."""
+#     report = libsonata.ElementReportReader(report_file)
+#     pop_name = report.get_population_names()[0]
+#     node_ids = report[pop_name].get_node_ids()
+#     data = report[pop_name].get()
+#     return node_ids, data
+
+# def _sum_data_by_gid(data):
+#     """ Sum data by gid to mirror a summation report (without scaling) """
+#     data_np = np.array(data.data) 
+#     gids = np.array([i[0] for i in data.ids])
+#     unique_gids, inverse_indices = np.unique(gids, return_inverse=True)
+#     ans = np.zeros((data_np.shape[0], len(unique_gids)))
+#     np.add.at(ans, (slice(None), inverse_indices), data_np)
+#     return ans
 
 # @pytest.mark.parametrize("create_tmp_simulation_config_file", [
 #     {
 #         "simconfig_fixture": "v5_sonata_config",
 #         "extra_config": {
 #             "node_set": "Mosaic",
+#             "target_simulator": "NEURON",
 #             "reports": {
 #                 "summation_report": {
 #                     "type": "summation",
@@ -49,15 +193,6 @@ def _sum_data_by_gid(data):
 #                     "type": "synapse",
 #                     "cells": "Mosaic",
 #                     "variable_name": "ProbAMPANMDA_EMS.g",
-#                     "sections": "all",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 40.0
-#                 },
-#                 "summation_ProbGABAAB": {
-#                     "type": "summation",
-#                     "cells": "Mosaic",
-#                     "variable_name": "ProbGABAAB_EMS.i",
 #                     "sections": "all",
 #                     "dt": 0.1,
 #                     "start_time": 0.0,
@@ -331,37 +466,3 @@ def _sum_data_by_gid(data):
 #         compare_h5_files(file, reference_dir / file.name)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "v5_sonata_config",
-        "extra_config": {
-            "target_simulator": "CORENEURON",
-            "node_set": "Mosaic",
-            "reports": {
-                "compartment_set_v": {
-                    "type": "compartment_set",
-                    "compartment_set": "cs1",
-                    "variable_name": "v",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 40.0
-                },
-                # "compartment_v": {
-                #     "type": "compartment",
-                #     "sections": "all",
-                #     "compartment": "all",
-                #     "variable_name": "v",
-                #     "dt": 0.1,
-                #     "start_time": 0.0,
-                #     "end_time": 40.0
-                # },
-
-            },
-        }
-    }
-], indirect=True)
-@pytest.mark.slow
-def test_v5_sonata_reports(create_tmp_simulation_config_file):
-    nd = Neurodamus(create_tmp_simulation_config_file)
-    output_dir = Path(SimConfig.output_root)
-    nd.run()

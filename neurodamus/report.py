@@ -97,6 +97,7 @@ class Report:
             for syn in seg.point_processes()
             if syn.hname().startswith(mechanism)
         ]
+
         return synapses
 
     @staticmethod

@@ -182,27 +182,28 @@ class _CoreNEURONConfig:
         """Here we append just one report entry to report.conf. We are not writing the full file as
         this is done incrementally in Node.enable_reports
         """
-        gids = rep_params.target.get_gids()
+        if rep_params.type == ReportType.COMPARTMENT_SET:
+            # flatten the points for binary encoding
+            gids = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
+            points_section_id = [
+                section_id for i in rep_params.points for section_id, _sec, _x in i
+            ]
+            points_compartment_id = [
+                sec.sec(x).node_index() for i in rep_params.points for _section_id, sec, x in i
+            ]
+        else:
+            gids = rep_params.target.get_gids()
+
         num_gids = len(gids)
         logging.info("Adding report %s for CoreNEURON with %s gids", rep_params.name, num_gids)
         report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
 
-        points_gid, points_section_id, points_compartment_id = None, None, None
-        if rep_params.type == ReportType.COMPARTMENT_SET:
-            assert rep_params.points is not None
-
-            # flatten the points for binary encoding
-            points_gid = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
-            points_section_id = [section_id for i in rep_params.points for section_id, _sec, _x in i]
-            points_compartment_id = [sec.sec(x).node_index() for i in rep_params.points for _section_id, sec, x in i]
-
-
         with report_conf.open("ab") as fp:
             # Write the formatted string to the file
             fp.write(
                 (
-                    "%s %s %s %s %s %s %s %s %lf %lf %lf %d %d %s %d\n"  # noqa: UP031
+                    "%s %s %s %s %s %s %s %s %lf %lf %lf %d %d %s\n"  # noqa: UP031
                     % (
                         rep_params.name,
                         rep_params.target.name,
@@ -218,18 +219,15 @@ class _CoreNEURONConfig:
                         num_gids,
                         rep_params.buffer_size,
                         rep_params.scaling.to_string(),
-                        len(points_gid) if points_gid is not None else 0,
                     )
                 ).encode()
             )
 
             import struct
-            
+
             fp.write(struct.pack(f"{num_gids}i", *gids))
             fp.write(b"\n")
-            if points_gid is not None:
-                fp.write(struct.pack(f"{len(points_gid)}i", *points_gid))
-                fp.write(b"\n")
+            if rep_params.type == ReportType.COMPARTMENT_SET:
                 fp.write(struct.pack(f"{len(points_section_id)}i", *points_section_id))
                 fp.write(b"\n")
                 fp.write(struct.pack(f"{len(points_compartment_id)}i", *points_compartment_id))
