@@ -101,9 +101,6 @@ _BASE_EXTRA_CONFIG = {
                 },
             },
         }
-
-
-
 def make_extra_config(base, simulator):
     assert base in ["v5_sonata_config", "ringtest_baseconfig"], f"Unsupported base config: {base}"
 
@@ -123,6 +120,24 @@ def make_extra_config(base, simulator):
             "end_time": 40.0,
             "scaling": "none"
         }
+        ans["extra_config"]["reports"]["compartment_set_i_membrane"] = {
+            "type": "compartment_set",
+            "compartment_set": "cs1",
+            "variable_name": "i_membrane",
+            "dt": 1,
+            "start_time": 0.0,
+            "end_time": 40.0,
+            "scaling": "none"
+        }
+        ans["extra_config"]["reports"]["compartment_set_pas"] = {
+            "type": "compartment_set",
+            "compartment_set": "cs1",
+            "variable_name": "pas",
+            "dt": 1,
+            "start_time": 0.0,
+            "end_time": 40.0,
+            "scaling": "none"
+        }
     else:
         ans["extra_config"]["inputs"]["Stimulus"]["node_set"] = "RingA"
 
@@ -134,13 +149,13 @@ def make_extra_config(base, simulator):
     [
         make_extra_config("v5_sonata_config", "NEURON"),
         # make_extra_config("v5_sonata_config", "CORENEURON"),
-        # make_extra_config("ringtest_baseconfig", "NEURON"),
+        make_extra_config("ringtest_baseconfig", "NEURON"),
         # make_extra_config("ringtest_baseconfig", "CORENEURON")
     ],
     indirect=True,
 )
 @pytest.mark.slow
-def test_reports_summation_vs_compartment_vs_reference(create_tmp_simulation_config_file):
+def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_simulation_config_file):
     """
     Test that the summation report matches the summed compartment report.
 
@@ -150,7 +165,8 @@ def test_reports_summation_vs_compartment_vs_reference(create_tmp_simulation_con
     """
     nd = Neurodamus(create_tmp_simulation_config_file)
     output_dir = Path(SimConfig.output_root)
-    reference_dir = V5_SONATA / "reference" / "reports" if "output_sonata2" in str(output_dir) else RINGTEST_DIR / "reference" / "reports"
+    is_v5_sonata = "output_sonata2" in str(output_dir)
+    reference_dir = V5_SONATA / "reference" / "reports" if is_v5_sonata else RINGTEST_DIR / "reference" / "reports"
 
     nd.run()
 
@@ -171,18 +187,20 @@ def test_reports_summation_vs_compartment_vs_reference(create_tmp_simulation_con
         assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
 
     # compartment vs compartment_set
-    for var in ["v"]:
-        r_compartment = Report(output_dir / f"compartment_{var}.h5")
-        # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
-        # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
-        # reports (nor offset)
-        #
-        # this issue: https://github.com/openbraininstitute/neurodamus/issues/353
-        # should provide a better way to do this
-        r_compartment.reduce_to_compartment_set_report("default", [0, 7, 7, 8, 190, 206, 348, 360])
+    # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
+    # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
+    # reports (nor offset)
+    #
+    # this issue: https://github.com/openbraininstitute/neurodamus/issues/353
+    # should provide a better way to do this
+    if is_v5_sonata:
+        ids = [0, 7, 7, 8, 190, 206, 348, 360]
+        for var in ["v", "i_membrane", "pas"]:
+            r_compartment = Report(output_dir / f"compartment_{var}.h5")
+            r_compartment.reduce_to_compartment_set_report("default", ids)
+            r_compartment_set = Report(output_dir / f"compartment_set_{var}.h5")
 
-        r_compartment_set = Report(output_dir / f"compartment_set_{var}.h5")
-        assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
+            assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
 
 
 
