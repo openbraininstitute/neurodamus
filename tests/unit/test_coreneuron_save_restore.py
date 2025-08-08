@@ -13,6 +13,9 @@ import pytest
 
 from tests import utils
 
+class UnexpectedFileError(Exception):
+    pass
+
 checkpoint_content = {"time.dat", "1_2.dat", "populations_offset.dat"}
 removable_checkpoint_content = {"report.conf", "sim.conf", "coreneuron_input"}
 output_content = {"out.dat", "populations_offset.dat"}
@@ -44,15 +47,18 @@ def check_dir_content(dir, files):
     """
     dir = Path(dir)
     if not dir.exists():
-        raise FileNotFoundError(f"Directory {dir} does not exist.")
+        raise FileNotFoundError(f"Directory {dir.resolve()} does not exist.")
     if not dir.is_dir():
-        raise FileNotFoundError(f"{dir} is not a directory.")
+        raise FileNotFoundError(f"{dir.resolve()} is not a directory.")
     for f in files:
         if not (dir / f).exists():
-            raise FileNotFoundError(f"File {f} does not exist in {dir}")
+            raise FileNotFoundError(f"File {f} does not exist in {dir.resolve()}")
     for f in dir.iterdir():
         if f.name not in files:
-            raise FileNotFoundError(f"File {f.name} exists in {dir} but is not expected.")
+            raise UnexpectedFileError(
+            f"Unexpected file '{f.name}' found in {dir.resolve()}.\n"
+            f"Expected only: {list(files)}"
+        )
 
 
 def check_report_conf(checkpoint_dir, substitutions):
@@ -71,9 +77,9 @@ def check_report_conf(checkpoint_dir, substitutions):
                 key = tuple(parts[0:2])  # Report name and target name
 
                 if key in substitutions:
-                    assert float(parts[9]) == pytest.approx(float(substitutions[key])), (
-                        f"End time for {key} is not {substitutions[key]} in report.conf. "
-                        f"It is {parts[9]} instead."
+                    assert float(parts[10]) == pytest.approx(float(substitutions[key])), (
+                        f"End time for {key} is not {substitutions[key]} in {file_path}. "
+                        f"It is {parts[10]} instead."
                     )
                     found_keys.add(key)
             except (UnicodeDecodeError, IndexError):
@@ -107,7 +113,6 @@ def check_report_conf(checkpoint_dir, substitutions):
     }
 ], indirect=True)
 def test_file_placement_base(create_tmp_simulation_config_file):
-
     command = ["neurodamus", "simulation_config.json"]
     subprocess.run(command, check=True, capture_output=True)
 

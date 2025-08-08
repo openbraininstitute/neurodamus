@@ -182,3 +182,21 @@ def rmtree(path):
     https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
     """  # noqa: E501
     subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603
+
+
+def cache_errors(func):
+    """Decorator that catches exceptions and appends
+    (func name, exception) to `error_cache` if provided.
+    """
+
+    def wrapper(*args, error_cache=None, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if error_cache is not None:
+                error_cache.append((func.__name__, e))
+            else:
+                raise
+            return None
+
+    return wrapper

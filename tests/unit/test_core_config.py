@@ -1,30 +1,41 @@
 import os
 import struct
 
+from neurodamus.report_parameters import ReportParameters, ReportType, SectionType, Scaling, Compartments
 from neurodamus.core.configuration import _SimConfig
-from neurodamus.core.coreneuron_configuration import CoreConfig, CoreneuronReportConfigParameters
+from neurodamus.core.coreneuron_configuration import CoreConfig
 from pathlib import Path
+
+from pytest import approx
+
+from unittest.mock import Mock
 
 
 def test_write_report_config(tmpdir):
     _SimConfig.output_root = str(tmpdir.join("outpath"))
     _SimConfig.coreneuron_datadir = str(tmpdir.join("datpath"))
 
+    target = Mock() # [1, 2, 3]
+    target.get_gids.return_value = [1, 2, 3]
+    target.name = "target_name"
+
     # Define your test parameters
-    core_report_params = CoreneuronReportConfigParameters(
-        report_name="soma",
-        target_name="Mosaic",
-        report_type="compartment",
-        report_variable="v",
+    rep_params = ReportParameters(
+        type=ReportType.COMPARTMENT,
+        name="soma",
+        report_on="v",
         unit="mV",
-        report_format="SONATA",
-        target_type=1,
+        format="SONATA",
         dt=0.1,
-        start_time=0.0,
-        end_time=10.0,
-        gids=[1, 2, 3],
+        start=0.0,
+        end=10.0,
+        output_dir=_SimConfig.output_root,
+        target=target,
         buffer_size=8,
-        scaling="none",
+        scaling=Scaling.NONE,
+        sections=SectionType.SOMA,
+        compartments=Compartments.CENTER,
+        compartment_set=None
     )
 
     report_count = 1
@@ -34,7 +45,7 @@ def test_write_report_config(tmpdir):
     spikes_name = "spikes.h5"
     # Call the methods with the test parameters
     CoreConfig.write_report_count(report_count)
-    CoreConfig.write_report_config(core_report_params)
+    CoreConfig.write_report_config(rep_params)
     CoreConfig.write_population_count(population_count)
     CoreConfig.write_spike_population(population_name, population_offset)
     CoreConfig.write_spike_filename(spikes_name)
@@ -48,22 +59,23 @@ def test_write_report_config(tmpdir):
         lines = fp.readlines()
         assert lines[0].strip().decode() == f"{report_count}"
         parts = lines[1].strip().decode().split()
-        assert parts[0] == core_report_params.report_name
-        assert parts[1] == core_report_params.target_name
-        assert parts[2] == core_report_params.report_type
-        assert parts[3] == core_report_params.report_variable
-        assert parts[4] == core_report_params.unit
-        assert parts[5] == core_report_params.report_format
-        assert int(parts[6]) == core_report_params.target_type
-        assert float(parts[7]) == core_report_params.dt
-        assert float(parts[8]) == core_report_params.start_time
-        assert float(parts[9]) == core_report_params.end_time
-        assert int(parts[10]) == len(core_report_params.gids)
-        assert int(parts[11]) == core_report_params.buffer_size
-        assert parts[12] == core_report_params.scaling
+        assert parts[0] == rep_params.name
+        assert parts[1] == rep_params.target.name
+        assert ReportType.from_string(parts[2]) == rep_params.type
+        assert parts[3] == rep_params.report_on
+        assert parts[4] == rep_params.unit
+        assert parts[5] == rep_params.format
+        assert SectionType.from_string(parts[6]) == rep_params.sections
+        assert Compartments.from_string(parts[7]) == rep_params.compartments
+        assert float(parts[8]) == approx(rep_params.dt)
+        assert float(parts[9]) == approx(rep_params.start)
+        assert float(parts[10]) == approx(rep_params.end)
+        assert int(parts[11]) == len(rep_params.target.get_gids())
+        assert int(parts[12]) == rep_params.buffer_size
+        assert Scaling.from_string(parts[13]) == rep_params.scaling
         # Read the binary data and unpack it into a list of integers
-        gids_from_file = struct.unpack(f'{len(core_report_params.gids)}i', lines[2].strip())
-        assert gids_from_file == tuple(core_report_params.gids), "GIDs from file do not match original GIDs"
+        gids_from_file = struct.unpack(f'{len(rep_params.target.get_gids())}i', lines[2].strip())
+        assert gids_from_file == tuple(rep_params.target.get_gids()), "GIDs from file do not match original GIDs"
         assert lines[3].strip().decode() == f"{population_count}"
         assert lines[4].strip().decode() == f"{population_name} {population_offset}"
         assert lines[5].strip().decode() == f"{spikes_name}"

@@ -1,30 +1,11 @@
 import logging
 import os
-from collections.abc import Sequence
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
 from .configuration import ConfigurationError, SimConfig
-
-
-@dataclass
-class CoreneuronReportConfigParameters:
-    report_name: str
-    target_name: str
-    report_type: str
-    report_variable: str
-    unit: str
-    report_format: str
-    target_type: str
-    dt: float
-    start_time: float
-    end_time: float
-    gids: Sequence[int]
-    buffer_size: int
-    scaling: Literal["none", "area"]
+from neurodamus.report_parameters import ReportType
 
 
 class CompartmentMapping:
@@ -177,7 +158,7 @@ class _CoreNEURONConfig:
                     # of the report and tstop is the tstop of this simulation
                     # (potentially between a restore and a save)
                     new_tend = substitutions[key]
-                    parts[9] = f"{new_tend:.6f}"
+                    parts[10] = f"{new_tend:.6f}"
                     lines[i] = (" ".join(parts) + "\n").encode()
                     applied_subs.add(key)
             except (UnicodeDecodeError, IndexError):  # noqa: PERF203
@@ -197,41 +178,60 @@ class _CoreNEURONConfig:
             f.writelines(lines)
 
     @run_only_rank0
-    def write_report_config(self, config: CoreneuronReportConfigParameters):
+    def write_report_config(self, rep_params):
         """Here we append just one report entry to report.conf. We are not writing the full file as
         this is done incrementally in Node.enable_reports
         """
-        import struct
+        if rep_params.type == ReportType.COMPARTMENT_SET:
+            # flatten the points for binary encoding
+            gids = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
+            points_section_id = [
+                section_id for i in rep_params.points for section_id, _sec, _x in i
+            ]
+            points_compartment_id = [
+                sec.sec(x).node_index() for i in rep_params.points for _section_id, sec, x in i
+            ]
+        else:
+            gids = rep_params.target.get_gids()
 
-        num_gids = len(config.gids)
-        logging.info("Adding report %s for CoreNEURON with %s gids", config.report_name, num_gids)
+        num_gids = len(gids)
+        logging.info("Adding report %s for CoreNEURON with %s gids", rep_params.name, num_gids)
         report_conf = Path(self.report_config_file_save)
         report_conf.parent.mkdir(parents=True, exist_ok=True)
+
         with report_conf.open("ab") as fp:
             # Write the formatted string to the file
             fp.write(
                 (
-                    "%s %s %s %s %s %s %d %lf %lf %lf %d %d %s\n"  # noqa: UP031
+                    "%s %s %s %s %s %s %s %s %lf %lf %lf %d %d %s\n"  # noqa: UP031
                     % (
-                        config.report_name,
-                        config.target_name,
-                        config.report_type,
-                        config.report_variable,
-                        config.unit,
-                        config.report_format,
-                        config.target_type,
-                        config.dt,
-                        config.start_time,
-                        config.end_time,
+                        rep_params.name,
+                        rep_params.target.name,
+                        rep_params.type.to_string(),
+                        ",".join(rep_params.report_on.split()),
+                        rep_params.unit,
+                        rep_params.format,
+                        rep_params.sections.to_string(),
+                        rep_params.compartments.to_string(),
+                        rep_params.dt,
+                        rep_params.start,
+                        rep_params.end,
                         num_gids,
-                        config.buffer_size,
-                        config.scaling,
+                        rep_params.buffer_size,
+                        rep_params.scaling.to_string(),
                     )
                 ).encode()
             )
-            # Write the array of integers to the file in binary format
-            fp.write(struct.pack(f"{num_gids}i", *config.gids))
+
+            import struct
+
+            fp.write(struct.pack(f"{num_gids}i", *gids))
             fp.write(b"\n")
+            if rep_params.type == ReportType.COMPARTMENT_SET:
+                fp.write(struct.pack(f"{len(points_section_id)}i", *points_section_id))
+                fp.write(b"\n")
+                fp.write(struct.pack(f"{len(points_compartment_id)}i", *points_compartment_id))
+                fp.write(b"\n")
 
     @run_only_rank0
     def write_sim_config(
