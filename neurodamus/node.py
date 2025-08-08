@@ -892,11 +892,10 @@ class Node:
 
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
-    def enable_reports(self):  # noqa: C901, PLR0912
+    def enable_reports(self):  # noqa: C901, PLR0912, PLR0915
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 
-        errors = []
         # filter: only the enabled ones
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
         self._report_list = []
@@ -912,36 +911,38 @@ class Node:
                 shutil.copy(
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
-
             else:
                 CoreConfig.write_report_count(len(reports_conf))
 
         # necessary for restore: we need to update the various reports tend
         # we can do it in one go later
         substitutions = {}
+        errors = []
         for rep_name, rep_conf in reports_conf.items():
+            old_n_errors = len(errors)
             target_spec = TargetSpec(rep_conf["Target"])
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
-            try:
-                rep_params = create_report_parameters(
-                    sim_end=self._run_conf["Duration"],
-                    nd_t=Nd.t,
-                    output_root=SimConfig.output_root,
-                    rep_name=rep_name,
-                    rep_conf=rep_conf,
-                    target=target,
-                    buffer_size=SimConfig.corenrn_buff_size,
-                )
-                check_report_parameters(
-                    rep_params,
-                    Nd.dt,
-                    lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
-                )
-            except Exception as e:
-                logging.exception("Error setting up report '%s'", rep_name)
-                errors.append(("create_report_parameters", rep_name, e))
+            rep_params = create_report_parameters(
+                sim_end=self._run_conf["Duration"],
+                nd_t=Nd.t,
+                output_root=SimConfig.output_root,
+                rep_name=rep_name,
+                rep_conf=rep_conf,
+                target=target,
+                buffer_size=SimConfig.corenrn_buff_size,
+                error_cache=errors,
+            )
+            if old_n_errors != len(errors):
+                continue
+            check_report_parameters(
+                rep_params,
+                Nd.dt,
+                lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
+                error_cache=errors,
+            )
+            if old_n_errors != len(errors):
                 continue
 
             if SimConfig.restore_coreneuron:
@@ -960,32 +961,25 @@ class Node:
                 self._report_list.append(None)
                 continue
 
-            try:
-                report = create_report(params=rep_params, use_coreneuron=SimConfig.use_coreneuron)
-            except Exception as e:
-                logging.exception("Error setting up report '%s'", rep_name)
-                errors.append(("create_report", rep_name, e))
+            report = create_report(
+                params=rep_params, use_coreneuron=SimConfig.use_coreneuron, error_cache=errors
+            )
+            if old_n_errors != len(errors):
                 continue
-
-            try:
-                rep_params.points = self._target_manager.get_point_list(rep_params)
-            except Exception as e:
-                logging.exception("Error setting up report '%s'", rep_name)
-                errors.append(("_target_manager.get_point_list", rep_name, e))
+            rep_params.points = self._target_manager.get_point_list(rep_params, error_cache=errors)
+            if old_n_errors != len(errors):
                 continue
 
             if SimConfig.use_coreneuron:
                 CoreConfig.write_report_config(rep_params=rep_params)
 
             if not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE:
-                try:
-                    report.setup(
-                        rep_params=rep_params,
-                        global_manager=self._circuits.global_manager,
-                    )
-                except Exception as e:
-                    logging.exception("Error setting up report '%s'", rep_name)
-                    errors.append(("report.setup", rep_name, e))
+                report.setup(
+                    rep_params=rep_params,
+                    global_manager=self._circuits.global_manager,
+                    error_cache=errors,
+                )
+                if old_n_errors != len(errors):
                     continue
 
             self._report_list.append(report)

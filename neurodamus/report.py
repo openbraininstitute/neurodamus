@@ -2,6 +2,7 @@ import logging
 
 from .core import NeuronWrapper as Nd
 from .report_parameters import ReportParameters, ReportType, Scaling, SectionType
+from .utils.pyutils import cache_errors
 
 
 class Report:
@@ -55,6 +56,7 @@ class Report:
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
 
+    @cache_errors
     def setup(self, rep_params: ReportParameters, global_manager):
         for point in rep_params.points:
             gid = point.gid
@@ -366,6 +368,7 @@ _report_classes = {
 }
 
 
+@cache_errors
 def create_report(params: ReportParameters, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
     cls = _report_classes.get(params.type)

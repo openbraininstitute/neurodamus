@@ -3,7 +3,6 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import lru_cache
-from typing import Tuple
 
 import libsonata
 import numpy as np
@@ -14,6 +13,7 @@ from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
 from .report_parameters import Compartments, ReportType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
+from .utils.pyutils import cache_errors
 
 
 class TargetError(Exception):
@@ -206,6 +206,7 @@ class TargetManager:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
+    @cache_errors
     def get_point_list(self, rep_params):
         """Dispatcher: it helps to retrieve the points of a target.
         Returns the result of calling get_point_list directly on the target.
@@ -218,9 +219,6 @@ class TargetManager:
         Returns: The target list of points
         """
         if rep_params.type == ReportType.COMPARTMENT_SET:
-
-            print(self._compartment_sets)
-
             return rep_params.target.get_point_list_from_compartment_set(
                 cell_manager=self._cell_manager,
                 compartment_set=self._compartment_sets[rep_params.compartment_set],
@@ -667,7 +665,7 @@ class TPointList:
         self.validate()
         return len(self.sclst)
 
-    def __iter__(self) -> Iterator[Tuple[int, object, float]]:
+    def __iter__(self) -> Iterator[tuple[int, object, float]]:
         self.validate()
         return iter(zip(self.sclst_ids, self.sclst, self.x))
 

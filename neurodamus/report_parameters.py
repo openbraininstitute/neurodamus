@@ -1,7 +1,15 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+from .utils.pyutils import cache_errors
+
+if TYPE_CHECKING:
+    from neurodamus.target_manager import TPointList
 
 
 class ReportSetupError(Exception):
@@ -108,32 +116,38 @@ class ReportParameters:
     sections: SectionType
     compartments: Compartments
     compartment_set: str
-    points = None  # this is filled later with get_point_list
+    points: list[TPointList] | None = None  # this is filled later with get_point_list
 
 
+@cache_errors
 def check_report_parameters(
     rep_params: ReportParameters, nd_dt: float, *, lfp_active: bool
 ) -> None:
     """Validate report parameters against simulation constraints."""
+    errors = []
     if rep_params.start > rep_params.end:
-        raise ReportSetupError(
-            f"Invalid report configuration: end time ({rep_params.end}) is before "
-            f"start time ({rep_params.start})."
+        errors.append(
+            f"Invalid report configuration: end time ({rep_params.end}) is "
+            f"before start time ({rep_params.start})."
         )
 
     if rep_params.dt < nd_dt:
-        raise ReportSetupError(
-            f"Invalid report configuration: report dt ({rep_params.dt}) is smaller than "
-            f"simulation dt ({nd_dt})."
+        errors.append(
+            f"Invalid report configuration: report dt ({rep_params.dt}) is smaller "
+            f"than simulation dt ({nd_dt})."
         )
 
     if rep_params.type == ReportType.LFP and not lfp_active:
-        raise ReportSetupError(
-            "LFP report setup failed: electrodes file may be missing "
-            "or simulator is not set to CoreNEURON."
+        errors.append(
+            "LFP report setup failed: electrodes file may be missing or "
+            "simulator is not set to CoreNEURON."
         )
 
+    if errors:
+        raise ReportSetupError("\n".join(errors))
 
+
+@cache_errors
 def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
     """Create report parameters from configuration."""
     start_time = rep_conf["StartTime"]
