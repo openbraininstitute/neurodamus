@@ -180,9 +180,9 @@ def make_extra_config(base, simulator):
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
-        make_extra_config("v5_sonata_config", "NEURON"),
+        # make_extra_config("v5_sonata_config", "NEURON"),
         # make_extra_config("v5_sonata_config", "CORENEURON"),
-        # make_extra_config("ringtest_baseconfig", "NEURON"),
+        make_extra_config("ringtest_baseconfig", "NEURON"),
         # make_extra_config("ringtest_baseconfig", "CORENEURON")
     ],
     indirect=True,
