@@ -7,6 +7,30 @@ from enum import EnumMeta
 
 import numpy as np
 
+class CumulativeError(Exception):
+    def __init__(self, errors=None):
+        self.errors = errors or []
+        self.is_error_appended = False
+
+    def append(self, func_name, err):
+        self.errors.append((func_name, err))
+        self.is_error_appended = True
+
+    def __bool__(self):
+        return bool(self.errors)
+
+    def __str__(self):
+        if not self.errors:
+            return "No errors."
+        messages = [
+            f"{func_name}: {type(err).__name__} -> {err}"
+            for func_name, err in self.errors
+        ]
+        return "Operation failed with multiple errors:\n" + "\n".join(messages)
+
+    def raise_if_any(self):
+        if self:
+            raise self
 
 def dict_filter_map(dic, mapp):
     """Filters a dict and converts the keys according to a given map"""
@@ -183,20 +207,20 @@ def rmtree(path):
     """  # noqa: E501
     subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603
 
-
 def cache_errors(func):
     """Decorator that catches exceptions and appends
-    (func name, exception) to `error_cache` if provided.
+    (func name, exception) to `cumulative_error` if provided.
     """
 
-    def wrapper(*args, error_cache=None, **kwargs):
+    def wrapper(*args, cumulative_error: CumulativeError | None = None, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if error_cache is not None:
-                error_cache.append((func.__name__, e))
+            if cumulative_error is not None:
+                cumulative_error.append(func.__name__, e)
             else:
                 raise
             return None
 
     return wrapper
+

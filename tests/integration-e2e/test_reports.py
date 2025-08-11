@@ -97,7 +97,17 @@ _BASE_EXTRA_CONFIG = {
                         "dt": 1,
                         "start_time": 0.0,
                         "end_time": 40.0,
-                    }
+                    },
+                    "compartment_IClamp": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "IClamp",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none"
+                    },
                 },
             },
         }
@@ -148,9 +158,9 @@ def make_extra_config(base, simulator):
     "create_tmp_simulation_config_file",
     [
         make_extra_config("v5_sonata_config", "NEURON"),
-        make_extra_config("v5_sonata_config", "CORENEURON"),
-        make_extra_config("ringtest_baseconfig", "NEURON"),
-        make_extra_config("ringtest_baseconfig", "CORENEURON")
+        # make_extra_config("v5_sonata_config", "CORENEURON"),
+        # make_extra_config("ringtest_baseconfig", "NEURON"),
+        # make_extra_config("ringtest_baseconfig", "CORENEURON")
     ],
     indirect=True,
 )

@@ -65,7 +65,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
-from neurodamus.utils.pyutils import rmtree
+from neurodamus.utils.pyutils import rmtree, CumulativeError
 
 
 class METypeEngine(EngineBase):
@@ -257,18 +257,6 @@ class CircuitManager:
         del self.edge_managers
         del self.virtual_node_managers
         del self.node_managers
-
-
-class ReportsCumulativeError(Exception):
-    def __init__(self, errors):
-        self.errors = errors
-        super().__init__(self._format_message())
-
-    def _format_message(self):
-        messages = []
-        for func_name, value, err in self.errors:
-            messages.append(f"{func_name}({value}): {type(err).__name__} -> {err}")
-        return "enable_reports failed with multiple errors:\n" + "\n".join(messages)
 
 
 class Node:
@@ -917,9 +905,9 @@ class Node:
         # necessary for restore: we need to update the various reports tend
         # we can do it in one go later
         substitutions = {}
-        errors = []
+        cumulative_error = CumulativeError()
         for rep_name, rep_conf in reports_conf.items():
-            old_n_errors = len(errors)
+            cumulative_error.is_error_appended = False
             target_spec = TargetSpec(rep_conf["Target"])
             target = self._target_manager.get_target(target_spec)
 
@@ -932,17 +920,17 @@ class Node:
                 rep_conf=rep_conf,
                 target=target,
                 buffer_size=SimConfig.corenrn_buff_size,
-                error_cache=errors,
+                cumulative_error=cumulative_error,
             )
-            if old_n_errors != len(errors):
+            if cumulative_error.is_error_appended:
                 continue
             check_report_parameters(
                 rep_params,
                 Nd.dt,
                 lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
-                error_cache=errors,
+                cumulative_error=cumulative_error,
             )
-            if old_n_errors != len(errors):
+            if cumulative_error.is_error_appended:
                 continue
 
             if SimConfig.restore_coreneuron:
@@ -962,12 +950,12 @@ class Node:
                 continue
 
             report = create_report(
-                params=rep_params, use_coreneuron=SimConfig.use_coreneuron, error_cache=errors
+                params=rep_params, use_coreneuron=SimConfig.use_coreneuron, cumulative_error=cumulative_error
             )
-            if old_n_errors != len(errors):
+            if cumulative_error.is_error_appended:
                 continue
-            rep_params.points = self._target_manager.get_point_list(rep_params, error_cache=errors)
-            if old_n_errors != len(errors):
+            rep_params.points = self._target_manager.get_point_list(rep_params, cumulative_error=cumulative_error)
+            if cumulative_error.is_error_appended:
                 continue
 
             if SimConfig.use_coreneuron:
@@ -977,9 +965,9 @@ class Node:
                 report.setup(
                     rep_params=rep_params,
                     global_manager=self._circuits.global_manager,
-                    error_cache=errors,
+                    cumulative_error=cumulative_error,
                 )
-                if old_n_errors != len(errors):
+                if cumulative_error.is_error_appended:
                     continue
 
             self._report_list.append(report)
@@ -987,8 +975,7 @@ class Node:
         if SimConfig.restore_coreneuron:
             CoreConfig.update_report_config(substitutions)
 
-        if errors:
-            raise ReportsCumulativeError(errors)
+        cumulative_error.raise_if_any()
 
         MPI.check_no_errors()
 
