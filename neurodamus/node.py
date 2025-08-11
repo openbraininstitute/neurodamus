@@ -65,7 +65,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
-from neurodamus.utils.pyutils import rmtree, CumulativeError
+from neurodamus.utils.pyutils import CumulativeError, rmtree
 
 
 class METypeEngine(EngineBase):
@@ -950,11 +950,15 @@ class Node:
                 continue
 
             report = create_report(
-                params=rep_params, use_coreneuron=SimConfig.use_coreneuron, cumulative_error=cumulative_error
+                params=rep_params,
+                use_coreneuron=SimConfig.use_coreneuron,
+                cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
                 continue
-            rep_params.points = self._target_manager.get_point_list(rep_params, cumulative_error=cumulative_error)
+            rep_params.points = self._target_manager.get_point_list(
+                rep_params, cumulative_error=cumulative_error
+            )
             if cumulative_error.is_error_appended:
                 continue
 

@@ -512,6 +512,43 @@ class Report:
 
         return "\n".join(lines)
 
+    def __add__(self, other: object) -> "Report":
+        """
+        Add two Report instances by element-wise summing their population data.
+        """
+
+        if not isinstance(other, Report):
+            return NotImplemented
+
+        if set(self.populations.keys()) != set(other.populations.keys()):
+            raise ValueError("Reports have different populations.")
+
+        new_populations = {}
+
+        for name in self.populations:
+            nodes1, df1 = self.populations[name]
+            nodes2, df2 = other.populations[name]
+
+            if nodes1 != nodes2:
+                raise ValueError(f"Node IDs differ for population '{name}'.")
+
+            if not df1.columns.equals(df2.columns):
+                raise ValueError(f"DataFrame columns differ for population '{name}'.")
+
+            if not df1.index.equals(df2.index):
+                raise ValueError(f"DataFrame indices differ for population '{name}'.")
+
+            new_df = df1 + df2  # element-wise addition
+
+            new_populations[name] = (nodes1, new_df)
+
+        # Create a new Report instance without re-reading file
+        new_report = Report.__new__(Report)
+        new_report.populations = new_populations
+        new_report._reader = None  # or keep from self if needed
+
+        return new_report
+
 
 
 

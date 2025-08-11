@@ -1,11 +1,14 @@
 """Collection of generic Python utilities."""
 
+from __future__ import annotations
+
 import subprocess  # noqa: S404
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta
 
 import numpy as np
+
 
 class CumulativeError(Exception):
     def __init__(self, errors=None):
@@ -22,15 +25,13 @@ class CumulativeError(Exception):
     def __str__(self):
         if not self.errors:
             return "No errors."
-        messages = [
-            f"{func_name}: {type(err).__name__} -> {err}"
-            for func_name, err in self.errors
-        ]
+        messages = [f"{func_name}: {type(err).__name__} -> {err}" for func_name, err in self.errors]
         return "Operation failed with multiple errors:\n" + "\n".join(messages)
 
     def raise_if_any(self):
         if self:
             raise self
+
 
 def dict_filter_map(dic, mapp):
     """Filters a dict and converts the keys according to a given map"""
@@ -207,6 +208,7 @@ def rmtree(path):
     """  # noqa: E501
     subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603
 
+
 def cache_errors(func):
     """Decorator that catches exceptions and appends
     (func name, exception) to `cumulative_error` if provided.
@@ -223,4 +225,3 @@ def cache_errors(func):
             return None
 
     return wrapper
-
