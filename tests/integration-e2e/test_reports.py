@@ -131,6 +131,17 @@ _BASE_EXTRA_CONFIG = {
                         "end_time": 40.0,
                         "scaling": "none",
                     },
+                    "summation_ProbAMPANMDA_EMS": {
+                        "type": "summation",
+                        "cells": "Mosaic",
+                        "variable_name": "ProbAMPANMDA_EMS",
+                        "sections": "all",
+                        "compartments": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none",
+                    },
                 },
             },
         }
@@ -180,10 +191,10 @@ def make_extra_config(base, simulator):
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
-        # make_extra_config("v5_sonata_config", "NEURON"),
-        # make_extra_config("v5_sonata_config", "CORENEURON"),
+        make_extra_config("v5_sonata_config", "NEURON"),
+        make_extra_config("v5_sonata_config", "CORENEURON"),
         make_extra_config("ringtest_baseconfig", "NEURON"),
-        # make_extra_config("ringtest_baseconfig", "CORENEURON")
+        make_extra_config("ringtest_baseconfig", "CORENEURON")
     ],
     indirect=True,
 )
@@ -196,7 +207,7 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file, keep_build=True)
     output_dir = Path(SimConfig.output_root)
     is_v5_sonata = "output_sonata2" in str(output_dir)
     reference_dir = V5_SONATA / "reference" / "reports" if is_v5_sonata else RINGTEST_DIR / "reference" / "reports"

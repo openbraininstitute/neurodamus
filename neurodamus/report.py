@@ -223,10 +223,18 @@ class CompartmentReport(Report):
             section = sc.sec
             x = point.x[i]
             var_refs = self.get_var_refs(section, x, mechanism, variable_name)
-            if len(var_refs) != 1:
+            if len(var_refs) == 0:
                 raise AttributeError(
-                    f"Expected exactly one reference for variable '{variable_name}' "
-                    f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
+                    f"No reference found for variable '{variable_name}' of mechanism '{mechanism}' "
+                    f"at location {x}."
+                )
+
+            if len(var_refs) > 1:
+                raise AttributeError(
+                    f"Expected one reference for variable '{variable_name}' of mechanism '{mechanism}' "
+                    f"at location {x}, but found {len(var_refs)}. "
+                    "Probably many synapses attached to the soma. "
+                    "Compartment reports require only one variable per segment."
                 )
             section_id = cell_obj.get_section_id(section)
             self.report.AddVar(var_refs[0], section_id, gid, pop_name)
@@ -282,16 +290,17 @@ class SummationReport(Report):
         Note: compartments without the variable are silently skipped.
         """
         for mechanism, variable in self.variables:
+            scaling_factor = self.get_scaling_factor(section, x, mechanism)
+            if scaling_factor == 0:
+                logging.warning(
+                    "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+                )
+                # simply skip if not valid. No logging or error is necessary
+                continue
             var_refs = Report.get_var_refs(section, x, mechanism, variable)
             for var_ref in var_refs:
-                scaling_factor = self.get_scaling_factor(section, x, mechanism)
-                if scaling_factor == 0:
-                    logging.warning(
-                        "Skipping intrinsic current '%s' at a location with area = 0", mechanism
-                    )
-                    continue
                 alu_helper.addvar(var_ref, scaling_factor)
-            # simply skip if not valid. No logging or error is necessary
+            
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
