@@ -231,8 +231,9 @@ class CompartmentReport(Report):
 
             if len(var_refs) > 1:
                 raise AttributeError(
-                    f"Expected one reference for variable '{variable_name}' of mechanism '{mechanism}' "
-                    f"at location {x}, but found {len(var_refs)}. "
+                    f"Expected one reference for variable '{variable_name}' "
+                    f"of mechanism '{mechanism}' at location "
+                    f"{x}, but found {len(var_refs)}. "
                     "Probably many synapses attached to the soma. "
                     "Compartment reports require only one variable per segment."
                 )
@@ -300,7 +301,6 @@ class SummationReport(Report):
             var_refs = Report.get_var_refs(section, x, mechanism, variable)
             for var_ref in var_refs:
                 alu_helper.addvar(var_ref, scaling_factor)
-            
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
