@@ -182,6 +182,16 @@ def make_extra_config(base, simulator):
             "end_time": 40.0,
             "scaling": "none"
         }
+        ans["extra_config"]["reports"]["synapse_ProbAMPANMDA_EMS_i"] = {
+            "type": "synapse",
+            "cells": "Mosaic",
+            "variable_name": "ProbAMPANMDA_EMS.i",
+            "sections": "all",
+            "unit": "nS",
+            "dt": 1,
+            "start_time": 0.0,
+            "end_time": 40.0,
+        }
     else:
         ans["extra_config"]["inputs"]["Stimulus"]["node_set"] = "RingA"
 

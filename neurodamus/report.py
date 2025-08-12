@@ -345,6 +345,7 @@ class SynapseReport(Report):
             section = sc.sec
             x = point.x[i]
             # Iterate over point processes in the section
+
             point_processes = self.get_point_processes(section, mechanism)
             for synapse in point_processes:
                 if self.is_point_process_at_location(synapse, section, x):
@@ -354,7 +355,7 @@ class SynapseReport(Report):
                         synapse.selected_for_report = True
 
         if not synapse_list:
-            raise AttributeError(f"Mechanism '{mechanism}' not found.")
+            raise AttributeError(f"Synapse '{mechanism}' not found.")
         if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
