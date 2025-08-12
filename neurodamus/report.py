@@ -86,21 +86,22 @@ class Report:
         return compartment_id == int(x * section.nseg)
 
     @staticmethod
-    def get_point_processes(section, mechanism):
+    def get_point_processes(section, mechanism=None):
         """Retrieve all synapse objects attached to a given section.
 
         :param section: The NEURON section object to search for synapses.
         :param mechanism: The mechanism requested
         :return: A list of synapse objects attached to the section.
         """
-        synapses = [
+        if mechanism is None:
+            return [syn for seg in section for syn in seg.point_processes()]
+
+        return [
             syn
             for seg in section
             for syn in seg.point_processes()
             if syn.hname().startswith(mechanism)
         ]
-
-        return synapses
 
     @staticmethod
     def parse_variable_names(report_on):
@@ -355,7 +356,7 @@ class SynapseReport(Report):
                         synapse.selected_for_report = True
 
         if not synapse_list:
-            raise AttributeError(f"Synapse '{mechanism}' not found.")
+            raise AttributeError(f"Synapse '{mechanism}' not found on any points on gid: {gid}. ")
         if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
