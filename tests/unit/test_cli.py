@@ -1,10 +1,8 @@
-from pathlib import Path
 import subprocess
-import sys
-from unittest import mock
-import pytest
+from pathlib import Path
 
-from neurodamus import Neurodamus
+import libsonata
+import pytest
 
 
 @pytest.mark.parametrize(
@@ -28,3 +26,132 @@ def test_cli_color(create_tmp_simulation_config_file):
                cwd=str(Path(create_tmp_simulation_config_file).parent)
                )
     assert b"\033[0m" not in out.stdout
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_cli_prcellgid(create_tmp_simulation_config_file):
+    tmp_path = Path(create_tmp_simulation_config_file).parent
+    subprocess.run(
+        ["neurodamus", create_tmp_simulation_config_file, "--dump-cell-state=1", "--keep-build"],
+        check=True,
+    )
+    assert (tmp_path / "output" / "2_py_Neuron_t0.0.nrndat").is_file()
+    assert (tmp_path / "output" / "2_py_Neuron_t50.0.nrndat").is_file()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {"target_simulator": "CORENEURON"},
+        }
+    ],
+    indirect=True,
+)
+def test_cli_keep_build(create_tmp_simulation_config_file):
+    tmp_path = Path(create_tmp_simulation_config_file).parent
+    subprocess.run(["neurodamus", create_tmp_simulation_config_file, "--keep-build"], check=True)
+    coreneuron_input_dir = tmp_path / "build" / "coreneuron_input"
+    assert coreneuron_input_dir.is_dir(), "Directory 'coreneuron_input' not found."
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {"target_simulator": "CORENEURON"},
+        }
+    ],
+    indirect=True,
+)
+def test_cli_build_model(create_tmp_simulation_config_file):
+    res = subprocess.run(
+        [
+            "neurodamus",
+            create_tmp_simulation_config_file,
+            "--simulate-model=OFF",
+            "--disable-reports",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "[SKIPPED] SIMULATION (MODEL BUILD ONLY)" in res.stdout
+
+    res = subprocess.run(
+        ["neurodamus", create_tmp_simulation_config_file, "--disable-reports"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "SIMULATION (SKIP MODEL BUILD)" in res.stdout
+
+    # run it once to create the data, so that the --build-model=OFF works
+    subprocess.run(
+        [
+            "neurodamus",
+            create_tmp_simulation_config_file,
+            "--simulate-model=OFF",
+            "--disable-reports",
+        ],
+        check=True,
+    )
+    res = subprocess.run(
+        ["neurodamus", create_tmp_simulation_config_file, "--build-model=OFF", "--disable-reports"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "SIMULATION (SKIP MODEL BUILD)" in res.stdout
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_cli_lb_mode(create_tmp_simulation_config_file):
+    tmp_path = Path(create_tmp_simulation_config_file).parent
+    for lb_mode in ("WholeCell", "MultiSplit"):
+        res = subprocess.run(
+            [
+                "neurodamus",
+                create_tmp_simulation_config_file,
+                f"--lb-mode={lb_mode}",
+                "--disable-reports",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert f"Load Balancing ENABLED. Mode: {lb_mode}" in res.stdout
+        assert (tmp_path / "mcomplex.dat").is_file(), "File 'mcomplex.dat' not found."
+        assert (tmp_path / "sim_conf").is_dir(), "Directory 'sim_conf' not found."
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_cli_output_path(create_tmp_simulation_config_file):
+    tmp_path = Path(create_tmp_simulation_config_file).parent
+    new_output = "new-output"
+    subprocess.run(
+        ["neurodamus", create_tmp_simulation_config_file, f"--output-path={new_output}"],
+        check=True,
+        text=True,
+    )
+    sc = libsonata.SimulationConfig.from_file(create_tmp_simulation_config_file)
+    # Output directory from simulation configuration is overridden
+    simconfig_output_path = tmp_path / sc.output.output_dir
+    assert not simconfig_output_path.is_dir(), (
+        f"Directory '{simconfig_output_path}' should NOT exist."
+    )
+    assert (tmp_path / new_output).is_dir(), f"Directory '{new_output}' not found."
