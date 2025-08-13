@@ -1,5 +1,7 @@
 # Neurodamus
 # Copyright 2018 - Blue Brain Project, EPFL
+from __future__ import annotations
+
 import gc
 import glob
 import itertools
@@ -331,12 +333,13 @@ class Node:
     _default_population = "All"
     """The default population name for e.g. Reports."""
 
-    def __init__(self, config_file, options=None):
+    def __init__(self, config_file, options: dict | None = None):
         """Creates a neurodamus executor
         Args:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
+        options = options or {}
         assert isinstance(config_file, str), "`config_file` should be a string"
         assert config_file, "`config_file` cannot be empty"
 
@@ -347,7 +350,7 @@ class Node:
         import libsonata
 
         conf = libsonata.SimulationConfig.from_file(config_file)
-        Nd.init(log_filename=conf.output.log_file)
+        Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
         # This is global initialization, happening once, regardless of number of
         # cycles
@@ -895,7 +898,6 @@ class Node:
         else:
             # restore way
             pop_offsets, alias_pop, virtual_pop_offsets = CircuitManager.read_population_offsets()
-
         self._circuits.write_population_offsets(
             pop_offsets, alias_pop, virtual_pop_offsets=virtual_pop_offsets
         )
@@ -1006,6 +1008,10 @@ class Node:
                 "LFP report setup failed: electrodes file may be missing "
                 "or simulator is not set to CoreNEURON."
             )
+        if rep_type == "compartment_set" and SimConfig.use_coreneuron:
+            raise ReportSetupError(
+                "Compartment set reports are not supported with CoreNEURON at the moment."
+            )
         logging.info(
             " * %s (Type: %s, Target: %s, Dt: %f)",
             rep_name,
@@ -1103,24 +1109,30 @@ class Node:
             return
         global_manager = self._circuits.global_manager
 
-        # Go through the target members, one cell at a time. We give a cell reference
-        # For summation targets - check if we were given a Cell target because we really
-        # want all points of the cell which will ultimately be collapsed to a single
-        # value on the soma. Otherwise, get target points as normal.
-        sections = rep_conf.get("Sections")
-        compartments = rep_conf.get("Compartments")
-        sum_currents_into_soma = sections == "soma" and compartments == "center"
-        # In case of summation in the soma, we need all points anyway
-        if sum_currents_into_soma and rep_type.lower() == "summation":
-            sections = "all"
-            compartments = "all"
-        points = self._target_manager.getPointList(
-            target, sections=sections, compartments=compartments
-        )
+        sum_currents_into_soma = False
+        if rep_type == "compartment_set":
+            compartment_set = rep_conf.get("CompartmentSet")
+            points = self._target_manager.get_point_list(target, compartment_set=compartment_set)
+        else:
+            # Go through the target members, one cell at a time. We give a cell reference
+            # For summation targets - check if we were given a Cell target because we really
+            # want all points of the cell which will ultimately be collapsed to a single
+            # value on the soma. Otherwise, get target points as normal.
+            sections = rep_conf.get("Sections")
+            compartments = rep_conf.get("Compartments")
+
+            sum_currents_into_soma = sections == "soma" and compartments == "center"
+            # In case of summation in the soma, we need all points anyway
+            if sum_currents_into_soma and rep_type == "summation":
+                sections = "all"
+                compartments = "all"
+            points = self._target_manager.get_point_list(
+                target, sections=sections, compartments=compartments
+            )
         for point in points:
             gid = point.gid
             pop_name, pop_offset = global_manager.getPopulationInfo(gid)
-            cell = global_manager.get_cellref(gid)
+            cell = global_manager.get_cell(gid)
             spgid = global_manager.getSpGid(gid)
 
             report.register_gid_section(
@@ -1290,7 +1302,7 @@ class Node:
 
         mapping_file = Path(corenrn_data, f"{fake_gid}_3.dat")
         if not mapping_file.is_file():
-            mapping_file.write_text(f"{coredata_version}\n0\n")
+            mapping_file.write_text(f"{coredata_version}\n0\n", encoding="utf-8")
 
     def _coreneuron_configure_datadir(self, corenrn_restore, coreneuron_direct_mode):
         """Configures the CoreNEURON data directory and handles shared memory (SHM) setup.

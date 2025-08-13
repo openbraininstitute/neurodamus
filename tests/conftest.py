@@ -88,6 +88,7 @@ def v5_sonata_config():
     config_path = V5_SONATA / "simulation_config_mini.json"
     with open(config_path, "r") as f:
         d = json.load(f)
+    d["compartment_sets_file"] = str(V5_SONATA / "compartment_sets.json")
     d["network"] = str(V5_SONATA / "sub_mini5" / "circuit_config.json")
     return d
 
@@ -99,7 +100,7 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-@pytest.fixture()
+@pytest.fixture
 def copy_memory_files(change_test_dir):
     # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {

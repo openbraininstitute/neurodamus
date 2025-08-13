@@ -62,13 +62,6 @@ class Astrocyte(BaseCell):
         self.glut_soma = Nd.GlutReceiveSoma(soma(0.5), sec=soma)
 
         self.gid = gid
-        self.section_names = morph.section_names
-
-    def _get_sec(self, sec_id):
-        """Retrieve section object by section ID."""
-        section_name = self.section_names[sec_id]
-        sec_list = getattr(self._cellref, section_name.name)
-        return sec_list[section_name.id]
 
     def _init_basic_section(self, sec):
         """Initialize a basic NEURON section with standard mechanisms.
@@ -111,17 +104,17 @@ class Astrocyte(BaseCell):
         sec.insert("vascouplingB")
         sec(0.5).vascouplingB.R0pas = R0pas
         # connect to parent sec
-        parent_sec = self._get_sec(parent_id + 1)
+        parent_sec = self.get_sec(parent_id + 1)
         sec.connect(parent_sec)
 
-    def get_glut(self, sec_id):
+    def get_glut(self, section_id):
         """Return cached GlutReceive object for a section, creating it if needed."""
-        if sec_id in self._gluts:
-            return self._gluts[sec_id]
-        sec = self._get_sec(sec_id)
+        if section_id in self._gluts:
+            return self._gluts[section_id]
+        sec = self.get_sec(section_id)
         glut = Nd.GlutReceive(sec(0.5), sec=sec)
         sec(0.5).cadifus._ref_glu2 = glut._ref_glut
-        self._gluts[sec_id] = glut
+        self._gluts[section_id] = glut
         return glut
 
     @property

@@ -90,6 +90,7 @@ class SonataConfig:
         parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
         parsed_run["SpikeLocation"] = self._sim_conf.conditions.spike_location.name
+        parsed_run["compartment_sets_file"] = self._sim_conf.compartment_sets_file
         return parsed_run
 
     @property
