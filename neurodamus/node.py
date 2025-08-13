@@ -350,7 +350,7 @@ class Node:
         import libsonata
 
         conf = libsonata.SimulationConfig.from_file(config_file)
-        Nd.init(log_filename=conf.output.log_file, log_no_color=options.pop("no_color", False))
+        Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
         # This is global initialization, happening once, regardless of number of
         # cycles

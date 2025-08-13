@@ -28,7 +28,7 @@ class _NeuronWrapper(_Neuron):
         return self._h
 
     @classmethod
-    def _init(cls, log_filename=LOG_FILENAME, log_no_color=False):
+    def _init(cls, log_filename=LOG_FILENAME, log_use_color=True):
         if cls._pc is not None:
             return
         # Neurodamus requires MPI. We still respect NEURON_INIT_MPI though
@@ -39,7 +39,7 @@ class _NeuronWrapper(_Neuron):
         if MPI.rank == 0:
             open(log_filename, "w", encoding="utf-8").close()  # Truncate
         MPI.barrier()  # Sync so that all processes see the file
-        setup_logging(GlobalConfig.verbosity, log_filename, MPI.rank, use_color=not log_no_color)
+        setup_logging(GlobalConfig.verbosity, log_filename, MPI.rank, use_color=log_use_color)
         log_stage("Initializing Neurodamus... Logfile: " + log_filename)
 
         # Load mods if not available

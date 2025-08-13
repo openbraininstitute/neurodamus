@@ -22,7 +22,7 @@ def test_cli_color(create_tmp_simulation_config_file):
     assert b"\033[0m" in out.stdout
 
     out = subprocess.run(
-               ["neurodamus", create_tmp_simulation_config_file, "--no-color"],
+               ["neurodamus", create_tmp_simulation_config_file, "--use-color=OFF"],
                check=False,
                capture_output=True,
                cwd=str(Path(create_tmp_simulation_config_file).parent)

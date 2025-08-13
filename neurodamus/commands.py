@@ -67,7 +67,7 @@ def neurodamus(args=None):
         --num-target-ranks=<number>  Number of ranks to target for dry-run load balancing
         --coreneuron-direct-mode     Run CoreNeuron in direct memory mode transfered from Neuron,
                                      without writing model data to disk.
-        --no-color              Force output not to have color: Default is `false`
+        --use-color=[ON, OFF]  If OFF, forces no color to be used in logs; [default: ON]
     """
     from . import __version__
 
