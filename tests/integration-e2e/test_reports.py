@@ -8,7 +8,7 @@ import pytest
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
 from ..conftest import V5_SONATA, RINGTEST_DIR
-from ..utils import Report
+from ..utils import ReportReader
 import copy
 from neurodamus.utils.pyutils import CumulativeError
 
@@ -227,30 +227,30 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
 
     # compartment vs summation
     for var in ["v", "i_membrane", "pas"]:
-        r_compartment = Report(output_dir / f"compartment_{var}.h5")
-        r_summation = Report(output_dir / f"summation_{var}.h5")
+        r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
+        r_summation = ReportReader(output_dir / f"summation_{var}.h5")
 
         r_compartment.convert_to_summation()
         assert r_compartment == r_summation, f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
 
     # summation vs summation. Variable reordering
-    r_summation_i_membrane_IClamp = Report(output_dir / f"summation_i_membrane_IClamp.h5")
-    r_summation_IClamp_i_membrane = Report(output_dir / f"summation_IClamp_i_membrane.h5")
+    r_summation_i_membrane_IClamp = ReportReader(output_dir / f"summation_i_membrane_IClamp.h5")
+    r_summation_IClamp_i_membrane = ReportReader(output_dir / f"summation_IClamp_i_membrane.h5")
     assert r_summation_i_membrane_IClamp == r_summation_IClamp_i_membrane, (
         "Reports from 'summation_i_membrane_IClamp.h5' and 'summation_IClamp_i_membrane.h5' differ."
     )
 
     # summation vs manual sum
-    r_summation_IClamp = Report(output_dir / f"summation_IClamp.h5")
-    r_compartment_i_membrane = Report(output_dir / f"compartment_i_membrane.h5")
+    r_summation_IClamp = ReportReader(output_dir / f"summation_IClamp.h5")
+    r_compartment_i_membrane = ReportReader(output_dir / f"compartment_i_membrane.h5")
     r_summation_i_membrane_IClamp_manual = r_compartment_i_membrane+ r_summation_IClamp
     assert r_summation_i_membrane_IClamp == r_summation_i_membrane_IClamp_manual, "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
 
     # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
     for ref_file in reference_dir.glob("*.h5"):
-        r_reference = Report(ref_file)   
+        r_reference = ReportReader(ref_file)   
         file = output_dir / ref_file.name 
-        r = Report(file)
+        r = ReportReader(file)
 
         assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
 
@@ -264,9 +264,9 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     if is_v5_sonata:
         ids = [0, 7, 7, 8, 190, 206, 348, 360]
         for var in ["v", "i_membrane", "pas"]:
-            r_compartment = Report(output_dir / f"compartment_{var}.h5")
+            r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
             r_compartment.reduce_to_compartment_set_report("default", ids)
-            r_compartment_set = Report(output_dir / f"compartment_set_{var}.h5")
+            r_compartment_set = ReportReader(output_dir / f"compartment_set_{var}.h5")
 
             assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
 

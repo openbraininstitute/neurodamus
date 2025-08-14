@@ -13,6 +13,7 @@ from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
+from neurodamus.report_parameters import create_report_parameters, ReportType
 
 from typing import List, Dict, Tuple
 import pandas as pd
@@ -325,31 +326,36 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     peaks_pos = find_peaks(x, prominence=threshold)[0]
     np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
-def record_compartment_reports(target_manager: TargetManager):
+def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()
+
+    This avoids libsonatareport. Additional tests with libsonatareport in integration-e2e
     """
     ascii_recorders = {}
-    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
-    for rep_name, rep_conf in reports_conf.items():
-        rep_type = rep_conf["Type"].lower()
-        if rep_type != "compartment":
-            logging.warning("report `%s` skipped", rep_type)
-            continue
-        sections = rep_conf.get("Sections")
-        compartments = rep_conf.get("Compartments")
-        variables = Report.parse_variable_names(rep_conf["ReportOn"])
-        mechanism, variable_name = variables[0]
-        start_time = rep_conf["StartTime"]
-        stop_time = rep_conf["EndTime"]
-        dt = rep_conf["Dt"]
 
-        tvec = Nd.Vector()
-        tvec.indgen(start_time, stop_time, dt)
+
+    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
+
+    for rep_name, rep_conf in reports_conf.items():
         target_spec = TargetSpec(rep_conf["Target"])
         target = target_manager.get_target(target_spec)
-        points = target_manager.get_point_list(target, sections=sections, compartments=compartments)
+
+        rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
+
+        if rep_params.type != ReportType.COMPARTMENT:
+            continue
+
+        tvec = Nd.Vector()
+        tvec.indgen(rep_params.start, rep_params.end, rep_params.dt)
+
+        points = target_manager.get_point_list(rep_params=rep_params)
         recorder = []
+
+        variables = Report.parse_variable_names(rep_params.report_on)
+        assert len(variables) == 1
+        mechanism, variable_name = variables[0]
+        
         for point in points:
             gid = point.gid
             for i, sc in enumerate(point.sclst):
@@ -357,11 +363,7 @@ def record_compartment_reports(target_manager: TargetManager):
                 x = point.x[i]
 
                 var_refs = Report.get_var_refs(section, x, mechanism, variable_name)
-                if len(var_refs) != 1:
-                    raise AttributeError(
-                        f"Expected exactly one reference for variable '{variable_name}' "
-                        f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
-                    )
+                assert len(var_refs) == 1
                 trace = Nd.Vector()
                 trace.record(var_refs[0], tvec)
                 segname = str(section(x))
@@ -418,7 +420,7 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
-class Report:
+class ReportReader:
     def __init__(self, file: str):
         self._reader = ElementReportReader(file)
         self.populations: Dict[str, Tuple[List[int], pd.DataFrame]] = {}
@@ -438,7 +440,7 @@ class Report:
             self.populations[name] = (node_ids, df)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Report):
+        if not isinstance(other, ReportReader):
             return NotImplemented
 
         if set(self.populations.keys()) != set(other.populations.keys()):
@@ -499,7 +501,7 @@ class Report:
         }
 
     def __repr__(self) -> str:
-        lines = [f"Report with {len(self.populations)} populations:"]
+        lines = [f"ReportReader with {len(self.populations)} populations:"]
         for name, (nodes, df) in self.populations.items():
             nodes_str = ", ".join(str(n) for n in nodes)
             lines.append(f"  - {name}: {len(nodes)} nodes, shape={df.shape}")
@@ -512,16 +514,16 @@ class Report:
 
         return "\n".join(lines)
 
-    def __add__(self, other: object) -> "Report":
+    def __add__(self, other: object) -> "ReportReader":
         """
-        Add two Report instances by element-wise summing their population data.
+        Add two ReportReader instances by element-wise summing their population data.
         """
 
-        if not isinstance(other, Report):
+        if not isinstance(other, ReportReader):
             return NotImplemented
 
         if set(self.populations.keys()) != set(other.populations.keys()):
-            raise ValueError("Reports have different populations.")
+            raise ValueError("ReportReaders have different populations.")
 
         new_populations = {}
 
@@ -542,8 +544,8 @@ class Report:
 
             new_populations[name] = (nodes1, new_df)
 
-        # Create a new Report instance without re-reading file
-        new_report = Report.__new__(Report)
+        # Create a new ReportReader instance without re-reading file
+        new_report = ReportReader.__new__(ReportReader)
         new_report.populations = new_populations
         new_report._reader = None  # or keep from self if needed
 

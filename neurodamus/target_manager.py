@@ -223,8 +223,12 @@ class TargetManager:
                 cell_manager=self._cell_manager,
                 compartment_set=self._compartment_sets[rep_params.compartment_set],
             )
+
+        sections, compartments = rep_params.sections, rep_params.compartments
+        if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
+            sections, compartments = SectionType.ALL, Compartments.ALL
         return rep_params.target.get_point_list(
-            cell_manager=self._cell_manager, rep_params=rep_params
+            cell_manager=self._cell_manager, sections=sections, compartments=compartments
         )
 
     def gid_to_sections(self, gid):
@@ -504,7 +508,9 @@ class NodesetTarget:
 
         return point_list
 
-    def get_point_list(self, cell_manager, rep_params=None):
+    def get_point_list(
+        self, cell_manager, sections=SectionType.SOMA, compartments=Compartments.ALL
+    ):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
@@ -516,20 +522,6 @@ class NodesetTarget:
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
-        # defaults:
-        sections = SectionType.SOMA
-        compartments = Compartments.ALL
-        if rep_params is None:
-            sections = SectionType.SOMA
-            compartments = Compartments.ALL
-        if rep_params is not None:
-            sections = rep_params.sections
-            compartments = rep_params.compartments
-            # special case for summation, soma: soma collects all the values
-            if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
-                sections = SectionType.ALL
-                compartments = Compartments.ALL
-
         section_type_str = sections.to_string()
         point_lists = compat.List()
 
