@@ -24,7 +24,7 @@ def make_ngv_nodes():
         "z": it.count(2),
         "morphology": "cell_small",
     }
-    make_nodes(filename="nodes.h5", name="RingA", count=5, wanted_attributes=wanted)
+    make_nodes(filename="nodes.h5", name="RingA", count=7, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,

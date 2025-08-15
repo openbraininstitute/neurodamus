@@ -1,5 +1,7 @@
 # Neurodamus
 # Copyright 2018 - Blue Brain Project, EPFL
+from __future__ import annotations
+
 import gc
 import glob
 import itertools
@@ -322,12 +324,13 @@ class Node:
     _default_population = "All"
     """The default population name for e.g. Reports."""
 
-    def __init__(self, config_file, options=None):
+    def __init__(self, config_file, options: dict | None = None):
         """Creates a neurodamus executor
         Args:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
+        options = options or {}
         assert isinstance(config_file, str), "`config_file` should be a string"
         assert config_file, "`config_file` cannot be empty"
 
@@ -338,7 +341,7 @@ class Node:
         import libsonata
 
         conf = libsonata.SimulationConfig.from_file(config_file)
-        Nd.init(log_filename=conf.output.log_file)
+        Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
         # This is global initialization, happening once, regardless of number of
         # cycles
