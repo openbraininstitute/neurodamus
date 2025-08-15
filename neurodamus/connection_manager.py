@@ -635,7 +635,6 @@ class ConnectionManagerBase:
         # it might lose some readability.
         # For each tgid we obtain the synapse parameters as a record array. We then split it,
         # without copying, yielding ranges (views) of it.
-
         if show_progress is None:
             show_progress = len(gids) >= AUTO_PROGRESS_THRESHOLD
 
