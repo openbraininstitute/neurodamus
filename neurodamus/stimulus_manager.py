@@ -674,6 +674,7 @@ class Pulse(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(cell_manager)
+
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split

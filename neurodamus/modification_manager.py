@@ -25,6 +25,7 @@ import logging
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .utils.logging import log_verbose
+from neurodamus.report_parameters import SectionType
 
 
 class ModificationManager:
@@ -63,7 +64,7 @@ class TTX:
     """
 
     def __init__(self, target, mod_info: dict, cell_manager):
-        tpoints = target.get_point_list(cell_manager, sections="all")
+        tpoints = target.get_point_list(cell_manager, sections=SectionType.ALL)
 
         # insert and activate TTX mechanism in all sections of each cell in target
         for tpoint_list in tpoints:
@@ -86,7 +87,7 @@ class ConfigureAllSections:
 
     def __init__(self, target, mod_info: dict, cell_manager):
         config, config_attrs = self.parse_section_config(mod_info["SectionConfigure"])
-        tpoints = target.get_point_list(cell_manager, sections="all")
+        tpoints = target.get_point_list(cell_manager, sections=SectionType.ALL)
 
         napply = 0  # number of sections where config applies
         # change mechanism variable in all sections that have it

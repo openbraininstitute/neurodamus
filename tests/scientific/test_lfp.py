@@ -158,6 +158,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
             "target_simulator": "CORENEURON",
             "run": {"electrodes_file": lfp_weights_file},
             "reports": {
+                "override_field": 1,
                 "lfp": {
                     "type": "lfp",
                     "cells": "Mosaic",
@@ -231,6 +232,8 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     # compare results with refs
     lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report.h5")
     result_ids, result_data = lfp_data["RingA"]
+
+    
 
     node_ids = np.array([0, 1, 2])
     t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])

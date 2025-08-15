@@ -1,9 +1,10 @@
 import json
+import h5py
 from pathlib import Path
 import logging
 
 import numpy as np
-from libsonata import EdgeStorage, SpikeReader
+from libsonata import EdgeStorage, SpikeReader, ElementReportReader
 from scipy.signal import find_peaks
 from collections import defaultdict
 from collections.abc import Iterable
@@ -12,11 +13,22 @@ from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
+from neurodamus.report_parameters import create_report_parameters, ReportType
+
+from typing import List, Dict, Tuple
+import pandas as pd
+import copy
+
 
 
 def merge_dicts(parent: dict, child: dict):
     """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
     for ties. Values of matching keys must match or a TypeError is raised.
+
+    Special values/keys:
+    - If a key in `child` has value "delete_field", it will be removed from the result.
+    - If a dictionary (nested or not) in `child` contains the key "override_field", it replaces the corresponding 
+      `parent` sub-dictionary entirely (ignoring merging).
 
     Imported from MultiscaleRun.
 
@@ -35,6 +47,16 @@ def merge_dicts(parent: dict, child: dict):
         {"A":2, "B":{"a":2, "b":2, "c":3}, "C": 2, "D": 3}
     """
 
+    def sanitize_dict(d):
+        if isinstance(d, dict):
+            # Delete the key if present
+            d.pop("override_field", None)
+            for key, value in d.items():
+                sanitize_dict(value)
+        elif isinstance(d, list):
+            for item in d:
+                sanitize_dict(item)
+
     def merge_vals(k, parent: dict, child: dict):
         """Merging logic.
 
@@ -49,10 +71,11 @@ def merge_dicts(parent: dict, child: dict):
         Returns:
             value type: merged version of the values possibly found in child and/or parent.
         """
-        if k not in parent:
-            return child[k]
+
         if k not in child:
             return parent[k]
+        if k not in parent:
+            return child[k]
         if type(parent[k]) is not type(child[k]):
             if not isinstance(parent[k], (int, float)) or not isinstance(child[k], (int, float)):
                 raise TypeError(
@@ -60,10 +83,21 @@ def merge_dicts(parent: dict, child: dict):
                     f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
                 )
         if isinstance(parent[k], dict):
+            if "override_field" in child[k]:
+                return child[k]
+
             return merge_dicts(parent[k], child[k])
         return child[k]
+    
+    ans = {
+        k: merge_vals(k, parent, child)
+        for k in set(parent) | set(child)
+        if not isinstance(child, dict) or k not in child or child[k] != "delete_field"
+    } if "override_field" not in child else copy.deepcopy(child)
+    sanitize_dict(ans)
+    return ans
 
-    return {k: merge_vals(k, parent, child) for k in set(parent) | set(child)}
+
 
 
 def defaultdict_to_standard_types(obj):
@@ -292,31 +326,36 @@ def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
     peaks_pos = find_peaks(x, prominence=threshold)[0]
     np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
 
-def record_compartment_reports(target_manager: TargetManager):
+def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()
+
+    This avoids libsonatareport. Additional tests with libsonatareport in integration-e2e
     """
     ascii_recorders = {}
-    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
-    for rep_name, rep_conf in reports_conf.items():
-        rep_type = rep_conf["Type"].lower()
-        if rep_type != "compartment":
-            logging.warning("report `%s` skipped", rep_type)
-            continue
-        sections = rep_conf.get("Sections")
-        compartments = rep_conf.get("Compartments")
-        variables = Report.parse_variable_names(rep_conf["ReportOn"])
-        mechanism, variable_name = variables[0]
-        start_time = rep_conf["StartTime"]
-        stop_time = rep_conf["EndTime"]
-        dt = rep_conf["Dt"]
 
-        tvec = Nd.Vector()
-        tvec.indgen(start_time, stop_time, dt)
+
+    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
+
+    for rep_name, rep_conf in reports_conf.items():
         target_spec = TargetSpec(rep_conf["Target"])
         target = target_manager.get_target(target_spec)
-        points = target_manager.get_point_list(target, sections=sections, compartments=compartments)
+
+        rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
+
+        if rep_params.type != ReportType.COMPARTMENT:
+            continue
+
+        tvec = Nd.Vector()
+        tvec.indgen(rep_params.start, rep_params.end, rep_params.dt)
+
+        points = target_manager.get_point_list(rep_params=rep_params)
         recorder = []
+
+        variables = Report.parse_variable_names(rep_params.report_on)
+        assert len(variables) == 1
+        mechanism, variable_name = variables[0]
+        
         for point in points:
             gid = point.gid
             for i, sc in enumerate(point.sclst):
@@ -324,11 +363,7 @@ def record_compartment_reports(target_manager: TargetManager):
                 x = point.x[i]
 
                 var_refs = Report.get_var_refs(section, x, mechanism, variable_name)
-                if len(var_refs) != 1:
-                    raise AttributeError(
-                        f"Expected exactly one reference for variable '{variable_name}' "
-                        f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
-                    )
+                assert len(var_refs) == 1
                 trace = Nd.Vector()
                 trace.record(var_refs[0], tvec)
                 segname = str(section(x))
@@ -384,3 +419,143 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
     events2 = load_and_filter(file2)
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
+
+class ReportReader:
+    def __init__(self, file: str):
+        self._reader = ElementReportReader(file)
+        self.populations: Dict[str, Tuple[List[int], pd.DataFrame]] = {}
+
+        for name in sorted(self._reader.get_population_names()):
+            pop = self._reader[name]
+            node_ids = sorted(pop.get_node_ids())
+            data = pop.get()
+
+            # stable sort for ties
+            df = pd.DataFrame(
+                data.data,
+                columns=pd.MultiIndex.from_arrays(data.ids.T),
+                index=data.times
+            ).sort_index(axis=1)
+
+            self.populations[name] = (node_ids, df)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ReportReader):
+            return NotImplemented
+
+        if set(self.populations.keys()) != set(other.populations.keys()):
+            return False
+
+        for name in self.populations:
+            nodes1, df1 = self.populations[name]
+            nodes2, df2 = other.populations[name]
+
+            if nodes1 != nodes2:
+                return False
+
+            # coreneuron has sometimes garbage for the first line
+            # erro thresholds as for old bb5 itegration report tests
+            if not np.allclose(df1.values[1:], df2.values[1:], rtol=1e-6, atol=1e-6):
+                return False
+
+        return True
+    
+    def convert_to_summation(self) -> None:
+        new_populations = {}
+
+        for name, (nodes, df) in self.populations.items():
+            if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1:
+                new_df = df.groupby(level=0, axis=1).sum()
+                # force 2-level MultiIndex with second level zeros
+                new_df.columns = pd.MultiIndex.from_arrays([
+                    new_df.columns,
+                    [0] * len(new_df.columns)
+                ])
+                new_nodes = sorted(new_df.columns.get_level_values(0).tolist())
+            else:
+                new_df = df.copy()
+                new_nodes = nodes
+
+            new_populations[name] = (new_nodes, new_df)
+
+        self.populations = new_populations
+
+    def reduce_to_compartment_set_report(self, population: str, positions: List[int]) -> None:
+        if population not in self.populations:
+            raise ValueError(f"Population '{population}' not found in report.")
+
+        nodes, df = self.populations[population]
+
+        if not isinstance(df.columns, pd.MultiIndex) or df.columns.nlevels != 2:
+            raise ValueError("Expected columns to be a 2-level MultiIndex.")
+
+        # Use .iloc to select columns by position, preserving duplicates and order
+        new_df = df.iloc[:, positions]
+
+        # No need to rebuild MultiIndex — iloc preserves it
+        # Extract node IDs from level 0 (with repetitions, in order)
+        new_nodes = sorted(list(set([col[0] for col in new_df.columns])))
+
+        self.populations = {
+            population: (new_nodes, new_df)
+        }
+
+    def __repr__(self) -> str:
+        lines = [f"ReportReader with {len(self.populations)} populations:"]
+        for name, (nodes, df) in self.populations.items():
+            nodes_str = ", ".join(str(n) for n in nodes)
+            lines.append(f"  - {name}: {len(nodes)} nodes, shape={df.shape}")
+            lines.append(f"      node_ids: [{nodes_str}]")
+
+            columns = df.columns
+            cols_str = ", ".join(f"({a},{b})" for a, b in columns)
+
+            lines.append(f"      columns: [{cols_str}]")
+
+        return "\n".join(lines)
+
+    def __add__(self, other: object) -> "ReportReader":
+        """
+        Add two ReportReader instances by element-wise summing their population data.
+        """
+
+        if not isinstance(other, ReportReader):
+            return NotImplemented
+
+        if set(self.populations.keys()) != set(other.populations.keys()):
+            raise ValueError("ReportReaders have different populations.")
+
+        new_populations = {}
+
+        for name in self.populations:
+            nodes1, df1 = self.populations[name]
+            nodes2, df2 = other.populations[name]
+
+            if nodes1 != nodes2:
+                raise ValueError(f"Node IDs differ for population '{name}'.")
+
+            if not df1.columns.equals(df2.columns):
+                raise ValueError(f"DataFrame columns differ for population '{name}'.")
+
+            if not df1.index.equals(df2.index):
+                raise ValueError(f"DataFrame indices differ for population '{name}'.")
+
+            new_df = df1 + df2  # element-wise addition
+
+            new_populations[name] = (nodes1, new_df)
+
+        # Create a new ReportReader instance without re-reading file
+        new_report = ReportReader.__new__(ReportReader)
+        new_report.populations = new_populations
+        new_report._reader = None  # or keep from self if needed
+
+        return new_report
+
+
+
+
+
+
+
+
+
