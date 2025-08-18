@@ -60,37 +60,6 @@ def check_dir_content(dir, files):
             f"Expected only: {list(files)}"
         )
 
-
-def check_report_conf(checkpoint_dir, substitutions):
-    """
-    Check that the report.conf file in the checkpoint directory
-    has the expected end times.
-    """
-    found_keys = set()
-    file_path = Path(checkpoint_dir) / "report.conf"
-    with open(file_path, "rb") as f:
-        lines = f.readlines()
-        for line in lines:
-            try:
-
-                parts = line.decode().split()
-                key = tuple(parts[0:2])  # Report name and target name
-
-                if key in substitutions:
-                    assert float(parts[10]) == pytest.approx(float(substitutions[key])), (
-                        f"End time for {key} is not {substitutions[key]} in {file_path}. "
-                        f"It is {parts[10]} instead."
-                    )
-                    found_keys.add(key)
-            except (UnicodeDecodeError, IndexError):
-                # Ignore lines that cannot be decoded (binary data)
-                continue
-    # Check that all expected keys were found
-    if len(substitutions) != len(found_keys):
-        missing_keys = set(substitutions.keys()) - found_keys
-        raise KeyError(f"The following keys were not found in {file_path}: {missing_keys}")
-
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -298,7 +267,10 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
 #     report_times = {("soma_v.h5", "Mosaic"): t[1], ("compartment_i.h5", "Mosaic"): t[1]}
 #     check_report_conf(f"checkpoint_{t[1]}", report_times)
 
-#     update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
+#     # check result.conf end times
+#     report_confs = utils.ReportConf.load(f"checkpoint_{t[1]}/report.conf")
+#     assert report_confs.reports["soma_v.h5"].end_time == t[1]
+#     assert report_confs.reports["compartment_i.h5"].end_time == t[1]
 
 #     for i in gids:
 #         command = [
@@ -316,8 +288,9 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
 #     subprocess.run(command, check=True, capture_output=True, text=True)
 
 #     # check result.conf end times
-#     report_times = {("soma_v.h5", "Mosaic"): 18, ("compartment_i.h5", "Mosaic"): t[2]}
-#     check_report_conf(f"checkpoint_{t[2]}", report_times)
+#     report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
+#     assert report_confs.reports["soma_v.h5"].end_time == 18
+#     assert report_confs.reports["compartment_i.h5"].end_time == t[2]
 
 #     # compare celldump states
 #     full_run_dir = Path(f"output_{t[0]}_{t[2]}")
