@@ -1100,7 +1100,7 @@ class Node:
             *rep_params[3:5],
             *(target_type,),
             *rep_params[5:8],
-            *(target.get_gids(), SimConfig.report_buff_size),
+            *(target.get_gids(), SimConfig.report_buffer_size),
         )
         CoreConfig.write_report_config(*core_report_params)
 
@@ -1157,7 +1157,7 @@ class Node:
             CoreConfig.write_spike_filename(file_name)
         else:
             # once all reports are created, we finalize the communicator for any reports
-            self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buff_size)
+            self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buffer_size)
             self._sonatareport_helper.make_comm()
             self._sonatareport_helper.prepare_datasets()
 

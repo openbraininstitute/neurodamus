@@ -1,6 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
+import pytest
 
 import libsonata
 
@@ -39,3 +40,36 @@ def test_cli_disable_reports(tmp_path):
     for name in sc.list_report_names:
         report_path = Path(sc.report(name).file_name)
         assert report_path.is_file(), f"File '{report_path}' not found."
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0
+                }
+           },
+        }
+    }
+], indirect=True,
+)
+def test_cli_report_buff_size(create_tmp_simulation_config_file):
+    tmp_path = Path(create_tmp_simulation_config_file).parent
+    from os import environ
+    custom_env = environ.copy()
+    custom_env["SPDLOG_LEVEL"] = "debug"
+    result = subprocess.run(
+        ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64"],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=custom_env
+    )
+    assert "Max Buffer size: 67108864" in result.stdout

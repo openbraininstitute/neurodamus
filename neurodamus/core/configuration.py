@@ -204,7 +204,7 @@ class _SimConfig:
     extracellular_calcium = None
     use_coreneuron = False
     use_neuron = True
-    report_buff_size = 8
+    report_buffer_size = 8
     delete_corenrn_data = False
     modelbuilding_steps = 1
     build_model = True
@@ -946,15 +946,15 @@ def _keep_coreneuron_data(config: _SimConfig):
 
 
 @SimConfig.validator
-def _report_buff_size(config: _SimConfig):
+def _report_buffer_size(config: _SimConfig):
     user_config = config.cli_options
     if user_config.report_buffer_size is not None:
-        report_buff_size = int(user_config.report_buffer_size)
+        report_buffer_size = int(user_config.report_buffer_size)
     else:
         return
 
-    assert report_buff_size > 0, "Report buffer size must be > 0"
-    config.report_buff_size = report_buff_size
+    assert report_buffer_size > 0, "Report buffer size must be > 0"
+    config.report_buffer_size = report_buffer_size
 
 
 @SimConfig.validator
