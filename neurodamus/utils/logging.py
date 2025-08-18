@@ -88,7 +88,7 @@ class _LevelColorFormatter(_logging.Formatter):
         )
 
 
-def setup_logging(loglevel, logfile=None, rank=None):
+def setup_logging(loglevel, logfile=None, rank=None, use_color=True):
     """Setup neurodamus logging.
     Features tabs and colors output to stdout and pydamus.log
 
@@ -109,17 +109,17 @@ def setup_logging(loglevel, logfile=None, rank=None):
         _logging.DEBUG,
     ]
 
-    # Stdout
+    # stdout
     hdlr = _logging.StreamHandler(sys.stdout)
-    use_color = True
-    if os.environ.get("ENVIRONMENT") == "BATCH":
-        use_color = False
-    else:
-        try:
-            sys.stdout.tell()  # works only if it's file
+    if use_color:
+        if os.environ.get("ENVIRONMENT") == "BATCH":
             use_color = False
-        except OSError:
-            pass
+        else:
+            try:
+                sys.stdout.tell()  # works only if it's file
+                use_color = False
+            except OSError:
+                pass
     hdlr.setFormatter(_LevelColorFormatter(with_time=False, rank=rank, use_color=use_color))
     if rank == 0:
         _logging.root.setLevel(verbosity_levels[loglevel])

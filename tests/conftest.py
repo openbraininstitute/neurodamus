@@ -100,7 +100,7 @@ def change_test_dir(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
 
-@pytest.fixture()
+@pytest.fixture
 def copy_memory_files(change_test_dir):
     # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {

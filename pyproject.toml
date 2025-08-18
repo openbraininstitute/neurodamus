@@ -153,6 +153,9 @@ combine-as-imports = true
     "PLR2004", # magic value (constant) used in comparison (i.e. expected == 3)
     "S101",    # Use of `assert` detected
     "SLF001",  # private member access
+    "S404",    # `subprocess` module is possibly insecure
+    "S603",    # `subprocess` call: check for execution of untrusted input 
+    "S607",    # Starting a process with a partial executable path
 ]
 
 [tool.ruff.lint.pydocstyle]
