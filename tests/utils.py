@@ -12,6 +12,7 @@ from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
+import struct
 
 
 def merge_dicts(parent: dict, child: dict):
@@ -384,3 +385,72 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
     events2 = load_and_filter(file2)
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
+
+class ReportEntry:
+    __slots__ = (
+        "report_name", "target_name", "report_type",
+        "report_variable", "unit", "report_format",
+        "target_type", "dt", "start_time", "end_time",
+        "num_gids", "buffer_size", "gids",
+    )
+
+    def __init__(self, tokens):
+        self.report_name = tokens[0]
+        self.target_name = tokens[1]
+        self.report_type = tokens[2]
+        self.report_variable = tokens[3]
+        self.unit = tokens[4]
+        self.report_format = tokens[5]
+        self.target_type = int(tokens[6])
+        self.dt = float(tokens[7])
+        self.start_time = float(tokens[8])
+        self.end_time = float(tokens[9])
+        self.num_gids = int(tokens[10])
+        self.buffer_size = int(tokens[11])
+        self.gids = []
+    
+    def set_gids(self, gids):
+        self.gids = gids
+
+    def __repr__(self):
+        fields = {
+            k: getattr(self, k)
+            for k in self.__slots__
+            if not k.startswith("_")
+        }
+        return f"{self.__class__.__name__}({fields})"
+class ReportConf:
+    __slots__ = ("reports", "populations", "spike_file")
+
+    def __init__(self, reports, populations, spike_file):
+        self.reports = reports
+        self.populations = populations
+        self.spike_file = spike_file
+
+    @classmethod
+    def load(cls, path: str) -> "ReportConf":
+        import struct
+
+        with open(path, "rb") as f:
+            num_reports = int(f.readline().strip())
+            reports = {}
+
+            for _ in range(num_reports):
+                tokens = f.readline().decode().strip().split()
+                re = ReportEntry(tokens)
+                re.set_gids(struct.unpack(f"{re.num_gids}i", f.read(re.num_gids * 4)))
+                reports[re.report_name] = re
+                # remove newline and go to next report
+                f.readline().decode().strip()
+
+            num_pops = int(f.readline().strip())
+            pops = {
+                name: int(count)
+                for _ in range(num_pops)
+                for name, count in (f.readline().decode().split(),)
+            }
+            spike_file = f.readline().decode().strip()
+
+        return cls(reports, pops, spike_file)
+
+
