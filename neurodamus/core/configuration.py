@@ -204,7 +204,7 @@ class _SimConfig:
     extracellular_calcium = None
     use_coreneuron = False
     use_neuron = True
-    report_buffer_size = 8
+    report_buffer_size = 8  # in MB
     delete_corenrn_data = False
     modelbuilding_steps = 1
     build_model = True
