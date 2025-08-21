@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import logging
 import struct
+from collections.abc import Iterable
+from pathlib import Path
 
 from ._utils import run_only_rank0
 from neurodamus.report_parameters import ReportType
 
 
-class CoreReportConfigEntry:
+class CoreReportConfigEntry:  # noqa: PLW1641
     # (field_name, type, is init input)
     SLOTS = [
         ("report_name", str, True),
@@ -57,26 +61,24 @@ class CoreReportConfigEntry:
         assert self.report_type != "compartment_set", (
             f"set_gids is not compatible with 'compartment_set' report type, got {self.report_type}"
         )
-        assert isinstance(gids, list), "gids must be a list"
+        if not isinstance(gids, Iterable):
+            raise TypeError(f"gids must be iterable, got {type(gids)}")
         assert len(gids) > 0, "gids cannot be empty"
         self._gids = gids
 
     @run_only_rank0
     def set_points(self, gids, section_ids, compartment_ids):
         assert self.report_type == "compartment_set", (
-            f"set_points is only compatible with 'compartment_set' report type, got {self.report_type}"
+            "set_points is only compatible with 'compartment_set' report type, "
+            f"got {self.report_type}"
         )
+        if not isinstance(gids, Iterable):
+            raise TypeError(f"gids must be iterable, got {type(gids)}")
+        if not isinstance(section_ids, Iterable):
+            raise TypeError(f"section_ids must be iterable, got {type(section_ids)}")
+        if not isinstance(compartment_ids, Iterable):
+            raise TypeError(f"compartment_ids must be iterable, got {type(compartment_ids)}")
         assert len(gids) > 0, "gids cannot be empty"
-        assert isinstance(gids, list), f"gids must be a list, got {type(gids).__name__}"
-        assert isinstance(section_ids, list), (
-            f"section_ids must be a list, got {type(section_ids).__name__}"
-        )
-        assert isinstance(compartment_ids, list), (
-            f"compartment_ids must be a list, got {type(compartment_ids).__name__}"
-        )
-        assert len(gids) == len(section_ids) == len(compartment_ids), (
-            f"gids, section_ids, and compartment_ids must have the same length, got: {len(gids)}, {len(section_ids)}, {len(compartment_ids)}"
-        )
 
         self._gids = gids
         self._points_section_id = section_ids
@@ -84,7 +86,7 @@ class CoreReportConfigEntry:
 
     @run_only_rank0
     def dump(self, f):
-        if not self._gids:
+        if not len(self._gids):
             raise ValueError(f"Cannot dump entry: gids not set or empty: `{self._gids}`")
 
         # text line with num_gids in correct position
@@ -117,7 +119,6 @@ class CoreReportConfigEntry:
     def load_from_file(cls, f):
         # read text line
         line = f.readline()
-        print("line:", line)
         if not line:
             return None  # EOF
 
@@ -150,17 +151,18 @@ class CoreReportConfigEntry:
     def from_report_params(cls, rep_params):
         entry = cls(
             report_name=rep_params.name,
-            report_type=rep_params.type,
-            report_on=rep_params.report_on,
+            target_name=rep_params.target.name,
+            report_type=rep_params.type.to_string(),
+            report_variable=",".join(rep_params.report_on.split()),
             unit=rep_params.unit,
-            format=rep_params.format,
-            sections=rep_params.sections,
-            compartments=rep_params.compartments,
+            report_format=rep_params.format,
+            sections=rep_params.sections.to_string(),
+            compartments=rep_params.compartments.to_string(),
             dt=rep_params.dt,
-            start=rep_params.start,
-            end=rep_params.end,
+            start_time=rep_params.start,
+            end_time=rep_params.end,
             buffer_size=rep_params.buffer_size,
-            scaling=rep_params.scaling,
+            scaling=rep_params.scaling.to_string(),
         )
         if rep_params.type == ReportType.COMPARTMENT_SET:
             # flatten the points for binary encoding
@@ -193,50 +195,108 @@ class CoreReportConfigEntry:
         return f"CoreReportConfigEntry({vals})"
 
 
-class CoreReportConfig:
-    """Handler of report.conf, the configuration of the coreNeuron reports. This class manages how the file is handled"""
+class CoreReportConfig:  # noqa: PLW1641
+    """Handler of report.conf, the configuration of the coreNeuron reports.
+    This class manages how the file is handled
+    """
+
+    __slots__ = ("_pop_offsets", "_reports", "_spike_filename")
 
     def __init__(self):
         # key: report_name, value: CoreReportConfigEntry
-        self.reports: dict[str, CoreReportConfigEntry] = {}
+        self._reports: dict[str, CoreReportConfigEntry] = {}
+        self._pop_offsets: dict[str, int] | None = None
+        self._spike_filename: str | None = None
 
     def __eq__(self, other):
         if not isinstance(other, CoreReportConfig):
             return NotImplemented
-        return self.reports == other.reports
+        return (
+            self._reports == other._reports
+            and self._pop_offsets == other._pop_offsets
+            and self._spike_filename == other._spike_filename
+        )
 
     def add_entry(self, entry: CoreReportConfigEntry):
         logging.info(
             "Adding report %s for CoreNEURON with %s gids", entry.report_name, entry.num_gids
         )
-        self.reports[entry.report_name] = entry
+        self._reports[entry.report_name] = entry
+
+    def set_pop_offsets(self, pop_offsets: dict[str, int]):
+        """Set the population offsets for the reports (skip None key)."""
+        assert isinstance(pop_offsets, dict), "pop_offsets must be a dictionary"
+        self._pop_offsets = {k: v for k, v in pop_offsets.items() if k is not None}
+
+    def set_spike_filename(self, spike_path: str):
+        """Set the spike filename for the reports."""
+        if spike_path is not None:
+            # Get only the spike file name
+            self._spike_filename = spike_path.rsplit("/", maxsplit=1)[-1]
 
     @run_only_rank0
-    def dump(self, path: str):
+    def dump(self, path: str | Path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         # always override
         with open(path, "wb") as f:
             # number of reports
-            f.write(f"{len(self.reports)}\n".encode())
+            f.write(f"{len(self._reports)}\n".encode())
             # dump each entry
-            for entry in self.reports.values():
+            for entry in self._reports.values():
                 entry.dump(f)
 
+            f.write(f"{len(self._pop_offsets)}\n".encode())
+            for k, v in self._pop_offsets.items():
+                if v is not None:
+                    f.write(f"{k} {v}\n".encode())
+                else:
+                    f.write(f"{k}\n".encode())
+
+            if self._spike_filename:
+                f.write(f"{self._spike_filename}\n".encode())
+
     @classmethod
-    def load(cls, path: str) -> "CoreReportConfig":
+    def load(cls, path: str) -> CoreReportConfig:
         config = cls()
         with open(path, "rb") as f:
+            # --- Read number of reports ---
             line = f.readline()
             if not line:
                 return config  # empty file
             try:
-                num_reports = int(line.strip())
-            except ValueError:
-                raise ValueError(f"Invalid number of reports in file: {line}")
+                num_reports = int(line.decode().strip())
+            except ValueError as err:
+                raise ValueError(f"Invalid number of reports in file: {line}") from err
 
+            # --- Read each report ---
             for _ in range(num_reports):
                 entry = CoreReportConfigEntry.load_from_file(f)
                 if entry is None:
                     raise ValueError("Unexpected EOF while reading reports")
                 config.add_entry(entry)
+
+            # --- Mandatory pop_offsets ---
+            line = f.readline()
+            if not line:
+                raise ValueError("Missing population offsets")
+            pop_count = int(line.decode().strip())
+            pop_offsets = {}
+            for _ in range(pop_count):
+                line = f.readline()
+                if not line:
+                    break
+                parts = line.decode().strip().split()
+                k = parts[0]
+                v = int(parts[1]) if len(parts) > 1 else None
+                pop_offsets[k] = v
+            config.set_pop_offsets(pop_offsets)
+
+            # --- Optional spike filename ---
+            line = f.readline()
+            if line:
+                spike_filename = line.decode().strip()
+                if spike_filename:
+                    config.set_spike_filename(spike_filename)
 
         return config

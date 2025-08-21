@@ -67,6 +67,7 @@ from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
+from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
 from neurodamus.utils.pyutils import CumulativeError, rmtree
 
 
@@ -903,7 +904,7 @@ class Node:
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
             else:
-                CoreConfig.write_report_count(len(reports_conf))
+                coreReportConfig = CoreReportConfig()
 
         # necessary for restore: we need to update the various reports tend
         # we can do it in one go later
@@ -966,7 +967,9 @@ class Node:
                 continue
 
             if SimConfig.use_coreneuron:
-                CoreConfig.write_report_config(rep_params=rep_params)
+                coreReportConfig.add_entry(
+                    CoreReportConfigEntry.from_report_params(rep_params=rep_params)
+                )
 
             if not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE:
                 report.setup(
@@ -980,6 +983,7 @@ class Node:
             self._report_list.append(report)
 
         if SimConfig.restore_coreneuron:
+            # TODO update/fix this
             CoreConfig.update_report_config(substitutions)
 
         cumulative_error.raise_if_any()
@@ -987,28 +991,14 @@ class Node:
         MPI.check_no_errors()
 
         if not SimConfig.restore_coreneuron:
-            self._reports_init(pop_offsets_alias)
-
-    def _reports_init(self, pop_offsets_alias):
-        pop_offsets = pop_offsets_alias[0]
-        if SimConfig.use_coreneuron:
-            # write spike populations
-            if hasattr(CoreConfig, "write_population_count"):
-                # Do not count populations with None pop_name
-                pop_count = len(pop_offsets) - 1 if None in pop_offsets else len(pop_offsets)
-                CoreConfig.write_population_count(pop_count)
-            for pop_name, offset in pop_offsets.items():
-                if pop_name is not None:
-                    CoreConfig.write_spike_population(pop_name or "All", offset)
-            spike_path = self._run_conf.get("SpikesFile")
-            if spike_path is not None:
-                # Get only the spike file name
-                file_name = spike_path.split("/")[-1]
-            CoreConfig.write_spike_filename(file_name)
-        else:
-            # once all reports are created, we finalize the communicator for any reports
-            self._sonatareport_helper.make_comm()
-            self._sonatareport_helper.prepare_datasets()
+            if SimConfig.use_coreneuron:
+                coreReportConfig.set_pop_offsets(pop_offsets_alias[0])
+                coreReportConfig.set_spike_filename(self._run_conf.get("SpikesFile"))
+                coreReportConfig.dump(CoreConfig.report_config_file_save)
+            else:
+                # once all reports are created, we finalize the communicator for any reports
+                self._sonatareport_helper.make_comm()
+                self._sonatareport_helper.prepare_datasets()
 
     # -
     @mpi_no_errors

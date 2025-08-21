@@ -218,7 +218,7 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file, keep_build=True)
     output_dir = Path(SimConfig.output_root)
     is_v5_sonata = "output_sonata2" in str(output_dir)
     reference_dir = V5_SONATA / "reference" / "reports" if is_v5_sonata else RINGTEST_DIR / "reference" / "reports"
