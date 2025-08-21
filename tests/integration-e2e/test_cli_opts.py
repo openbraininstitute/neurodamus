@@ -45,6 +45,23 @@ def test_cli_disable_reports(tmp_path):
     "create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
+        "target_simulator": "CORENEURON",
+        "extra_config": {
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0
+                }
+           },
+        }
+    },
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "target_simulator": "NEURON",
         "extra_config": {
             "reports": {
                 "soma_v": {

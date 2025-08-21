@@ -183,3 +183,16 @@ def test_cli_report_buff_size(create_tmp_simulation_config_file):
     
     report_confs = utils.ReportConf.load("build/report.conf")
     assert report_confs.reports["soma_v.h5"].buffer_size == 64
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)              
+def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
+    for value in [-64, 0]:
+        command = ["neurodamus", create_tmp_simulation_config_file, f"--report-buffer-size={value}"]
+        result = subprocess.run(command, check=False, capture_output=True, text=True)
+
+        assert "Report buffer size must be > 0" in result.stdout

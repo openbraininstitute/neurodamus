@@ -953,6 +953,9 @@ def _report_buffer_size(config: _SimConfig):
     else:
         return
 
+    if config.restore is not None:
+        raise ConfigurationError("--report-buffer-size cannot be used with --restore")
+
     assert report_buffer_size > 0, "Report buffer size must be > 0"
     config.report_buffer_size = report_buffer_size
 
