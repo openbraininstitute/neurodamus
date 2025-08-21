@@ -6,7 +6,7 @@ from neurodamus.report_parameters import ReportType
 
 
 class CoreReportConfigEntry:
-    # (field_name, type, init input)
+    # (field_name, type, is init input)
     SLOTS = [
         ("report_name", str, True),
         ("target_name", str, True),
