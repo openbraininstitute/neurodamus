@@ -1,5 +1,7 @@
 import struct
 
+from ._utils import run_only_rank0
+
 class CoreReportConfigEntry:
     # (field_name, type, init input)
     SLOTS = [
@@ -43,12 +45,14 @@ class CoreReportConfigEntry:
     def num_gids(self):
         return len(self._gids)
 
+    @run_only_rank0
     def set_gids(self, gids):
         assert self.report_type != "compartment_set", f"set_gids is not compatible with 'compartment_set' report type, got {self.report_type}"
         assert isinstance(gids, list), "gids must be a list"
         assert len(gids) > 0, "gids cannot be empty"
         self._gids = gids
 
+    @run_only_rank0
     def set_points(self, gids, section_ids, compartment_ids):
         assert self.report_type == "compartment_set", f"set_points is only compatible with 'compartment_set' report type, got {self.report_type}"
         assert len(gids) > 0, "gids cannot be empty"
@@ -61,6 +65,7 @@ class CoreReportConfigEntry:
         self._points_section_id = section_ids
         self._points_compartment_id = compartment_ids
 
+    @run_only_rank0
     def dump(self, f):
         if not self._gids:
             raise ValueError(f"Cannot dump entry: gids not set or empty: `{self._gids}`")
@@ -139,9 +144,11 @@ class CoreReportConfig:
         # key: report_name, value: CoreReportConfigEntry
         self.reports: dict[str, CoreReportConfigEntry] = {}
 
+    @run_only_rank0
     def add_entry(self, entry: CoreReportConfigEntry):
         self.reports[entry.report_name] = entry
 
+    @run_only_rank0
     def dump(self, path: str):
         # always override
         with open(path, "wb") as f:
