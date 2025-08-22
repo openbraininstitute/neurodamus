@@ -1026,7 +1026,7 @@ class Node:
             self._coreneuron_configure_datadir(
                 corenrn_restore=False, coreneuron_direct_mode=SimConfig.coreneuron_direct_mode
             )
-            self._coreneuron_write_sim_config()
+            self._coreneuron_write_sim_config(corenrn_restore=False)
 
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sim_init_neuron()
@@ -1228,7 +1228,7 @@ class Node:
 
     # -
     @timeit(name="corewrite")
-    def _coreneuron_write_sim_config(self, corenrn_restore=False):
+    def _coreneuron_write_sim_config(self, corenrn_restore):
         log_stage("Dataset generation for CoreNEURON")
 
         if not corenrn_restore:

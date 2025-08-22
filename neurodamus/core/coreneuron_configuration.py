@@ -4,7 +4,7 @@ from pathlib import Path
 
 from . import NeuronWrapper as Nd
 from ._utils import run_only_rank0
-from .configuration import ConfigurationError, SimConfig
+from .configuration import SimConfig
 
 
 class CompartmentMapping:
