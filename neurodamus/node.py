@@ -923,7 +923,7 @@ class Node:
                 rep_name=rep_name,
                 rep_conf=rep_conf,
                 target=target,
-                buffer_size=SimConfig.corenrn_buff_size,
+                buffer_size=SimConfig.report_buffer_size,
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
@@ -997,6 +997,7 @@ class Node:
                 coreReportConfig.dump(CoreConfig.report_config_file_save)
             else:
                 # once all reports are created, we finalize the communicator for any reports
+                self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buffer_size)
                 self._sonatareport_helper.make_comm()
                 self._sonatareport_helper.prepare_datasets()
 

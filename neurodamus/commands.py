@@ -68,6 +68,9 @@ def neurodamus(args=None):
         --coreneuron-direct-mode     Run CoreNeuron in direct memory mode transfered from Neuron,
                                      without writing model data to disk.
         --use-color=[ON, OFF]  If OFF, forces no color to be used in logs; [default: ON]
+        --report-buffer-size=<number> Override the size in MB each rank will allocate for each
+                                      report buffer to hold data. When the buffer is full, the
+                                      ranks will aggregate data for writing to disk. Default: 8 MB
     """
     from . import __version__
 
