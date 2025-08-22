@@ -1,3 +1,4 @@
+from logging import config
 import pytest
 from neurodamus.core.coreneuron_report_config import CoreReportConfigEntry, CoreReportConfig
 
@@ -147,6 +148,53 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
     assert final_loaded == reloaded3
     assert final_loaded._pop_offsets == {"pop_new": 42}
     assert final_loaded._spike_filename == "new_spikes.dat"
+
+def test_update_file(tmp_path):
+    # Arrange: create a dummy config with one report
+    file_path = tmp_path / "report.conf"
+    conf = CoreReportConfig()
+    e1 = CoreReportConfigEntry(
+        "r1", "t1", "type1", "var1", "unit", "fmt",
+        "sec1", "comp1", 0.1, 0.0, 1.0, buffer_size=8, scaling="scale"
+    )
+    e1.set_gids([1, 2, 3])
+    conf.add_entry(e1)
+    conf.set_pop_offsets({"pop1": 10, "pop2": 20})
+    conf.set_spike_filename("/path/to/spikes.dat")
+    conf.dump(file_path)
+
+    # Act: update population_count
+    substitutions = {"r1": {"buffer_size": 11}}
+    CoreReportConfig.update_file(file_path, substitutions)
+
+    # Assert: reloaded config has updated value
+    reloaded = CoreReportConfig.load(file_path)
+    assert reloaded._reports["r1"].buffer_size == 11
+
+def test_update_file_failures(tmp_path):
+    # Arrange
+    file_path = tmp_path / "report.conf"
+    conf = CoreReportConfig()
+    e1 = CoreReportConfigEntry(
+        "r1", "t1", "type1", "var1", "unit", "fmt",
+        "sec1", "comp1", 0.1, 0.0, 1.0, buffer_size=8, scaling="scale"
+    )
+    e1.set_gids([1, 2, 3])
+    conf.add_entry(e1)
+    conf.set_pop_offsets({"pop1": 10})  # mandatory
+    conf.dump(file_path)
+
+    # --- Case 1: missing report key ---
+    with pytest.raises(KeyError):
+        CoreReportConfig.update_file(file_path, {"nonexistent": {"buffer_size": 11}})
+
+    # --- Case 2: missing attribute on report ---
+    with pytest.raises(AttributeError):
+        CoreReportConfig.update_file(file_path, {"r1": {"nonexistent_attr": 42}})
+
+    # --- Case 3: wrong type for existing attribute ---
+    with pytest.raises(TypeError):
+        CoreReportConfig.update_file(file_path, {"r1": {"buffer_size": "wrong_type"}})
 
 
 

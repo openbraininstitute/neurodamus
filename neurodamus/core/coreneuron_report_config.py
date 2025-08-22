@@ -300,3 +300,25 @@ class CoreReportConfig:  # noqa: PLW1641
                     config.set_spike_filename(spike_filename)
 
         return config
+
+    @staticmethod
+    @run_only_rank0
+    def update_file(file_path: str, substitutions: dict[str, dict[str, int]]):
+        """Update the report configuration file with new substitutions."""
+        conf = CoreReportConfig.load(file_path)
+        for report_name, targets in substitutions.items():
+            report = conf._reports[report_name]
+            for attr, new_val in targets.items():
+                if not hasattr(report, attr):
+                    raise AttributeError(f"Missing attribute '{attr}' in {report!r}")
+
+                current_val = getattr(report, attr)
+                if not isinstance(new_val, type(current_val)):
+                    raise TypeError(
+                        f"Type mismatch for '{attr}': expected {type(current_val).__name__}, "
+                        f"got {type(new_val).__name__}. "
+                        f"Current value={current_val!r}, attempted new value={new_val!r}"
+                    )
+
+                setattr(report, attr, new_val)
+        conf.dump(file_path)

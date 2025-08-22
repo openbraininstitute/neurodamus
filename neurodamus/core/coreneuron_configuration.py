@@ -128,55 +128,6 @@ class _CoreNEURONConfig:
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
 
     @run_only_rank0
-    def update_report_config(self, substitutions):
-        """Updates a report configuration (e.g., stop time).
-
-        Searches for the specified report and nodeset, updates the relevant parameters
-        (currently only `tstop`), and writes the updated configuration to a new file.
-
-        Note: `report.conf` must already exist.
-        """
-        report_conf = Path(self.report_config_file_save)
-
-        # Read all content
-        with report_conf.open("rb") as f:
-            lines = f.readlines()
-
-        # Track performed substitutions
-        applied_subs = set()
-
-        # Find and update the matching line
-        for i, line in enumerate(lines):
-            try:
-                parts = line.decode().split()
-                key = tuple(parts[0:2])  # Report name and target name
-
-                if key in substitutions:
-                    # This is often but not always tstop:
-                    # new_tend = min(tstop, tend) where tend is the ending
-                    # of the report and tstop is the tstop of this simulation
-                    # (potentially between a restore and a save)
-                    new_tend = substitutions[key]
-                    parts[10] = f"{new_tend:.6f}"
-                    lines[i] = (" ".join(parts) + "\n").encode()
-                    applied_subs.add(key)
-            except (UnicodeDecodeError, IndexError):  # noqa: PERF203
-                # Ignore lines that cannot be decoded (binary data)
-                continue
-
-        # Find substitutions that were not applied
-        missing_subs = set(substitutions.keys()) - applied_subs
-
-        if missing_subs:
-            raise ConfigurationError(
-                f"Some substitutions could not be applied for the following "
-                f"(report, target) pairs: {missing_subs}"
-            )
-
-        with report_conf.open("wb") as f:
-            f.writelines(lines)
-
-    @run_only_rank0
     def write_sim_config(
         self,
         tstop: float,

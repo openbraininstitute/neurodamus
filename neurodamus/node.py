@@ -908,7 +908,7 @@ class Node:
 
         # necessary for restore: we need to update the various reports tend
         # we can do it in one go later
-        substitutions = {}
+        substitutions = defaultdict(dict)
         cumulative_error = CumulativeError()
         for rep_name, rep_conf in reports_conf.items():
             cumulative_error.is_error_appended = False
@@ -938,7 +938,7 @@ class Node:
                 continue
 
             if SimConfig.restore_coreneuron:
-                substitutions[rep_params.name, target_spec.name] = rep_params.end
+                substitutions[rep_params.name][target_spec.name] = rep_params.end
                 continue  # we dont even need to initialize reports
 
             # With coreneuron direct mode, enable fast membrane current calculation
@@ -983,8 +983,7 @@ class Node:
             self._report_list.append(report)
 
         if SimConfig.restore_coreneuron:
-            # TODO update/fix this
-            CoreConfig.update_report_config(substitutions)
+            CoreReportConfig.update_file(CoreConfig.report_config_file_save, substitutions)
 
         cumulative_error.raise_if_any()
 
