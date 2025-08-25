@@ -33,7 +33,7 @@ on:
         required: false
 
 env:
-  NEURON_COMMIT_ID: '7175203'
+  NEURON_COMMIT_ID: '0d990513b'
   RDMAV_FORK_SAFE: '1'
 
 jobs:
