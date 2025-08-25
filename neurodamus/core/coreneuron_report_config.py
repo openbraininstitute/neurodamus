@@ -239,6 +239,7 @@ class CoreReportConfig:  # noqa: PLW1641
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         # always override
+        logging.info("Writing coreneuron report config file: %s", path.resolve())
         with open(path, "wb") as f:
             # number of reports
             f.write(f"{len(self._reports)}\n".encode())
@@ -255,6 +256,7 @@ class CoreReportConfig:  # noqa: PLW1641
 
             if self._spike_filename:
                 f.write(f"{self._spike_filename}\n".encode())
+        logging.info("Done! coreneuron report config was written")
 
     @classmethod
     def load(cls, path: str) -> CoreReportConfig:

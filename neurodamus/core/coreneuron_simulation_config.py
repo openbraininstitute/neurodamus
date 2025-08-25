@@ -43,6 +43,11 @@ class CoreSimulationConfig:  # noqa: PLW1641
                 val = None
 
             val = self._coerce_type(file_key, typ, val)
+
+            # Special handling for paths
+            if file_key in {"outpath", "datpath", "report_conf"} and val is not None:
+                val = str(Path(val).resolve())
+
             setattr(self, attr_name, val)
 
     @staticmethod
@@ -68,7 +73,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
     def dump(self, path: str | Path):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        logging.info("Writing sim config file: %s", path)
+        logging.info("Writing coreneuron simulation config file: %s", path.resolve())
 
         with path.open("w", encoding="utf-8") as fp:
             for file_key, _typ, mandatory in self.SLOTS:
@@ -81,7 +86,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
                         fp.write(f"{file_key}='{val}'\n")
                     else:
                         fp.write(f"{file_key}={val}\n")
-        logging.info(" => Dataset written to '%s'", path)
+        logging.info("Done! coreneuron simulation config was written")
 
     @classmethod
     def load(cls, path: str | Path) -> CoreSimulationConfig:

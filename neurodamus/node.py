@@ -68,6 +68,7 @@ from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.timeit import TimerManager, timeit
 from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 from neurodamus.utils.pyutils import CumulativeError, rmtree
 
 
@@ -1244,17 +1245,25 @@ class Node:
                 "Multiple cell state GIDs provided. Using the first one: %d",
                 self._dump_cell_state_gids[0],
             )
-        CoreConfig.write_sim_config(
-            Nd.tstop,
-            Nd.dt,
-            prcellgid,
-            getattr(SimConfig, "celsius", 34.0),
-            getattr(SimConfig, "v_init", -65.0),
-            self._core_replay_file,
-            SimConfig.rng_info.getGlobalSeed(),
-            int(SimConfig.cli_options.model_stats),
-            int(self._run_conf["EnableReports"]),
+
+        core_simulation_config = CoreSimulationConfig(
+            outpath=CoreConfig.output_root,
+            datpath=CoreConfig.datadir,
+            tstop=Nd.tstop,
+            dt=Nd.dt,
+            prcellgid=prcellgid,
+            celsius=getattr(SimConfig, "celsius", 34.0),
+            voltage=getattr(SimConfig, "v_init", -65.0),
+            cell_permute=CoreConfig.default_cell_permute,
+            pattern=self._core_replay_file,
+            seed=SimConfig.rng_info.getGlobalSeed(),
+            model_stats=bool(int(SimConfig.cli_options.model_stats)),
+            report_conf=CoreConfig.report_config_file_save
+            if self._run_conf["EnableReports"]
+            else None,
+            mpi=int(os.environ.get("NEURON_INIT_MPI", "1")),
         )
+        core_simulation_config.dump(CoreConfig.sim_config_file)
         # Wait for rank0 to write the sim config file
         MPI.barrier()
         logging.info(" => Dataset written to '%s'", CoreConfig.datadir)

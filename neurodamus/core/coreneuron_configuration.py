@@ -1,9 +1,6 @@
-import logging
-import os
 from pathlib import Path
 
 from . import NeuronWrapper as Nd
-from ._utils import run_only_rank0
 from .configuration import SimConfig
 
 
@@ -126,58 +123,6 @@ class _CoreNEURONConfig:
     # This needs to happen only when CoreNEURON simulation is enabled
     def instantiate_artificial_cell(self):
         self.artificial_cell_object = Nd.CoreNEURONArtificialCell()
-
-    @run_only_rank0
-    def write_sim_config(
-        self,
-        tstop: float,
-        dt: float,
-        prcellgid: int,
-        celsius: float,
-        v_init: float,
-        pattern=None,
-        seed=None,
-        model_stats=False,
-        enable_reports=True,
-    ):
-        """Writes the simulation configuration to a file.
-
-        Args:
-            tstop (float): Simulation stop time.
-            dt (float): Time step for the simulation.
-            prcellgid (int): dump cell state GID. CoreNeuron allows only one
-                cell to be dumped at a time.
-            celsius (float): Temperature in Celsius.
-            v_init (float): Initial voltage.
-            pattern (str, optional): Pattern for the simulation. Defaults to None.
-            seed (int, optional): Random seed for the simulation. Defaults to None.
-            model_stats (bool, optional): Flag to enable model statistics. Defaults to False.
-            enable_reports (bool, optional): Flag to enable reports. Defaults to True.
-        """
-        simconf = Path(self.sim_config_file)
-        logging.info("Writing sim config file: %s", simconf)
-        simconf.parent.mkdir(parents=True, exist_ok=True)
-
-        with simconf.open("w", encoding="utf-8") as fp:
-            fp.write(f"outpath='{os.path.abspath(self.output_root)}'\n")
-            fp.write(f"datpath='{os.path.abspath(self.datadir)}'\n")
-            fp.write(f"tstop={tstop}\n")
-            fp.write(f"dt={dt}\n")
-            fp.write(f"prcellgid={prcellgid}\n")
-            fp.write(f"celsius={celsius}\n")
-            fp.write(f"voltage={v_init}\n")
-            fp.write(f"cell-permute={int(self.default_cell_permute)}\n")
-            if pattern:
-                fp.write(f"pattern='{pattern}'\n")
-            if seed:
-                fp.write(f"seed={int(seed)}\n")
-            if model_stats:
-                fp.write("'model-stats'\n")
-            if enable_reports:
-                fp.write(f"report-conf='{self.report_config_file_save}'\n")
-            fp.write(f"mpi={os.environ.get('NEURON_INIT_MPI', '1')}\n")
-
-        logging.info(" => Dataset written to '%s'", simconf)
 
     def psolve_core(self, coreneuron_direct_mode=False):
         from neuron import coreneuron
