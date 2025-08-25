@@ -157,8 +157,7 @@ def test_cli_output_path(create_tmp_simulation_config_file):
     )
     assert (tmp_path / new_output).is_dir(), f"Directory '{new_output}' not found."
 
-# to be enabled with #337
-@pytest.mark.skip
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file", [
     {
@@ -185,8 +184,7 @@ def test_cli_report_buff_size(create_tmp_simulation_config_file):
     report_confs = utils.ReportConf.load("build/report.conf")
     assert report_confs.reports["soma_v.h5"].buffer_size == 64
 
-# to be enabled with #337
-@pytest.mark.skip
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [{"simconfig_fixture": "ringtest_baseconfig"}],

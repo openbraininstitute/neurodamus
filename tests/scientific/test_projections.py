@@ -79,8 +79,7 @@ def _read_sonata_soma_report(report_name):
     data = report[pop_name].get(node_ids=[ids[0]])
     return numpy.array(data.data).flatten().tolist()
 
-# to be enabled with #337
-@pytest.mark.skip
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize(
     "sonata_config_file",
     [
