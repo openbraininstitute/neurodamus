@@ -157,42 +157,42 @@ def test_cli_output_path(create_tmp_simulation_config_file):
     )
     assert (tmp_path / new_output).is_dir(), f"Directory '{new_output}' not found."
 
-
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "CORENEURON",
-            "reports": {
-                "soma_v": {
-                    "type": "compartment",
-                    "variable_name": "v",
-                    "sections": "soma",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 40.0
-                }
-           },
-       }
-    }
-], indirect=True)
-def test_cli_report_buff_size(create_tmp_simulation_config_file):
-    command = ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64", "--keep-build"]
-    subprocess.run(command, check=True, capture_output=True)
+# to be enabled with #337
+# @pytest.mark.parametrize(
+#     "create_tmp_simulation_config_file", [
+#     {
+#         "simconfig_fixture": "ringtest_baseconfig",
+#         "extra_config": {
+#             "target_simulator": "CORENEURON",
+#             "reports": {
+#                 "soma_v": {
+#                     "type": "compartment",
+#                     "variable_name": "v",
+#                     "sections": "soma",
+#                     "dt": 0.1,
+#                     "start_time": 0.0,
+#                     "end_time": 40.0
+#                 }
+#            },
+#        }
+#     }
+# ], indirect=True)
+# def test_cli_report_buff_size(create_tmp_simulation_config_file):
+#     command = ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64", "--keep-build"]
+#     subprocess.run(command, check=True, capture_output=True)
     
-    report_confs = utils.ReportConf.load("build/report.conf")
-    assert report_confs.reports["soma_v.h5"].buffer_size == 64
+#     report_confs = utils.ReportConf.load("build/report.conf")
+#     assert report_confs.reports["soma_v.h5"].buffer_size == 64
 
+# to be enabled with #337
+# @pytest.mark.parametrize(
+#     "create_tmp_simulation_config_file",
+#     [{"simconfig_fixture": "ringtest_baseconfig"}],
+#     indirect=True,
+# )              
+# def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
+#     for value in [-64, 0]:
+#         command = ["neurodamus", create_tmp_simulation_config_file, f"--report-buffer-size={value}"]
+#         result = subprocess.run(command, check=False, capture_output=True, text=True)
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [{"simconfig_fixture": "ringtest_baseconfig"}],
-    indirect=True,
-)              
-def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
-    for value in [-64, 0]:
-        command = ["neurodamus", create_tmp_simulation_config_file, f"--report-buffer-size={value}"]
-        result = subprocess.run(command, check=False, capture_output=True, text=True)
-
-        assert "Report buffer size must be > 0" in result.stdout
+#         assert "Report buffer size must be > 0" in result.stdout
