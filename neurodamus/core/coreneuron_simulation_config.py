@@ -1,11 +1,16 @@
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
 from ._utils import run_only_rank0
 
-from pathlib import Path
-import logging
+
 
 def to_snake_case(name: str) -> str:
     """Convert a file key with dashes to snake_case."""
     return name.replace("-", "_")
+
 
 class CoreSimulationConfig:  # noqa: PLW1641
     # field_name (file key), type, mandatory
@@ -102,7 +107,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
             val = getattr(self, attr_name, None)
             items.append(f"{file_key}={val!r}")
         return f"{self.__class__.__name__}({', '.join(items)})"
-    
+
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return NotImplemented
