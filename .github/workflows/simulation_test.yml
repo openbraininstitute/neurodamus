@@ -33,7 +33,7 @@ on:
         required: false
 
 env:
-  NEURON_COMMIT_ID: '7175203'
+  NEURON_COMMIT_ID: '0d990513b'
   RDMAV_FORK_SAFE: '1'
 
 jobs:
@@ -158,6 +158,7 @@ jobs:
       with:
         path: nrn
         key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ matrix.python-version }}
+
 
     - name: Install NEURON
       if: steps.cache-neuron.outputs.cache-hit != 'true'

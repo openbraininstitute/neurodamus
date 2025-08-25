@@ -6,7 +6,6 @@ from tests.utils import read_sonata_spike_file
 
 from ..conftest import SIM_DIR, USECASE3
 
-@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "v5_sonata"),
@@ -40,7 +39,6 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     captured = capsys.readouterr()
     assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
 
-@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(USECASE3),

@@ -5,7 +5,8 @@ from libsonata import SonataError
 
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.node import ReportsCumulativeError, Node
+from neurodamus.utils.pyutils import CumulativeError
+from neurodamus.node import Node
 from tests.utils import (check_signal_peaks, read_ascii_report,
                          record_compartment_reports, write_ascii_reports)
 
@@ -64,7 +65,7 @@ from tests.utils import (check_signal_peaks, read_ascii_report,
     ],
     indirect=True,
 )
-def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
+def test_config_CumulativeError(create_tmp_simulation_config_file):
     """Test error handling in enable_reports:
     1. wrong variable name
     2. dt < simulation dt
@@ -73,7 +74,7 @@ def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|one reference for variable 'i' of mechanism 'wrong'|reports requires exactly one variable, but received"):
+    with pytest.raises(CumulativeError, match="is before start time|is smaller than simulation dt|reference found for variable 'i' of mechanism 'wrong'|reports requires exactly one variable, but received"):
         n.enable_reports()
 
 @pytest.mark.parametrize(
@@ -110,7 +111,7 @@ def test_config_addional_errors(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ValueError, match="reports requires exactly one variable, but received"):
+    with pytest.raises(CumulativeError, match="reports requires exactly one variable, but received"):
         n.enable_reports()
 
 @pytest.mark.parametrize(
@@ -203,7 +204,7 @@ def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match=r"Mechanism 'ProbAMPANMDA_EMS' not found"):
+    with pytest.raises(CumulativeError, match=r"'ProbAMPANMDA_EMS' not found"):
         n.enable_reports()
 
 
@@ -303,7 +304,6 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 3
-
     ascii_recorders = record_compartment_reports(n._target_manager)
 
     Nd.finitialize()  # reinit for the recordings to be registered

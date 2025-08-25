@@ -6,7 +6,6 @@ from pathlib import Path
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
-@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(SIM_DIR / "usecase3"),
