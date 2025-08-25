@@ -6,7 +6,6 @@ from pathlib import Path
 from ._utils import run_only_rank0
 
 
-
 def to_snake_case(name: str) -> str:
     """Convert a file key with dashes to snake_case."""
     return name.replace("-", "_")
@@ -33,6 +32,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
     def __init__(self, **kwargs):
         for file_key, typ, mandatory in self.SLOTS:
             attr_name = to_snake_case(file_key)
+
             if file_key in kwargs:
                 val = kwargs[file_key]
             elif attr_name in kwargs:  # allow snake_case keys too
@@ -42,23 +42,27 @@ class CoreSimulationConfig:  # noqa: PLW1641
             else:
                 val = None
 
-            # Type coercion
-            if val is not None and not isinstance(val, typ):
-                if typ is bool:
-                    if isinstance(val, str):
-                        val = val.strip().lower() in ("true", "1", "yes")
-                    else:
-                        val = bool(val)
-                elif typ is int:
-                    val = int(val)
-                elif typ is float:
-                    val = float(val)
-                elif typ is str:
-                    val = str(val)
-                else:
-                    raise TypeError(f"Cannot coerce {file_key} to {typ}")
-
+            val = self._coerce_type(file_key, typ, val)
             setattr(self, attr_name, val)
+
+    @staticmethod
+    def _coerce_type(file_key, typ, val):
+        """Coerce to expected type. Useful when we want to load the class from file."""
+        if val is None or isinstance(val, typ):
+            return val
+
+        if typ is bool:
+            if isinstance(val, str):
+                return val.strip().lower() in {"true", "1", "yes"}
+            return bool(val)
+        if typ is int:
+            return int(val)
+        if typ is float:
+            return float(val)
+        if typ is str:
+            return str(val)
+
+        raise TypeError(f"Cannot coerce {file_key} to {typ}")
 
     @run_only_rank0
     def dump(self, path: str | Path):
@@ -72,7 +76,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
                 val = getattr(self, attr_name)
                 if file_key == "model-stats" and val:
                     fp.write("'model-stats'\n")
-                elif mandatory or val not in (None, False, ""):
+                elif mandatory or val not in {None, False, ""}:
                     if isinstance(val, str):
                         fp.write(f"{file_key}='{val}'\n")
                     else:
@@ -80,7 +84,7 @@ class CoreSimulationConfig:  # noqa: PLW1641
         logging.info(" => Dataset written to '%s'", path)
 
     @classmethod
-    def load(cls, path: str | Path) -> "CoreSimulationConfig":
+    def load(cls, path: str | Path) -> CoreSimulationConfig:
         raw = {}
         with Path(path).open("r", encoding="utf-8") as fp:
             for line in fp:

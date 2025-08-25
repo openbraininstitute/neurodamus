@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from tests import utils
 
 from neurodamus.core.coreneuron_report_config import CoreReportConfig
 class UnexpectedFileError(Exception):
@@ -266,44 +267,46 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     assert report_confs._reports["soma_v.h5"].end_time == t[1]
     assert report_confs._reports["compartment_i.h5"].end_time == t[1]
 
-    # for i in gids:
-    #     command = [
-    #         "neurodamus",
-    #         "simulation_config.json",
-    #         f"--dump-cell-state={i}",
-    #         f"--restore=checkpoint_{t[1]}"]
-    #     subprocess.run(command, check=True, capture_output=True)
+    update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
 
-    # command = [
-    #     "neurodamus",
-    #     "simulation_config.json",
-    #     f"--save=checkpoint_{t[2]}",
-    #     f"--restore=checkpoint_{t[1]}"]
-    # subprocess.run(command, check=True, capture_output=True, text=True)
+    for i in gids:
+        command = [
+            "neurodamus",
+            "simulation_config.json",
+            f"--dump-cell-state={i}",
+            f"--restore=checkpoint_{t[1]}"]
+        subprocess.run(command, check=True, capture_output=True)
 
-#     # check result.conf end times
-#     report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
-#     assert report_confs.reports["soma_v.h5"].end_time == 18
-#     assert report_confs.reports["compartment_i.h5"].end_time == t[2]
+    command = [
+        "neurodamus",
+        "simulation_config.json",
+        f"--save=checkpoint_{t[2]}",
+        f"--restore=checkpoint_{t[1]}"]
+    subprocess.run(command, check=True, capture_output=True, text=True)
 
-#     # compare celldump states
-#     full_run_dir = Path(f"output_{t[0]}_{t[2]}")
-#     save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
-#     # Compare the files of the form 1_cpu_t<t>.corenrn
-#     for i in gids:
-#         file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
-#         file1 = full_run_dir / file_name
-#         file2 = save_restore_dir2 / file_name
-#         if not file1.exists() or not file2.exists():
-#             raise FileNotFoundError(f"One or both files do not exist: {file1}, {file2}")
-#         # Compare the files
-#         assert filecmp.cmp(file1, file2, shallow=False)
+    # check result.conf end times
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[2]}/report.conf")
+    assert report_confs._reports["soma_v.h5"].end_time == 18
+    assert report_confs._reports["compartment_i.h5"].end_time == t[2]
 
-#     # Compare the out.dat files
-#     out_dat_file = "out.dat"
-#     full_run_out_dat = full_run_dir / out_dat_file
-#     save_restore_dir1 = Path(f"output_{t[0]}_{t[1]}")
-#     save_restore_out_dat1 = save_restore_dir1 / out_dat_file
-#     save_restore_out_dat2 = save_restore_dir2 / out_dat_file
-#     assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat1, end_time=t[1],)
-#     assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat2, start_time=t[1],)
+    # compare celldump states
+    full_run_dir = Path(f"output_{t[0]}_{t[2]}")
+    save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
+    # Compare the files of the form 1_cpu_t<t>.corenrn
+    for i in gids:
+        file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
+        file1 = full_run_dir / file_name
+        file2 = save_restore_dir2 / file_name
+        if not file1.exists() or not file2.exists():
+            raise FileNotFoundError(f"One or both files do not exist: {file1}, {file2}")
+        # Compare the files
+        assert filecmp.cmp(file1, file2, shallow=False)
+
+    # Compare the out.dat files
+    out_dat_file = "out.dat"
+    full_run_out_dat = full_run_dir / out_dat_file
+    save_restore_dir1 = Path(f"output_{t[0]}_{t[1]}")
+    save_restore_out_dat1 = save_restore_dir1 / out_dat_file
+    save_restore_out_dat2 = save_restore_dir2 / out_dat_file
+    assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat1, end_time=t[1],)
+    assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat2, start_time=t[1],)

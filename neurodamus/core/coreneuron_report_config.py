@@ -314,6 +314,7 @@ class CoreReportConfig:  # noqa: PLW1641
 
                 current_val = getattr(report, attr)
                 if not isinstance(new_val, type(current_val)):
+                    logging.error("I enter here!")
                     raise TypeError(
                         f"Type mismatch for '{attr}': expected {type(current_val).__name__}, "
                         f"got {type(new_val).__name__}. "

@@ -938,7 +938,7 @@ class Node:
                 continue
 
             if SimConfig.restore_coreneuron:
-                substitutions[rep_params.name][target_spec.name] = rep_params.end
+                substitutions[rep_params.name]["end_time"] = rep_params.end
                 continue  # we dont even need to initialize reports
 
             # With coreneuron direct mode, enable fast membrane current calculation

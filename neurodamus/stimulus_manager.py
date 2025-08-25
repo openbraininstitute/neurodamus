@@ -23,7 +23,7 @@ from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose
-from neurodamus.report_parameters import SectionType, Compartments
+from neurodamus.report_parameters import Compartments, SectionType
 
 
 class StimulusManager:
@@ -104,7 +104,9 @@ class OrnsteinUhlenbeck(BaseStim):
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -239,7 +241,9 @@ class ShotNoise(BaseStim):
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -464,7 +468,9 @@ class Linear(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -578,7 +584,9 @@ class Noise(BaseStim):
         sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
             cell = cell_manager.get_cell(gid)
@@ -674,7 +682,9 @@ class Pulse(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
 
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
@@ -716,7 +726,9 @@ class Sinusoidal(BaseStim):
             return  # nothing to do, stim is a no-op
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split
@@ -759,7 +771,9 @@ class SEClamp(BaseStim):
         self.parse_check_all_parameters(stim_info)
 
         # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER)
+        tpoints = target.get_point_list(
+            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+        )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
                 # skip sections not in this split
