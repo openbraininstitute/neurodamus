@@ -509,15 +509,15 @@ class NodesetTarget:
         return point_list
 
     def get_point_list(
-        self, cell_manager, sections=SectionType.SOMA, compartments=Compartments.ALL
+        self, cell_manager, sections, compartments
     ):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
             cell_manager: a cell manager or global cell manager
-            sections: SectionType, default = "soma"
-            compartments: Compartments, default = "center" for "soma", default = "all" for others
+            sections: SectionType
+            compartments: Compartments
 
         Returns:
             list of TPointList containing the compartment position and retrieved section references

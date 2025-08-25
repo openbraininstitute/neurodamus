@@ -11,8 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from tests import utils
-
+from neurodamus.core.coreneuron_report_config import CoreReportConfig
 class UnexpectedFileError(Exception):
     pass
 
@@ -186,106 +185,101 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
     assert not Path("build").exists()
 
-# renable once compartment sets integrated in neuron
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "CORENEURON",
-#             "inputs": {
-#                 "Stimulus": {
-#                     "module": "pulse",
-#                     "input_type": "current_clamp",
-#                     "delay": 5,
-#                     "duration": 50,
-#                     "node_set": "RingA",
-#                     "represents_physical_electrode": True,
-#                     "amp_start": 10,
-#                     "width": 1,
-#                     "frequency": 50
-#                 }
-#             },
-#             "reports": {
-#                 "soma_v": {
-#                     "type": "compartment",
-#                     "cells": "Mosaic",
-#                     "variable_name": "v",
-#                     "sections": "soma",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 18.0,
-#                 },
-#                 "compartment_i": {
-#                     "type": "compartment",
-#                     "cells": "Mosaic",
-#                     "variable_name": "i_membrane",
-#                     "sections": "all",
-#                     "dt": 1,
-#                     "start_time": 0.0,
-#                     "end_time": 40.0,
-#                 },
-#             },
-#             "run": {
-#                 "tstop": 0,
-#             },
-#             "output": {
-#                 "output_dir": "output_0_0",
-#             }
-#         }
-#     }
-# ], indirect=True)
-# def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
-#     """
-#     Test the save and restore functionality of the simulation.
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "inputs": {
+                "Stimulus": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 5,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            },
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 18.0,
+                },
+                "compartment_i": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "i_membrane",
+                    "sections": "all",
+                    "dt": 1,
+                    "start_time": 0.0,
+                    "end_time": 40.0,
+                },
+            },
+            "run": {
+                "tstop": 0,
+            },
+            "output": {
+                "output_dir": "output_0_0",
+            }
+        }
+    }
+], indirect=True)
+def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
+    """
+    Test the save and restore functionality of the simulation.
 
-#     This test performs the following steps:
-#     1. Runs a full simulation and dumps the cell states for all the GIDs.
-#     2. Updates the simulation configuration to run a partial simulation, saving a checkpoint.
-#     3. Restores the simulation from the checkpoint and dumps the cell states again.
-#     4. Compares the dumped cell states from the full run with those from the save-restore process.
-#     5. Compares the output data files (out.dat) from the full run and the save-restore process
-#        for consistency within specified time ranges.
+    This test performs the following steps:
+    1. Runs a full simulation and dumps the cell states for all the GIDs.
+    2. Updates the simulation configuration to run a partial simulation, saving a checkpoint.
+    3. Restores the simulation from the checkpoint and dumps the cell states again.
+    4. Compares the dumped cell states from the full run with those from the save-restore process.
+    5. Compares the output data files (out.dat) from the full run and the save-restore process
+       for consistency within specified time ranges.
 
-#     Note: this also implicitly tests that the save/restore works even if the save folder is
-#     not a subfolder of the output folder.
-#     """
-#     gids = [0, 1, 2, 1000, 1001]
-#     t = [0, 13, 26]
+    Note: this also implicitly tests that the save/restore works even if the save folder is
+    not a subfolder of the output folder.
+    """
+    gids = [0, 1, 2, 1000, 1001]
+    t = [0, 13, 26]
 
-#     update_sim_conf(t[2], f"output_{t[0]}_{t[2]}")
+    update_sim_conf(t[2], f"output_{t[0]}_{t[2]}")
 
-#     for i in gids:
-#         command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}"]
-#         subprocess.run(command, check=True, capture_output=True)
+    for i in gids:
+        command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}"]
+        subprocess.run(command, check=True, capture_output=True)
 
-#     update_sim_conf(t[1], f"output_{t[0]}_{t[1]}")
+    update_sim_conf(t[1], f"output_{t[0]}_{t[1]}")
 
-#     command = ["neurodamus", "simulation_config.json", f"--save=checkpoint_{t[1]}"]
-#     subprocess.run(command, check=True, capture_output=True)
+    command = ["neurodamus", "simulation_config.json", f"--save=checkpoint_{t[1]}"]
+    subprocess.run(command, check=True, capture_output=True)
 
-#     # check result.conf end times
-#     report_times = {("soma_v.h5", "Mosaic"): t[1], ("compartment_i.h5", "Mosaic"): t[1]}
-#     check_report_conf(f"checkpoint_{t[1]}", report_times)
+    # check result.conf end times
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[1]}/report.conf")
+    assert report_confs._reports["soma_v.h5"].end_time == t[1]
+    assert report_confs._reports["compartment_i.h5"].end_time == t[1]
 
-#     # check result.conf end times
-#     report_confs = utils.ReportConf.load(f"checkpoint_{t[1]}/report.conf")
-#     assert report_confs.reports["soma_v.h5"].end_time == t[1]
-#     assert report_confs.reports["compartment_i.h5"].end_time == t[1]
+    # for i in gids:
+    #     command = [
+    #         "neurodamus",
+    #         "simulation_config.json",
+    #         f"--dump-cell-state={i}",
+    #         f"--restore=checkpoint_{t[1]}"]
+    #     subprocess.run(command, check=True, capture_output=True)
 
-#     for i in gids:
-#         command = [
-#             "neurodamus",
-#             "simulation_config.json",
-#             f"--dump-cell-state={i}",
-#             f"--restore=checkpoint_{t[1]}"]
-#         subprocess.run(command, check=True, capture_output=True)
-
-#     command = [
-#         "neurodamus",
-#         "simulation_config.json",
-#         f"--save=checkpoint_{t[2]}",
-#         f"--restore=checkpoint_{t[1]}"]
-#     subprocess.run(command, check=True, capture_output=True, text=True)
+    # command = [
+    #     "neurodamus",
+    #     "simulation_config.json",
+    #     f"--save=checkpoint_{t[2]}",
+    #     f"--restore=checkpoint_{t[1]}"]
+    # subprocess.run(command, check=True, capture_output=True, text=True)
 
 #     # check result.conf end times
 #     report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
