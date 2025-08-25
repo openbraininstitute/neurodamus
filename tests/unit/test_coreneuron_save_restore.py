@@ -182,127 +182,128 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     assert not Path("build").exists()
 
 # to be enabled with #337
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "CORENEURON",
-#             "inputs": {
-#                 "Stimulus": {
-#                     "module": "pulse",
-#                     "input_type": "current_clamp",
-#                     "delay": 5,
-#                     "duration": 50,
-#                     "node_set": "RingA",
-#                     "represents_physical_electrode": True,
-#                     "amp_start": 10,
-#                     "width": 1,
-#                     "frequency": 50
-#                 }
-#             },
-#             "reports": {
-#                 "soma_v": {
-#                     "type": "compartment",
-#                     "cells": "Mosaic",
-#                     "variable_name": "v",
-#                     "sections": "soma",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 18.0,
-#                 },
-#                 "compartment_i": {
-#                     "type": "compartment",
-#                     "cells": "Mosaic",
-#                     "variable_name": "i_membrane",
-#                     "sections": "all",
-#                     "dt": 1,
-#                     "start_time": 0.0,
-#                     "end_time": 40.0,
-#                 },
-#             },
-#             "run": {
-#                 "tstop": 0,
-#             },
-#             "output": {
-#                 "output_dir": "output_0_0",
-#             }
-#         }
-#     }
-# ], indirect=True)
-# def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
-#     """
-#     Test the save and restore functionality of the simulation.
+@pytest.mark.skip
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "inputs": {
+                "Stimulus": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 5,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            },
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 18.0,
+                },
+                "compartment_i": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "i_membrane",
+                    "sections": "all",
+                    "dt": 1,
+                    "start_time": 0.0,
+                    "end_time": 40.0,
+                },
+            },
+            "run": {
+                "tstop": 0,
+            },
+            "output": {
+                "output_dir": "output_0_0",
+            }
+        }
+    }
+], indirect=True)
+def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
+    """
+    Test the save and restore functionality of the simulation.
 
-#     This test performs the following steps:
-#     1. Runs a full simulation and dumps the cell states for all the GIDs.
-#     2. Updates the simulation configuration to run a partial simulation, saving a checkpoint.
-#     3. Restores the simulation from the checkpoint and dumps the cell states again.
-#     4. Compares the dumped cell states from the full run with those from the save-restore process.
-#     5. Compares the output data files (out.dat) from the full run and the save-restore process
-#        for consistency within specified time ranges.
+    This test performs the following steps:
+    1. Runs a full simulation and dumps the cell states for all the GIDs.
+    2. Updates the simulation configuration to run a partial simulation, saving a checkpoint.
+    3. Restores the simulation from the checkpoint and dumps the cell states again.
+    4. Compares the dumped cell states from the full run with those from the save-restore process.
+    5. Compares the output data files (out.dat) from the full run and the save-restore process
+       for consistency within specified time ranges.
 
-#     Note: this also implicitly tests that the save/restore works even if the save folder is
-#     not a subfolder of the output folder.
-#     """
-#     gids = [0, 1, 2, 1000, 1001]
-#     t = [0, 13, 26]
+    Note: this also implicitly tests that the save/restore works even if the save folder is
+    not a subfolder of the output folder.
+    """
+    gids = [0, 1, 2, 1000, 1001]
+    t = [0, 13, 26]
 
-#     update_sim_conf(t[2], f"output_{t[0]}_{t[2]}")
+    update_sim_conf(t[2], f"output_{t[0]}_{t[2]}")
 
-#     for i in gids:
-#         command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}"]
-#         subprocess.run(command, check=True, capture_output=True)
+    for i in gids:
+        command = ["neurodamus", "simulation_config.json", f"--dump-cell-state={i}"]
+        subprocess.run(command, check=True, capture_output=True)
 
-#     update_sim_conf(t[1], f"output_{t[0]}_{t[1]}")
+    update_sim_conf(t[1], f"output_{t[0]}_{t[1]}")
 
-#     command = ["neurodamus", "simulation_config.json", f"--save=checkpoint_{t[1]}"]
-#     subprocess.run(command, check=True, capture_output=True)
+    command = ["neurodamus", "simulation_config.json", f"--save=checkpoint_{t[1]}"]
+    subprocess.run(command, check=True, capture_output=True)
 
-#     # check result.conf end times
-#     report_confs = utils.ReportConf.load(f"checkpoint_{t[1]}/report.conf")
-#     assert report_confs.reports["soma_v.h5"].end_time == t[1]
-#     assert report_confs.reports["compartment_i.h5"].end_time == t[1]
+    # check result.conf end times
+    report_confs = utils.ReportConf.load(f"checkpoint_{t[1]}/report.conf")
+    assert report_confs.reports["soma_v.h5"].end_time == t[1]
+    assert report_confs.reports["compartment_i.h5"].end_time == t[1]
 
-#     update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
+    update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
 
-#     for i in gids:
-#         command = [
-#             "neurodamus",
-#             "simulation_config.json",
-#             f"--dump-cell-state={i}",
-#             f"--restore=checkpoint_{t[1]}"]
-#         subprocess.run(command, check=True, capture_output=True)
+    for i in gids:
+        command = [
+            "neurodamus",
+            "simulation_config.json",
+            f"--dump-cell-state={i}",
+            f"--restore=checkpoint_{t[1]}"]
+        subprocess.run(command, check=True, capture_output=True)
 
-#     command = [
-#         "neurodamus",
-#         "simulation_config.json",
-#         f"--save=checkpoint_{t[2]}",
-#         f"--restore=checkpoint_{t[1]}"]
-#     subprocess.run(command, check=True, capture_output=True, text=True)
+    command = [
+        "neurodamus",
+        "simulation_config.json",
+        f"--save=checkpoint_{t[2]}",
+        f"--restore=checkpoint_{t[1]}"]
+    subprocess.run(command, check=True, capture_output=True, text=True)
 
-#     # check result.conf end times
-#     report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
-#     assert report_confs.reports["soma_v.h5"].end_time == 18
-#     assert report_confs.reports["compartment_i.h5"].end_time == t[2]
+    # check result.conf end times
+    report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
+    assert report_confs.reports["soma_v.h5"].end_time == 18
+    assert report_confs.reports["compartment_i.h5"].end_time == t[2]
 
-#     # compare celldump states
-#     full_run_dir = Path(f"output_{t[0]}_{t[2]}")
-#     save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
-#     # Compare the files of the form 1_cpu_t<t>.corenrn
-#     for i in gids:
-#         file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
-#         file1 = full_run_dir / file_name
-#         file2 = save_restore_dir2 / file_name
-#         if not file1.exists() or not file2.exists():
-#             raise FileNotFoundError(f"One or both files do not exist: {file1}, {file2}")
-#         # Compare the files
-#         assert filecmp.cmp(file1, file2, shallow=False)
+    # compare celldump states
+    full_run_dir = Path(f"output_{t[0]}_{t[2]}")
+    save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
+    # Compare the files of the form 1_cpu_t<t>.corenrn
+    for i in gids:
+        file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
+        file1 = full_run_dir / file_name
+        file2 = save_restore_dir2 / file_name
+        if not file1.exists() or not file2.exists():
+            raise FileNotFoundError(f"One or both files do not exist: {file1}, {file2}")
+        # Compare the files
+        assert filecmp.cmp(file1, file2, shallow=False)
 
-#     # Compare the out.dat files
-#     out_dat_file = "out.dat"
-#     full_run_out_dat = full_run_dir / out_dat_file
-#     save_restore_dir1 = Path(f"output_{t[0]}_{t[1]}")
-#     save_restore_out_dat1 = save_restore_dir1 / out_dat_file
-#     save_restore_out_dat2 = save_restore_dir2 / out_dat_file
-#     assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat1, end_time=t[1],)
-#     assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat2, start_time=t[1],)
+    # Compare the out.dat files
+    out_dat_file = "out.dat"
+    full_run_out_dat = full_run_dir / out_dat_file
+    save_restore_dir1 = Path(f"output_{t[0]}_{t[1]}")
+    save_restore_out_dat1 = save_restore_dir1 / out_dat_file
+    save_restore_out_dat2 = save_restore_dir2 / out_dat_file
+    assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat1, end_time=t[1],)
+    assert utils.compare_outdat_files(full_run_out_dat, save_restore_out_dat2, start_time=t[1],)

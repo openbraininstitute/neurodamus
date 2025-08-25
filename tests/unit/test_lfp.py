@@ -74,93 +74,95 @@ def test_read_lfp_factors():
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 
 # to be enabled with #337
-# def test_number_electrodes():
-#     """
-#     Test that the 'get_number_electrodes' function correctly extracts the number of
-#     electrodes in the weights file for a certain gid
-#     """
-#     from neurodamus.cell_distributor import LFPManager
-#     # Create an instance of the class
-#     lfp = LFPManager()
-#     pop_list = ["RingA", "RingB"]
-#     lfp.load_lfp_config(LFP_FILE, pop_list)
+@pytest.mark.skip
+def test_number_electrodes():
+    """
+    Test that the 'get_number_electrodes' function correctly extracts the number of
+    electrodes in the weights file for a certain gid
+    """
+    from neurodamus.cell_distributor import LFPManager
+    # Create an instance of the class
+    lfp = LFPManager()
+    pop_list = ["RingA", "RingB"]
+    lfp.load_lfp_config(LFP_FILE, pop_list)
 
-#     # Test the function with valid input
-#     num_electrodes_1 = lfp.get_number_electrodes(1, ("RingA", 0))
-#     num_electrodes_2 = lfp.get_number_electrodes(2, ("RingA", 0))
-#     num_electrodes_3 = lfp.get_number_electrodes(3, ("RingA", 0))
-#     expected_num_electrodes = 2
-#     assert num_electrodes_1 == num_electrodes_2 == num_electrodes_3 == expected_num_electrodes
+    # Test the function with valid input
+    num_electrodes_1 = lfp.get_number_electrodes(1, ("RingA", 0))
+    num_electrodes_2 = lfp.get_number_electrodes(2, ("RingA", 0))
+    num_electrodes_3 = lfp.get_number_electrodes(3, ("RingA", 0))
+    expected_num_electrodes = 2
+    assert num_electrodes_1 == num_electrodes_2 == num_electrodes_3 == expected_num_electrodes
 
-#     num_electrodes_1001 = lfp.get_number_electrodes(1001, ("RingB", 1000))
-#     num_electrodes_1002 = lfp.get_number_electrodes(1002, ("RingB", 1000))
-#     expected_num_electrodes = 3
-#     assert num_electrodes_1001 == num_electrodes_1002 == expected_num_electrodes
+    num_electrodes_1001 = lfp.get_number_electrodes(1001, ("RingB", 1000))
+    num_electrodes_1002 = lfp.get_number_electrodes(1002, ("RingB", 1000))
+    expected_num_electrodes = 3
+    assert num_electrodes_1001 == num_electrodes_1002 == expected_num_electrodes
 
-#     # Test the function with invalid input
-#     # (non-existent gid)
-#     result_no_gid = lfp.get_number_electrodes(4, ("RingA", 0))
-#     # (non-existent pop)
-#     result_no_pop = lfp.get_number_electrodes(1, ("WrongPop", 0))
-#     # (wrong offset)
-#     result_wrong_offset = lfp.get_number_electrodes(1, ("RingA", 10))
-#     expected_result = 0
-#     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
+    # Test the function with invalid input
+    # (non-existent gid)
+    result_no_gid = lfp.get_number_electrodes(4, ("RingA", 0))
+    # (non-existent pop)
+    result_no_pop = lfp.get_number_electrodes(1, ("WrongPop", 0))
+    # (wrong offset)
+    result_wrong_offset = lfp.get_number_electrodes(1, ("RingA", 10))
+    expected_result = 0
+    assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 
 # to be enabled with #337
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "CORENEURON",
-#             "run": {
-#                 "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
-#             },
-#             "reports": {
-#                 "lfp_report": {
-#                     "type": "lfp",
-#                     "cells": "Mosaic",
-#                     "variable_name": "v",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 2.0
-#                 }
-#             },
-#             "inputs": {
-#                 "stimulus_pulse": {
-#                     "module": "pulse",
-#                     "input_type": "current_clamp",
-#                     "delay": 1,
-#                     "duration": 50,
-#                     "node_set": "RingA",
-#                     "represents_physical_electrode": True,
-#                     "amp_start": 10,
-#                     "width": 1,
-#                     "frequency": 50
-#                 }
-#             }
-#         }
-#     },
-# ], indirect=True)
-# @pytest.mark.forked
-# def test_lfp_reports(create_tmp_simulation_config_file):
-#     from neurodamus import Neurodamus
-#     from neurodamus.core.configuration import SimConfig
-#     from neurodamus.core.coreneuron_configuration import CoreConfig
+@pytest.mark.skip
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {
+                "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
+            },
+            "reports": {
+                "lfp_report": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0
+                }
+            },
+            "inputs": {
+                "stimulus_pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
+        }
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_lfp_reports(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
+    from neurodamus.core.coreneuron_configuration import CoreConfig
 
-#     nd = Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file)
 
-#     assert Path(CoreConfig.report_config_file_save).exists()
+    assert Path(CoreConfig.report_config_file_save).exists()
 
-#     assert len(SimConfig.reports) == 1
-#     rep_name, rep_config = next(iter(SimConfig.reports.items()))
-#     assert rep_name == 'lfp_report'
-#     assert rep_config['Type'] == 'lfp'
-#     assert rep_config['Target'] == 'Mosaic'
-#     assert rep_config['StartTime'] == 0.0
-#     assert rep_config['EndTime'] == 2.0
-#     assert rep_config['Dt'] == 0.1
-#     assert rep_config['ReportOn'] == 'v'
-#     assert rep_config['FileName'] == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
+    assert len(SimConfig.reports) == 1
+    rep_name, rep_config = next(iter(SimConfig.reports.items()))
+    assert rep_name == 'lfp_report'
+    assert rep_config['Type'] == 'lfp'
+    assert rep_config['Target'] == 'Mosaic'
+    assert rep_config['StartTime'] == 0.0
+    assert rep_config['EndTime'] == 2.0
+    assert rep_config['Dt'] == 0.1
+    assert rep_config['ReportOn'] == 'v'
+    assert rep_config['FileName'] == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
 
-#     nd.run()
+    nd.run()

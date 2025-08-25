@@ -143,111 +143,113 @@ def _read_sonata_lfp_file(lfp_file):
     return lfp_data
 
 # to be enabled with #337
-# def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
-#     import numpy.testing as npt
-#     import json
-#     from neurodamus import Neurodamus
-#     from neurodamus.core.coreneuron_configuration import CoreConfig
+@pytest.mark.skip
+def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
+    import numpy.testing as npt
+    import json
+    from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
 
-#     _, lfp_weights_file = test_weights_file
-#     with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
-#         sim_config_data = json.load(f)
-#     params = {
-#         "extra_config": {
-#             "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),
-#             "target_simulator": "CORENEURON",
-#             "run": {"electrodes_file": lfp_weights_file},
-#             "reports": {
-#                 "lfp": {
-#                     "type": "lfp",
-#                     "cells": "Mosaic",
-#                     "variable_name": "v",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 1.0
-#                 }
-#             }
-#         }
-#     }
-#     config_file = create_simulation_config_file_factory(params, tmp_path, sim_config_data)
+    _, lfp_weights_file = test_weights_file
+    with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
+        sim_config_data = json.load(f)
+    params = {
+        "extra_config": {
+            "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),
+            "target_simulator": "CORENEURON",
+            "run": {"electrodes_file": lfp_weights_file},
+            "reports": {
+                "lfp": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 1.0
+                }
+            }
+        }
+    }
+    config_file = create_simulation_config_file_factory(params, tmp_path, sim_config_data)
 
-#     nd = Neurodamus(config_file)
-#     nd.run()
+    nd = Neurodamus(config_file)
+    nd.run()
 
-#     # compare results with refs
-#     t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
-#     t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
-#     node_ids = np.array([0, 4])
-#     result_ids, result_data = _read_sonata_lfp_file(
-#         Path(CoreConfig.output_root) / "lfp.h5")["default"]
+    # compare results with refs
+    t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
+    t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
+    node_ids = np.array([0, 4])
+    result_ids, result_data = _read_sonata_lfp_file(
+        Path(CoreConfig.output_root) / "lfp.h5")["default"]
 
-#     npt.assert_allclose(result_data.data[3], t3_data)
-#     npt.assert_allclose(result_data.data[7], t7_data)
-#     npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[3], t3_data)
+    npt.assert_allclose(result_data.data[7], t7_data)
+    npt.assert_allclose(result_ids, node_ids)
 
 # to be enabled with #337
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "CORENEURON",
-#             "run": {
-#                 "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
-#             },
-#             "reports": {
-#                 "lfp_report": {
-#                     "type": "lfp",
-#                     "cells": "Mosaic",
-#                     "variable_name": "v",
-#                     "dt": 0.1,
-#                     "start_time": 0.0,
-#                     "end_time": 2.0
-#                 }
-#             },
-#             "inputs": {
-#                 "stimulus_pulse": {
-#                     "module": "pulse",
-#                     "input_type": "current_clamp",
-#                     "delay": 1,
-#                     "duration": 50,
-#                     "node_set": "RingA",
-#                     "represents_physical_electrode": True,
-#                     "amp_start": 10,
-#                     "width": 1,
-#                     "frequency": 50
-#                 }
-#             }
-#         }
-#     },
-# ], indirect=True)
-# def test_ringcircuit_lfp(create_tmp_simulation_config_file):
-#     import numpy.testing as npt
-#     from neurodamus import Neurodamus
-#     from neurodamus.core.coreneuron_configuration import CoreConfig
+@pytest.mark.skip
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {
+                "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
+            },
+            "reports": {
+                "lfp_report": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0
+                }
+            },
+            "inputs": {
+                "stimulus_pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
+        }
+    },
+], indirect=True)
+def test_ringcircuit_lfp(create_tmp_simulation_config_file):
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.coreneuron_configuration import CoreConfig
 
-#     nd = Neurodamus(create_tmp_simulation_config_file)
-#     nd.run()
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
 
-#     # compare results with refs
-#     lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report.h5")
-#     result_ids, result_data = lfp_data["RingA"]
+    # compare results with refs
+    lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report.h5")
+    result_ids, result_data = lfp_data["RingA"]
 
-#     node_ids = np.array([0, 1, 2])
-#     t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])
-#     t19_data = np.array([0.11362588, 0.12362587, 0.6136259, 0.6236259, 1.1136259, 1.1236259])
+    node_ids = np.array([0, 1, 2])
+    t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])
+    t19_data = np.array([0.11362588, 0.12362587, 0.6136259, 0.6236259, 1.1136259, 1.1236259])
 
-#     npt.assert_allclose(result_ids, node_ids)
-#     npt.assert_allclose(result_data.data[11], t11_data)
-#     npt.assert_allclose(result_data.data[19], t19_data)
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)
 
-#     result_ids, result_data = lfp_data["RingB"]
+    result_ids, result_data = lfp_data["RingB"]
 
-#     node_ids = np.array([0, 1])
-#     t11_data = np.array(
-#         [6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07])
-#     t19_data = np.array(
-#         [8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07])
+    node_ids = np.array([0, 1])
+    t11_data = np.array(
+        [6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07])
+    t19_data = np.array(
+        [8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07])
 
-#     npt.assert_allclose(result_ids, node_ids)
-#     npt.assert_allclose(result_data.data[11], t11_data)
-#     npt.assert_allclose(result_data.data[19], t19_data)
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)

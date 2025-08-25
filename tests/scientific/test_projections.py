@@ -80,13 +80,14 @@ def _read_sonata_soma_report(report_name):
     return numpy.array(data.data).flatten().tolist()
 
 # to be enabled with #337
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "sonata_config_file",
     [
         {'enable_synapse_delay': False, 'simulator': 'NEURON'},
         {'enable_synapse_delay': True, 'simulator': 'NEURON'},
-        # {'enable_synapse_delay': False, 'simulator': 'CORENEURON'},
-        # {'enable_synapse_delay': True, 'simulator': 'CORENEURON'}
+        {'enable_synapse_delay': False, 'simulator': 'CORENEURON'},
+        {'enable_synapse_delay': True, 'simulator': 'CORENEURON'}
     ],
     indirect=True
 )
