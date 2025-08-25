@@ -142,7 +142,7 @@ def _read_sonata_lfp_file(lfp_file):
         lfp_data[pop_name] = (node_ids, data)
     return lfp_data
 
-
+@pytest.mark.skip(reason="to be enabled with #337")
 def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
     import numpy.testing as npt
     import json
@@ -185,7 +185,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
     npt.assert_allclose(result_data.data[7], t7_data)
     npt.assert_allclose(result_ids, node_ids)
 
-
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",

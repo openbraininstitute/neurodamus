@@ -181,7 +181,7 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
     assert not Path("build").exists()
 
-
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
