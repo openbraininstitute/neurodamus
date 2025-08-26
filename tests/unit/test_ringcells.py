@@ -7,8 +7,6 @@ from libsonata import EdgeStorage
 
 from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
-from neurodamus.core import NeuronWrapper as Nd
-from neurodamus.node import Node
 from tests import utils
 
 from ..conftest import RINGTEST_DIR
@@ -146,7 +144,6 @@ def test_coreneuron(create_tmp_simulation_config_file):
         f"{coreneuron_data} should be empty."
     )
 
-
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -180,16 +177,12 @@ def test_coreneuron(create_tmp_simulation_config_file):
 def test_enable_soma_stimulation(create_tmp_simulation_config_file):
     """When inserting a stimulus, confirm impact, especially when the soma have mulitple compartments
     """
-    from neurodamus import Neurodamus
-
-    n = Node(create_tmp_simulation_config_file)
+    import neurodamus
+    n = neurodamus.Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
     n.enable_stimulus()
-
-    stimList = Nd.List("MembraneCurrentSource")
+    stimList = neurodamus.core.NeuronWrapper.List("MembraneCurrentSource")
     
     # RingA has one cell with a soma of 3 compartments and 2 other soma with single compartments. We should expect 3 stim and not 5
     assert( stimList.count() == 3 )
-
-    
