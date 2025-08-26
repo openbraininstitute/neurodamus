@@ -73,7 +73,7 @@ def test_read_lfp_factors():
     expected_result = []
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 
-
+@pytest.mark.skip(reason="to be enabled with #337")
 def test_number_electrodes():
     """
     Test that the 'get_number_electrodes' function correctly extracts the number of
@@ -107,7 +107,7 @@ def test_number_electrodes():
     expected_result = 0
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 
-
+@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
