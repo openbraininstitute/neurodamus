@@ -98,13 +98,11 @@ proc biophys(){
 
 proc biophys_inhomo(){}
 
-proc geom_nseg_fixed(/* chunkSize */) { local secIndex, chunkSize
+proc geom_nseg_fixed(/* chunkSize */) { local chunkSize
   chunkSize = $1
   soma area(.5) // make sure diam reflects 3d points 
-  secIndex = 0
   forsec all {
     nseg = 1 + 2*int(L/chunkSize) 
-    secIndex += 1
   }
 } 
 
