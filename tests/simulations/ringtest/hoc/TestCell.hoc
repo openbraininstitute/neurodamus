@@ -64,6 +64,7 @@ proc AddMorph(){ localobj morph, import, strobj, morphPath, extension
     import = new Import3d_GUI(morph, 0)
     import.instantiate(this)
     indexSections()
+    geom_nseg_fixed(40)
     geom_nsec()
 }
 
@@ -96,6 +97,16 @@ proc biophys(){
 }
 
 proc biophys_inhomo(){}
+
+proc geom_nseg_fixed(/* chunkSize */) { local secIndex, chunkSize
+  chunkSize = $1
+  soma area(.5) // make sure diam reflects 3d points 
+  secIndex = 0
+  forsec all {
+    nseg = 1 + 2*int(L/chunkSize) 
+    secIndex += 1
+  }
+} 
 
 proc geom_nsec() { local nSec
     nSec = 0
