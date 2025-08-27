@@ -2,6 +2,22 @@
 Change Log
 ==========
 
+Version 3.10.0
+==============
+**27 August 2025**
+
+*Improvements*
+* teach command line to have `--no-color` (#356)
+* move e2e cli tests into unit tests where posible (#357)
+* real `report.conf` loader (#361)
+* Updates to add command line argument for changing in memory buffer size for reports (#349)
+
+*Bug Fixes*
+* ngv: disconnected cells (#327)
+* disable affected corenrn tests (probably all of them) (#366)
+* Fix when retrieving points in a section when using default values (#369)
+
+
 Version 3.9.0
 =============
 **23 July 2025**
