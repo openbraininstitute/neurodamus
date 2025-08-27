@@ -98,17 +98,15 @@ def merge_dicts(parent: dict, child: dict):
     sanitize_dict(ans)
     return ans
 
-
-
-
 def defaultdict_to_standard_types(obj):
     """Recursively converts defaultdicts with iterable values to standard Python types."""
-    if isinstance(obj, defaultdict) or isinstance(obj, dict):
+    if isinstance(obj, (defaultdict, dict)):
         return {key: defaultdict_to_standard_types(value) for key, value in obj.items()}
     elif isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
-        return list(obj)
+        return [defaultdict_to_standard_types(x) for x in obj]
+    elif isinstance(obj, np.generic):  # convert NumPy scalars to Python scalars
+        return obj.item()
     return obj
-
 
 def check_is_subset(dic, subset):
     """Checks if subset is a subset of the original dict"""
