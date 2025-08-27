@@ -3,7 +3,7 @@ Change Log
 ==========
 
 Version 3.10.0
-=============
+==============
 **27 August 2025**
 
 *Improvements*
