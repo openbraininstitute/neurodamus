@@ -143,3 +143,46 @@ def test_coreneuron(create_tmp_simulation_config_file):
     assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
         f"{coreneuron_data} should be empty."
     )
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_data": {
+                "network": "circuit_config_bigA.json",
+                "node_sets_file": "nodesets.json",
+                "run":
+                {
+                    "random_seed": 12345,
+                    "dt": 0.05,
+                    "tstop": 800
+                },
+                "target_simulator": "CORENEURON",
+                "inputs": {
+                    "Stimulus basic": {
+                        "input_type": "current_clamp",
+                        "module": "linear",
+                        "delay": 25,
+                        "duration": 650,
+                        "amp_start": 1.25,
+                        "node_set": "RingA"
+                    }
+                },
+            },
+            "src_dir": RINGTEST_DIR
+        }
+    ],
+    indirect=True,
+)
+def test_enable_soma_stimulation(create_tmp_simulation_config_file):
+    """When inserting a stimulus, confirm impact, especially when the soma have mulitple compartments
+    """
+    import neurodamus
+    n = neurodamus.Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    n.enable_stimulus()
+    stimList = neurodamus.core.NeuronWrapper.List("MembraneCurrentSource")
+    
+    # RingA has one cell with a soma of 3 compartments and 2 other soma with single compartments. We should expect 3 stim and not 5
+    assert( stimList.count() == 3 )
