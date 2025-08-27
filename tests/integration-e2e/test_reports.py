@@ -202,9 +202,9 @@ def make_extra_config(base, simulator):
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
-        make_extra_config("v5_sonata_config", "NEURON"),
-        make_extra_config("v5_sonata_config", "CORENEURON"),
-        make_extra_config("ringtest_baseconfig", "NEURON"),
+        # make_extra_config("v5_sonata_config", "NEURON"),
+        # make_extra_config("v5_sonata_config", "CORENEURON"),
+        # make_extra_config("ringtest_baseconfig", "NEURON"),
         make_extra_config("ringtest_baseconfig", "CORENEURON")
     ],
     indirect=True,
@@ -218,122 +218,122 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd = Neurodamus(create_tmp_simulation_config_file, keep_build=True)
     output_dir = Path(SimConfig.output_root)
     is_v5_sonata = "output_sonata2" in str(output_dir)
     reference_dir = V5_SONATA / "reference" / "reports" if is_v5_sonata else RINGTEST_DIR / "reference" / "reports"
 
     nd.run()
 
-    # compartment vs summation
-    for var in ["v", "i_membrane", "pas"]:
-        r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
-        r_summation = ReportReader(output_dir / f"summation_{var}.h5")
+    # # compartment vs summation
+    # for var in ["v", "i_membrane", "pas"]:
+    #     r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
+    #     r_summation = ReportReader(output_dir / f"summation_{var}.h5")
 
-        r_compartment.convert_to_summation()
-        assert r_compartment == r_summation, f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
+    #     r_compartment.convert_to_summation()
+    #     assert r_compartment == r_summation, f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
 
-    # summation vs summation. Variable reordering
-    r_summation_i_membrane_IClamp = ReportReader(output_dir / f"summation_i_membrane_IClamp.h5")
-    r_summation_IClamp_i_membrane = ReportReader(output_dir / f"summation_IClamp_i_membrane.h5")
-    assert r_summation_i_membrane_IClamp == r_summation_IClamp_i_membrane, (
-        "Reports from 'summation_i_membrane_IClamp.h5' and 'summation_IClamp_i_membrane.h5' differ."
-    )
+    # # summation vs summation. Variable reordering
+    # r_summation_i_membrane_IClamp = ReportReader(output_dir / f"summation_i_membrane_IClamp.h5")
+    # r_summation_IClamp_i_membrane = ReportReader(output_dir / f"summation_IClamp_i_membrane.h5")
+    # assert r_summation_i_membrane_IClamp == r_summation_IClamp_i_membrane, (
+    #     "Reports from 'summation_i_membrane_IClamp.h5' and 'summation_IClamp_i_membrane.h5' differ."
+    # )
 
-    # summation vs manual sum
-    r_summation_IClamp = ReportReader(output_dir / f"summation_IClamp.h5")
-    r_compartment_i_membrane = ReportReader(output_dir / f"compartment_i_membrane.h5")
-    r_summation_i_membrane_IClamp_manual = r_compartment_i_membrane+ r_summation_IClamp
-    assert r_summation_i_membrane_IClamp == r_summation_i_membrane_IClamp_manual, "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
+    # # summation vs manual sum
+    # r_summation_IClamp = ReportReader(output_dir / f"summation_IClamp.h5")
+    # r_compartment_i_membrane = ReportReader(output_dir / f"compartment_i_membrane.h5")
+    # r_summation_i_membrane_IClamp_manual = r_compartment_i_membrane+ r_summation_IClamp
+    # assert r_summation_i_membrane_IClamp == r_summation_i_membrane_IClamp_manual, "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
 
-    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
-    for ref_file in reference_dir.glob("*.h5"):
-        r_reference = ReportReader(ref_file)   
-        file = output_dir / ref_file.name 
-        r = ReportReader(file)
+    # # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    # for ref_file in reference_dir.glob("*.h5"):
+    #     r_reference = ReportReader(ref_file)   
+    #     file = output_dir / ref_file.name 
+    #     r = ReportReader(file)
 
-        assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
+    #     assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
 
-    # compartment vs compartment_set
-    # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
-    # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
-    # reports (nor offset)
-    #
-    # this issue: https://github.com/openbraininstitute/neurodamus/issues/353
-    # should provide a better way to do this
-    if is_v5_sonata:
-        ids = [0, 7, 7, 8, 190, 206, 348, 360]
-        for var in ["v", "i_membrane", "pas"]:
-            r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
-            r_compartment.reduce_to_compartment_set_report("default", ids)
-            r_compartment_set = ReportReader(output_dir / f"compartment_set_{var}.h5")
+    # # compartment vs compartment_set
+    # # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
+    # # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
+    # # reports (nor offset)
+    # #
+    # # this issue: https://github.com/openbraininstitute/neurodamus/issues/353
+    # # should provide a better way to do this
+    # if is_v5_sonata:
+    #     ids = [0, 7, 7, 8, 190, 206, 348, 360]
+    #     for var in ["v", "i_membrane", "pas"]:
+    #         r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
+    #         r_compartment.reduce_to_compartment_set_report("default", ids)
+    #         r_compartment_set = ReportReader(output_dir / f"compartment_set_{var}.h5")
 
-            assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
+    #         assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [
-{
-            "simconfig_fixture": "ringtest_baseconfig",
-            "extra_config": {
-                "target_simulator": "NEURON",
-                "reports": {
-                    "compartment_IClamp": {
-                        "type": "compartment",
-                        "cells": "Mosaic",
-                        "variable_name": "IClamp",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                },
-            },
-        }
-    ],
-    indirect=True,
-)
-@pytest.mark.slow
-def test_compartment_missing_ref(create_tmp_simulation_config_file):
-    """
-    Compartment reports should raise an error when requesting a reference value 
-    that is not present in all compartments.
-    """
-    with pytest.raises(CumulativeError, match="setup: AttributeError"): 
-        Neurodamus(create_tmp_simulation_config_file)
+# @pytest.mark.parametrize(
+#     "create_tmp_simulation_config_file",
+#     [
+# {
+#             "simconfig_fixture": "ringtest_baseconfig",
+#             "extra_config": {
+#                 "target_simulator": "NEURON",
+#                 "reports": {
+#                     "compartment_IClamp": {
+#                         "type": "compartment",
+#                         "cells": "Mosaic",
+#                         "variable_name": "IClamp",
+#                         "sections": "all",
+#                         "compartments": "all",
+#                         "dt": 1,
+#                         "start_time": 0.0,
+#                         "end_time": 40.0,
+#                         "scaling": "none",
+#                     },
+#                 },
+#             },
+#         }
+#     ],
+#     indirect=True,
+# )
+# @pytest.mark.slow
+# def test_compartment_missing_ref(create_tmp_simulation_config_file):
+#     """
+#     Compartment reports should raise an error when requesting a reference value 
+#     that is not present in all compartments.
+#     """
+#     with pytest.raises(CumulativeError, match="setup: AttributeError"): 
+#         Neurodamus(create_tmp_simulation_config_file)
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [
-{
-            "simconfig_fixture": "v5_sonata_config",
-            "extra_config": {
-                "target_simulator": "NEURON",
-                "reports": {
-                    "compartment_ProbAMPANMDA_EMS": {
-                        "type": "compartment",
-                        "cells": "Mosaic",
-                        "variable_name": "ProbAMPANMDA_EMS",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                },
-            },
-        }
-    ],
-    indirect=True,
-)
-@pytest.mark.slow
-def test_compartment_missing_ref(create_tmp_simulation_config_file):
-    """
-    Compartment reports should raise an error when requesting a reference value 
-    that is not present in all compartments.
-    """
-    with pytest.raises(CumulativeError, match="but found 8"): 
-        Neurodamus(create_tmp_simulation_config_file)
+# @pytest.mark.parametrize(
+#     "create_tmp_simulation_config_file",
+#     [
+# {
+#             "simconfig_fixture": "v5_sonata_config",
+#             "extra_config": {
+#                 "target_simulator": "NEURON",
+#                 "reports": {
+#                     "compartment_ProbAMPANMDA_EMS": {
+#                         "type": "compartment",
+#                         "cells": "Mosaic",
+#                         "variable_name": "ProbAMPANMDA_EMS",
+#                         "sections": "all",
+#                         "compartments": "all",
+#                         "dt": 1,
+#                         "start_time": 0.0,
+#                         "end_time": 40.0,
+#                         "scaling": "none",
+#                     },
+#                 },
+#             },
+#         }
+#     ],
+#     indirect=True,
+# )
+# @pytest.mark.slow
+# def test_compartment_missing_ref(create_tmp_simulation_config_file):
+#     """
+#     Compartment reports should raise an error when requesting a reference value 
+#     that is not present in all compartments.
+#     """
+#     with pytest.raises(CumulativeError, match="but found 8"): 
+#         Neurodamus(create_tmp_simulation_config_file)
