@@ -1,6 +1,8 @@
 import pytest
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
+from dataclasses import fields, MISSING
+from typing import Union
 from pathlib import Path
-from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig, to_snake_case
 
 def make_minimal_kwargs():
     return {
@@ -11,21 +13,9 @@ def make_minimal_kwargs():
         "prcellgid": 42,
         "celsius": 37.0,
         "voltage": -65.0,
-        "cell-permute": 2,
+        "cell_permute": 2,
         "mpi": 1,
     }
-
-def test_init_mandatory_fields():
-    kwargs = make_minimal_kwargs()
-    cfg = CoreSimulationConfig(**kwargs)
-
-    print(cfg)
-
-    for name, typ, mandatory in cfg.SLOTS:
-        name = to_snake_case(name)
-        if mandatory:
-            assert hasattr(cfg, name)
-            assert isinstance(getattr(cfg, name), typ)
 
 def test_init_type_coercion():
     kwargs = make_minimal_kwargs()
@@ -44,25 +34,25 @@ def test_optional_fields():
     kwargs = make_minimal_kwargs()
     kwargs["pattern"] = "sine"
     kwargs["seed"] = "123"
-    kwargs["model-stats"] = "true"
-    kwargs["report-conf"] = "conf.yml"
+    kwargs["model_stats"] = "true"
+    kwargs["report_conf"] = "conf.yml"
     cfg = CoreSimulationConfig(**kwargs)
     assert cfg.pattern == "sine"
     assert cfg.seed == 123
     assert cfg.model_stats is True
-    assert cfg.report_conf == "conf.yml"
+    assert cfg.report_conf == str(Path("conf.yml").resolve())
 
 def test_missing_mandatory_raises():
     kwargs = make_minimal_kwargs()
     del kwargs["outpath"]
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         CoreSimulationConfig(**kwargs)
 
 def test_dump_and_load(tmp_path):
     kwargs = make_minimal_kwargs()
-    kwargs["model-stats"] = True
+    kwargs["model_stats"] = True
     kwargs["pattern"] = "sine"
-    kwargs["report-conf"] = "conf.yml"
+    kwargs["report_conf"] = "conf.yml"
     cfg = CoreSimulationConfig(**kwargs)
     path = tmp_path / "config.txt"
     cfg.dump(path)

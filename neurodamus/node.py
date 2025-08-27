@@ -1255,7 +1255,7 @@ class Node:
             celsius=getattr(SimConfig, "celsius", 34.0),
             voltage=getattr(SimConfig, "v_init", -65.0),
             cell_permute=CoreConfig.default_cell_permute,
-            pattern=self._core_replay_file,
+            pattern=self._core_replay_file or None,
             seed=SimConfig.rng_info.getGlobalSeed(),
             model_stats=bool(int(SimConfig.cli_options.model_stats)),
             report_conf=CoreConfig.report_config_file_save

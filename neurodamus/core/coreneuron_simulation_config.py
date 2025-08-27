@@ -1,73 +1,68 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field, fields
 from pathlib import Path
+from typing import get_type_hints
 
 from ._utils import run_only_rank0
 
 
-def to_snake_case(name: str) -> str:
-    """Convert a file key with dashes to snake_case."""
-    return name.replace("-", "_")
+@dataclass
+class CoreSimulationConfig:
+    # required
+    outpath: str = field(metadata={"file_key": "outpath", "is_path": True})
+    datpath: str = field(metadata={"file_key": "datpath", "is_path": True})
+    tstop: float
+    dt: float
+    prcellgid: int
+    celsius: float
+    voltage: float
+    cell_permute: int = field(metadata={"file_key": "cell-permute"})
+    mpi: int
 
+    # optional
+    pattern: str = None
+    seed: int = None
+    model_stats: bool = field(default=None, metadata={"file_key": "model-stats"})
+    report_conf: str = field(default=None, metadata={"file_key": "report-conf", "is_path": True})
 
-class CoreSimulationConfig:  # noqa: PLW1641
-    # field_name (file key), type, mandatory
-    SLOTS = [
-        ("outpath", str, True),
-        ("datpath", str, True),
-        ("tstop", float, True),
-        ("dt", float, True),
-        ("prcellgid", int, True),
-        ("celsius", float, True),
-        ("voltage", float, True),
-        ("cell-permute", int, True),
-        ("pattern", str, False),
-        ("seed", int, False),
-        ("model-stats", bool, False),
-        ("report-conf", str, False),
-        ("mpi", int, True),
-    ]
-
-    def __init__(self, **kwargs):
-        for file_key, typ, mandatory in self.SLOTS:
-            attr_name = to_snake_case(file_key)
-
-            if file_key in kwargs:
-                val = kwargs[file_key]
-            elif attr_name in kwargs:  # allow snake_case keys too
-                val = kwargs[attr_name]
-            elif mandatory:
-                raise ValueError(f"Missing required argument: {file_key}")
-            else:
-                val = None
-
-            val = self._coerce_type(file_key, typ, val)
-
-            # Special handling for paths
-            if file_key in {"outpath", "datpath", "report_conf"} and val is not None:
-                val = str(Path(val).resolve())
-
-            setattr(self, attr_name, val)
+    def __post_init__(self):
+        # type coercion and path resolution
+        hints = get_type_hints(CoreSimulationConfig)
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if val is None:
+                continue
+            coerced = self._coerce_type(hints[f.name], val)
+            if f.metadata.get("is_path", False) and coerced is not None:
+                coerced = str(Path(coerced).resolve())
+            setattr(self, f.name, coerced)
 
     @staticmethod
-    def _coerce_type(file_key, typ, val):
-        """Coerce to expected type. Useful when we want to load the class from file."""
-        if val is None or isinstance(val, typ):
-            return val
+    def _coerce_type(typ, val):
+        result = None
 
-        if typ is bool:
-            if isinstance(val, str):
-                return val.strip().lower() in {"true", "1", "yes"}
-            return bool(val)
-        if typ is int:
-            return int(val)
-        if typ is float:
-            return float(val)
-        if typ is str:
-            return str(val)
+        if val is not None:
+            origin = typ if isinstance(typ, type) else str
 
-        raise TypeError(f"Cannot coerce {file_key} to {typ}")
+            if isinstance(val, origin):
+                result = val
+            elif origin is bool:
+                if isinstance(val, str):
+                    result = val.strip().lower() in {"true", "1", "yes"}
+                else:
+                    result = bool(val)
+            elif origin is int:
+                result = int(val)
+            elif origin is float:
+                result = float(val)
+            elif origin is str:
+                result = str(val)
+            else:
+                result = val
+
+        return result
 
     @run_only_rank0
     def dump(self, path: str | Path):
@@ -76,20 +71,24 @@ class CoreSimulationConfig:  # noqa: PLW1641
         logging.info("Writing coreneuron simulation config file: %s", path.resolve())
 
         with path.open("w", encoding="utf-8") as fp:
-            for file_key, _typ, mandatory in self.SLOTS:
-                attr_name = to_snake_case(file_key)
-                val = getattr(self, attr_name)
+            for f in fields(self):
+                file_key = f.metadata.get("file_key", f.name)
+                val = getattr(self, f.name)
                 if file_key == "model-stats" and val:
                     fp.write("'model-stats'\n")
-                elif mandatory or val not in {None, False, ""}:
+                elif val is not None:
                     if isinstance(val, str):
                         fp.write(f"{file_key}='{val}'\n")
                     else:
                         fp.write(f"{file_key}={val}\n")
+
         logging.info("Done! coreneuron simulation config was written")
 
     @classmethod
     def load(cls, path: str | Path) -> CoreSimulationConfig:
+        # precompute mapping once
+        key_map = {f.metadata.get("file_key", f.name): f.name for f in fields(cls)}
+
         raw = {}
         with Path(path).open("r", encoding="utf-8") as fp:
             for line in fp:
@@ -97,27 +96,16 @@ class CoreSimulationConfig:  # noqa: PLW1641
                 if not line or line.startswith("#"):
                     continue
                 if line == "'model-stats'":
-                    raw["model-stats"] = True
+                    raw[key_map["model-stats"]] = True
                     continue
                 if "=" not in line:
                     raise ValueError(f"Malformed line in config: {line}")
                 key, val = line.split("=", 1)
                 key = key.strip()
-                val = val.strip()
-                # Strip quotes for string fields
-                val = val.strip("'").strip('"')
-                raw[key] = val
+                val = val.strip().strip("'").strip('"')
+
+                if key not in key_map:
+                    raise ValueError(f"Unknown config key: {key}")
+
+                raw[key_map[key]] = val
         return cls(**raw)
-
-    def __repr__(self):
-        items = []
-        for file_key, _typ, _ in self.SLOTS:
-            attr_name = to_snake_case(file_key)
-            val = getattr(self, attr_name, None)
-            items.append(f"{file_key}={val!r}")
-        return f"{self.__class__.__name__}({', '.join(items)})"
-
-    def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return NotImplemented
-        return self.__dict__ == other.__dict__
