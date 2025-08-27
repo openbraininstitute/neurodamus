@@ -29,7 +29,7 @@ class CoreSimulationConfig:
 
     def __post_init__(self):
         # type coercion and path resolution
-        hints = get_type_hints(CoreSimulationConfig)
+        hints = get_type_hints(self)
         for f in fields(self):
             val = getattr(self, f.name)
             if val is None:
@@ -44,20 +44,18 @@ class CoreSimulationConfig:
         result = None
 
         if val is not None:
-            origin = typ if isinstance(typ, type) else str
-
-            if isinstance(val, origin):
+            if isinstance(val, typ):
                 result = val
-            elif origin is bool:
+            elif typ is bool:
                 if isinstance(val, str):
                     result = val.strip().lower() in {"true", "1", "yes"}
                 else:
                     result = bool(val)
-            elif origin is int:
+            elif typ is int:
                 result = int(val)
-            elif origin is float:
+            elif typ is float:
                 result = float(val)
-            elif origin is str:
+            elif typ is str:
                 result = str(val)
             else:
                 result = val

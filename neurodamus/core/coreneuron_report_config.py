@@ -3,109 +3,119 @@ from __future__ import annotations
 import logging
 import struct
 from collections.abc import Iterable
+from dataclasses import dataclass, field, fields
 from pathlib import Path
+from typing import Union, get_args, get_origin, get_type_hints
 
 from ._utils import run_only_rank0
 from neurodamus.report_parameters import ReportType
 
 
-class CoreReportConfigEntry:  # noqa: PLW1641
-    # (field_name, type, is init input)
-    SLOTS = [
-        ("report_name", str, True),
-        ("target_name", str, True),
-        ("report_type", str, True),
-        ("report_variable", str, True),  # comma-joined from report_on
-        ("unit", str, True),
-        ("report_format", str, True),
-        ("sections", str, True),  # sections.to_string()
-        ("compartments", str, True),  # compartments.to_string()
-        ("dt", float, True),
-        ("start_time", float, True),
-        ("end_time", float, True),
-        ("num_gids", int, False),  # computed dynamically
-        ("buffer_size", int, True),
-        ("scaling", str, True),  # scaling.to_string()
-    ]
+@dataclass
+class CoreReportConfigEntry:
+    report_name: str
+    target_name: str
+    report_type: str
+    report_variable: str
+    unit: str
+    report_format: str
+    sections: str
+    compartments: str
+    dt: float
+    start_time: float
+    end_time: float
+    buffer_size: int
+    scaling: str
 
-    def __init__(self, *args, **kwargs):
-        inputs = [(name, typ) for name, typ, init_input in self.SLOTS if init_input]
+    # public lists
+    gids: list[int] = field(default_factory=list, init=False)
+    points_section_ids: list[int] = field(default_factory=list, init=False)
+    points_compartment_ids: list[int] = field(default_factory=list, init=False)
 
-        # fill positional args
-        for (name, typ), value in zip(inputs, args):
-            assert isinstance(value, typ), (
-                f"Expected {name} to be {typ.__name__}, got {type(value).__name__}"
-            )
-            setattr(self, name, value)
+    def __post_init__(self):
+        # type coercion and path resolution
+        hints = get_type_hints(self)
+        for f in fields(self):
+            val = getattr(self, f.name)
+            coerced = self._coerce_type(hints[f.name], val)
+            setattr(self, f.name, coerced)
 
-        # fill remaining from kwargs
-        for name, typ in inputs[len(args) :]:
-            if name not in kwargs:
-                raise ValueError(f"Missing required argument: {name}")
-            value = kwargs[name]
-            assert isinstance(value, typ), (
-                f"Expected {name} to be {typ.__name__}, got {type(value).__name__}"
-            )
-            setattr(self, name, value)
+    @staticmethod
+    def _coerce_type(typ, val):
+        result = None
 
-        self._gids: list[int] = []
-        self._points_section_id: list[int] = []
-        self._points_compartment_id: list[int] = []
+        typ = get_origin(typ) or typ
+        if typ is Union:
+            typ = next(t for t in get_args(typ) if t is not type(None))
+
+        if val is not None:
+            if isinstance(val, typ):
+                result = val
+            elif typ is bool:
+                if isinstance(val, str):
+                    result = val.strip().lower() in {"true", "1", "yes"}
+                else:
+                    result = bool(val)
+            elif typ is int:
+                result = int(val)
+            elif typ is float:
+                result = float(val)
+            elif typ is str:
+                result = str(val)
+            else:
+                result = val
+
+        return result
 
     @property
     def num_gids(self):
-        return len(self._gids)
+        return len(self.gids)
 
     @run_only_rank0
     def set_gids(self, gids):
-        assert self.report_type != "compartment_set", (
-            f"set_gids is not compatible with 'compartment_set' report type, got {self.report_type}"
-        )
-        if not isinstance(gids, Iterable):
-            raise TypeError(f"gids must be iterable, got {type(gids)}")
-        assert len(gids) > 0, "gids cannot be empty"
-        self._gids = gids
+        assert self.report_type != "compartment_set"
+        assert isinstance(gids, Iterable)
+        assert len(gids)
+        self.gids = gids
 
     @run_only_rank0
     def set_points(self, gids, section_ids, compartment_ids):
-        assert self.report_type == "compartment_set", (
-            "set_points is only compatible with 'compartment_set' report type, "
-            f"got {self.report_type}"
+        assert self.report_type == "compartment_set"
+        assert isinstance(gids, Iterable)
+        assert isinstance(section_ids, Iterable)
+        assert isinstance(compartment_ids, Iterable)
+        assert len(gids)
+        assert len(gids) == len(section_ids) == len(compartment_ids), (
+            f"All input lists must have the same length, "
+            f"got gids: {len(gids)}, section_ids: {len(section_ids)}, "
+            f"compartment_ids: {len(compartment_ids)}"
         )
-        if not isinstance(gids, Iterable):
-            raise TypeError(f"gids must be iterable, got {type(gids)}")
-        if not isinstance(section_ids, Iterable):
-            raise TypeError(f"section_ids must be iterable, got {type(section_ids)}")
-        if not isinstance(compartment_ids, Iterable):
-            raise TypeError(f"compartment_ids must be iterable, got {type(compartment_ids)}")
-        assert len(gids) > 0, "gids cannot be empty"
-
-        self._gids = gids
-        self._points_section_id = section_ids
-        self._points_compartment_id = compartment_ids
+        self.gids = gids
+        self.points_section_ids = section_ids
+        self.points_compartment_ids = compartment_ids
 
     @run_only_rank0
     def dump(self, f):
-        if not len(self._gids):
-            raise ValueError(f"Cannot dump entry: gids not set or empty: `{self._gids}`")
+        assert len(self.gids)
 
-        # text line with num_gids in correct position
-        line_values = []
-        for name, _, _ in self.SLOTS:
-            line_values.append(str(getattr(self, name)))
+        # text line with field values
+        line_values = [str(getattr(self, f.name)) for f in fields(self) if f.init]
+        line_values.insert(11, str(self.num_gids))
         f.write((" ".join(line_values) + "\n").encode())
 
         # binary gids
-        f.write(struct.pack(f"{self.num_gids}i", *self._gids))
-        f.write(b"\n")  # separator
-        if self._points_section_id:
-            f.write(struct.pack(f"{len(self._points_section_id)}i", *self._points_section_id))
-            f.write(b"\n")  # separator
-        if self._points_compartment_id:
+        f.write(struct.pack(f"{len(self.gids)}i", *self.gids))
+        f.write(b"\n")
+
+        # binary points
+        if self.points_section_ids:
+            f.write(struct.pack(f"{len(self.points_section_ids)}i", *self.points_section_ids))
+            f.write(b"\n")
+        if self.points_compartment_ids:
             f.write(
-                struct.pack(f"{len(self._points_compartment_id)}i", *self._points_compartment_id)
+                struct.pack(f"{len(self.points_compartment_ids)}i", *self.points_compartment_ids)
             )
-            f.write(b"\n")  # separator
+            f.write(b"\n")
 
     @staticmethod
     def _get_binary_int_array(f, num_elements):
@@ -117,34 +127,19 @@ class CoreReportConfigEntry:  # noqa: PLW1641
 
     @classmethod
     def load_from_file(cls, f):
-        # read text line
         line = f.readline()
         if not line:
-            return None  # EOF
-
+            return None
         tokens = line.decode().strip().split()
-        if len(tokens) != len(cls.SLOTS):
-            raise ValueError(f"Expected {len(cls.SLOTS)} fields, got {len(tokens)}")
-
-        # convert tokens to proper types
-        kwargs = {}
-        for (name, typ, _), tok in zip(cls.SLOTS, tokens):
-            if name == "num_gids":
-                num_gids = int(tok)  # store to read binary
-            else:
-                kwargs[name] = typ(tok)
-
-        entry = cls(**kwargs)
-
-        # read binary gids
-        gids = CoreReportConfigEntry._get_binary_int_array(f, num_gids)
+        num_gids = int(tokens.pop(11))
+        entry = cls(*tokens)
+        gids = cls._get_binary_int_array(f, num_gids)
         if entry.report_type == "compartment_set":
-            section_ids = CoreReportConfigEntry._get_binary_int_array(f, num_gids)
-            compartment_ids = CoreReportConfigEntry._get_binary_int_array(f, num_gids)
+            section_ids = cls._get_binary_int_array(f, num_gids)
+            compartment_ids = cls._get_binary_int_array(f, num_gids)
             entry.set_points(gids, section_ids, compartment_ids)
         else:
             entry.set_gids(gids)
-
         return entry
 
     @classmethod
@@ -165,97 +160,64 @@ class CoreReportConfigEntry:  # noqa: PLW1641
             scaling=rep_params.scaling.to_string(),
         )
         if rep_params.type == ReportType.COMPARTMENT_SET:
-            # flatten the points for binary encoding
             gids = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
-            points_section_id = [
-                section_id for i in rep_params.points for section_id, _sec, _x in i
-            ]
-            points_compartment_id = [
+            section_ids = [section_id for i in rep_params.points for section_id, _sec, _x in i]
+            compartment_ids = [
                 sec.sec(x).node_index() for i in rep_params.points for _section_id, sec, x in i
             ]
-            entry.set_points(gids, points_section_id, points_compartment_id)
+            entry.set_points(gids, section_ids, compartment_ids)
         else:
             entry.set_gids(rep_params.target.get_gids())
-
         return entry
 
-    def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return NotImplemented
-        return self.__dict__ == other.__dict__
 
-    def __repr__(self):
-        vals = {
-            name: getattr(self, name) if name != "num_gids" else self.num_gids
-            for name, _, _ in self.SLOTS
-        }
-        vals["gids"] = self._gids
-        vals["points_section_id"] = self._points_section_id
-        vals["points_compartment_id"] = self._points_compartment_id
-        return f"CoreReportConfigEntry({vals})"
+@dataclass
+class CoreReportConfig:
+    """Handler of report.conf, the configuration of the coreNeuron reports."""
 
-
-class CoreReportConfig:  # noqa: PLW1641
-    """Handler of report.conf, the configuration of the coreNeuron reports.
-    This class manages how the file is handled
-    """
-
-    __slots__ = ("_pop_offsets", "_reports", "_spike_filename")
-
-    def __init__(self):
-        # key: report_name, value: CoreReportConfigEntry
-        self._reports: dict[str, CoreReportConfigEntry] = {}
-        self._pop_offsets: dict[str, int] | None = None
-        self._spike_filename: str | None = None
-
-    def __eq__(self, other):
-        if not isinstance(other, CoreReportConfig):
-            return NotImplemented
-        return (
-            self._reports == other._reports
-            and self._pop_offsets == other._pop_offsets
-            and self._spike_filename == other._spike_filename
-        )
+    reports: dict[str, CoreReportConfigEntry] = field(default_factory=dict, init=False)
+    pop_offsets: dict[str, int] = field(default=None, init=False)
+    spike_filename: str = field(default=None, init=False)
 
     def add_entry(self, entry: CoreReportConfigEntry):
         logging.info(
             "Adding report %s for CoreNEURON with %s gids", entry.report_name, entry.num_gids
         )
-        self._reports[entry.report_name] = entry
+        self.reports[entry.report_name] = entry
 
     def set_pop_offsets(self, pop_offsets: dict[str, int]):
         """Set the population offsets for the reports (skip None key)."""
         assert isinstance(pop_offsets, dict), "pop_offsets must be a dictionary"
-        self._pop_offsets = {k: v for k, v in pop_offsets.items() if k is not None}
+        self.pop_offsets = {k: v for k, v in pop_offsets.items() if k is not None}
 
     def set_spike_filename(self, spike_path: str):
         """Set the spike filename for the reports."""
         if spike_path is not None:
             # Get only the spike file name
-            self._spike_filename = spike_path.rsplit("/", maxsplit=1)[-1]
+            self.spike_filename = spike_path.rsplit("/", maxsplit=1)[-1]
 
     @run_only_rank0
     def dump(self, path: str | Path):
-        path = Path(path)
+        path = Path(path).resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
         # always override
-        logging.info("Writing coreneuron report config file: %s", path.resolve())
+        logging.info("Writing coreneuron report config file: %s", path)
         with open(path, "wb") as f:
             # number of reports
-            f.write(f"{len(self._reports)}\n".encode())
+            f.write(f"{len(self.reports)}\n".encode())
             # dump each entry
-            for entry in self._reports.values():
+            for entry in self.reports.values():
                 entry.dump(f)
 
-            f.write(f"{len(self._pop_offsets)}\n".encode())
-            for k, v in self._pop_offsets.items():
+            f.write(f"{len(self.pop_offsets)}\n".encode())
+            for k, v in self.pop_offsets.items():
                 if v is not None:
                     f.write(f"{k} {v}\n".encode())
                 else:
                     f.write(f"{k}\n".encode())
 
-            if self._spike_filename:
-                f.write(f"{self._spike_filename}\n".encode())
+            if self.spike_filename:
+                f.write(f"{self.spike_filename}\n".encode())
         logging.info("Done! coreneuron report config was written")
 
     @classmethod
@@ -309,14 +271,13 @@ class CoreReportConfig:  # noqa: PLW1641
         """Update the report configuration file with new substitutions."""
         conf = CoreReportConfig.load(file_path)
         for report_name, targets in substitutions.items():
-            report = conf._reports[report_name]
+            report = conf.reports[report_name]
             for attr, new_val in targets.items():
                 if not hasattr(report, attr):
                     raise AttributeError(f"Missing attribute '{attr}' in {report!r}")
 
                 current_val = getattr(report, attr)
                 if not isinstance(new_val, type(current_val)):
-                    logging.error("I enter here!")
                     raise TypeError(
                         f"Type mismatch for '{attr}': expected {type(current_val).__name__}, "
                         f"got {type(new_val).__name__}. "

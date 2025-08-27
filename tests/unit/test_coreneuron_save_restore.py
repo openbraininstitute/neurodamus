@@ -264,8 +264,8 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
 
     # check result.conf end times
     report_confs = CoreReportConfig.load(f"checkpoint_{t[1]}/report.conf")
-    assert report_confs._reports["soma_v.h5"].end_time == t[1]
-    assert report_confs._reports["compartment_i.h5"].end_time == t[1]
+    assert report_confs.reports["soma_v.h5"].end_time == t[1]
+    assert report_confs.reports["compartment_i.h5"].end_time == t[1]
 
     update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
 
@@ -286,8 +286,8 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
 
     # check result.conf end times
     report_confs = CoreReportConfig.load(f"checkpoint_{t[2]}/report.conf")
-    assert report_confs._reports["soma_v.h5"].end_time == 18
-    assert report_confs._reports["compartment_i.h5"].end_time == t[2]
+    assert report_confs.reports["soma_v.h5"].end_time == 18
+    assert report_confs.reports["compartment_i.h5"].end_time == t[2]
 
     # compare celldump states
     full_run_dir = Path(f"output_{t[0]}_{t[2]}")

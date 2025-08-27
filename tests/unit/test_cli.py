@@ -182,7 +182,7 @@ def test_cli_report_buff_size(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     report_confs = CoreReportConfig.load("build/report.conf")
-    assert report_confs._reports["soma_v.h5"].buffer_size == 64
+    assert report_confs.reports["soma_v.h5"].buffer_size == 64
 
 
 @pytest.mark.parametrize(

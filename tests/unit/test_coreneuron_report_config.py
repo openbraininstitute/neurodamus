@@ -1,6 +1,7 @@
 from logging import config
 import pytest
 from neurodamus.core.coreneuron_report_config import CoreReportConfigEntry, CoreReportConfig
+from neurodamus.report_parameters import ReportParameters, ReportType, Scaling, SectionType, Compartments
 
 def test_init_positional_and_kwargs():
     # positional only
@@ -18,7 +19,7 @@ def test_init_positional_and_kwargs():
     assert entry2.dt == 0.2
 
 def test_type_enforcement():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         CoreReportConfigEntry(
             "r1", "target", "type", "var", "unit", "fmt",
             "sections", "compartments", "wrong", 0.0, 1.0,
@@ -26,7 +27,7 @@ def test_type_enforcement():
         )
 
 def test_missing_required_fields():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         CoreReportConfigEntry(
             "r1", "target", "type", "var", "unit", "fmt",
             "sections", "compartments", 0.1, 0.0, 1.0
@@ -40,27 +41,7 @@ def test_set_gids_and_num_gids():
     assert entry.num_gids == 0
     entry.set_gids([1, 2, 3])
     assert entry.num_gids == 3
-    assert entry._gids == [1, 2, 3]
-
-def test_equality_and_repr():
-    e1 = CoreReportConfigEntry(
-        "r1", "target", "type", "var", "unit", "fmt",
-        "sections", "compartments", 0.1, 0.0, 1.0, buffer_size=8, scaling="scale"
-    )
-    e2 = CoreReportConfigEntry(
-        "r1", "target", "type", "var", "unit", "fmt",
-        "sections", "compartments", 0.1, 0.0, 1.0, buffer_size=8, scaling="scale"
-    )
-    e1.set_gids([1,2,3])
-    e2.set_gids([1,2,3])
-    assert e1 == e2
-    e2.set_gids([4,5])
-    assert e1 != e2
-    # repr contains SLOTS names
-    r = repr(e1)
-    for name, _, _ in e1.SLOTS:
-        assert name in r
-    assert "gids" in r
+    assert entry.gids == [1, 2, 3]
 
 def test_dump_load_mandatory_pop_offsets(tmp_path):
     file_path = tmp_path / "report.conf"
@@ -82,8 +63,8 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
 
     loaded = CoreReportConfig.load(file_path)
     assert loaded == config
-    assert loaded._pop_offsets == {"pop1": 10, "pop2": 20}
-    assert loaded._spike_filename == "spikes.dat"
+    assert loaded.pop_offsets == {"pop1": 10, "pop2": 20}
+    assert loaded.spike_filename == "spikes.dat"
 
     # --- Step 2: add a compartment_set entry with new pop_offsets ---
     e2 = CoreReportConfigEntry(
@@ -93,13 +74,13 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
     e2.set_points([4,5], [10,20], [100,200])
     loaded.add_entry(e2)
     loaded.set_pop_offsets({"pop3": 30})  # must always set
-    loaded._spike_filename = None           # optional
+    loaded.spike_filename = None           # optional
     loaded.dump(file_path)
 
     reloaded = CoreReportConfig.load(file_path)
     assert reloaded == loaded
-    assert reloaded._pop_offsets == {"pop3": 30}
-    assert reloaded._spike_filename is None
+    assert reloaded.pop_offsets == {"pop3": 30}
+    assert reloaded.spike_filename is None
 
     # --- Step 3: add another compartment_set with spike filename ---
     e3 = CoreReportConfigEntry(
@@ -114,8 +95,8 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
 
     reloaded2 = CoreReportConfig.load(file_path)
     assert reloaded2 == reloaded
-    assert reloaded2._pop_offsets == {"pop4": 40}
-    assert reloaded2._spike_filename == "spikes2.dat"
+    assert reloaded2.pop_offsets == {"pop4": 40}
+    assert reloaded2.spike_filename == "spikes2.dat"
 
     # --- Step 4: add normal entry without spike filename ---
     e4 = CoreReportConfigEntry(
@@ -125,13 +106,13 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
     e4.set_gids([11,12,13])
     reloaded2.add_entry(e4)
     reloaded2.set_pop_offsets({"pop5": 50})  # mandatory
-    reloaded2._spike_filename = None
+    reloaded2.spike_filename = None
     reloaded2.dump(file_path)
 
     reloaded3 = CoreReportConfig.load(file_path)
     assert reloaded3 == reloaded2
-    assert reloaded3._pop_offsets == {"pop5": 50}
-    assert reloaded3._spike_filename is None
+    assert reloaded3.pop_offsets == {"pop5": 50}
+    assert reloaded3.spike_filename is None
 
     # --- Step 5: replace one compartment_set with a normal entry and set optional members ---
     replacement = CoreReportConfigEntry(
@@ -146,8 +127,8 @@ def test_dump_load_mandatory_pop_offsets(tmp_path):
 
     final_loaded = CoreReportConfig.load(file_path)
     assert final_loaded == reloaded3
-    assert final_loaded._pop_offsets == {"pop_new": 42}
-    assert final_loaded._spike_filename == "new_spikes.dat"
+    assert final_loaded.pop_offsets == {"pop_new": 42}
+    assert final_loaded.spike_filename == "new_spikes.dat"
 
 def test_update_file(tmp_path):
     # Arrange: create a dummy config with one report
@@ -169,7 +150,7 @@ def test_update_file(tmp_path):
 
     # Assert: reloaded config has updated value
     reloaded = CoreReportConfig.load(file_path)
-    assert reloaded._reports["r1"].buffer_size == 11
+    assert reloaded.reports["r1"].buffer_size == 11
 
 def test_update_file_failures(tmp_path):
     # Arrange
