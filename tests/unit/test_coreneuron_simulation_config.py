@@ -27,7 +27,7 @@ def test_init_type_coercion():
     assert cfg.prcellgid == 42
     assert cfg.celsius == 37.0
     assert cfg.voltage == -65.0
-    assert cfg.__dict__["cell_permute"] == 2
+    assert cfg.cell_permute == 2
     assert cfg.mpi == 1
 
 def test_optional_fields():
