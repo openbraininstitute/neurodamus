@@ -72,8 +72,9 @@ class CoreSimulationConfig:
             for f in fields(self):
                 file_key = f.metadata.get("file_key", f.name)
                 val = getattr(self, f.name)
-                if file_key == "model-stats" and val:
-                    fp.write("'model-stats'\n")
+                if file_key == "model-stats":
+                    if val:
+                        fp.write("model-stats\n")
                 elif val is not None:
                     if isinstance(val, str):
                         fp.write(f"{file_key}='{val}'\n")
@@ -93,7 +94,7 @@ class CoreSimulationConfig:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                if line == "'model-stats'":
+                if line == "model-stats":
                     raw[key_map["model-stats"]] = True
                     continue
                 if "=" not in line:

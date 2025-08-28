@@ -17,6 +17,19 @@ def make_minimal_kwargs():
         "mpi": 1,
     }
 
+def string_in_file(filepath, target, exact_line):
+    """
+    exact_line=True  -> match whole line
+    exact_line=False -> substring match
+    """
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            text = line.rstrip("\n")
+            match = (text == target) if exact_line else (target in text)
+            if match:
+                return True
+    return False
+
 def test_init_type_coercion():
     kwargs = make_minimal_kwargs()
     # Pass everything as string
@@ -41,6 +54,23 @@ def test_optional_fields():
     assert cfg.seed == 123
     assert cfg.model_stats is True
     assert cfg.report_conf == str(Path("conf.yml").resolve())
+
+def test_model_stats_dump_load():
+    kwargs = make_minimal_kwargs()
+    kwargs["model_stats"] = "1"
+    cfg = CoreSimulationConfig(**kwargs)
+    cfg.dump("test_config.txt")
+    assert string_in_file("test_config.txt", "model-stats", exact_line=True)
+    reloaded_cfg = CoreSimulationConfig.load("test_config.txt")
+    assert reloaded_cfg.model_stats is True
+    assert reloaded_cfg == cfg
+    del kwargs["model_stats"]
+    cfg = CoreSimulationConfig(**kwargs)
+    cfg.dump("test_config.txt")
+    assert not string_in_file("test_config.txt", "model-stats", exact_line=False)
+    reloaded_cfg = CoreSimulationConfig.load("test_config.txt")
+    assert not reloaded_cfg.model_stats
+    assert reloaded_cfg == cfg
 
 def test_missing_mandatory_raises():
     kwargs = make_minimal_kwargs()
