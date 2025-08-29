@@ -52,10 +52,7 @@ class CoreReportConfigEntry:
             if isinstance(val, typ):
                 result = val
             elif typ is bool:
-                if isinstance(val, str):
-                    result = val.strip().lower() in {"true", "1"}
-                else:
-                    result = bool(val)
+                result = val.strip().lower() in {"true", "1"} if isinstance(val, str) else bool(val)
             elif typ is int:
                 result = int(val)
             elif typ is float:

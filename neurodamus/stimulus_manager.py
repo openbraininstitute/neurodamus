@@ -23,7 +23,7 @@ from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose
-from neurodamus.report_parameters import Compartments, SectionType
+from neurodamus.report_parameters import CompartmentType, SectionType
 
 
 class StimulusManager:
@@ -105,7 +105,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -242,7 +242,7 @@ class ShotNoise(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -469,7 +469,7 @@ class Linear(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -585,7 +585,7 @@ class Noise(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -683,7 +683,7 @@ class Pulse(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
 
         for tpoint_list in tpoints:
@@ -727,7 +727,7 @@ class Sinusoidal(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
@@ -772,7 +772,7 @@ class SEClamp(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=Compartments.CENTER
+            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):

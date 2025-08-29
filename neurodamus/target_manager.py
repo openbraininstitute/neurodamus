@@ -10,7 +10,7 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
-from .report_parameters import Compartments, ReportType, SectionType
+from .report_parameters import CompartmentType, ReportType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
 from .utils.pyutils import cache_errors
@@ -226,7 +226,7 @@ class TargetManager:
 
         sections, compartments = rep_params.sections, rep_params.compartments
         if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
-            sections, compartments = SectionType.ALL, Compartments.ALL
+            sections, compartments = SectionType.ALL, CompartmentType.ALL
         return rep_params.target.get_point_list(
             cell_manager=self._cell_manager, sections=sections, compartments=compartments
         )
@@ -515,7 +515,7 @@ class NodesetTarget:
         Args:
             cell_manager: a cell manager or global cell manager
             sections: SectionType
-            compartments: Compartments
+            compartments: CompartmentType
 
         Returns:
             list of TPointList containing the compartment position and retrieved section references
@@ -530,7 +530,7 @@ class NodesetTarget:
 
             for sec in secs:
                 section_id = cell.get_section_id(sec)
-                if compartments == Compartments.CENTER:
+                if compartments == CompartmentType.CENTER:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
@@ -640,6 +640,7 @@ class TPointList:
         self.sclst_ids.append(section_id)
 
     def extend(self, other: "TPointList") -> None:
+        assert isinstance(other, TPointList), f"Expected TPointList, got {type(other).__name__}"
         self.x.extend(other.x)
         self.sclst.extend(other.sclst)
         self.sclst_ids.extend(other.sclst_ids)

@@ -58,7 +58,7 @@ class SectionType(StrEnumBase):
     __invalid__ = INVALID
 
 
-class Compartments(StrEnumBase):
+class CompartmentType(StrEnumBase):
     ALL = 0
     CENTER = 1
     INVALID = 2
@@ -114,7 +114,7 @@ class ReportParameters:
     scaling: Scaling
     target: object
     sections: SectionType
-    compartments: Compartments
+    compartments: CompartmentType
     compartment_set: str
     points: list[TPointList] | None = None  # this is filled later with get_point_list
 
@@ -160,7 +160,7 @@ def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, tar
     end_time = min(end_time, sim_end)
 
     sections = SectionType.from_string(rep_conf.get("Sections"))
-    compartments = Compartments.from_string(rep_conf.get("Compartments"))
+    compartments = CompartmentType.from_string(rep_conf.get("Compartments"))
 
     logging.info(
         " * %s (Type: %s, Target: %s, Dt: %f)",
