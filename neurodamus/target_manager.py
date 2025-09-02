@@ -228,7 +228,7 @@ class TargetManager:
         if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
             sections, compartments = SectionType.ALL, CompartmentType.ALL
         return rep_params.target.get_point_list(
-            cell_manager=self._cell_manager, sections=sections, compartments=compartments
+            cell_manager=self._cell_manager, section_type=sections, compartment_type=compartments
         )
 
     def gid_to_sections(self, gid):
@@ -508,19 +508,21 @@ class NodesetTarget:
 
         return point_list
 
-    def get_point_list(self, cell_manager, sections, compartments):
+    def get_point_list(
+        self, cell_manager, section_type: SectionType, compartment_type: CompartmentType
+    ):
         """Retrieve a TPointList containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
             cell_manager: a cell manager or global cell manager
-            sections: SectionType
-            compartments: CompartmentType
+            section_type: SectionType
+            compartment_type: CompartmentType
 
         Returns:
             list of TPointList containing the compartment position and retrieved section references
         """
-        section_type_str = sections.to_string()
+        section_type_str = section_type.to_string()
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
@@ -530,7 +532,7 @@ class NodesetTarget:
 
             for sec in secs:
                 section_id = cell.get_section_id(sec)
-                if compartments == CompartmentType.CENTER:
+                if compartment_type == CompartmentType.CENTER:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:

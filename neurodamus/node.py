@@ -905,7 +905,7 @@ class Node:
                     CoreConfig.report_config_file_restore, CoreConfig.report_config_file_save
                 )
             else:
-                coreReportConfig = CoreReportConfig()
+                core_report_config = CoreReportConfig()
 
         # necessary for restore: we need to update the various reports tend
         # we can do it in one go later
@@ -968,7 +968,7 @@ class Node:
                 continue
 
             if SimConfig.use_coreneuron:
-                coreReportConfig.add_entry(
+                core_report_config.add_entry(
                     CoreReportConfigEntry.from_report_params(rep_params=rep_params)
                 )
 
@@ -992,14 +992,20 @@ class Node:
 
         if not SimConfig.restore_coreneuron:
             if SimConfig.use_coreneuron:
-                coreReportConfig.set_pop_offsets(pop_offsets_alias[0])
-                coreReportConfig.set_spike_filename(self._run_conf.get("SpikesFile"))
-                coreReportConfig.dump(CoreConfig.report_config_file_save)
+                self._finalize_corenrn_reports(core_report_config, pop_offsets_alias)
             else:
-                # once all reports are created, we finalize the communicator for any reports
-                self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buffer_size)
-                self._sonatareport_helper.make_comm()
-                self._sonatareport_helper.prepare_datasets()
+                self._finalize_nrn_reports()
+
+    def _finalize_corenrn_reports(self, core_report_config, pop_offsets_alias):
+        core_report_config.set_pop_offsets(pop_offsets_alias[0])
+        core_report_config.set_spike_filename(self._run_conf.get("SpikesFile"))
+        core_report_config.dump(CoreConfig.report_config_file_save)
+
+    def _finalize_nrn_reports(self):
+        # once all reports are created, we finalize the communicator for any reports
+        self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buffer_size)
+        self._sonatareport_helper.make_comm()
+        self._sonatareport_helper.prepare_datasets()
 
     # -
     @mpi_no_errors
@@ -1257,7 +1263,7 @@ class Node:
             cell_permute=CoreConfig.default_cell_permute,
             pattern=self._core_replay_file or None,
             seed=SimConfig.rng_info.getGlobalSeed(),
-            model_stats=bool(int(SimConfig.cli_options.model_stats)),
+            model_stats=int(SimConfig.cli_options.model_stats),
             report_conf=CoreConfig.report_config_file_save
             if self._run_conf["EnableReports"]
             else None,

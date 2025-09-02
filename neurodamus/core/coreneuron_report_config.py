@@ -265,7 +265,27 @@ class CoreReportConfig:
     @staticmethod
     @run_only_rank0
     def update_file(file_path: str, substitutions: dict[str, dict[str, int]]):
-        """Update the report configuration file with new substitutions."""
+        """Update a report configuration file by applying attribute substitutions to
+        one or more reports.
+
+        Args:
+            file_path (str): Path to the configuration file to load and update.
+            substitutions (dict[str, dict[str, int]]): A mapping from report names
+                to dictionaries of attribute-value pairs to be updated.
+
+        Behavior:
+            - Loads the configuration from `file_path`.
+            - For each report listed in `substitutions`, updates the specified
+              attributes to the given values.
+            - Raises AttributeError if a report does not have the target attribute.
+            - Raises TypeError if the new value type does not match the current value type.
+            - Dumps the updated configuration back to the same file.
+
+        Example:
+            >>> substitutions = {"r1": {"buffer_size": 11}}
+            >>> CoreReportConfig.update_file("config.yaml", substitutions)
+            # Updates report 'r1' so that r1.buffer_size == 11
+        """
         conf = CoreReportConfig.load(file_path)
         for report_name, targets in substitutions.items():
             report = conf.reports[report_name]

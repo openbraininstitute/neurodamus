@@ -10,7 +10,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 >>> class TTX:
 >>>
 >>> def __init__(self, target, mod_info: dict, cell_manager):
->>>     tpoints = target.get_point_list(cell_manager, sections, compartments)
+>>>     tpoints = target.get_point_list(cell_manager, section_type, compartment_type)
 >>>     for point in tpoints:
 >>>         for sec_id, sc in enumerate(point.sclst):
 >>>             if not sc.exists():
@@ -65,7 +65,7 @@ class TTX:
 
     def __init__(self, target, mod_info: dict, cell_manager):
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.ALL, compartments=CompartmentType.ALL
+            cell_manager, section_type=SectionType.ALL, compartment_type=CompartmentType.ALL
         )
 
         # insert and activate TTX mechanism in all sections of each cell in target
@@ -90,7 +90,7 @@ class ConfigureAllSections:
     def __init__(self, target, mod_info: dict, cell_manager):
         config, config_attrs = self.parse_section_config(mod_info["SectionConfigure"])
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.ALL, compartments=CompartmentType.ALL
+            cell_manager, section_type=SectionType.ALL, compartment_type=CompartmentType.ALL
         )
 
         napply = 0  # number of sections where config applies

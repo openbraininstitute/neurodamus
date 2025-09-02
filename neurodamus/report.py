@@ -259,6 +259,9 @@ class SummationReport(Report):
         :param pop_name: Population name.
         :param pop_offset: Population GID offset.
         :param sections: Sum into soma if section is soma
+
+        Note: sections == SectionType.SOMA effectively means that we need
+        to sum the values into the soma
         """
         if self.use_coreneuron:
             return

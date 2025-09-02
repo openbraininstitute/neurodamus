@@ -10,7 +10,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 >>> class ShotNoise:
 >>>
 >>> def __init__(self, target, stim_info: dict, cell_manager):
->>>     tpoints = target.get_point_list(cell_manager, sections, compartments)
+>>>     tpoints = target.get_point_list(cell_manager, section_type, compartment_type)
 >>>     for point in tpoints:
 >>>         gid = point.gid
 >>>         cell = cell_manager.get_cell(gid)
@@ -105,7 +105,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -242,7 +242,7 @@ class ShotNoise(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -469,7 +469,7 @@ class Linear(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -585,7 +585,7 @@ class Noise(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             gid = tpoint_list.gid
@@ -683,7 +683,7 @@ class Pulse(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
 
         for tpoint_list in tpoints:
@@ -727,7 +727,7 @@ class Sinusoidal(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
@@ -772,7 +772,7 @@ class SEClamp(BaseStim):
 
         # apply stim to each point in target
         tpoints = target.get_point_list(
-            cell_manager, sections=SectionType.SOMA, compartments=CompartmentType.CENTER
+            cell_manager, section_type=SectionType.SOMA, compartment_type=CompartmentType.CENTER
         )
         for tpoint_list in tpoints:
             for sec_id, sc in enumerate(tpoint_list.sclst):
