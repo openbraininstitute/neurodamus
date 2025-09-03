@@ -13,13 +13,11 @@ from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
-from neurodamus.report_parameters import create_report_parameters, ReportType
+from neurodamus.report_parameters import create_report_parameters, CompartmentType, ReportType, SectionType
 
 from typing import List, Dict, Tuple
 import pandas as pd
 import copy
-
-import struct
 
 
 def merge_dicts(parent: dict, child: dict):
@@ -348,7 +346,13 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
         tvec = Nd.Vector()
         tvec.indgen(rep_params.start, rep_params.end, rep_params.dt)
 
-        points = target_manager.get_point_list(rep_params=rep_params)
+        sections, compartments = rep_params.sections, rep_params.compartments
+        if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
+            sections, compartments = SectionType.ALL, CompartmentType.ALL
+        points = rep_params.target.get_point_list(
+            cell_manager=target_manager._cell_manager, section_type=sections, compartment_type=compartments
+        )
+
         recorder = []
 
         variables = Report.parse_variable_names(rep_params.report_on)
