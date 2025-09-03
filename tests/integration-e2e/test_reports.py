@@ -11,6 +11,7 @@ from ..conftest import V5_SONATA, RINGTEST_DIR
 from ..utils import ReportReader
 import copy
 from neurodamus.utils.pyutils import CumulativeError
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 
 
 _BASE_EXTRA_CONFIG = {
@@ -342,3 +343,39 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     """
     with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
         Neurodamus(create_tmp_simulation_config_file)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        make_extra_config("v5_sonata_config", "CORENEURON"),
+    ],
+    indirect=True,
+)
+@pytest.mark.slow
+def test_reports_cell_permute(create_tmp_simulation_config_file):
+    """
+    Test that the summation report matches the summed compartment report.
+
+    Runs a simulation generating both compartment and summation reports for 'pas',
+    then asserts that summing compartment data per gid equals the summation report data,
+    within numerical tolerance.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute=1, keep_build=True)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = V5_SONATA / "reference" / "reports"
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 1
+
+    nd.run()
+    loose_tols = {"rtol": 1e-6, "atol": 1e-6}
+
+    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    # reference produced with neuron
+    # coreneuron does not have exactly the same results, we use the loose tols in that case
+    loose_tol_files = {"summation_i_membrane.h5"}
+    for ref_file in reference_dir.glob("*.h5"):
+        r_reference = ReportReader(ref_file)   
+        file = output_dir / ref_file.name 
+        r = ReportReader(file)
+
+        assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"

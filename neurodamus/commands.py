@@ -71,6 +71,11 @@ def neurodamus(args=None):
         --report-buffer-size=<number> Override the size in MB each rank will allocate for each
                                       report buffer to hold data. When the buffer is full, the
                                       ranks will aggregate data for writing to disk. Default: 8 MB
+        --cell-permute=[0, 1]   Cell permutation [default: 0].
+                                Only available for CoreNEURON.
+                                Currently incompatible with NEURON. Options:
+                                - 0  No permutation
+                                - 1  Optimise for node adjacency
     """
     from . import __version__
 

@@ -5,6 +5,9 @@ import libsonata
 import pytest
 
 from neurodamus.core.coreneuron_report_config import CoreReportConfig
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
+from neurodamus.core.configuration import SimConfig
+from neurodamus.core.configuration import CellPermute
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -196,3 +199,75 @@ def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
         result = subprocess.run(command, check=False, capture_output=True, text=True)
 
         assert "Report buffer size must be > 0" in result.stdout
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_simple_setting(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--cell-permute=1", "--keep-build"]
+    subprocess.run(command, check=False, capture_output=True, text=True)
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 1
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_default(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--keep-build"]
+    subprocess.run(command, check=False, capture_output=True, text=True)
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 0
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_simple_setting_python(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute=1)
+    assert SimConfig.cell_permute == CellPermute.NODE_ADJACENCY
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_default_python(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    assert SimConfig.cell_permute == CellPermute.NONE
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)            
+def test_cli_cell_permute_invalid(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--cell-permute=2"]
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert "'2' is not a valid CellPermute" in result.stdout
