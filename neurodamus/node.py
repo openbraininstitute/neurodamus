@@ -58,7 +58,9 @@ from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import create_report
 from .report_parameters import (
+    CompartmentType,
     ReportType,
+    SectionType,
     check_report_parameters,
     create_report_parameters,
 )
@@ -66,6 +68,7 @@ from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
+from .utils.pyutils import cache_errors
 from .utils.timeit import TimerManager, timeit
 from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
@@ -961,9 +964,7 @@ class Node:
             )
             if cumulative_error.is_error_appended:
                 continue
-            rep_params.points = self._target_manager.get_point_list(
-                rep_params, cumulative_error=cumulative_error
-            )
+            self._set_point_list_in_rep_params(rep_params, cumulative_error=cumulative_error)
             if cumulative_error.is_error_appended:
                 continue
 
@@ -1006,6 +1007,32 @@ class Node:
         self._sonatareport_helper.set_max_buffer_size_hint(SimConfig.report_buffer_size)
         self._sonatareport_helper.make_comm()
         self._sonatareport_helper.prepare_datasets()
+
+    @cache_errors
+    def _set_point_list_in_rep_params(self, rep_params):
+        """Dispatcher: it helps to retrieve the points of a target and set them in
+        the report parameters.
+
+        Args:
+            target: The target name or object
+            manager: The cell manager to access gids and metype infos
+
+        Returns: The target list of points
+        """
+        if rep_params.type == ReportType.COMPARTMENT_SET:
+            rep_params.points = rep_params.target.get_point_list_from_compartment_set(
+                cell_manager=self._target_manager._cell_manager,
+                compartment_set=self._target_manager._compartment_sets[rep_params.compartment_set],
+            )
+        else:
+            sections, compartments = rep_params.sections, rep_params.compartments
+            if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
+                sections, compartments = SectionType.ALL, CompartmentType.ALL
+            rep_params.points = rep_params.target.get_point_list(
+                cell_manager=self._target_manager._cell_manager,
+                section_type=sections,
+                compartment_type=compartments,
+            )
 
     # -
     @mpi_no_errors

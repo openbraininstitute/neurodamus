@@ -10,10 +10,9 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
-from .report_parameters import CompartmentType, ReportType, SectionType
+from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
-from .utils.pyutils import cache_errors
 
 
 class TargetError(Exception):
@@ -205,31 +204,6 @@ class TargetManager:
         if equal_only:
             return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
-
-    @cache_errors
-    def get_point_list(self, rep_params):
-        """Dispatcher: it helps to retrieve the points of a target.
-        Returns the result of calling get_point_list directly on the target.
-        Selects a target if unknown.
-
-        Args:
-            target: The target name or object
-            manager: The cell manager to access gids and metype infos
-
-        Returns: The target list of points
-        """
-        if rep_params.type == ReportType.COMPARTMENT_SET:
-            return rep_params.target.get_point_list_from_compartment_set(
-                cell_manager=self._cell_manager,
-                compartment_set=self._compartment_sets[rep_params.compartment_set],
-            )
-
-        sections, compartments = rep_params.sections, rep_params.compartments
-        if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
-            sections, compartments = SectionType.ALL, CompartmentType.ALL
-        return rep_params.target.get_point_list(
-            cell_manager=self._cell_manager, section_type=sections, compartment_type=compartments
-        )
 
     def gid_to_sections(self, gid):
         """For a given gid, return a list of section references stored for random access.
