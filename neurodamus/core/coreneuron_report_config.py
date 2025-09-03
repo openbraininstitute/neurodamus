@@ -273,14 +273,6 @@ class CoreReportConfig:
             substitutions (dict[str, dict[str, int]]): A mapping from report names
                 to dictionaries of attribute-value pairs to be updated.
 
-        Behavior:
-            - Loads the configuration from `file_path`.
-            - For each report listed in `substitutions`, updates the specified
-              attributes to the given values.
-            - Raises AttributeError if a report does not have the target attribute.
-            - Raises TypeError if the new value type does not match the current value type.
-            - Dumps the updated configuration back to the same file.
-
         Example:
             >>> substitutions = {"r1": {"buffer_size": 11}}
             >>> CoreReportConfig.update_file("config.yaml", substitutions)
