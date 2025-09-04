@@ -5,7 +5,6 @@ import libsonata
 import numpy.testing as npt
 import pytest
 
-from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
 from ..conftest import V5_SONATA, RINGTEST_DIR
 from ..utils import ReportReader
@@ -218,6 +217,7 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     then asserts that summing compartment data per gid equals the summation report data,
     within numerical tolerance.
     """
+    from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
     output_dir = Path(SimConfig.output_root)
     is_v5_sonata = "output_sonata2" in str(output_dir)
@@ -306,6 +306,7 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     Compartment reports should raise an error when requesting a reference value 
     that is not present in all compartments.
     """
+    from neurodamus import Neurodamus
     with pytest.raises(CumulativeError, match="No reference found for variable 'i' of mechanism 'IClamp' at location 0.5"): 
         Neurodamus(create_tmp_simulation_config_file)
 
@@ -340,5 +341,6 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     Compartment reports should raise an error when requesting a reference value 
     that is not present in all compartments.
     """
+    from neurodamus import Neurodamus
     with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
         Neurodamus(create_tmp_simulation_config_file)
