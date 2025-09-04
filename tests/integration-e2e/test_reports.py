@@ -260,7 +260,7 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
         file = output_dir / ref_file.name 
         r = ReportReader(file)
 
-        assert r.allclose(r_reference, **(loose_tols if SimConfig.use_coreneuron and ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}\n{ref_file.name}"
+        assert r.allclose(r_reference, **(loose_tols if SimConfig.use_coreneuron and ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}\n{ref_file.name}\n{SimConfig.use_coreneuron}\n{ref_file.name in loose_tol_files}"
 
     # compartment vs compartment_set
     # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
