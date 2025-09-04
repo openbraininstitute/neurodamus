@@ -10,8 +10,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from tests import utils
+
+from neurodamus.core.coreneuron_report_config import CoreReportConfig
+class UnexpectedFileError(Exception):
+    pass
 
 checkpoint_content = {"time.dat", "1_2.dat", "populations_offset.dat"}
 removable_checkpoint_content = {"report.conf", "sim.conf", "coreneuron_input"}
@@ -44,15 +47,18 @@ def check_dir_content(dir, files):
     """
     dir = Path(dir)
     if not dir.exists():
-        raise FileNotFoundError(f"Directory {dir} does not exist.")
+        raise FileNotFoundError(f"Directory {dir.resolve()} does not exist.")
     if not dir.is_dir():
-        raise FileNotFoundError(f"{dir} is not a directory.")
+        raise FileNotFoundError(f"{dir.resolve()} is not a directory.")
     for f in files:
         if not (dir / f).exists():
-            raise FileNotFoundError(f"File {f} does not exist in {dir}")
+            raise FileNotFoundError(f"File {f} does not exist in {dir.resolve()}")
     for f in dir.iterdir():
         if f.name not in files:
-            raise FileNotFoundError(f"File {f.name} exists in {dir} but is not expected.")
+            raise UnexpectedFileError(
+            f"Unexpected file '{f.name}' found in {dir.resolve()}.\n"
+            f"Expected only: {list(files)}"
+        )
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -76,7 +82,6 @@ def check_dir_content(dir, files):
     }
 ], indirect=True)
 def test_file_placement_base(create_tmp_simulation_config_file):
-
     command = ["neurodamus", "simulation_config.json"]
     subprocess.run(command, check=True, capture_output=True)
 
@@ -181,7 +186,6 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
     assert not Path("build").exists()
 
-@pytest.mark.skip(reason="to be enabled with #337")
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -259,7 +263,7 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # check result.conf end times
-    report_confs = utils.ReportConf.load(f"checkpoint_{t[1]}/report.conf")
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[1]}/report.conf")
     assert report_confs.reports["soma_v.h5"].end_time == t[1]
     assert report_confs.reports["compartment_i.h5"].end_time == t[1]
 
@@ -281,7 +285,7 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True, text=True)
 
     # check result.conf end times
-    report_confs = utils.ReportConf.load(f"checkpoint_{t[2]}/report.conf")
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[2]}/report.conf")
     assert report_confs.reports["soma_v.h5"].end_time == 18
     assert report_confs.reports["compartment_i.h5"].end_time == t[2]
 

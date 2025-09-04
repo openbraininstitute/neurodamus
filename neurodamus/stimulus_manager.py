@@ -10,7 +10,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 >>> class ShotNoise:
 >>>
 >>> def __init__(self, target, stim_info: dict, cell_manager):
->>>     tpoints = target.get_point_list(cell_manager)
+>>>     tpoints = target.get_point_list(cell_manager, section_type, compartment_type)
 >>>     for point in tpoints:
 >>>         gid = point.gid
 >>>         cell = cell_manager.get_cell(gid)

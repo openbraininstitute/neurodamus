@@ -167,9 +167,7 @@ def test_merge_dicts_deeply_nested():
     expected = {"A": {"B": {"C": 1, "D": 2}}}
     assert utils.merge_dicts(parent, child) == expected
 
-
 def test_defaultdict_to_standard_types():
-
     class CustomList:
         def __init__(self, items):
             self._items = items
@@ -220,6 +218,41 @@ def test_check_is_subset_fail():
     with pytest.raises(AssertionError):
         utils.check_is_subset(dic, subset)
 
+def test_merge_dicts_delete_field_simple():
+    parent = {"A": 1, "B": 2}
+    child = {"A": 2., "B": "delete_field"}
+    expected = {"A": 2}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_delete_field_nested():
+    parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
+    child = {"A": {"q": {"x": 2, "z": "delete_field"}}, "C": 4}
+    expected = {"A": {"q": {"x": 2, "y": 2}}, "B": 3, "C": 4}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_delete_field_heavily_nested():
+    parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
+    child = {"A": {"q": "delete_field"}, "C": 4}
+    expected = {"A": {}, "B": 3, "C": 4}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_simple():
+    parent = {"A": 1, "B": {"x": 1}}
+    child = {"override_field": 1, "x": 10}
+    expected = {"x": 10}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_nested():
+    parent = {"A": 1, "B": {"x": 1}}
+    child = {"A": 2, "B": {"override_field": 1, "y": 2}}
+    expected = {"A": 2, "B": {"y": 2}}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_heavily_nested():
+    parent = {"A": {"e": 1, "q": {"x": 1., "y": {"p": 1}}}, "B": 3}
+    child = {"A": {"w": 1, "q": {"x": 2, "y": {"override_field": 1, "q": 1}}}, "C": 4}
+    expected = {"A": {"w": 1, "e": 1, "q": {"x": 2, "y": {"q": 1}}}, "C": 4, "B": 3}
+    assert utils.merge_dicts(parent, child) == expected
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {

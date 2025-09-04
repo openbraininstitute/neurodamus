@@ -4,7 +4,7 @@ from pathlib import Path
 import libsonata
 import pytest
 
-from tests import utils
+from neurodamus.core.coreneuron_report_config import CoreReportConfig
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -157,7 +157,7 @@ def test_cli_output_path(create_tmp_simulation_config_file):
     )
     assert (tmp_path / new_output).is_dir(), f"Directory '{new_output}' not found."
 
-@pytest.mark.skip(reason="to be enabled with #337")
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file", [
     {
@@ -180,11 +180,11 @@ def test_cli_output_path(create_tmp_simulation_config_file):
 def test_cli_report_buff_size(create_tmp_simulation_config_file):
     command = ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64", "--keep-build"]
     subprocess.run(command, check=True, capture_output=True)
-    
-    report_confs = utils.ReportConf.load("build/report.conf")
+
+    report_confs = CoreReportConfig.load("build/report.conf")
     assert report_confs.reports["soma_v.h5"].buffer_size == 64
 
-@pytest.mark.skip(reason="to be enabled with #337")
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [{"simconfig_fixture": "ringtest_baseconfig"}],
