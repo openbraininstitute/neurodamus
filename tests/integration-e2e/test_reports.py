@@ -301,7 +301,7 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     Compartment reports should raise an error when requesting a reference value 
     that is not present in all compartments.
     """
-    with pytest.raises(CumulativeError, match="setup: AttributeError"): 
+    with pytest.raises(CumulativeError, match="No reference found for variable 'i' of mechanism 'IClamp' at location 0.5"): 
         Neurodamus(create_tmp_simulation_config_file)
 
 @pytest.mark.parametrize(
@@ -335,5 +335,5 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     Compartment reports should raise an error when requesting a reference value 
     that is not present in all compartments.
     """
-    with pytest.raises(CumulativeError, match="but found 8"): 
+    with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
         Neurodamus(create_tmp_simulation_config_file)
