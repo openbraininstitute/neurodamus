@@ -443,6 +443,14 @@ class ReportReader:
             self.populations[name] = (node_ids, df)
 
     def __eq__(self, other: object) -> bool:
+        return self.allclose(other)
+
+    def allclose(self, other: object, rtol=1e-16, atol=1e-16) -> bool:
+        """
+        Compare two ReportReader instances for approximate equality.
+        
+        Rtol and atol are the relative and absolute tolerances. The default values are
+        the standards for numpy.allclose."""
         if not isinstance(other, ReportReader):
             return NotImplemented
 
@@ -458,7 +466,7 @@ class ReportReader:
 
             # coreneuron has sometimes garbage for the first line
             # erro thresholds as for old bb5 itegration report tests
-            if not np.allclose(df1.values[1:], df2.values[1:], rtol=1e-6, atol=1e-6):
+            if not np.allclose(df1.values[1:], df2.values[1:], rtol=rtol, atol=atol):
                 return False
 
         return True

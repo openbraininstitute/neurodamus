@@ -224,6 +224,7 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     reference_dir = V5_SONATA / "reference" / "reports" if is_v5_sonata else RINGTEST_DIR / "reference" / "reports"
 
     nd.run()
+    loose_tols = {"rtol": 1e-6, "atol": 1e-6}
 
     # compartment vs summation
     for var in ["v", "i_membrane", "pas"]:
@@ -231,7 +232,9 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
         r_summation = ReportReader(output_dir / f"summation_{var}.h5")
 
         r_compartment.convert_to_summation()
-        assert r_compartment == r_summation, f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
+        # summation after report printing loses accuracy due to truncation
+        # We use the loose tols in that case
+        assert r_compartment.allclose(r_summation, **loose_tols), f"The summation-converted-compartment:\n{r_compartment}\ndiffers from the summation one:\n{r_summation}"
 
     # summation vs summation. Variable reordering
     r_summation_i_membrane_IClamp = ReportReader(output_dir / f"summation_i_membrane_IClamp.h5")
@@ -244,7 +247,9 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     r_summation_IClamp = ReportReader(output_dir / f"summation_IClamp.h5")
     r_compartment_i_membrane = ReportReader(output_dir / f"compartment_i_membrane.h5")
     r_summation_i_membrane_IClamp_manual = r_compartment_i_membrane+ r_summation_IClamp
-    assert r_summation_i_membrane_IClamp == r_summation_i_membrane_IClamp_manual, "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
+    # summation after report printing loses accuracy due to truncation
+    # We use the loose tols in that case
+    assert r_summation_i_membrane_IClamp.allclose(r_summation_i_membrane_IClamp_manual, **loose_tols), "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
 
     # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
     for ref_file in reference_dir.glob("*.h5"):
@@ -252,15 +257,13 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
         file = output_dir / ref_file.name 
         r = ReportReader(file)
 
-        assert r == r_reference, f"The reports differ:\n{file}\n{ref_file}"
+        # coreneuron does not have exactly the same results, we use the loose tols in that case
+        assert r.allclose(r_reference, **(loose_tols if SimConfig.use_coreneuron else {})), f"The reports differ:\n{file}\n{ref_file}"
 
     # compartment vs compartment_set
     # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
     # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
     # reports (nor offset)
-    #
-    # this issue: https://github.com/openbraininstitute/neurodamus/issues/353
-    # should provide a better way to do this
     if is_v5_sonata:
         ids = [0, 7, 7, 8, 190, 206, 348, 360]
         for var in ["v", "i_membrane", "pas"]:
