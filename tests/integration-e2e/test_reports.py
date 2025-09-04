@@ -252,13 +252,15 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     assert r_summation_i_membrane_IClamp.allclose(r_summation_i_membrane_IClamp_manual, **loose_tols), "Summation report does not match manual addition of compartment_i_membrane and summation_IClamp reports."
 
     # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    # reference produced with neuron
+    # coreneuron does not have exactly the same results, we use the loose tols in that case
+    loose_tol_files = {"summation_i_membrane.h5"}
     for ref_file in reference_dir.glob("*.h5"):
         r_reference = ReportReader(ref_file)   
         file = output_dir / ref_file.name 
         r = ReportReader(file)
 
-        # coreneuron does not have exactly the same results, we use the loose tols in that case
-        assert r.allclose(r_reference, **(loose_tols if SimConfig.use_coreneuron else {})), f"The reports differ:\n{file}\n{ref_file}"
+        assert r.allclose(r_reference, **(loose_tols if SimConfig.use_coreneuron and ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
 
     # compartment vs compartment_set
     # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
