@@ -354,11 +354,7 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
 @pytest.mark.slow
 def test_reports_cell_permute(create_tmp_simulation_config_file):
     """
-    Test that the summation report matches the summed compartment report.
-
-    Runs a simulation generating both compartment and summation reports for 'pas',
-    then asserts that summing compartment data per gid equals the summation report data,
-    within numerical tolerance.
+    Test that enabling cell permutation (cell_permute=1) preserves report consistency.
     """
     nd = Neurodamus(create_tmp_simulation_config_file, cell_permute=1, keep_build=True)
     output_dir = Path(SimConfig.output_root)
