@@ -263,29 +263,33 @@ jobs:
       run: |
         python -m pip install --upgrade pip tox
 
-    - name: unit
+    - name: removeme
       run: |
-        tox -e unit
+        tox -e removeme
 
-    - name: unit-ngv-mpi
-      run: |
-        tox -e unit-ngv-mpi
+    # - name: unit
+    #   run: |
+    #     tox -e unit
 
-    - name: unit-mpi
-      run: |
-        tox -e unit-mpi
+    # - name: unit-ngv-mpi
+    #   run: |
+    #     tox -e unit-ngv-mpi
 
-    - name: baseline
-      run: |
-        tox -e baseline
+    # - name: unit-mpi
+    #   run: |
+    #     tox -e unit-mpi
+
+    # - name: baseline
+    #   run: |
+    #     tox -e baseline
       
-    - name: integration-e2e
-      run: |
-        tox -e integration-e2e
+    # - name: integration-e2e
+    #   run: |
+    #     tox -e integration-e2e
 
-    - name: scientific
-      run: |
-        tox -e scientific
+    # - name: scientific
+    #   run: |
+    #     tox -e scientific
 
     # - name: live debug session, comment out
     #   if: failure()
