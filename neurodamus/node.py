@@ -751,7 +751,7 @@ class Node:
             logging.warning("Skipped Stimulus (restrict_features)")
             return
 
-        log_stage("Stimulus Apply.")
+        log_stage("Stimulus Apply. mao mao")
 
         # for each stimulus defined in the config file, request the StimulusManager to
         # instantiate
