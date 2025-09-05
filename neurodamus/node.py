@@ -739,6 +739,7 @@ class Node:
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
+
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
     def enable_stimulus(self):
