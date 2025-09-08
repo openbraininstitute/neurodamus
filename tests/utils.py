@@ -507,9 +507,11 @@ class ReportReader:
         # Extract node IDs from level 0 (with repetitions, in order)
         new_nodes = sorted(list(set([col[0] for col in new_df.columns])))
 
-        self.populations = {
-            population: (new_nodes, new_df)
-        }
+        new_reader = ReportReader.__new__(ReportReader)  # bypass __init__
+        new_reader._reader = self._reader
+        new_reader.populations = {population: (new_nodes, new_df)}
+
+        return new_reader
 
     def __repr__(self) -> str:
         lines = [f"ReportReader with {len(self.populations)} populations:"]

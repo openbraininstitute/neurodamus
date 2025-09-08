@@ -372,6 +372,10 @@ class NodesetTarget:
         self.nodesets = nodesets
         self.local_nodes = local_nodes
 
+    def __repr__(self):
+        nodesets_str = "\n  ".join(str(ns) for ns in self.nodesets)
+        return f"NodesetTarget(name={self.name!r}, nodesets=[\n  {nodesets_str}\n])"
+
     def gid_count(self):
         """Total number of nodes"""
         return sum(len(ns) for ns in self.nodesets)
@@ -461,6 +465,7 @@ class NodesetTarget:
             The compartment locations in `compartment_set` are expected to be
             sorted and without duplicates. This is ensured by libsonata.
         """
+
         point_list = compat.List()
         population_name = compartment_set.population
 
