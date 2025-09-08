@@ -465,7 +465,6 @@ class NodesetTarget:
             The compartment locations in `compartment_set` are expected to be
             sorted and without duplicates. This is ensured by libsonata.
         """
-
         point_list = compat.List()
         population_name = compartment_set.population
 
