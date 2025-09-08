@@ -55,14 +55,14 @@ class Feature(Enum):
 
 
 class CellPermute(StrEnumBase):
-    NONE = 0  # cpu
+    UNPERMUTED = 0  # cpu
     NODE_ADJACENCY = 1  # cpu/gpu
 
     __mapping__ = [
-        ("0", NONE),
-        ("1", NODE_ADJACENCY),
+        ("unpermuted", UNPERMUTED),
+        ("node-adjacency", NODE_ADJACENCY),
     ]
-    __default__ = NONE
+    __default__ = UNPERMUTED
 
 
 class CliOptions(ConfigT):
@@ -1070,7 +1070,7 @@ def _cell_permute(config: _SimConfig):
     user_config = config.cli_options
     if user_config.cell_permute is not None:
         config.cell_permute = CellPermute.from_string(str(user_config.cell_permute))
-    if config.use_neuron and config.cell_permute != CellPermute.NONE:
+    if config.use_neuron and config.cell_permute != CellPermute.UNPERMUTED:
         logging.warning(
             "Cell permutation is only available with CoreNEURON. "
             "--cell-permute=%s will be ignored.",

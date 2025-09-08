@@ -354,9 +354,9 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
 @pytest.mark.slow
 def test_reports_cell_permute(create_tmp_simulation_config_file):
     """
-    Test that enabling cell permutation (cell_permute=1) preserves report consistency.
+    Test that enabling cell permutation (cell_permute=node-adjacency) preserves report consistency.
     """
-    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute=1, keep_build=True)
+    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute="node-adjacency", keep_build=True)
     output_dir = Path(SimConfig.output_root)
     reference_dir = V5_SONATA / "reference" / "reports"
     sim_conf = CoreSimulationConfig.load("build/sim.conf")
