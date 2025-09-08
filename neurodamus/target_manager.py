@@ -107,7 +107,7 @@ class TargetManager:
         return (
             libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"])
             if run_conf["compartment_sets_file"]
-            else None
+            else {}
         )
 
     def load_targets(self, circuit):
@@ -143,39 +143,93 @@ class TargetManager:
         # deference SectionRefs to sections
         self._section_access.clear()
 
-    def get_target(self, target_spec: TargetSpec, target_pop=None):
-        """Retrieves a target from any .target file or Sonata nodeset files.
+    def get_compartment_set(self, name: str):
+        if self._compartment_sets is None or name not in self._compartment_sets:
+            raise ConfigurationError(
+            f"Unknown compartment set: {name}. "
+            f"Known compartment sets: {', '.join(self._compartment_sets)}"
+        )
+        return self._compartment_sets[name]
 
-        Targets are generic groups of cells not necessarily restricted to a population.
-        When retrieved from the source files they can be cached.
-        Targets retrieved from Sonata nodesets keep a reference to all Sonata
-        node datasets and can be asked for a sub-target of a specific population.
-        """
+    def get_target(self, target_spec: TargetSpec, target_pop=None):
+        print("DEBUG: called get_target with", target_spec, target_pop)
+
         if not isinstance(target_spec, TargetSpec):
+            print("DEBUG: target_spec not TargetSpec, wrapping:", target_spec)
             target_spec = TargetSpec(target_spec)
         if target_pop:
+            print("DEBUG: overriding population:", target_pop)
             target_spec.population = target_pop
+
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
         target_pop = target_spec.population
+        print("DEBUG: resolved target_name =", target_name, "population =", target_pop)
 
         def get_concrete_target(target):
-            """Get a more specific target, depending on specified population prefix"""
+            print("DEBUG: get_concrete_target called with", target)
             target.update_local_nodes(self.local_nodes)
-            return target if target_pop is None else target.make_subtarget(target_pop)
+            if target_pop is None:
+                print("DEBUG: returning target unchanged")
+                return target
+            print("DEBUG: making subtarget with population", target_pop)
+            return target.make_subtarget(target_pop)
 
         # Check cached
         if target_name in self._targets:
+            print("DEBUG: found target in cache")
             target = self._targets[target_name]
             return get_concrete_target(target)
 
         # Check if we can get a Nodeset
-        target = self._nodeset_reader and self._nodeset_reader.read_nodeset(target_name)
+        if self._nodeset_reader:
+            print("DEBUG: trying nodeset reader for", target_name)
+            target = self._nodeset_reader.read_nodeset(target_name)
+        else:
+            print("DEBUG: no nodeset reader")
+            target = None
+
         if target is not None:
-            log_verbose("Retrieved `%s` from Sonata nodeset", target_spec)
+            print("DEBUG: retrieved target from Sonata nodeset", target_spec)
             self.register_target(target)
             return get_concrete_target(target)
 
+        print("DEBUG: failed to resolve target", target_name)
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
+
+
+    # def get_target(self, target_spec: TargetSpec, target_pop=None):
+    #     """Retrieves a target from any .target file or Sonata nodeset files.
+
+    #     Targets are generic groups of cells not necessarily restricted to a population.
+    #     When retrieved from the source files they can be cached.
+    #     Targets retrieved from Sonata nodesets keep a reference to all Sonata
+    #     node datasets and can be asked for a sub-target of a specific population.
+    #     """
+    #     if not isinstance(target_spec, TargetSpec):
+    #         target_spec = TargetSpec(target_spec)
+    #     if target_pop:
+    #         target_spec.population = target_pop
+    #     target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
+    #     target_pop = target_spec.population
+
+    #     def get_concrete_target(target):
+    #         """Get a more specific target, depending on specified population prefix"""
+    #         target.update_local_nodes(self.local_nodes)
+    #         return target if target_pop is None else target.make_subtarget(target_pop)
+
+    #     # Check cached
+    #     if target_name in self._targets:
+    #         target = self._targets[target_name]
+    #         return get_concrete_target(target)
+
+    #     # Check if we can get a Nodeset
+    #     target = self._nodeset_reader and self._nodeset_reader.read_nodeset(target_name)
+    #     if target is not None:
+    #         log_verbose("Retrieved `%s` from Sonata nodeset", target_spec)
+    #         self.register_target(target)
+    #         return get_concrete_target(target)
+
+    #     raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
     @lru_cache  # noqa: B019
     def intersecting(self, target1, target2):
@@ -371,6 +425,10 @@ class NodesetTarget:
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
+
+    def __repr__(self):
+        nodesets_str = "\n  ".join(str(ns) for ns in self.nodesets)
+        return f"NodesetTarget(name={self.name!r}, nodesets=[\n  {nodesets_str}\n])"
 
     def gid_count(self):
         """Total number of nodes"""

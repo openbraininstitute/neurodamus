@@ -1,0 +1,18 @@
+  {
+    "csA": {
+      "population": "RingA",
+      "compartment_set": [
+        [1, 0, 0.4],
+        [1, 2, 0.25],
+        [1, 2, 0.5]
+      ]
+    },
+    "csB": {
+      "population": "RingB",
+      "compartment_set": [
+        [0, 0, 0.4],
+        [0, 1, 0.25],
+        [0, 1, 0.5]
+      ]
+    }
+  }

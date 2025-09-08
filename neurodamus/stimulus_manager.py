@@ -39,7 +39,8 @@ class StimulusManager:
         self.reset_helpers()  # reset helpers for multi-cycle builds
 
     def interpret(self, target_spec, stim_info):
-        stim_t = self._stim_types.get(stim_info["Pattern"])
+        stim_t = self._stim_types[stim_info["Pattern"]]
+
         if not stim_t:
             msg = f"No implementation for Stimulus {stim_info['Pattern']}"
             raise ConfigurationError(msg)
@@ -48,11 +49,30 @@ class StimulusManager:
                 "StimulusSeed unset (default %d), set explicitly to vary noisy stimuli across runs",
                 SimConfig.rng_info.getStimulusSeed(),
             )
-        target = self._target_manager.get_target(target_spec)
+
         log_verbose("Interpret stimulus")
+        
         cell_manager = self._target_manager._cell_manager
+        if "CompartmentSet" in stim_info:
+            compartment_set = self._target_manager.get_compartment_set(stim_info["CompartmentSet"])
+
+            from neurodamus.target_manager import TargetSpec
+            target = self._target_manager.get_target(TargetSpec(None))
+
+            print(target)
+            tpoints = target.get_point_list_from_compartment_set(cell_manager, compartment_set)
+        else:
+            target = self._target_manager.get_target(target_spec)
+            tpoints = target.get_point_list(cell_manager)
+        
+        assert False
+
+        
+        
         stim = stim_t(target, stim_info, cell_manager)
         self._stimulus.append(stim)
+
+
 
     @staticmethod
     def reset_helpers():

@@ -1224,14 +1224,13 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
 def _input_resistance(config: _SimConfig, target_manager):
     prop = "@dynamics:input_resistance"
     for stim in config.stimuli:
-        target_name = stim["Target"]
+        target_or_cs_name = stim["Target"] if "Target" in stim else stim["CompartmentSet"]
         if stim["Mode"] == "Conductance" and stim["Pattern"] in {
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",
         }:
-            # NOTE: use target_manager to read the population names of hoc or
-            # SelectionNodeSet targets
-            target = target_manager.get_target(target_name)
-            for population in target.population_names:
+            # NOTE: use target_manager to read the population names of hoc or NodeSet targets
+            population_names = target_manager.get_target(target_or_cs_name).population_names if "Target" in stim else [target_manager.get_compartment_set(target_or_cs_name).population]
+            for population in population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
-                log_verbose(f"[cell] {prop} ({population}:{target.name})")
+                log_verbose(f"[cell] {prop} ({population}:{target_or_cs_name})")
