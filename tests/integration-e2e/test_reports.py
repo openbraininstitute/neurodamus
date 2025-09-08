@@ -369,3 +369,62 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     """
     with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
         Neurodamus(create_tmp_simulation_config_file)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+{
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "compartment_sets_file": str(RINGTEST_DIR / "compartment_sets.json"),
+                "inputs": {
+                    "override_field": 1,
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "represents_physical_electrode": True,
+                        "amp_start": 3,
+                        "width": 10,
+                        "frequency": 50,
+                        "delay": 0,
+                        "duration": 50,
+                        "node_set": "RingA",
+                    },
+                },
+                "reports": {
+                    "compartment_set_A_v": {
+                        "type": "compartment_set",
+                        "compartment_set": "csA",
+                        "variable_name": "v",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none"
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.slow
+def test_reports_compartment_set_without_cached_targets(create_tmp_simulation_config_file):
+    """
+    Test that the summation report matches the summed compartment report.
+
+    Runs a simulation generating both compartment and summation reports for 'pas',
+    then asserts that summing compartment data per gid equals the summation report data,
+    within numerical tolerance.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = RINGTEST_DIR / "reference" / "reports"
+    nd.run()
+
+    # Compare files to reference
+    file_name = "compartment_set_A_v.h5"
+    r_reference = ReportReader(reference_dir / file_name)   
+    r = ReportReader(output_dir / file_name )
+    assert r_reference == r
