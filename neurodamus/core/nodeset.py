@@ -211,6 +211,7 @@ class NodeSet(_NodeSetBase):
             self._gidvec.extend(gids)
 
         if len(gids) > 0:
+            # Selection.ranges may be unsorted
             self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection0.ranges]))
             # self._max_gid = max(self.max_gid, np.max(gids))
         if gid_info:
@@ -224,25 +225,37 @@ class NodeSet(_NodeSetBase):
         return self.add_gids(other._selection0, other._gid_info)
 
     def __len__(self):
-        return len(self._gidvec)
+        return self._selection0.flat_size
 
     def raw_gids(self):
-        return np.asarray(self._gidvec, dtype="uint32")
+        return np.asarray(self._selection0.flatten(), dtype="uint32")
 
-    def items(self, final_gid=False):
-        offset_add = self._offset if final_gid else 0
-        for gid in self._gidvec:
+    def items(self, raw_gids=True):
+        offset_add = 0 if raw_gids else self._offset
+        v = self.raw_gids()
+
+        for gid in v:
             yield gid + offset_add, self._gid_info.get(gid)
 
-    def intersection(self, other, raw_gids=False):
-        """Computes the intersection of two NodeSet's
+    # def intersection(self, other: NodeSet, raw_gids=False):
+    #     """Computes the intersection of two NodeSet's
 
-        For nodesets to intersect they must belong to the same population and
-        have common gids. Otherwise an empty list is returned.
-        """
+    #     For nodesets to intersect they must belong to the same population and
+    #     have common gids. Otherwise an empty list is returned.
+    #     """
+    #     if self.population_name != other.population_name:
+    #         return []
+    #     intersect = np.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
+    #     if raw_gids:
+    #         return intersect
+    #     return np.add(intersect, self._offset, dtype="uint32")
+
+    def intersection(self, other, raw_gids=False):
+        if not isinstance(other, NodeSet):
+            raise TypeError(f"Expected NodeSet, got {type(other).__name__}")
         if self.population_name != other.population_name:
             return []
-        intersect = np.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
+        intersect = (self._selection0 & other._selection0).flatten()
         if raw_gids:
             return intersect
         return np.add(intersect, self._offset, dtype="uint32")
