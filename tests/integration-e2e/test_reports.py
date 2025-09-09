@@ -412,11 +412,13 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
 @pytest.mark.slow
 def test_reports_compartment_set_without_cached_targets(create_tmp_simulation_config_file):
     """
-    Test that the summation report matches the summed compartment report.
+    Test that a compartment set report can be retrieved and processed
+    when no other reports are present.
 
-    Runs a simulation generating both compartment and summation reports for 'pas',
-    then asserts that summing compartment data per gid equals the summation report data,
-    within numerical tolerance.
+    Neurodamus may cache `NodesetTarget` for reuse. Since compartment sets
+    depend on the general `node_sets` keyword to resolve targets, this mechanism
+    is fragile. Cached targets could mask the issue. This test ensures that
+    the report works correctly without relying on cached targets.
     """
     nd = Neurodamus(create_tmp_simulation_config_file)
     output_dir = Path(SimConfig.output_root)
