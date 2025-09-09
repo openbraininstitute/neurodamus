@@ -209,9 +209,9 @@ class NodeSet(_NodeSetBase):
         else:
             self._selection0 |= Selection(gids)
             self._gidvec.extend(gids)
-        
+
         if len(gids) > 0:
-            self._max_gid = self._selection0.ranges[-1][1] - 1 if self._selection0.ranges else 0
+            self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection0.ranges]))
             # self._max_gid = max(self.max_gid, np.max(gids))
         if gid_info:
             self._gid_info.update(gid_info)
@@ -221,7 +221,7 @@ class NodeSet(_NodeSetBase):
     def extend(self, other: NodeSet):
         if not isinstance(other, NodeSet):
             raise TypeError(f"extend() expects NodeSet, got {type(other).__name__}")
-        return self.add_gids(other._gidvec, other._gid_info)
+        return self.add_gids(other._selection0, other._gid_info)
 
     def __len__(self):
         return len(self._gidvec)
