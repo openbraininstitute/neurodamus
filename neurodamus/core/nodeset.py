@@ -196,21 +196,31 @@ class NodeSet(_NodeSetBase):
         """
         super().__init__()
         self._gidvec = compat.Vector()  # raw gids
+        self._selection0 = Selection([])
         self._gid_info = {}
         if gids is not None:
             self.add_gids(gids, gid_info)
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed"""
-        self._gidvec.extend(gids)
+        if isinstance(gids, Selection):
+            self._selection0 |= gids
+            self._gidvec.extend(gids.flatten())
+        else:
+            self._selection0 |= Selection(gids)
+            self._gidvec.extend(gids)
+        
         if len(gids) > 0:
-            self._max_gid = max(self.max_gid, np.max(gids))
+            self._max_gid = self._selection0.ranges[-1][1] - 1 if self._selection0.ranges else 0
+            # self._max_gid = max(self.max_gid, np.max(gids))
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)
         return self
 
-    def extend(self, other):
+    def extend(self, other: NodeSet):
+        if not isinstance(other, NodeSet):
+            raise TypeError(f"extend() expects NodeSet, got {type(other).__name__}")
         return self.add_gids(other._gidvec, other._gid_info)
 
     def __len__(self):
