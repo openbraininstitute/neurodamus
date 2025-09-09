@@ -2,9 +2,12 @@
 global overlapping
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 
 import numpy as np
+from libsonata import Selection
 
 from . import MPI
 from neurodamus.utils import compat
@@ -241,12 +244,12 @@ class NodeSet(_NodeSetBase):
 class SelectionNodeSet(_NodeSetBase):
     """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
 
-    def __init__(self, sonata_selection):
+    def __init__(self, sonata_selection: Selection | None = None):
         super().__init__()
-        self._selection = sonata_selection
+        self._selection = sonata_selection if sonata_selection is not None else Selection([])
         # Max gid is the end of the last range since we need +1 (1 based)
-        self._max_gid = sonata_selection.ranges[-1][1] if sonata_selection.ranges else 0
-        self._size = sonata_selection.flat_size
+        self._max_gid = self._selection.ranges[-1][1] if self._selection.ranges else 0
+        self._size = self._selection.flat_size
 
     def __len__(self):
         return self._size
