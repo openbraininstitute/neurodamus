@@ -294,12 +294,12 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
 
             assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
     else:
-        r_compartment = ReportReader(output_dir / f"compartment_v.h5")
+        r_compartment = ReportReader(output_dir / "compartment_v.h5")
         r_compartment_A = r_compartment.reduce_to_compartment_set_report("RingA", [5, 8, 9])
-        r_compartment_set_A = ReportReader(output_dir / f"compartment_set_A_v.h5")
+        r_compartment_set_A = ReportReader(output_dir / "compartment_set_A_v.h5")
         assert r_compartment_A == r_compartment_set_A
         r_compartment_B = r_compartment.reduce_to_compartment_set_report("RingB", [0, 1, 2])
-        r_compartment_set_B = ReportReader(output_dir / f"compartment_set_B_v.h5")
+        r_compartment_set_B = ReportReader(output_dir / "compartment_set_B_v.h5")
         assert r_compartment_B == r_compartment_set_B
 
 @pytest.mark.parametrize(
