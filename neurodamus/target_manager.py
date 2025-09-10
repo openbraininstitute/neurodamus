@@ -327,7 +327,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet.from_0based_libsonata_selection(node_selection)  # todo check
+                ns = SelectionNodeSet.from_0based_libsonata_selection(node_selection)
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -528,9 +528,7 @@ class NodesetTarget:
         if not n_parts or n_parts == 1:
             return False
 
-        all_raw_gids = {
-            ns.population_name: ns.gids(raw_gids=False) - ns.offset for ns in self.nodesets
-        }
+        all_raw_gids = {ns.population_name: ns.gids() for ns in self.nodesets}
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
