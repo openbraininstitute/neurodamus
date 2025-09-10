@@ -194,22 +194,34 @@ class NodeSet(_NodeSetBase):
 
         """
         super().__init__()
-        self._selection0 = Selection([])  # raw, 1-based
+        self._selection = Selection([])  # raw, 1-based
         self._gid_info = {}
         if gids is not None:
             self.add_gids(gids, gid_info)
+
+    @classmethod
+    def from_0based_libsonata_selection(cls, sel):
+        if not isinstance(sel, Selection):
+            raise TypeError(f"Expected Selection, got {type(sel).__name__}")
+
+        return cls(Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
+
+    def get_selection(self, zero_based=False):
+        if not zero_based:
+            return self._selection
+        return Selection([(start - 1, stop - 1) for start, stop in self._selection.ranges])
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed
 
         TODO nodes are sorted
         """
-        self._selection0 |= gids if isinstance(gids, Selection) else Selection(gids)
+        self._selection |= gids if isinstance(gids, Selection) else Selection(gids)
 
-        if len(gids) > 0:
+        if self:
             # Selection.ranges may be unsorted
             # Probably not needed since add_gids sorts
-            self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection0.ranges]))
+            self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection.ranges]))
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)
@@ -218,16 +230,16 @@ class NodeSet(_NodeSetBase):
     def extend(self, other: NodeSet):
         if not isinstance(other, NodeSet):
             raise TypeError(f"extend() expects NodeSet, got {type(other).__name__}")
-        return self.add_gids(other._selection0, other._gid_info)
+        return self.add_gids(other._selection, other._gid_info)
 
     def __len__(self):
-        return self._selection0.flat_size
+        return self._selection.flat_size
 
     def raw_gids(self):
-        return np.asarray(self._selection0.flatten(), dtype="uint32")
+        return np.asarray(self._selection.flatten(), dtype="uint32")
 
     def __iter__(self):
-        for start, stop in self._selection0.ranges:
+        for start, stop in self._selection.ranges:
             yield from range(start, stop)
 
     def iter(self, raw_gids=True):
@@ -241,7 +253,7 @@ class NodeSet(_NodeSetBase):
             raise TypeError(f"Expected NodeSet, got {type(other).__name__}")
         if self.population_name != other.population_name:
             return []
-        intersect = (self._selection0 & other._selection0).flatten()
+        intersect = (self._selection & other._selection).flatten()
         if raw_gids:
             return intersect
         return np.add(intersect, self._offset, dtype="uint32")
@@ -250,60 +262,61 @@ class NodeSet(_NodeSetBase):
         self._gid_info = None
 
 
-class SelectionNodeSet(_NodeSetBase):
-    """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
+# class SelectionNodeSet(_NodeSetBase):
+#     """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
 
-    def __init__(self, sonata_selection: Selection | None = None):
-        super().__init__()
-        self._selection = sonata_selection if sonata_selection is not None else Selection([])
-        # Max gid is the end of the last range since we need +1 (1 based)
-        self._max_gid = self._selection.ranges[-1][1] if self._selection.ranges else 0
-        self._size = self._selection.flat_size
+#     def __init__(self, sonata_selection: Selection | None = None):
+#         super().__init__()
+#         self._selection = sonata_selection if sonata_selection is not None else Selection([])
+#         # Max gid is the end of the last range since we need +1 (1 based)
+#         self._max_gid = self._selection.ranges[-1][1] if self._selection.ranges else 0
+#         self._size = self._selection.flat_size
 
-    def __len__(self):
-        return self._size
+#     def __len__(self):
+#         return self._size
 
-    def raw_gids(self):
-        return np.add(self._selection.flatten(), 1, dtype="uint32")
+#     def raw_gids(self):
+#         return np.add(self._selection.flatten(), 1, dtype="uint32")
 
-    def selection_gid_2_final_gid(self, gid):
-        """Convenience function that translates a 0-based gid
-        (for example from a libsonata.Selection) to the final
-        1-based gid (used in Neuron._pc for example).
-        """
-        return gid + self.offset + 1
+#     def selection_gid_2_final_gid(self, gid):
+#         """Convenience function that translates a 0-based gid
+#         (for example from a libsonata.Selection) to the final
+#         1-based gid (used in Neuron._pc for example).
+#         """
+#         return gid + self.offset + 1
 
-    def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
-        """Computes intersection of two nodesets.
+#     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
+#         """Computes intersection of two nodesets.
 
-        A _quick_check param can be set to True so that we effectively only check for
-        intersection (True/False) instead of computing the actual intersection (internal).
-        """
-        if self.population_name != other.population_name:
-            return []
+#         A _quick_check param can be set to True so that we effectively only check for
+#         intersection (True/False) instead of computing the actual intersection (internal).
+#         """
+#         if self.population_name != other.population_name:
+#             return []
 
-        sel2 = getattr(other, "_selection", None)
-        if sel2:
-            intersect = _ranges_overlap(
-                self._selection.ranges, sel2.ranges, quick_check=_quick_check
-            )
-        else:
-            # Selection ranges are 0-based. We must bring gids to 0-based
-            base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
-            intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
+#         sel2 = getattr(other, "_selection", None)
+#         if sel2:
+#             intersect = _ranges_overlap(
+#                 self._selection.ranges, sel2.ranges, quick_check=_quick_check
+#             )
+#         else:
+#             # Selection ranges are 0-based. We must bring gids to 0-based
+#             base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
+#             intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
 
-        if _quick_check:
-            return intersect
-        if len(intersect):
-            if raw_gids:
-                # TODO: We should change the return type to be another `SelectionNodeSet`
-                # Like that we could still keep ranges internally and have PROPER API to get raw ids
-                return np.add(intersect, 1, dtype=intersect.dtype)
-            return np.add(intersect, self.offset + 1, dtype=intersect.dtype)
-        return np.array([], dtype="uint32")
+#         if _quick_check:
+#             return intersect
+#         if len(intersect):
+#             if raw_gids:
+#                 # TODO: We should change the return type to be another `SelectionNodeSet`
+#                 # Like that we could still keep ranges internally and have PROPER API
+#                 # to get raw ids
+#                 return np.add(intersect, 1, dtype=intersect.dtype)
+#             return np.add(intersect, self.offset + 1, dtype=intersect.dtype)
+#         return np.array([], dtype="uint32")
 
-    def intersects(self, other):
-        return self.intersection(other, _quick_check=True)
+#     def intersects(self, other):
+#         return self.intersection(other, _quick_check=True)
 
 
 def _ranges_overlap(ranges1, ranges2, quick_check=False):

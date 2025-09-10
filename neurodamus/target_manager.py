@@ -9,7 +9,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
+from .core.nodeset import NodeSet, _NodeSetBase
 from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
@@ -327,7 +327,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet(node_selection)
+                ns = NodeSet.from_0based_libsonata_selection(node_selection)  # todo check
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -468,9 +468,9 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        for cl in compartment_set.filtered_iter(sel_node_set._selection):
-            gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
-            gid = sel_node_set.selection_gid_2_final_gid(gid)
+        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(zero_based=True)):
+            raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
+            gid = sel_node_set._offset + raw_gid + 1
             cell = cell_manager.get_cell(gid)
             sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
