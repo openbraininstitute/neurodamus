@@ -10,7 +10,6 @@ import numpy as np
 from libsonata import Selection
 
 from . import MPI
-from neurodamus.utils import compat
 from neurodamus.utils.pyutils import WeakList
 
 
@@ -195,25 +194,22 @@ class NodeSet(_NodeSetBase):
 
         """
         super().__init__()
-        self._gidvec = compat.Vector()  # raw gids
-        self._selection0 = Selection([])
+        self._selection0 = Selection([])  # raw, 1-based
         self._gid_info = {}
         if gids is not None:
             self.add_gids(gids, gid_info)
 
     def add_gids(self, gids, gid_info=None):
-        """Add raw gids, recomputing gid offsets as needed"""
-        if isinstance(gids, Selection):
-            self._selection0 |= gids
-            self._gidvec.extend(gids.flatten())
-        else:
-            self._selection0 |= Selection(gids)
-            self._gidvec.extend(gids)
+        """Add raw gids, recomputing gid offsets as needed
+
+        TODO nodes are sorted
+        """
+        self._selection0 |= gids if isinstance(gids, Selection) else Selection(gids)
 
         if len(gids) > 0:
             # Selection.ranges may be unsorted
+            # Probably not needed since add_gids sorts
             self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection0.ranges]))
-            # self._max_gid = max(self.max_gid, np.max(gids))
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)
