@@ -9,7 +9,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .core.nodeset import NodeSet, _NodeSetBase
+from .core.nodeset import NodeSet
 from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
@@ -361,13 +361,13 @@ class NodesetTarget:
     Internally, `NodesetTarget` would organize these nodes into:
     ```python
     nodesets = [
-    _NodeSetBase(0, 1),
-    _NodeSetBase(1000, 1001)
+    NodeSet(0, 1),
+    NodeSet(1000, 1001)
     ]
     ```
     """
 
-    def __init__(self, name, nodesets: list[_NodeSetBase], local_nodes=None, **_kw):
+    def __init__(self, name, nodesets: list[NodeSet], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
@@ -439,7 +439,7 @@ class NodesetTarget:
         """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
-        def pop_gid_intersect(nodeset: _NodeSetBase, raw_gids=False):
+        def pop_gid_intersect(nodeset: NodeSet, raw_gids=False):
             for local_ns in self.local_nodes:
                 if local_ns.population_name == nodeset.population_name:
                     return nodeset.intersection(local_ns, raw_gids)

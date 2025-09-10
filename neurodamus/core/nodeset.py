@@ -130,16 +130,33 @@ class PopulationNodes:
         cls._do_offsetting = True
 
 
-class _NodeSetBase:
-    """Common bits between nodesets, so they can be registered globally and get offsets"""
+class NodeSet:
+    """A set of nodes. When registered globally offset computation happens
+    so that different population's gids dont overlap
+    """
 
-    def __init__(self, *_, **_kw):
+    def __init__(self, gids=None, gid_info=None):
+        """Create a NodeSet.
+
+        Args:
+            gids: The gids to handle
+            gid_info: a map containing METype information about each cell.
+                In v5 and v6 values are METypeItem's
+
+        """
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
+        self._selection = Selection([])  # raw, 1-based
+        self._gid_info = {}
+        if gids is not None:
+            self.add_gids(gids, gid_info)
 
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
+
+    def final_gids(self):
+        return np.add(self.raw_gids(), self._offset, dtype="uint32")
 
     def register_global(self, population_name):
         """Registers a node set as being part of a population, potentially implying an offsett
@@ -157,47 +174,6 @@ class _NodeSetBase:
     def _check_update_offsets(self):
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
-
-    def __len__(self):
-        raise NotImplementedError("__len__ not implemented")
-
-    def raw_gids(self):
-        raise NotImplementedError("raw_gids not implemented")
-
-    def final_gids(self):
-        return np.add(self.raw_gids(), self._offset, dtype="uint32")
-
-    def intersection(self, _other, _raw_gids=False):
-        raise NotImplementedError("intersection not implemented")
-
-    def intersects(self, other):
-        """Check if the current nodeset intersects another
-
-        For nodesets to intersect they must belong to the same population and
-        have common gids
-        """
-        return len(self.intersection(other)) > 0
-
-
-class NodeSet(_NodeSetBase):
-    """A set of nodes. When registered globally offset computation happens
-    so that different population's gids dont overlap
-    """
-
-    def __init__(self, gids=None, gid_info=None):
-        """Create a NodeSet.
-
-        Args:
-            gids: The gids to handle
-            gid_info: a map containing METype information about each cell.
-                In v5 and v6 values are METypeItem's
-
-        """
-        super().__init__()
-        self._selection = Selection([])  # raw, 1-based
-        self._gid_info = {}
-        if gids is not None:
-            self.add_gids(gids, gid_info)
 
     @classmethod
     def from_0based_libsonata_selection(cls, sel):
@@ -259,6 +235,14 @@ class NodeSet(_NodeSetBase):
         if raw_gids:
             return intersect
         return np.add(intersect, self._offset, dtype="uint32")
+
+    def intersects(self, other):
+        """Check if the current nodeset intersects another
+
+        For nodesets to intersect they must belong to the same population and
+        have common gids
+        """
+        return len(self.intersection(other)) > 0
 
     def clear_cell_info(self):
         self._gid_info = None
