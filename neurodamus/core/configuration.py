@@ -1230,7 +1230,11 @@ def _input_resistance(config: _SimConfig, target_manager):
             "RelativeOrnsteinUhlenbeck",
         }:
             # NOTE: use target_manager to read the population names of hoc or NodeSet targets
-            population_names = target_manager.get_target(target_or_cs_name).population_names if "Target" in stim else [target_manager.get_compartment_set(target_or_cs_name).population]
+            population_names = (
+                target_manager.get_target(target_or_cs_name).population_names
+                if "Target" in stim
+                else [target_manager.get_compartment_set(target_or_cs_name).population]
+            )
             for population in population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
                 log_verbose(f"[cell] {prop} ({population}:{target_or_cs_name})")
