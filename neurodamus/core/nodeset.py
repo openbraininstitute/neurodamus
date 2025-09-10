@@ -176,12 +176,6 @@ class SelectionNodeSet:
             return ans
         return np.add(ans, self._offset, dtype="uint32")
 
-    def raw_gids(self):
-        return self.gids()
-
-    # def final_gids(self):
-    #     return self.gids(raw_gids=False)
-
     def register_global(self, population_name):
         """Register this nodeset in a global population group
 
@@ -217,11 +211,11 @@ class SelectionNodeSet:
         )
 
     def add_gids(self, gids, gid_info=None):
-        """Add GIDs and optional metadata, updating offsets and max_gid.
+        """Add GIDs and optional metadata, updating offsets and max_gid
 
         Args:
-            gids: GIDs to add (list or libsonata.Selection).
-            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem).
+            gids: GIDs to add (list or libsonata.Selection)
+            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem)
         """
         self._selection |= (
             gids if isinstance(gids, libsonata.Selection) else libsonata.Selection(gids)
@@ -266,5 +260,5 @@ class SelectionNodeSet:
         return len(self.intersection(other)) > 0
 
     def clear_cell_info(self):
-        """Clear all stored GID metadata."""
+        """Clear all stored GID metadata"""
         self._gid_info = None

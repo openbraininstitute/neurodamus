@@ -401,7 +401,7 @@ class NodesetTarget:
             return []
         if len(self.nodesets) > 1:
             raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return np.array(self.nodesets[0].raw_gids())
+        return np.array(self.nodesets[0].gids())
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.

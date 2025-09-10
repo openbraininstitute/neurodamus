@@ -219,7 +219,7 @@ class ConnectionManagerBase:
         self._cur_population = None
 
         self._synapse_reader = None
-        self._raw_gids = cell_manager.local_nodes.raw_gids()
+        self._raw_gids = cell_manager.local_nodes.gids()
         self._total_connections = 0
         self.circuit_conf = circuit_conf
         self._src_target_filter = None  # filter by src target in all_connect (E.g: GapJ)
