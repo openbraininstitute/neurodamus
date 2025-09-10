@@ -12,6 +12,8 @@ import numpy as np
 from . import MPI
 from neurodamus.utils.pyutils import WeakList
 
+from neurodamus.utils import compat
+
 
 class PopulationNodes:
     """Handle SelectionNodeSets belonging to a population. Given that Neuron doesnt
@@ -144,6 +146,8 @@ class SelectionNodeSet:
             gid_info: a map containing METype information about each cell.
                 In v5 and v6 values are METypeItem's
         """
+
+        self._unused = compat.Vector()
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
