@@ -27,7 +27,7 @@ from .core.configuration import (
     LogLevel,
     SimConfig,
 )
-from .core.nodeset import NodeSet
+from .core.nodeset import SelectionNodeSet
 from .io import cell_readers
 from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
@@ -47,11 +47,11 @@ class VirtualCellPopulation:
         """Initializes a VirtualCellPopulation
 
         A virtual manager will have minimal set of attributes, namely
-        the population name, the target name and the NodeSet
+        the population name, the target name and the SelectionNodeSet
         """
         self.population_name = population_name
         self.circuit_target = circuit_target
-        self.local_nodes = NodeSet(gids).register_global(population_name)
+        self.local_nodes = SelectionNodeSet(gids).register_global(population_name)
 
     is_virtual = property(lambda _self: True)
 
@@ -132,7 +132,7 @@ class CellManagerBase(_CellManager):
     # read-only properties
     target_manager = property(lambda self: self._target_manager)
     local_nodes = property(
-        lambda self: self._local_nodes if self._local_nodes is not None else NodeSet()
+        lambda self: self._local_nodes if self._local_nodes is not None else SelectionNodeSet()
     )
     total_cells = property(lambda self: self._total_cells)
     cells = property(lambda self: self._gid2cell.values())
@@ -163,7 +163,7 @@ class CellManagerBase(_CellManager):
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
         self._population_name = pop
-        self._local_nodes = NodeSet().register_global(pop)
+        self._local_nodes = SelectionNodeSet().register_global(pop)
 
     @staticmethod
     def _get_sonata_population_name(node_file):

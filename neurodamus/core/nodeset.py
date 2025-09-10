@@ -6,19 +6,19 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
+import libsonata
 import numpy as np
-from libsonata import Selection
 
 from . import MPI
 from neurodamus.utils.pyutils import WeakList
 
 
 class PopulationNodes:
-    """Handle NodeSets belonging to a population. Given that Neuron doesnt
+    """Handle SelectionNodeSets belonging to a population. Given that Neuron doesnt
     inherently handle populations, we will have to apply gid offsetting.
-    The class stores `NodeSet`s, and makes the required offsetting on-the-fly.
+    The class stores `SelectionNodeSet`s, and makes the required offsetting on-the-fly.
 
-    This class is intended to be internal, since NodeSet instances can be
+    This class is intended to be internal, since SelectionNodeSet instances can be
     freely created but only "apply" for offsetting when registered globally,
     in which case it delegates the processing to PopulationNodes.
 
@@ -36,7 +36,7 @@ class PopulationNodes:
         It wont probably be used publicly given `get()` is also a factory.
         """
         self.name = name
-        self.nodesets = WeakList()  # each population might contain several NodeSet's
+        self.nodesets = WeakList()  # each population might contain several SelectionNodeSet's
         self.max_gid = 0  # maximum raw gid (without offset)
         self.offset = 0
 
@@ -130,13 +130,13 @@ class PopulationNodes:
         cls._do_offsetting = True
 
 
-class NodeSet:
+class SelectionNodeSet:
     """A set of nodes. When registered globally offset computation happens
     so that different population's gids dont overlap
     """
 
     def __init__(self, gids=None, gid_info=None):
-        """Create a NodeSet.
+        """Create a SelectionNodeSet.
 
         Args:
             gids: The gids to handle
@@ -147,7 +147,7 @@ class NodeSet:
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
-        self._selection = Selection([])  # raw, 1-based
+        self._selection = libsonata.Selection([])  # raw, 1-based
         self._gid_info = {}
         if gids is not None:
             self.add_gids(gids, gid_info)
@@ -177,15 +177,15 @@ class NodeSet:
 
     @classmethod
     def from_0based_libsonata_selection(cls, sel):
-        if not isinstance(sel, Selection):
-            raise TypeError(f"Expected Selection, got {type(sel).__name__}")
+        if not isinstance(sel, libsonata.Selection):
+            raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
-        return cls(Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
+        return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
 
     def get_selection(self, offset=0):
         if offset == 0:
             return self._selection
-        return Selection(
+        return libsonata.Selection(
             [(start + offset, stop + offset) for start, stop in self._selection.ranges]
         )
 
@@ -194,10 +194,12 @@ class NodeSet:
 
         TODO nodes are sorted
         """
-        self._selection |= gids if isinstance(gids, Selection) else Selection(gids)
+        self._selection |= (
+            gids if isinstance(gids, libsonata.Selection) else libsonata.Selection(gids)
+        )
 
         if self:
-            # Selection.ranges may be unsorted
+            # libsonata.Selection.ranges may be unsorted
             # Probably not needed since add_gids sorts
             self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection.ranges]))
         if gid_info:
@@ -205,9 +207,9 @@ class NodeSet:
         self._check_update_offsets()  # check offsets (uses reduce)
         return self
 
-    def extend(self, other: NodeSet):
-        if not isinstance(other, NodeSet):
-            raise TypeError(f"extend() expects NodeSet, got {type(other).__name__}")
+    def extend(self, other: SelectionNodeSet):
+        if not isinstance(other, SelectionNodeSet):
+            raise TypeError(f"extend() expects SelectionNodeSet, got {type(other).__name__}")
         return self.add_gids(other._selection, other._gid_info)
 
     def __len__(self):
@@ -227,8 +229,8 @@ class NodeSet:
             yield gid + offset_add, self._gid_info.get(gid)
 
     def intersection(self, other, raw_gids=False):
-        if not isinstance(other, NodeSet):
-            raise TypeError(f"Expected NodeSet, got {type(other).__name__}")
+        if not isinstance(other, SelectionNodeSet):
+            raise TypeError(f"Expected SelectionNodeSet, got {type(other).__name__}")
         if self.population_name != other.population_name:
             return []
         intersect = (self._selection & other._selection).flatten()

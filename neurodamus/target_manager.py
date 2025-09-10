@@ -9,7 +9,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .core.nodeset import NodeSet
+from .core.nodeset import SelectionNodeSet
 from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
@@ -315,7 +315,7 @@ class NodeSetReader:
         def _get_nodeset(pop_name):
             storage = self._population_stores.get(pop_name)
             population = storage.open_population(pop_name)
-            # Create NodeSet object with 1-based gids
+            # Create SelectionNodeSet object with 1-based gids
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
@@ -327,7 +327,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = NodeSet.from_0based_libsonata_selection(node_selection)  # todo check
+                ns = SelectionNodeSet.from_0based_libsonata_selection(node_selection)  # todo check
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -361,13 +361,13 @@ class NodesetTarget:
     Internally, `NodesetTarget` would organize these nodes into:
     ```python
     nodesets = [
-    NodeSet(0, 1),
-    NodeSet(1000, 1001)
+    SelectionNodeSet(0, 1),
+    SelectionNodeSet(1000, 1001)
     ]
     ```
     """
 
-    def __init__(self, name, nodesets: list[NodeSet], local_nodes=None, **_kw):
+    def __init__(self, name, nodesets: list[SelectionNodeSet], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
@@ -410,7 +410,7 @@ class NodesetTarget:
         """
         return self.contains(gid)
 
-    def append_nodeset(self, nodeset: NodeSet):
+    def append_nodeset(self, nodeset: SelectionNodeSet):
         """Add a nodeset to the current target"""
         self.nodesets.append(nodeset)
 
@@ -439,7 +439,7 @@ class NodesetTarget:
         """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
-        def pop_gid_intersect(nodeset: NodeSet, raw_gids=False):
+        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids=False):
             for local_ns in self.local_nodes:
                 if local_ns.population_name == nodeset.population_name:
                     return nodeset.intersection(local_ns, raw_gids)
@@ -537,7 +537,7 @@ class NodesetTarget:
             for pop in pop_names:
                 # name sub target per populaton, to be registered later
                 target_name = f"{pop}__{self.name}_{cycle_i}"
-                target = NodesetTarget(target_name, [NodeSet().register_global(pop)])
+                target = NodesetTarget(target_name, [SelectionNodeSet().register_global(pop)])
                 new_targets[pop].append(target)
 
         for pop, raw_gids in all_raw_gids.items():

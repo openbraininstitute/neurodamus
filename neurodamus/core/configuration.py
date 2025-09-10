@@ -1229,7 +1229,8 @@ def _input_resistance(config: _SimConfig, target_manager):
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",
         }:
-            # NOTE: use target_manager to read the population names of hoc or NodeSet targets
+            # NOTE: use target_manager to read the population names of hoc or
+            # SelectionNodeSet targets
             target = target_manager.get_target(target_name)
             for population in target.population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
