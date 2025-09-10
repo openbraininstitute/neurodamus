@@ -230,25 +230,15 @@ class NodeSet(_NodeSetBase):
     def raw_gids(self):
         return np.asarray(self._selection0.flatten(), dtype="uint32")
 
-    def items(self, raw_gids=True):
+    def __iter__(self):
+        for start, stop in self._selection0.ranges:
+            yield from range(start, stop)
+
+    def iter(self, raw_gids=True):
         offset_add = 0 if raw_gids else self._offset
-        v = self.raw_gids()
 
-        for gid in v:
+        for gid in self:
             yield gid + offset_add, self._gid_info.get(gid)
-
-    # def intersection(self, other: NodeSet, raw_gids=False):
-    #     """Computes the intersection of two NodeSet's
-
-    #     For nodesets to intersect they must belong to the same population and
-    #     have common gids. Otherwise an empty list is returned.
-    #     """
-    #     if self.population_name != other.population_name:
-    #         return []
-    #     intersect = np.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
-    #     if raw_gids:
-    #         return intersect
-    #     return np.add(intersect, self._offset, dtype="uint32")
 
     def intersection(self, other, raw_gids=False):
         if not isinstance(other, NodeSet):
