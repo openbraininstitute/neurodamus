@@ -153,10 +153,10 @@ class CellManagerBase(_CellManager):
     # Compatibility with neurodamus-core (used by TargetManager, CompMapping)
     # Create hoc vector from numpy.array
     def getGidListForProcessor(self):
-        return compat.hoc_vector(self.local_nodes.final_gids())
+        return compat.hoc_vector(self.local_nodes.gids(raw_gids=False))
 
     def get_final_gids(self):
-        return np.array(self.local_nodes.final_gids())
+        return np.array(self.local_nodes.gids(raw_gids=False))
 
     def _init_config(self, circuit_conf, pop):
         if not pop:  # Last attempt to get pop name
@@ -404,7 +404,7 @@ class CellManagerBase(_CellManager):
             return None
         spikevec, idvec = append_spike_vecs or (Nd.Vector(), Nd.Vector())
         if gids is None:
-            gids = self._local_nodes.final_gids()
+            gids = self._local_nodes.gids(raw_gids=False)
             gid_offset = self._local_nodes.offset
 
         for gid in gids:
@@ -806,7 +806,7 @@ class LoadBalance:
     def _compute_complexities(cls, mcomplex, cell_distributor):
         cx_cell = compat.Vector("f")
         pc = cell_distributor.pc
-        for gid in cell_distributor.local_nodes.final_gids():
+        for gid in cell_distributor.local_nodes.gids(raw_gids=False):
             cx_cell.append(mcomplex.cell_complexity(pc.gid2cell(gid)))
         return cx_cell
 

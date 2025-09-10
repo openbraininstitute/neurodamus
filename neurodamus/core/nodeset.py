@@ -131,18 +131,18 @@ class PopulationNodes:
 
 
 class SelectionNodeSet:
-    """A set of nodes. When registered globally offset computation happens
-    so that different population's gids dont overlap
+    """Set of nodes with optional global registration and offset handling.
+
+    A shim over libsonata.Selection with optional populations, offsets and MEtype metadata per gid
     """
 
     def __init__(self, gids=None, gid_info=None):
-        """Create a SelectionNodeSet.
+        """Init.
 
         Args:
             gids: The gids to handle
             gid_info: a map containing METype information about each cell.
                 In v5 and v6 values are METypeItem's
-
         """
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
@@ -163,13 +163,14 @@ class SelectionNodeSet:
             yield from range(start, stop)
 
     def iter(self, raw_gids=True):
+        """Iterate over GIDs with optional offset and metadata"""
         offset_add = 0 if raw_gids else self._offset
 
         for gid in self:
             yield gid + offset_add, self._gid_info.get(gid)
 
     def gids(self, raw_gids=True):
-        """Return all GIDs as a flat array, optionally offset by the population."""
+        """Return all GIDs as a flat array, optionally offset by the population"""
         ans = np.asarray(self._selection.flatten(), dtype="uint32")
         if raw_gids:
             return ans
@@ -178,11 +179,11 @@ class SelectionNodeSet:
     def raw_gids(self):
         return self.gids()
 
-    def final_gids(self):
-        return self.gids(raw_gids=False)
+    # def final_gids(self):
+    #     return self.gids(raw_gids=False)
 
     def register_global(self, population_name):
-        """Registers a node set as being part of a population, potentially implying an offsett
+        """Register this nodeset in a global population group
 
         Args:
             population_name: The name of the population these ids belong to
@@ -195,17 +196,20 @@ class SelectionNodeSet:
         return self._population_group.name if self._population_group else None
 
     def _check_update_offsets(self):
+        """Check/reset offsets based on the other populations"""
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
 
     @classmethod
     def from_0based_libsonata_selection(cls, sel):
+        """Create a nodeset from a 0-based libsonata.Selection"""
         if not isinstance(sel, libsonata.Selection):
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
         return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
 
     def get_selection(self, offset=0):
+        """Return the internal Selection, optionally, with an offset"""
         if offset == 0:
             return self._selection
         return libsonata.Selection(
@@ -213,9 +217,11 @@ class SelectionNodeSet:
         )
 
     def add_gids(self, gids, gid_info=None):
-        """Add raw gids, recomputing gid offsets as needed
+        """Add GIDs and optional metadata, updating offsets and max_gid.
 
-        TODO nodes are sorted
+        Args:
+            gids: GIDs to add (list or libsonata.Selection).
+            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem).
         """
         self._selection |= (
             gids if isinstance(gids, libsonata.Selection) else libsonata.Selection(gids)
@@ -231,11 +237,17 @@ class SelectionNodeSet:
         return self
 
     def extend(self, other: SelectionNodeSet):
+        """Add all GIDs and metadata from another nodeset"""
         if not isinstance(other, SelectionNodeSet):
             raise TypeError(f"extend() expects SelectionNodeSet, got {type(other).__name__}")
         return self.add_gids(other._selection, other._gid_info)
 
     def intersection(self, other, raw_gids=False):
+        """Return GIDs common with another nodeset
+
+        For nodesets to intersect they must belong to the same population and
+        have common gids
+        """
         if not isinstance(other, SelectionNodeSet):
             raise TypeError(f"Expected SelectionNodeSet, got {type(other).__name__}")
         if self.population_name != other.population_name:
@@ -254,4 +266,5 @@ class SelectionNodeSet:
         return len(self.intersection(other)) > 0
 
     def clear_cell_info(self):
+        """Clear all stored GID metadata."""
         self._gid_info = None

@@ -23,7 +23,7 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
     n = Neurodamus(create_tmp_simulation_config_file)
 
     # Check allocation for RingA population
-    local_cells_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
+    local_cells_gids = n.circuits.get_node_manager("RingA").local_nodes.gids(raw_gids=False)
     if rank == 0:
         local_cells_gids_ref = [1001, 1003, 1005, 1007]
     elif rank == 1:
@@ -31,7 +31,7 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(local_cells_gids, local_cells_gids_ref)
 
     # Check allocation for Astrocites
-    local_astrocytes_gids = n.circuits.get_node_manager("AstrocyteA").local_nodes.final_gids()
+    local_astrocytes_gids = n.circuits.get_node_manager("AstrocyteA").local_nodes.gids(raw_gids=False)
     if rank == 0:
         local_astrocytes_gids_ref = [1, 3, 5]
     elif rank == 1:

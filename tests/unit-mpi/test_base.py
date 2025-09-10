@@ -113,7 +113,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     local_gids_ref = [[1, 3], [2]]
-    local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
+    local_gids = n.circuits.get_node_manager("RingA").local_nodes.gids(raw_gids=False)
 
     np.testing.assert_allclose(local_gids, local_gids_ref[neuron_MPI.rank])
     n.run()
@@ -135,7 +135,7 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     from neurodamus.core.coreneuron_configuration import CoreConfig
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True, keep_build=True)
     local_gids_ref = [[2], []]
-    local_gids = n.circuits.get_node_manager("RingA").local_nodes.final_gids()
+    local_gids = n.circuits.get_node_manager("RingA").local_nodes.gids(raw_gids=False)
     np.testing.assert_allclose(local_gids, local_gids_ref[rank])
     # test that it runs with a fake cell
     n.run()

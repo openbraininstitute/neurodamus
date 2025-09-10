@@ -389,9 +389,9 @@ class NodesetTarget:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return np.array([])
         nodesets = sorted(self.nodesets, key=lambda n: n.offset)  # Get gids ascending
-        gids = nodesets[0].final_gids()
+        gids = nodesets[0].gids(raw_gids=False)
         for extra_nodes in nodesets[1:]:
-            gids = np.append(gids, extra_nodes.final_gids())
+            gids = np.append(gids, extra_nodes.gids(raw_gids=False))
         return gids
 
     def get_raw_gids(self):
@@ -528,7 +528,9 @@ class NodesetTarget:
         if not n_parts or n_parts == 1:
             return False
 
-        all_raw_gids = {ns.population_name: ns.final_gids() - ns.offset for ns in self.nodesets}
+        all_raw_gids = {
+            ns.population_name: ns.gids(raw_gids=False) - ns.offset for ns in self.nodesets
+        }
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
