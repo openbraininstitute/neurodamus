@@ -274,17 +274,17 @@ def _get_rotations(node_reader, selection):
         angle_x = (
             node_reader.get_attribute("rotation_angle_xaxis", selection)
             if "rotation_angle_xaxis" in attr_names
-            else 0
+            else [0]*selection.flat_size
         )
         angle_y = (
             node_reader.get_attribute("rotation_angle_yaxis", selection)
             if "rotation_angle_yaxis" in attr_names
-            else 0
+            else [0]*selection.flat_size
         )
         angle_z = (
             node_reader.get_attribute("rotation_angle_zaxis", selection)
-            if "rotation_angle_yaxis" in attr_names
-            else 0
+            if "rotation_angle_zaxis" in attr_names
+            else [0]*selection.flat_size
         )
         euler_rots = np.array([angle_x, angle_y, angle_z]).T
         return Rotation.from_euler("xyz", euler_rots).as_quat()
