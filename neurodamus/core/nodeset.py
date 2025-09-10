@@ -155,8 +155,31 @@ class SelectionNodeSet:
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
 
+    def __len__(self):
+        return self._selection.flat_size
+
+    def __iter__(self):
+        for start, stop in self._selection.ranges:
+            yield from range(start, stop)
+
+    def iter(self, raw_gids=True):
+        offset_add = 0 if raw_gids else self._offset
+
+        for gid in self:
+            yield gid + offset_add, self._gid_info.get(gid)
+
+    def gids(self, raw_gids=True):
+        """Return all GIDs as a flat array, optionally offset by the population."""
+        ans = np.asarray(self._selection.flatten(), dtype="uint32")
+        if raw_gids:
+            return ans
+        return np.add(ans, self._offset, dtype="uint32")
+
+    def raw_gids(self):
+        return self.gids()
+
     def final_gids(self):
-        return np.add(self.raw_gids(), self._offset, dtype="uint32")
+        return self.gids(raw_gids=False)
 
     def register_global(self, population_name):
         """Registers a node set as being part of a population, potentially implying an offsett
@@ -211,22 +234,6 @@ class SelectionNodeSet:
         if not isinstance(other, SelectionNodeSet):
             raise TypeError(f"extend() expects SelectionNodeSet, got {type(other).__name__}")
         return self.add_gids(other._selection, other._gid_info)
-
-    def __len__(self):
-        return self._selection.flat_size
-
-    def raw_gids(self):
-        return np.asarray(self._selection.flatten(), dtype="uint32")
-
-    def __iter__(self):
-        for start, stop in self._selection.ranges:
-            yield from range(start, stop)
-
-    def iter(self, raw_gids=True):
-        offset_add = 0 if raw_gids else self._offset
-
-        for gid in self:
-            yield gid + offset_add, self._gid_info.get(gid)
 
     def intersection(self, other, raw_gids=False):
         if not isinstance(other, SelectionNodeSet):
