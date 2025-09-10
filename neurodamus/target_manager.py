@@ -468,8 +468,10 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(zero_based=True)):
+        # compartment_set is 0-based
+        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(offset=-1)):
             raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
+            # points are 1-based
             gid = sel_node_set._offset + raw_gid + 1
             cell = cell_manager.get_cell(gid)
             sec = cell.get_sec(section_id)

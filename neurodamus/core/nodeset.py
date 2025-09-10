@@ -206,10 +206,12 @@ class NodeSet(_NodeSetBase):
 
         return cls(Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
 
-    def get_selection(self, zero_based=False):
-        if not zero_based:
+    def get_selection(self, offset=0):
+        if offset == 0:
             return self._selection
-        return Selection([(start - 1, stop - 1) for start, stop in self._selection.ranges])
+        return Selection(
+            [(start + offset, stop + offset) for start, stop in self._selection.ranges]
+        )
 
     def add_gids(self, gids, gid_info=None):
         """Add raw gids, recomputing gid offsets as needed
@@ -260,139 +262,3 @@ class NodeSet(_NodeSetBase):
 
     def clear_cell_info(self):
         self._gid_info = None
-
-
-# class SelectionNodeSet(_NodeSetBase):
-#     """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
-
-#     def __init__(self, sonata_selection: Selection | None = None):
-#         super().__init__()
-#         self._selection = sonata_selection if sonata_selection is not None else Selection([])
-#         # Max gid is the end of the last range since we need +1 (1 based)
-#         self._max_gid = self._selection.ranges[-1][1] if self._selection.ranges else 0
-#         self._size = self._selection.flat_size
-
-#     def __len__(self):
-#         return self._size
-
-#     def raw_gids(self):
-#         return np.add(self._selection.flatten(), 1, dtype="uint32")
-
-#     def selection_gid_2_final_gid(self, gid):
-#         """Convenience function that translates a 0-based gid
-#         (for example from a libsonata.Selection) to the final
-#         1-based gid (used in Neuron._pc for example).
-#         """
-#         return gid + self.offset + 1
-
-#     def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
-#         """Computes intersection of two nodesets.
-
-#         A _quick_check param can be set to True so that we effectively only check for
-#         intersection (True/False) instead of computing the actual intersection (internal).
-#         """
-#         if self.population_name != other.population_name:
-#             return []
-
-#         sel2 = getattr(other, "_selection", None)
-#         if sel2:
-#             intersect = _ranges_overlap(
-#                 self._selection.ranges, sel2.ranges, quick_check=_quick_check
-#             )
-#         else:
-#             # Selection ranges are 0-based. We must bring gids to 0-based
-#             base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
-#             intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
-
-#         if _quick_check:
-#             return intersect
-#         if len(intersect):
-#             if raw_gids:
-#                 # TODO: We should change the return type to be another `SelectionNodeSet`
-#                 # Like that we could still keep ranges internally and have PROPER API
-#                 # to get raw ids
-#                 return np.add(intersect, 1, dtype=intersect.dtype)
-#             return np.add(intersect, self.offset + 1, dtype=intersect.dtype)
-#         return np.array([], dtype="uint32")
-
-#     def intersects(self, other):
-#         return self.intersection(other, _quick_check=True)
-
-
-def _ranges_overlap(ranges1, ranges2, quick_check=False):
-    """Detect overlaps between two lists of ranges.
-    This is especially important for nodesets since we can access the ranges in no time
-    without the need to flatten and consume GBs of memory
-
-    Args:
-        ranges1: The first list of ranges
-        ranges2: The second list of ranges
-        quick_check: Whether to short-circuit and return True if any overlap exists
-    """
-    if not ranges1 or not ranges2:
-        return []
-
-    all_ranges = []
-    r1_iter = iter(ranges1)
-    r2_iter = iter(ranges2)
-    r1, r2 = next(r1_iter), next(r2_iter)
-
-    while r1 and r2:
-        if r2[0] >= r1[1]:  # r2 past over end r1. Move r1
-            r1 = next(r1_iter, None)
-            continue
-        if r2[1] <= r1[0]:  # r2 before whole range r1. Move r2
-            r2 = next(r2_iter, None)
-            continue
-
-        # Phew, finally some intersection
-        low, high = max(r1[0], r2[0]), min(r1[1], r2[1])
-        if low < high:
-            if quick_check:
-                return True
-            all_ranges.append((low, high))
-
-        # Now move the one that still has potential for more overlap without moving the other
-        if r2[1] > r1[1]:
-            r1 = next(r1_iter, None)
-        else:
-            r2 = next(r2_iter, None)
-
-    if quick_check:
-        return False  # We know it's False as quick_check returns True in the loop
-    if not all_ranges:
-        return []
-    return np.concatenate([np.arange(*r, dtype="uint32") for r in all_ranges])
-
-
-def _ranges_vec_overlap(ranges1, vector, quick_check=False):
-    """Detect overlaps between a list of ranges and a vector of ints
-    This is particularly used to know the overlap between a SelectionNodeSet and a list
-    of gids, e.g. the list of local gids.
-
-    Args:
-        ranges1: The list of ranges
-        vector: The array of values to intersect with
-        quick_check: Whether to short-circuit and return True if any overlap exists
-    """
-    if not ranges1 or len(vector) == 0:
-        return []
-    vector = np.asarray(vector)
-    all_ranges = []
-
-    for r1 in ranges1:
-        if vector[-1] < r1[0]:  # gids before whole range r1
-            break
-        if vector[0] >= r1[1]:  # r2 past over end r1
-            continue
-        mask = (r1[0] <= vector) & (vector < r1[1])
-        if np.any(mask):
-            if quick_check:
-                return True
-            all_ranges.append(vector[mask])
-
-    if quick_check:
-        return False
-    if not all_ranges:
-        return []
-    return np.concatenate(all_ranges)
