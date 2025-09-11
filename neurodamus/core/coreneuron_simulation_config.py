@@ -8,6 +8,7 @@ from typing import get_type_hints
 from ._utils import run_only_rank0
 
 
+# test
 @dataclass
 class CoreSimulationConfig:
     # required
