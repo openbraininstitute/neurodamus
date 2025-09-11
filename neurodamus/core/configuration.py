@@ -1071,10 +1071,9 @@ def _cell_permute(config: _SimConfig):
     if user_config.cell_permute is not None:
         config.cell_permute = CellPermute.from_string(str(user_config.cell_permute))
     if config.use_neuron and config.cell_permute != CellPermute.UNPERMUTED:
-        logging.warning(
-            "Cell permutation is only available with CoreNEURON. "
-            "--cell-permute=%s will be ignored.",
-            config.cell_permute.to_string(),
+        raise ValueError(
+            f"Cell permutation is only available with CoreNEURON. "
+            f"--cell-permute={config.cell_permute.to_string()} is invalid with NEURON."
         )
 
 
