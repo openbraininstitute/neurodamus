@@ -12,6 +12,7 @@ from .core.configuration import ConfigurationError
 from .core.nodeset import SelectionNodeSet
 from .report_parameters import CompartmentType, SectionType
 from .utils import compat
+from .utils.logging import log_verbose
 
 
 class TargetError(Exception):
@@ -178,6 +179,7 @@ class TargetManager:
         # Check if we can get a Nodeset
         target = self._nodeset_reader and self._nodeset_reader.read_nodeset(target_name)
         if target is not None:
+            log_verbose("Retrieved `%s` from Sonata nodeset", target_spec)
             self.register_target(target)
             return get_concrete_target(target)
 
