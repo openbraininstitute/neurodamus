@@ -196,6 +196,25 @@ def make_extra_config(base, simulator):
         }
     else:
         ans["extra_config"]["inputs"]["Stimulus"]["node_set"] = "RingA"
+        ans["extra_config"]["compartment_sets_file"] = str(RINGTEST_DIR / "compartment_sets.json")
+        ans["extra_config"]["reports"]["compartment_set_A_v"] = {
+            "type": "compartment_set",
+            "compartment_set": "csA",
+            "variable_name": "v",
+            "dt": 1,
+            "start_time": 0.0,
+            "end_time": 40.0,
+            "scaling": "none"
+        }
+        ans["extra_config"]["reports"]["compartment_set_B_v"] = {
+            "type": "compartment_set",
+            "compartment_set": "csB",
+            "variable_name": "v",
+            "dt": 1,
+            "start_time": 0.0,
+            "end_time": 40.0,
+            "scaling": "none"
+        }
 
     return ans
 
@@ -271,10 +290,18 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
         ids = [0, 7, 7, 8, 190, 206, 348, 360]
         for var in ["v", "i_membrane", "pas"]:
             r_compartment = ReportReader(output_dir / f"compartment_{var}.h5")
-            r_compartment.reduce_to_compartment_set_report("default", ids)
+            r_compartment = r_compartment.reduce_to_compartment_set_report("default", ids)
             r_compartment_set = ReportReader(output_dir / f"compartment_set_{var}.h5")
 
             assert r_compartment == r_compartment_set, f"Compartment and compartment_set reports differ for var: `{var}`\n{r_compartment}\r{r_compartment_set}"
+    else:
+        r_compartment = ReportReader(output_dir / "compartment_v.h5")
+        r_compartment_A = r_compartment.reduce_to_compartment_set_report("RingA", [5, 8, 9])
+        r_compartment_set_A = ReportReader(output_dir / "compartment_set_A_v.h5")
+        assert r_compartment_A == r_compartment_set_A
+        r_compartment_B = r_compartment.reduce_to_compartment_set_report("RingB", [0, 1, 2])
+        r_compartment_set_B = ReportReader(output_dir / "compartment_set_B_v.h5")
+        assert r_compartment_B == r_compartment_set_B
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -344,6 +371,69 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
         Neurodamus(create_tmp_simulation_config_file)
 
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+{
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "compartment_sets_file": str(RINGTEST_DIR / "compartment_sets.json"),
+                "inputs": {
+                    "override_field": 1,
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "represents_physical_electrode": True,
+                        "amp_start": 3,
+                        "width": 10,
+                        "frequency": 50,
+                        "delay": 0,
+                        "duration": 50,
+                        "node_set": "RingA",
+                    },
+                },
+                "reports": {
+                    "compartment_set_A_v": {
+                        "type": "compartment_set",
+                        "compartment_set": "csA",
+                        "variable_name": "v",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 40.0,
+                        "scaling": "none"
+                    }
+                },
+            },
+        }
+
+    ],
+    indirect=True,
+)
+@pytest.mark.slow
+def test_results_are_identical_with_single_report(create_tmp_simulation_config_file):
+    """
+    Test that a compartment set report can be retrieved and processed
+    when no other reports are present.
+
+    Neurodamus may cache `NodesetTarget` for reuse. Since compartment sets
+    depend on the general `node_sets` keyword to resolve targets, this mechanism
+    is fragile. Cached targets could mask the issue. This test ensures that
+    the report works correctly without relying on cached targets.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = RINGTEST_DIR / "reference" / "reports"
+    nd.run()
+
+    # Compare files to reference
+    file_name = "compartment_set_A_v.h5"
+    r_reference = ReportReader(reference_dir / file_name)   
+    r = ReportReader(output_dir / file_name )
+    assert r_reference == r
+
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -351,7 +441,6 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-@pytest.mark.slow
 def test_reports_cell_permute(create_tmp_simulation_config_file):
     """
     Test that enabling cell permutation (cell_permute=node-adjacency) preserves report consistency.
@@ -375,3 +464,4 @@ def test_reports_cell_permute(create_tmp_simulation_config_file):
         r = ReportReader(file)
 
         assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
+

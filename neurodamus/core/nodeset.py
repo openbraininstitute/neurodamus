@@ -237,6 +237,9 @@ class NodeSet(_NodeSetBase):
     def clear_cell_info(self):
         self._gid_info = None
 
+    def __repr__(self):
+        return f"NodeSet(pop={self.population_name}, raw gids={np.array(self._gidvec)!r})"
+
 
 class SelectionNodeSet(_NodeSetBase):
     """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
@@ -247,6 +250,9 @@ class SelectionNodeSet(_NodeSetBase):
         # Max gid is the end of the last range since we need +1 (1 based)
         self._max_gid = sonata_selection.ranges[-1][1] if sonata_selection.ranges else 0
         self._size = sonata_selection.flat_size
+
+    def __repr__(self):
+        return f"SelectionNodeSet(pop={self.population_name}, raw gids={self._selection!s})"
 
     def __len__(self):
         return self._size
