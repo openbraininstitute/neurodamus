@@ -58,7 +58,6 @@ markers = ["slow: marks tests as slow"]
 [tool.coverage.run]
 patch = ["subprocess"]
 branch = false
-parallel = false
 relative_files = true
 source_pkgs = [
     "neurodamus",
@@ -175,5 +174,3 @@ max-branches = 12
 max-statements = 50
 # Maximum number of public methods for a class (see R0904).
 max-public-methods = 60
-
-
