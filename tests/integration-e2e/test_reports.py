@@ -410,7 +410,7 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
     indirect=True,
 )
 @pytest.mark.slow
-def test_reports_compartment_set_without_cached_targets(create_tmp_simulation_config_file):
+def test_results_are_identical_with_single_report(create_tmp_simulation_config_file):
     """
     Test that a compartment set report can be retrieved and processed
     when no other reports are present.
