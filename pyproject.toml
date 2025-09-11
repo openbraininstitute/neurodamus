@@ -56,8 +56,10 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.coverage.run]
-patch = ["subprocess"]
 branch = false
+patch = [
+    "_exit",
+]
 relative_files = true
 source_pkgs = [
     "neurodamus",
