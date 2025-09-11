@@ -492,6 +492,11 @@ class ReportReader:
         self.populations = new_populations
 
     def reduce_to_compartment_set_report(self, population: str, positions: List[int]) -> None:
+        """
+        Create and return a new ReportReader reduced to the selected columns
+        of a population’s compartment set report. The original object is not
+        modified
+        """
         if population not in self.populations:
             raise ValueError(f"Population '{population}' not found in report.")
 
@@ -507,9 +512,11 @@ class ReportReader:
         # Extract node IDs from level 0 (with repetitions, in order)
         new_nodes = sorted(list(set([col[0] for col in new_df.columns])))
 
-        self.populations = {
-            population: (new_nodes, new_df)
-        }
+        new_reader = ReportReader.__new__(ReportReader)  # bypass __init__
+        new_reader._reader = self._reader
+        new_reader.populations = {population: (new_nodes, new_df)}
+
+        return new_reader
 
     def __repr__(self) -> str:
         lines = [f"ReportReader with {len(self.populations)} populations:"]
