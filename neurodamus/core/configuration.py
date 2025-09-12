@@ -11,7 +11,7 @@ from pathlib import Path
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
-from neurodamus.utils.pyutils import ConfigT
+from neurodamus.utils.pyutils import ConfigT, StrEnumBase
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
 """A file which controls which rank shows exception"""
@@ -54,7 +54,19 @@ class Feature(Enum):
     LoadBalance = 5
 
 
+class CellPermute(StrEnumBase):
+    UNPERMUTED = 0  # cpu
+    NODE_ADJACENCY = 1  # cpu/gpu
+
+    __mapping__ = [
+        ("unpermuted", UNPERMUTED),
+        ("node-adjacency", NODE_ADJACENCY),
+    ]
+    __default__ = UNPERMUTED
+
+
 class CliOptions(ConfigT):
+    cell_permute = None
     report_buffer_size = None
     build_model = None
     simulate_model = True
@@ -205,6 +217,7 @@ class _SimConfig:
     use_coreneuron = False
     use_neuron = True
     report_buffer_size = 8  # in MB
+    cell_permute = CellPermute.default()
     delete_corenrn_data = False
     modelbuilding_steps = 1
     build_model = True
@@ -1050,6 +1063,18 @@ def _coreneuron_direct_mode(config: _SimConfig):
     if direct_mode:
         logging.info("Run CORENEURON direct mode without writing model data to disk")
     config.coreneuron_direct_mode = direct_mode
+
+
+@SimConfig.validator
+def _cell_permute(config: _SimConfig):
+    user_config = config.cli_options
+    if user_config.cell_permute is not None:
+        config.cell_permute = CellPermute.from_string(str(user_config.cell_permute))
+    if config.use_neuron and config.cell_permute != CellPermute.UNPERMUTED:
+        raise ConfigurationError(
+            f"Cell permutation is only available with CoreNEURON. "
+            f"--cell-permute={config.cell_permute.to_string()} is invalid with NEURON."
+        )
 
 
 def get_debug_cell_gids(cli_options):

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .utils.pyutils import cache_errors
+from .utils.pyutils import StrEnumBase, cache_errors
 
 if TYPE_CHECKING:
     from neurodamus.target_manager import TPointList
@@ -14,28 +13,6 @@ if TYPE_CHECKING:
 
 class ReportSetupError(Exception):
     pass
-
-
-class StrEnumBase(IntEnum):
-    __mapping__: list[tuple[str, int]] = []
-    # default for when there is value. Leaving None throws an error
-    __default__ = None
-    # default when the string is not found in the mapping
-    __invalid__ = None
-
-    @classmethod
-    def from_string(cls, s: str):
-        if not s:
-            return cls(cls.__default__)
-        mapping = dict(cls.__mapping__)
-        return cls(mapping.get(s.lower(), cls.__invalid__))
-
-    def to_string(self) -> str:
-        reverse__mapping__ = {v: k for k, v in self.__mapping__}
-        return reverse__mapping__[self]
-
-    def __str__(self):
-        return f"{self.__class__.__name__}.{self.name}"
 
 
 class SectionType(StrEnumBase):
