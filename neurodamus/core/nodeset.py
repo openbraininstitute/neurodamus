@@ -143,6 +143,7 @@ class SelectionNodeSet:
             gids: The gids to handle
             gid_info: a map containing METype information about each cell.
                 In v5 and v6 values are METypeItem's
+            offset: offset of the gids. Used to set a SelectionNodeSet from another one
         """
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
@@ -228,13 +229,6 @@ class SelectionNodeSet:
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)
-        return self
-
-    def extend(self, other: SelectionNodeSet):
-        """Add all GIDs and metadata from another nodeset"""
-        if not isinstance(other, SelectionNodeSet):
-            raise TypeError(f"extend() expects SelectionNodeSet, got {type(other).__name__}")
-        return self.add_gids(other._selection, other._gid_info)
 
     def intersection(self, other, raw_gids=False):
         """Return GIDs common with another nodeset
