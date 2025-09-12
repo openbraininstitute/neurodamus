@@ -361,8 +361,8 @@ class NodesetTarget:
     Internally, `NodesetTarget` would organize these nodes into:
     ```python
     nodesets = [
-    SelectionNodeSet(0, 1),
-    SelectionNodeSet(1000, 1001)
+    SelectionNodeSet([0, 1]),
+    SelectionNodeSet([1000, 1001])
     ]
     ```
     """

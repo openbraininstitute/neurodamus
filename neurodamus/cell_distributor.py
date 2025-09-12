@@ -301,7 +301,6 @@ class CellManagerBase(_CellManager):
 
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
         cell_offset = self._local_nodes.offset
-        gid_info_iter = self._local_nodes.iter()
 
         prev_metype = None
         prev_memory = get_mem_usage_kb()
@@ -323,7 +322,7 @@ class CellManagerBase(_CellManager):
             memory_dict[metype] = max(0, memory_allocated / n_cells)
             prev_memory = end_memory
 
-        for gid, cell_info in gid_info_iter:
+        for gid, cell_info in self._local_nodes.iter():
             if cell_info is None:
                 continue
             metype = f"{cell_info.mtype}-{cell_info.etype}"
