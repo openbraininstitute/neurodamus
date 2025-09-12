@@ -774,6 +774,7 @@ class LoadBalance:
         tmp = Nd.Vector()
 
         for cell in cell_distributor.cells:
+            print("AAAAAAAAA", cell.CellRef, cell.raw_gid, lcx, tmp)
             mcomplex.cell_complexity(cell.CellRef)
             mcomplex.multisplit(cell.raw_gid, lcx, tmp)
             ms_list.append(tmp.c())
