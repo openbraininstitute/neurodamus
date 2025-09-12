@@ -56,7 +56,7 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.coverage.run]
-patch = ["subprocess"]
+patch = ["subprocess", "_exit"]
 branch = false
 relative_files = true
 source_pkgs = [
