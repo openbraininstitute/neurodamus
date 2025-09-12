@@ -1290,7 +1290,7 @@ class Node:
             prcellgid=prcellgid,
             celsius=getattr(SimConfig, "celsius", 34.0),
             voltage=getattr(SimConfig, "v_init", -65.0),
-            cell_permute=CoreConfig.default_cell_permute,
+            cell_permute=int(SimConfig.cell_permute),
             pattern=self._core_replay_file or None,
             seed=SimConfig.rng_info.getGlobalSeed(),
             model_stats=int(SimConfig.cli_options.model_stats),

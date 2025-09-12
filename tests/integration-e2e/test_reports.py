@@ -11,6 +11,7 @@ from ..conftest import V5_SONATA, RINGTEST_DIR
 from ..utils import ReportReader
 import copy
 from neurodamus.utils.pyutils import CumulativeError
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 
 
 _BASE_EXTRA_CONFIG = {
@@ -406,6 +407,7 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
                 },
             },
         }
+
     ],
     indirect=True,
 )
@@ -434,3 +436,36 @@ def test_results_are_identical_with_single_report(create_tmp_simulation_config_f
     r_reference = ReportReader(reference_dir / file_name)   
     r = ReportReader(output_dir / file_name )
     assert r_reference == r
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        make_extra_config("v5_sonata_config", "CORENEURON"),
+    ],
+    indirect=True,
+)
+def test_reports_cell_permute(create_tmp_simulation_config_file):
+    """
+    Test that enabling cell permutation (cell_permute=node-adjacency) preserves report consistency.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute="node-adjacency", keep_build=True)
+    output_dir = Path(SimConfig.output_root)
+    reference_dir = V5_SONATA / "reference" / "reports"
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 1
+
+    nd.run()
+    loose_tols = {"rtol": 1e-6, "atol": 1e-6}
+
+    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
+    # reference produced with neuron
+    # coreneuron does not have exactly the same results, we use the loose tols in that case
+    loose_tol_files = {"summation_i_membrane.h5"}
+    for ref_file in reference_dir.glob("*.h5"):
+        r_reference = ReportReader(ref_file)   
+        file = output_dir / ref_file.name 
+        r = ReportReader(file)
+
+        assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
+
