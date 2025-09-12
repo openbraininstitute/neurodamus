@@ -5,9 +5,35 @@ from __future__ import annotations
 import subprocess  # noqa: S404
 import weakref
 from bisect import bisect_left
-from enum import EnumMeta
+from enum import EnumMeta, IntEnum
 
 import numpy as np
+
+
+class StrEnumBase(IntEnum):
+    __mapping__: list[tuple[str, int]] = []
+    # default for when there is value. Leaving None throws an error
+    __default__ = None
+    # default when the string is not found in the mapping
+    __invalid__ = None
+
+    @classmethod
+    def from_string(cls, s: str):
+        if not s:
+            return cls(cls.__default__)
+        mapping = dict(cls.__mapping__)
+        return cls(mapping.get(s.lower(), cls.__invalid__ if cls.__invalid__ is not None else s))
+
+    def to_string(self) -> str:
+        reverse__mapping__ = {v: k for k, v in self.__mapping__}
+        return reverse__mapping__[self]
+
+    def __str__(self):
+        return f"{self.__class__.__name__}.{self.name}"
+
+    @classmethod
+    def default(cls):
+        return cls(cls.__default__)
 
 
 class CumulativeError(Exception):
