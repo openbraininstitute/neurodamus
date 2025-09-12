@@ -163,7 +163,7 @@ class SelectionNodeSet:
         for start, stop in self._selection.ranges:
             yield from range(start, stop)
 
-    def iter(self, raw_gids=True):
+    def iter_cell_info(self, raw_gids=True):
         """Iterate over GIDs with optional offset and metadata"""
         offset_add = 0 if raw_gids else self._offset
 
