@@ -150,7 +150,9 @@ class SelectionNodeSet:
         self._population_group = None  # register in a population so gids can be unique
         self._selection = libsonata.Selection([])  # raw, 1-based
         self._gid_info = {}
-        if gids is not None:
+        if isinstance(gids, libsonata.Selection):
+            self.add_selection(gids, gid_info)
+        else:
             self.add_gids(gids, gid_info)
 
     offset = property(lambda self: self._offset)
@@ -211,17 +213,16 @@ class SelectionNodeSet:
             [(start + offset, stop + offset) for start, stop in self._selection.ranges]
         )
 
-    def add_gids(self, gids, gid_info=None):
-        """Add GIDs and optional metadata, updating offsets and max_gid
+    def add_selection(self, selection: libsonata.Selection, gid_info=None):
+        """Add libsonata.Selection GIDs and optional metadata, updating offsets and max_gid
 
         Args:
-            gids: GIDs to add (list or libsonata.Selection)
+            selection: libsonata.Selection of GIDs
             gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem)
         """
-        self._selection |= (
-            gids if isinstance(gids, libsonata.Selection) else libsonata.Selection(gids)
-        )
-
+        if selection is None:
+            return
+        self._selection |= selection
         if self:
             # libsonata.Selection.ranges may be unsorted
             # Probably not needed since add_gids sorts
@@ -229,6 +230,17 @@ class SelectionNodeSet:
         if gid_info:
             self._gid_info.update(gid_info)
         self._check_update_offsets()  # check offsets (uses reduce)
+
+    def add_gids(self, gids: list[int], gid_info=None):
+        """Add GIDs and optional metadata, updating offsets and max_gid
+
+        Args:
+            gids: GIDs to add (list)
+            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem)
+        """
+        if gids is None:
+            return
+        self.add_selection(selection=libsonata.Selection(gids), gid_info=gid_info)
 
     def intersection(self, other, raw_gids=False):
         """Return GIDs common with another nodeset

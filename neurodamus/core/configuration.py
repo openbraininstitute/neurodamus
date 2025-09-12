@@ -1254,7 +1254,7 @@ def _input_resistance(config: _SimConfig, target_manager):
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",
         }:
-            # NOTE: use target_manager to read the population names of hoc or
+            # NOTE: use target_manager to read the population names of
             # SelectionNodeSet targets
             target = target_manager.get_target(target_name)
             for population in target.population_names:
