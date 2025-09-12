@@ -172,7 +172,7 @@ class SelectionNodeSet:
         for gid in self:
             yield gid + offset_add, self._gid_info.get(gid)
 
-    def gids(self, raw_gids=True):
+    def gids(self, raw_gids):
         """Return all GIDs as a flat array, optionally offset by the population"""
         ans = np.asarray(self._selection.flatten(), dtype="uint32")
         if raw_gids:
@@ -198,7 +198,7 @@ class SelectionNodeSet:
             self._population_group._update(self)  # Note: triggers a reduce.
 
     @classmethod
-    def from_0based_libsonata_selection(cls, sel):
+    def from_zero_based_libsonata_selection(cls, sel):
         """Create a nodeset from a 0-based libsonata.Selection"""
         if not isinstance(sel, libsonata.Selection):
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
