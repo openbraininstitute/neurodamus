@@ -492,6 +492,11 @@ class ReportReader:
         self.populations = new_populations
 
     def reduce_to_compartment_set_report(self, population: str, positions: List[int]) -> None:
+        """
+        Create and return a new ReportReader reduced to the selected columns
+        of a population’s compartment set report. The original object is not
+        modified
+        """
         if population not in self.populations:
             raise ValueError(f"Population '{population}' not found in report.")
 
