@@ -7,6 +7,7 @@ from ._engine import EngineBase
 from ._mpi import MPI
 from ._neuron import _Neuron
 from .configuration import GlobalConfig
+from neurodamus import __version__
 from neurodamus.utils.logging import log_stage, log_verbose, setup_logging
 
 HOCLIB = "neurodamus"  # neurodamus.hoc should be in HOC_LIBRARY_PATH.
@@ -40,7 +41,7 @@ class _NeuronWrapper(_Neuron):
             open(log_filename, "w", encoding="utf-8").close()  # Truncate
         MPI.barrier()  # Sync so that all processes see the file
         setup_logging(GlobalConfig.verbosity, log_filename, MPI.rank, use_color=log_use_color)
-        log_stage("Initializing Neurodamus... Logfile: " + log_filename)
+        log_stage(f"Initializing Neurodamus ({__version__}) Logfile: {log_filename}")
 
         # Load mods if not available
         cls._load_nrnmechlibs()
