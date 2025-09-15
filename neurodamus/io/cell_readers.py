@@ -17,15 +17,15 @@ EMPTY_GIDVEC = np.empty(0, dtype="uint32")
 
 def split_round_robin(all_gids, stride=1, stride_offset=0, total_cells=None):
     """Splits a numpy ndarray[uint32] round-robin.
+    Assumes gids are 0-based.
     If the array is None generates new arrays based on the nr of total cells
     """
     if all_gids is not None:
         gidvec = all_gids[stride_offset::stride] if stride > 1 else all_gids
-        gidvec.sort()
+        gidvec = np.sort(gidvec)
     else:
         assert total_cells, "split_round_robin: total_cells required without gids"
-        cell_i = stride_offset + 1  # gids start from 1
-        gidvec = np.arange(cell_i, total_cells + 1, stride, dtype="uint32")
+        gidvec = np.arange(stride_offset, total_cells, stride, dtype="uint32")
     return gidvec
 
 
@@ -85,6 +85,7 @@ def load_sonata(  # noqa: C901, PLR0915
     """A reader supporting additional dynamic properties from Sonata files."""
     import libsonata
 
+    all_gids = np.array(all_gids) - 1 if all_gids is not None else None
     node_file = circuit_conf.CellLibraryFile
     node_store = libsonata.NodeStorage(node_file)
     node_pop = node_store.open_population(node_population)
@@ -98,17 +99,19 @@ def load_sonata(  # noqa: C901, PLR0915
         meinfos = METypeManager()
         # Get global METype counts (computed in rank0, broadcasted)
         metype_gids, counts = _retrieve_unique_metypes(node_pop, all_gids)
+
         dry_run_stats.metype_counts += counts
-        dry_run_stats.pop_metype_gids[node_population] = metype_gids
-        gid_metype_bundle = list(metype_gids.values())
-        gidvec = dry_run_distribution(gid_metype_bundle, stride, stride_offset)
+        dry_run_stats.pop_metype_gids[node_population] = {
+            k: v + 1 for k, v in metype_gids.items()
+        }  # 1-based
+        gidvec = dry_run_distribution(list(metype_gids.values()), stride, stride_offset)
 
         log_verbose("Loading node attributes... (subset of cells from each metype)")
         for gids in metype_gids.values():
             if not len(gids):
                 continue
             gids = gids[:CELL_NODE_INFO_LIMIT]
-            node_sel = libsonata.Selection(gids - 1)  # Load 0-based node ids
+            node_sel = libsonata.Selection(gids)  # Load 0-based node ids
             morpho_names = node_pop.get_attribute("morphology", node_sel)
             mtypes = node_pop.get_attribute("mtype", node_sel)
             etypes = node_pop.get_attribute("etype", node_sel)
@@ -116,21 +119,26 @@ def load_sonata(  # noqa: C901, PLR0915
             emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
             meinfos.load_infoNP(gids, morpho_names, emodel_templates, mtypes, etypes)
 
-        return gidvec, meinfos, total_cells
+        return gidvec + 1, meinfos, total_cells  # 1-based
 
     def load_nodes_base_info():
         if SimConfig.dry_run or load_mode == "load_nodes_metype":
             return load_base_info_dry_run()
 
         meinfos = METypeManager()
-        gidvec = split_round_robin(all_gids, stride, stride_offset, total_cells)
+        gidvec = split_round_robin(
+            all_gids,
+            stride,
+            stride_offset,
+            total_cells,
+        )
 
         if not len(gidvec):
             # Not enough cells to give this rank a few
             return gidvec, meinfos, total_cells
 
         log_verbose("Loading nodes info")
-        node_sel = libsonata.Selection(gidvec - 1)  # 0-based node indices
+        node_sel = libsonata.Selection(gidvec)
         morpho_names = node_pop.get_attribute("morphology", node_sel)
         mtypes = node_pop.get_attribute("mtype", node_sel)
         try:
@@ -166,9 +174,7 @@ def load_sonata(  # noqa: C901, PLR0915
         add_params_list = (
             None
             if not has_extra_data
-            else _getNeededAttributes(
-                node_pop, circuit_conf.METypePath, emodel_templates, gidvec - 1
-            )
+            else _getNeededAttributes(node_pop, circuit_conf.METypePath, emodel_templates, gidvec)
         )
 
         meinfos.load_infoNP(
@@ -185,7 +191,7 @@ def load_sonata(  # noqa: C901, PLR0915
             rotations,
             add_params_list,
         )
-        return gidvec, meinfos, total_cells
+        return gidvec + 1, meinfos, total_cells
 
     # If dynamic properties are not specified simply return early
     if not load_dynamic_props:
@@ -300,32 +306,30 @@ def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
 
     Args:
         node_reader: node reader, libsonata only
-        all_gids: list of all gids in target
+        all_gids: list of all gids in target (0-based)
+
     Returns:
         list of lists of unique mtype+emodel combinations
     """
-    gidvec = np.array(all_gids)
-    indexes = gidvec - 1
-    if len(indexes) < 10:  # Ensure array is not too small (pybind11 #1392)
-        indexes = indexes.tolist()
+    all_gids = np.array(all_gids)
 
     if isinstance(node_reader, libsonata.NodePopulation):
-        etypes = node_reader.get_attribute("etype", libsonata.Selection(indexes))
-        mtypes = node_reader.get_attribute("mtype", libsonata.Selection(indexes))
+        etypes = node_reader.get_attribute("etype", libsonata.Selection(all_gids))
+        mtypes = node_reader.get_attribute("mtype", libsonata.Selection(all_gids))
     else:
         msg = f"Reader type {type(node_reader)} incompatible with dry run."
         raise TypeError(msg)
 
     gids_per_metype = defaultdict(list)
     count_per_metype = defaultdict(int)
-    for gid, mtype, etype in zip(gidvec, mtypes, etypes):
+    for gid, mtype, etype in zip(all_gids, mtypes, etypes):
         metype = f"{mtype}-{etype}"
         gids_per_metype[metype].append(gid)
         count_per_metype[metype] += 1
 
     logging.info(
         "Out of %d cells, found %d unique mtype+emodel combination",
-        len(gidvec),
+        len(all_gids),
         len(gids_per_metype),
     )
     for metype, gid_list in gids_per_metype.items():
