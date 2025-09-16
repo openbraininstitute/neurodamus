@@ -119,7 +119,7 @@ def load_sonata(  # noqa: C901, PLR0915
             emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
             meinfos.load_infoNP(gids, morpho_names, emodel_templates, mtypes, etypes)
 
-        return gidvec + 1, meinfos, total_cells  # 1-based
+        return gidvec, meinfos, total_cells  # 1-based
 
     def load_nodes_base_info():
         if SimConfig.dry_run or load_mode == "load_nodes_metype":
@@ -191,11 +191,12 @@ def load_sonata(  # noqa: C901, PLR0915
             rotations,
             add_params_list,
         )
-        return gidvec + 1, meinfos, total_cells
+        return gidvec, meinfos, total_cells
 
     # If dynamic properties are not specified simply return early
     if not load_dynamic_props:
-        return load_nodes_base_info()
+        gidvec, meinfos, total_cells = load_nodes_base_info()
+        return gidvec + 1, meinfos, total_cells
 
     # Check properties exist, eventually removing prefix
     def validate_property(prop_name):
@@ -215,7 +216,7 @@ def load_sonata(  # noqa: C901, PLR0915
         load_nodes = np.fromiter(meinfos.keys(), dtype="uint32") - 1
         node_sel = libsonata.Selection(load_nodes)
     else:
-        node_sel = libsonata.Selection(gidvec - 1)  # 0-based node indices
+        node_sel = libsonata.Selection(gidvec)  # 0-based node indices
 
     for prop_name in load_dynamic_props:
         log_verbose("Loading extra property: %s ", prop_name)
@@ -227,7 +228,7 @@ def load_sonata(  # noqa: C901, PLR0915
         for gid, val in zip(meinfos.keys(), prop_data):
             meinfos[gid].extra_attrs[prop_name] = val
 
-    return gidvec, meinfos, fullsize
+    return gidvec + 1, meinfos, fullsize
 
 
 def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
