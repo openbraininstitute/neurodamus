@@ -335,7 +335,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet.from_0based_libsonata_selection(node_selection)
+                ns = SelectionNodeSet.from_zero_based_libsonata_selection(node_selection)
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -369,8 +369,8 @@ class NodesetTarget:
     Internally, `NodesetTarget` would organize these nodes into:
     ```python
     nodesets = [
-    SelectionNodeSet(0, 1),
-    SelectionNodeSet(1000, 1001)
+    SelectionNodeSet([0, 1]),
+    SelectionNodeSet([1000, 1001])
     ]
     ```
     """
@@ -413,7 +413,7 @@ class NodesetTarget:
             return []
         if len(self.nodesets) > 1:
             raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return np.array(self.nodesets[0].gids())
+        return np.array(self.nodesets[0].gids(raw_gids=True))
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.
@@ -540,7 +540,7 @@ class NodesetTarget:
         if not n_parts or n_parts == 1:
             return False
 
-        all_raw_gids = {ns.population_name: ns.gids() for ns in self.nodesets}
+        all_raw_gids = {ns.population_name: ns.gids(raw_gids=True) for ns in self.nodesets}
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())

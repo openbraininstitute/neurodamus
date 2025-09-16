@@ -97,9 +97,9 @@ def test_read_nodesets_from_file(nodeset_files):
     assert json.loads(ns_reader.nodesets.toJSON()) == json.loads(json.dumps(expected_output))
 
 @pytest.mark.forked
-def test_from_0based_libsonata_selection_invalid_argument():
+def test_from_zero_based_libsonata_selection_invalid_argument():
     with pytest.raises(TypeError, match="Expected libsonata.Selection"): 
-        SelectionNodeSet.from_0based_libsonata_selection("wrong")
+        SelectionNodeSet.from_zero_based_libsonata_selection("wrong")
 
 @pytest.mark.forked
 def test_get_selection():

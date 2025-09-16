@@ -391,7 +391,7 @@ class GlioVascularManager(ConnectionManagerBase):
             )
 
         super().__init__(circuit_conf, target_manager, cell_manager, src_cell_manager, **kw)
-        self._astro_ids = self._cell_manager.local_nodes.gids()
+        self._astro_ids = self._cell_manager.local_nodes.gids(raw_gids=True)
         self._gid_offset = self._cell_manager.local_nodes.offset
 
     def open_edge_location(self, sonata_source, circuit_conf, **__):

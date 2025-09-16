@@ -280,9 +280,11 @@ class CellManagerBase(_CellManager):
         cell_offset = self._local_nodes.offset
 
         if GlobalConfig.verbosity >= LogLevel.DEBUG:
-            gid_info_iter = self._local_nodes.iter()
+            gid_info_iter = self._local_nodes.iter_cell_info()
         else:
-            gid_info_iter = ProgressBar.iter(self._local_nodes.iter(), len(self._local_nodes))
+            gid_info_iter = ProgressBar.iter(
+                self._local_nodes.iter_cell_info(), len(self._local_nodes)
+            )
 
         for gid, cell_info in gid_info_iter:
             cell = cell_type(gid, cell_info, self._circuit_conf)
@@ -322,7 +324,7 @@ class CellManagerBase(_CellManager):
             memory_dict[metype] = max(0, memory_allocated / n_cells)
             prev_memory = end_memory
 
-        for gid, cell_info in self._local_nodes.iter():
+        for gid, cell_info in self._local_nodes.iter_cell_info():
             if cell_info is None:
                 continue
             metype = f"{cell_info.mtype}-{cell_info.etype}"
