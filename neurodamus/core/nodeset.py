@@ -134,6 +134,8 @@ class SelectionNodeSet:
     """Set of nodes with optional global registration and offset handling.
 
     A shim over libsonata.Selection with optional populations, offsets and MEtype metadata per gid
+
+    Note: this class is 0/1 based agnostic except for from_zero_based_libsonata_selection
     """
 
     def __init__(self, gids=None, gid_info=None):
@@ -148,7 +150,7 @@ class SelectionNodeSet:
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
-        self._selection = libsonata.Selection([])  # raw, 1-based
+        self._selection = libsonata.Selection([])  # raw
         self._gid_info = {}
         if isinstance(gids, libsonata.Selection):
             self.add_selection(gids, gid_info)
@@ -199,7 +201,7 @@ class SelectionNodeSet:
 
     @classmethod
     def from_zero_based_libsonata_selection(cls, sel):
-        """Create a nodeset from a 0-based libsonata.Selection"""
+        """ Create a nodeset from a 0-based libsonata.Selection to a 1-based SelectionNodeSet """
         if not isinstance(sel, libsonata.Selection):
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
