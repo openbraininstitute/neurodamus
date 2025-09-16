@@ -201,7 +201,7 @@ class SelectionNodeSet:
 
     @classmethod
     def from_zero_based_libsonata_selection(cls, sel):
-        """ Create a nodeset from a 0-based libsonata.Selection to a 1-based SelectionNodeSet """
+        """Create a nodeset from a 0-based libsonata.Selection to a 1-based SelectionNodeSet"""
         if not isinstance(sel, libsonata.Selection):
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
