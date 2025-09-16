@@ -16,11 +16,11 @@ pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
 @pytest.fixture
 def target_manager():
-    from neurodamus.core.nodeset import NodeSet
+    from neurodamus.core.nodeset import SelectionNodeSet
     from neurodamus.target_manager import NodesetTarget
 
-    nodes_t1 = NodeSet([1, 2, 3]).register_global("RingA")
-    nodes_t2 = NodeSet([1]).register_global("RingA")
+    nodes_t1 = SelectionNodeSet([1, 2, 3]).register_global("RingA")
+    nodes_t2 = SelectionNodeSet([1]).register_global("RingA")
     t1 = NodesetTarget("All", [nodes_t1], [nodes_t1])
     t2 = NodesetTarget("VerySmall", [nodes_t2], [nodes_t2])
     return MockedTargetManager(t1, t2)

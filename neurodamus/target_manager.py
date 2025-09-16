@@ -9,7 +9,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .core.nodeset import NodeSet, SelectionNodeSet, _NodeSetBase
+from .core.nodeset import SelectionNodeSet
 from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
@@ -315,7 +315,7 @@ class NodeSetReader:
         def _get_nodeset(pop_name):
             storage = self._population_stores.get(pop_name)
             population = storage.open_population(pop_name)
-            # Create NodeSet object with 1-based gids
+            # Create SelectionNodeSet object with 1-based gids
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
@@ -327,7 +327,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet(node_selection)
+                ns = SelectionNodeSet.from_zero_based_libsonata_selection(node_selection)
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -361,13 +361,13 @@ class NodesetTarget:
     Internally, `NodesetTarget` would organize these nodes into:
     ```python
     nodesets = [
-    _NodeSetBase(0, 1),
-    _NodeSetBase(1000, 1001)
+    SelectionNodeSet([0, 1]),
+    SelectionNodeSet([1000, 1001])
     ]
     ```
     """
 
-    def __init__(self, name, nodesets: list[_NodeSetBase], local_nodes=None, **_kw):
+    def __init__(self, name, nodesets: list[SelectionNodeSet], local_nodes=None, **_kw):
         self.name = name
         self.nodesets = nodesets
         self.local_nodes = local_nodes
@@ -393,9 +393,9 @@ class NodesetTarget:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return np.array([])
         nodesets = sorted(self.nodesets, key=lambda n: n.offset)  # Get gids ascending
-        gids = nodesets[0].final_gids()
+        gids = nodesets[0].gids(raw_gids=False)
         for extra_nodes in nodesets[1:]:
-            gids = np.append(gids, extra_nodes.final_gids())
+            gids = np.append(gids, extra_nodes.gids(raw_gids=False))
         return gids
 
     def get_raw_gids(self):
@@ -405,7 +405,7 @@ class NodesetTarget:
             return []
         if len(self.nodesets) > 1:
             raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return np.array(self.nodesets[0].raw_gids())
+        return np.array(self.nodesets[0].gids(raw_gids=True))
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.
@@ -414,7 +414,7 @@ class NodesetTarget:
         """
         return self.contains(gid)
 
-    def append_nodeset(self, nodeset: NodeSet):
+    def append_nodeset(self, nodeset: SelectionNodeSet):
         """Add a nodeset to the current target"""
         self.nodesets.append(nodeset)
 
@@ -443,7 +443,7 @@ class NodesetTarget:
         """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
-        def pop_gid_intersect(nodeset: _NodeSetBase, raw_gids=False):
+        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids=False):
             for local_ns in self.local_nodes:
                 if local_ns.population_name == nodeset.population_name:
                     return nodeset.intersection(local_ns, raw_gids)
@@ -472,9 +472,11 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        for cl in compartment_set.filtered_iter(sel_node_set._selection):
-            gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
-            gid = sel_node_set.selection_gid_2_final_gid(gid)
+        # compartment_set is 0-based
+        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(offset=-1)):
+            raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
+            # points are 1-based
+            gid = sel_node_set._offset + raw_gid + 1
             cell = cell_manager.get_cell(gid)
             sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
@@ -530,7 +532,7 @@ class NodesetTarget:
         if not n_parts or n_parts == 1:
             return False
 
-        all_raw_gids = {ns.population_name: ns.final_gids() - ns.offset for ns in self.nodesets}
+        all_raw_gids = {ns.population_name: ns.gids(raw_gids=True) for ns in self.nodesets}
 
         new_targets = defaultdict(list)
         pop_names = list(all_raw_gids.keys())
@@ -539,7 +541,7 @@ class NodesetTarget:
             for pop in pop_names:
                 # name sub target per populaton, to be registered later
                 target_name = f"{pop}__{self.name}_{cycle_i}"
-                target = NodesetTarget(target_name, [NodeSet().register_global(pop)])
+                target = NodesetTarget(target_name, [SelectionNodeSet().register_global(pop)])
                 new_targets[pop].append(target)
 
         for pop, raw_gids in all_raw_gids.items():

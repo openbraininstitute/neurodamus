@@ -1,20 +1,23 @@
 import json
 
 import numpy as np
+
 import pytest
 
-from neurodamus.core.nodeset import NodeSet, _ranges_overlap, _ranges_vec_overlap
+from neurodamus.core.nodeset import SelectionNodeSet
 from neurodamus.target_manager import NodeSetReader
+
+import libsonata
 
 
 @pytest.mark.forked
-def test_NodeSet_base():
+def test_SelectionNodeSet_base():
     # No registration, just plain gid sets
-    set1 = NodeSet([1, 2, 3])
+    set1 = SelectionNodeSet([1, 2, 3])
     assert set1.offset == 0
     assert set1.max_gid == 3
 
-    set2 = NodeSet()
+    set2 = SelectionNodeSet()
     assert set2.offset == 0
     assert set2.max_gid == 0
     set2.add_gids([1, 2, 3])
@@ -23,18 +26,18 @@ def test_NodeSet_base():
 
 
 @pytest.mark.forked
-def test_NodeSet_add():
-    set_mid = NodeSet([1, 2, 3, 1000]).register_global("pop2")
+def test_SelectionNodeSet_add():
+    set_mid = SelectionNodeSet([1, 2, 3, 1000]).register_global("pop2")
     assert set_mid.offset == 0
     assert set_mid.max_gid == 1000
 
     # Append to right
-    set_right = NodeSet([1, 2, 3, 4]).register_global("pop3")
+    set_right = SelectionNodeSet([1, 2, 3, 4]).register_global("pop3")
     assert set_right.offset == 1000
     assert set_right.max_gid == 4
 
     # Append to left (occupies two blocks of 1000)
-    set_left = NodeSet([1, 2, 3, 4, 1001]).register_global("pop1")
+    set_left = SelectionNodeSet([1, 2, 3, 4, 1001]).register_global("pop1")
     assert set_left.offset == 0
     assert set_left.max_gid == 1001
     assert set_mid.offset == 2000
@@ -44,33 +47,6 @@ def test_NodeSet_add():
     set_mid.add_gids([1002])
     assert set_mid.max_gid == 1002
     assert set_right.offset == 4000
-
-
-@pytest.mark.parametrize(("ranges1", "ranges2", "expected"), [
-    ([(0, 10), (20, 30)], [(8, 23), (28, 35)], np.array([8, 9, 20, 21, 22, 28, 29])),
-    ([(0, 10), (20, 30)], [(10, 20)], []),
-    ([(5, 10), (20, 30)], [(0, 10)], np.arange(5, 10)),
-    ([(5, 10), (20, 30)], [(25, 35)], np.arange(25, 30)),
-    ([], [], []),
-    ([], [(5, 25)], []),
-    ([(0, 10), (20, 30)], [], []),
-])
-def test_ranges_overlap(ranges1, ranges2, expected):
-    out = _ranges_overlap(ranges1, ranges2)
-    np.testing.assert_array_equal(out, expected)
-
-
-@pytest.mark.parametrize(("ranges1", "vec", "expected"), [
-    ([(0, 10), (20, 30)], [1, 2, 11, 12, 19, 20, 21, 29, 30], [1, 2, 20, 21, 29]),
-    ([(0, 10), (20, 30)], [11, 12], []),
-    ([], [], []),
-    ([], [1, 2, 3], []),
-    ([(0, 10), (20, 30)], [], []),
-])
-def test_ranges_vec_overlap(ranges1, vec, expected):
-    out = _ranges_vec_overlap(ranges1, vec)
-    np.testing.assert_array_equal(out, expected)
-
 
 @pytest.fixture
 def nodeset_files(tmpdir):
@@ -107,9 +83,8 @@ def nodeset_files(tmpdir):
 
     return config_nodeset, simulation_nodeset
 
-
+@pytest.mark.forked
 def test_read_nodesets_from_file(nodeset_files):
-
     ns_reader = NodeSetReader(*nodeset_files)
     assert ns_reader.names == {'Mosaic', 'Layer1', 'Layer2'}
     assert ns_reader.read_nodeset("Mosaic") is not None
@@ -120,3 +95,56 @@ def test_read_nodesets_from_file(nodeset_files):
         "Mosaic": {"population": ["All"]}
     }
     assert json.loads(ns_reader.nodesets.toJSON()) == json.loads(json.dumps(expected_output))
+
+@pytest.mark.forked
+def test_from_zero_based_libsonata_selection_invalid_argument():
+    with pytest.raises(TypeError, match="Expected libsonata.Selection"): 
+        SelectionNodeSet.from_zero_based_libsonata_selection("wrong")
+
+@pytest.mark.forked
+def test_get_selection():
+    sel = libsonata.Selection([(3, 9), (11, 12)])
+    ref = SelectionNodeSet(sel)
+    assert sel == ref.get_selection()
+
+    offset = 3
+    sel = libsonata.Selection([(start+offset, stop+offset) for start, stop in sel.ranges])
+    assert sel == ref.get_selection(offset=offset)
+
+@pytest.mark.forked
+def test_intersection_basic():
+    a = SelectionNodeSet([1, 2, 3])
+    a.register_global("pop")
+    b = SelectionNodeSet([2, 3, 4])
+    b.register_global("pop") 
+    result = a.intersection(b)
+    assert np.array_equal(result, np.array([2, 3], dtype=np.uint32))
+
+@pytest.mark.forked
+def test_intersection_different_population():
+    a = SelectionNodeSet([1, 2, 3])
+    a.register_global("popA")
+    b = SelectionNodeSet([2, 3, 4])
+    b.register_global("popB") 
+    result = a.intersection(b)
+    assert result == []
+
+@pytest.mark.forked
+def test_intersection_wrong_type():
+    a = SelectionNodeSet([1, 2, 3])
+    with pytest.raises(TypeError):
+        a.intersection([2, 3])  # not a SelectionNodeSet
+
+@pytest.mark.forked
+def test_intersection_with_offset():
+    a = SelectionNodeSet([1, 2, 3])
+    a.register_global("pop")
+    a._offset = 10
+    b = SelectionNodeSet([2, 3, 4])
+    b.register_global("pop") 
+    b._offset = 10
+    result = a.intersection(b)
+    assert np.array_equal(result, np.array([12, 13], dtype=np.uint32))
+
+
+    

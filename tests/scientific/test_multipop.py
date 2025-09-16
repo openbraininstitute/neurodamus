@@ -57,14 +57,14 @@ def test_multipop_simple(create_tmp_simulation_config_file):
     assert len(list(edges_A.all_connections())) == 2
     cell_man = edges_A.cell_manager
     assert cell_man.local_nodes.offset == 0
-    assert set(cell_man.local_nodes.raw_gids()) == set(cell_man.gid2cell) == {1, 2, 3}
+    assert set(cell_man.local_nodes.gids(raw_gids=True)) == set(cell_man.gid2cell) == {1, 2, 3}
 
     edges_B: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeB")
     assert len(list(edges_B.all_connections())) == 2
     cell_man = edges_B.cell_manager
     assert cell_man.local_nodes.offset == 1000
-    assert set(cell_man.local_nodes.raw_gids()) == {1, 2}
-    assert set(cell_man.local_nodes.final_gids()) == set(cell_man.gid2cell) == {1001, 1002}
+    assert set(cell_man.local_nodes.gids(raw_gids=True)) == {1, 2}
+    assert set(cell_man.local_nodes.gids(raw_gids=False)) == set(cell_man.gid2cell) == {1001, 1002}
 
     for conn in edges_A.all_connections():
         assert conn.tgid <= 3
@@ -137,14 +137,14 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     assert len(list(edges_A.all_connections())) == 2
     cell_man_A = edges_A.cell_manager
     assert cell_man_A.local_nodes.offset == 0
-    assert set(cell_man_A.local_nodes.raw_gids()) == set(cell_man_A.gid2cell) == {1, 2, 3}
+    assert set(cell_man_A.local_nodes.gids(raw_gids=True)) == set(cell_man_A.gid2cell) == {1, 2, 3}
 
     edges_B: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeB")
     assert len(list(edges_B.all_connections())) == 2
     cell_man_B = edges_B.cell_manager
     assert cell_man_B.local_nodes.offset == 1000
-    assert set(cell_man_B.local_nodes.raw_gids()) == {1, 2}
-    assert set(cell_man_B.local_nodes.final_gids()) == set(cell_man_B.gid2cell) == {1001, 1002}
+    assert set(cell_man_B.local_nodes.gids(raw_gids=True)) == {1, 2}
+    assert set(cell_man_B.local_nodes.gids(raw_gids=False)) == set(cell_man_B.gid2cell) == {1001, 1002}
 
     edges_AB: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeB")
     assert len(list(edges_AB.all_connections())) == 3

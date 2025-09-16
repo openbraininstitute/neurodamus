@@ -27,7 +27,7 @@ from .core.configuration import (
     LogLevel,
     SimConfig,
 )
-from .core.nodeset import NodeSet
+from .core.nodeset import SelectionNodeSet
 from .io import cell_readers
 from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
@@ -47,11 +47,11 @@ class VirtualCellPopulation:
         """Initializes a VirtualCellPopulation
 
         A virtual manager will have minimal set of attributes, namely
-        the population name, the target name and the NodeSet
+        the population name, the target name and the SelectionNodeSet
         """
         self.population_name = population_name
         self.circuit_target = circuit_target
-        self.local_nodes = NodeSet(gids).register_global(population_name)
+        self.local_nodes = SelectionNodeSet(gids).register_global(population_name)
 
     is_virtual = property(lambda _self: True)
 
@@ -132,7 +132,7 @@ class CellManagerBase(_CellManager):
     # read-only properties
     target_manager = property(lambda self: self._target_manager)
     local_nodes = property(
-        lambda self: self._local_nodes if self._local_nodes is not None else NodeSet()
+        lambda self: self._local_nodes if self._local_nodes is not None else SelectionNodeSet()
     )
     total_cells = property(lambda self: self._total_cells)
     cells = property(lambda self: self._gid2cell.values())
@@ -153,17 +153,17 @@ class CellManagerBase(_CellManager):
     # Compatibility with neurodamus-core (used by TargetManager, CompMapping)
     # Create hoc vector from numpy.array
     def getGidListForProcessor(self):
-        return compat.hoc_vector(self.local_nodes.final_gids())
+        return compat.hoc_vector(self.local_nodes.gids(raw_gids=False))
 
     def get_final_gids(self):
-        return np.array(self.local_nodes.final_gids())
+        return np.array(self.local_nodes.gids(raw_gids=False))
 
     def _init_config(self, circuit_conf, pop):
         if not pop:  # Last attempt to get pop name
             pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
             logging.info(" -> Discovered node population name: %s", pop)
         self._population_name = pop
-        self._local_nodes = NodeSet().register_global(pop)
+        self._local_nodes = SelectionNodeSet().register_global(pop)
 
     @staticmethod
     def _get_sonata_population_name(node_file):
@@ -280,11 +280,13 @@ class CellManagerBase(_CellManager):
         cell_offset = self._local_nodes.offset
 
         if GlobalConfig.verbosity >= LogLevel.DEBUG:
-            gid_info_items = self._local_nodes.items()
+            gid_info_iter = self._local_nodes.iter_cell_info()
         else:
-            gid_info_items = ProgressBar.iter(self._local_nodes.items(), len(self._local_nodes))
+            gid_info_iter = ProgressBar.iter(
+                self._local_nodes.iter_cell_info(), len(self._local_nodes)
+            )
 
-        for gid, cell_info in gid_info_items:
+        for gid, cell_info in gid_info_iter:
             cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
@@ -301,7 +303,6 @@ class CellManagerBase(_CellManager):
 
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
         cell_offset = self._local_nodes.offset
-        gid_info_items = self._local_nodes.items()
 
         prev_metype = None
         prev_memory = get_mem_usage_kb()
@@ -323,7 +324,7 @@ class CellManagerBase(_CellManager):
             memory_dict[metype] = max(0, memory_allocated / n_cells)
             prev_memory = end_memory
 
-        for gid, cell_info in gid_info_items:
+        for gid, cell_info in self._local_nodes.iter_cell_info():
             if cell_info is None:
                 continue
             metype = f"{cell_info.mtype}-{cell_info.etype}"
@@ -404,7 +405,7 @@ class CellManagerBase(_CellManager):
             return None
         spikevec, idvec = append_spike_vecs or (Nd.Vector(), Nd.Vector())
         if gids is None:
-            gids = self._local_nodes.final_gids()
+            gids = self._local_nodes.gids(raw_gids=False)
             gid_offset = self._local_nodes.offset
 
         for gid in gids:
@@ -806,7 +807,7 @@ class LoadBalance:
     def _compute_complexities(cls, mcomplex, cell_distributor):
         cx_cell = compat.Vector("f")
         pc = cell_distributor.pc
-        for gid in cell_distributor.local_nodes.final_gids():
+        for gid in cell_distributor.local_nodes.gids(raw_gids=False):
             cx_cell.append(mcomplex.cell_complexity(pc.gid2cell(gid)))
         return cx_cell
 
