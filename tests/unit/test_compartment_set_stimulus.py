@@ -6,11 +6,6 @@ from ..conftest import RINGTEST_DIR
 from collections import Counter
 
 
-def inspect(v):
-    print(v, type(v))
-    for i in dir(v):
-        print(i)
-
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -41,11 +36,10 @@ def inspect(v):
 @pytest.mark.slow
 def test_compartment_set_input(create_tmp_simulation_config_file):
     """
-    Test that the summation report matches the summed compartment report.
-
-    Runs a simulation generating both compartment and summation reports for 'pas',
-    then asserts that summing compartment data per gid equals the summation report data,
-    within numerical tolerance.
+    Verify that the stimulus defined in the config is applied only to the
+    specified compartment set (csA). For each cell section, the number of
+    IClamp point processes created in NEURON must match the expected count
+    from the compartment set definition.
     """
     from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
