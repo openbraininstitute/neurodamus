@@ -446,7 +446,7 @@ class METypeManager(dict):  # noqa: FURB189
             rotation = rotations[idx] if rotations is not None else None
             mtype = mtypes[idx] if mtypes is not None else None
             add_params = add_params_list[idx] if add_params_list is not None else None
-            self[int(gid) + 1] = METypeItem(  # 1-based
+            self[int(gid)] = METypeItem(
                 morph_list[idx],
                 etype=etypes[idx] if etypes is not None else None,
                 emodel_tpl=model_templates and model_templates[idx],

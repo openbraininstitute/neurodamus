@@ -70,6 +70,19 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
 
+def load_sonata_one_based_decorator(func):
+    """Temporary decorator. Make load_sonata output 1-based"""
+
+    def wrapper(*args, **kwargs):
+        gidvec, meinfos, fullsize = func(*args, **kwargs)
+        if meinfos is not None:
+            meinfos = {k + 1: v for k, v in meinfos.items()}
+        return gidvec + 1, meinfos, fullsize
+
+    return wrapper
+
+
+@load_sonata_one_based_decorator
 def load_sonata(  # noqa: C901, PLR0915
     circuit_conf,
     all_gids,
@@ -195,8 +208,7 @@ def load_sonata(  # noqa: C901, PLR0915
 
     # If dynamic properties are not specified simply return early
     if not load_dynamic_props:
-        gidvec, meinfos, total_cells = load_nodes_base_info()
-        return gidvec + 1, meinfos, total_cells
+        return load_nodes_base_info()
 
     # Check properties exist, eventually removing prefix
     def validate_property(prop_name):
@@ -213,10 +225,11 @@ def load_sonata(  # noqa: C901, PLR0915
     gidvec, meinfos, fullsize = load_nodes_base_info()
 
     if SimConfig.dry_run:
-        load_nodes = np.fromiter(meinfos.keys(), dtype="uint32") - 1
+        # TODO this is not tested!
+        load_nodes = np.fromiter(meinfos.keys(), dtype="uint32")
         node_sel = libsonata.Selection(load_nodes)
     else:
-        node_sel = libsonata.Selection(gidvec)  # 0-based node indices
+        node_sel = libsonata.Selection(gidvec)
 
     for prop_name in load_dynamic_props:
         log_verbose("Loading extra property: %s ", prop_name)
@@ -228,7 +241,7 @@ def load_sonata(  # noqa: C901, PLR0915
         for gid, val in zip(meinfos.keys(), prop_data):
             meinfos[gid].extra_attrs[prop_name] = val
 
-    return gidvec + 1, meinfos, fullsize
+    return gidvec, meinfos, fullsize
 
 
 def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
