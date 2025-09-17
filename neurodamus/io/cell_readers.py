@@ -71,7 +71,10 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
 
 
 def load_sonata_one_based_decorator(func):
-    """Temporary decorator. Make load_sonata output 1-based"""
+    """Temporary decorator. Make load_sonata output 1-based
+    
+    when you remove this, fix the # TODO fix+1 in cell_distributor
+    """
 
     def wrapper(*args, **kwargs):
         gidvec, meinfos, fullsize = func(*args, **kwargs)
@@ -114,9 +117,10 @@ def load_sonata(  # noqa: C901, PLR0915
         metype_gids, counts = _retrieve_unique_metypes(node_pop, all_gids)
 
         dry_run_stats.metype_counts += counts
-        dry_run_stats.pop_metype_gids[node_population] = {
-            k: v + 1 for k, v in metype_gids.items()
-        }  # 1-based
+        dry_run_stats.pop_metype_gids[node_population] = metype_gids
+        # dry_run_stats.pop_metype_gids[node_population] = {
+        #     k: v + 1 for k, v in metype_gids.items()
+        # }  # 1-based
         gidvec = dry_run_distribution(list(metype_gids.values()), stride, stride_offset)
 
         log_verbose("Loading node attributes... (subset of cells from each metype)")
@@ -124,7 +128,7 @@ def load_sonata(  # noqa: C901, PLR0915
             if not len(gids):
                 continue
             gids = gids[:CELL_NODE_INFO_LIMIT]
-            node_sel = libsonata.Selection(gids)  # Load 0-based node ids
+            node_sel = libsonata.Selection(gids)
             morpho_names = node_pop.get_attribute("morphology", node_sel)
             mtypes = node_pop.get_attribute("mtype", node_sel)
             etypes = node_pop.get_attribute("etype", node_sel)
