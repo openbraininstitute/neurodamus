@@ -2,7 +2,8 @@ import itertools
 import logging
 from collections import defaultdict
 from collections.abc import Iterator
-from functools import lru_cache
+from functools import lru_cache, reduce
+from operator import or_
 
 import libsonata
 import numpy as np
@@ -508,19 +509,21 @@ class NodesetTarget:
         """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
-        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids=False):
+        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids):
             for local_ns in self.local_nodes:
                 if local_ns.population_name == nodeset.population_name:
                     return nodeset.intersection(local_ns, raw_gids)
-            return []
+            return libsonata.Selection([])
 
         if raw_gids:
             assert len(self.nodesets) == 1, "Multiple populations when asking for raw gids"
-            return pop_gid_intersect(self.nodesets[0], raw_gids=True)
+            return pop_gid_intersect(self.nodesets[0], raw_gids=True).flatten()
 
-        gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
-
-        return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
+        return reduce(
+            or_,
+            (pop_gid_intersect(ns, raw_gids=False) for ns in self.nodesets),
+            libsonata.Selection([]),
+        ).flatten()
 
     def get_point_list_from_compartment_set(
         self, cell_manager, compartment_set

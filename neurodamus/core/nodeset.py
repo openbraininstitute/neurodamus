@@ -160,6 +160,16 @@ class SelectionNodeSet:
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
 
+    def __repr__(self):
+        gids = self.gids(raw_gids=True)
+        n = len(gids)
+        return (
+            f"SelectionNodeSet(n={n}, "
+            f"offset={self.offset}, "
+            f"population={self.population_name}, "
+            f"raw gids={self.gids(raw_gids=True)})"
+        )
+
     def __len__(self):
         return self._selection.flat_size
 
@@ -244,7 +254,7 @@ class SelectionNodeSet:
             return
         self.add_selection(selection=libsonata.Selection(gids), gid_info=gid_info)
 
-    def intersection(self, other, raw_gids=False):
+    def intersection(self, other: SelectionNodeSet, raw_gids=False) -> libsonata.Selection:
         """Return GIDs common with another nodeset
 
         For nodesets to intersect they must belong to the same population and
@@ -253,11 +263,14 @@ class SelectionNodeSet:
         if not isinstance(other, SelectionNodeSet):
             raise TypeError(f"Expected SelectionNodeSet, got {type(other).__name__}")
         if self.population_name != other.population_name:
-            return []
-        intersect = (self._selection & other._selection).flatten()
+            return libsonata.Selection([])
+
+        ans = self._selection & other._selection
         if raw_gids:
-            return intersect
-        return np.add(intersect, self._offset, dtype="uint32")
+            return ans
+        return libsonata.Selection(
+            [(start + self.offset, stop + self.offset) for start, stop in ans.ranges]
+        )
 
     def intersects(self, other):
         """Check if the current nodeset intersects another
@@ -265,7 +278,7 @@ class SelectionNodeSet:
         For nodesets to intersect they must belong to the same population and
         have common gids
         """
-        return len(self.intersection(other)) > 0
+        return bool(self.intersection(other))
 
     def clear_cell_info(self):
         """Clear all stored GID metadata"""
