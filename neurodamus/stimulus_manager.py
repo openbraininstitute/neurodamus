@@ -16,12 +16,19 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose
+
+if TYPE_CHECKING:
+    from .target_manager import TargetSpec, TPointList
+    from .utils import compat
 
 
 class StimulusManager:
@@ -53,20 +60,21 @@ class StimulusManager:
         stim = stim_t(tpoints, stim_info, cell_manager)
         self._stimulus.append(stim)
 
-    def get_point_list(self, target_spec, stim_info: dict, cell_manager):
+    def get_point_list(
+        self, target_spec: TargetSpec, stim_info: dict, cell_manager
+    ) -> compat.List[TPointList]:
         """Return points from target, using a specified compartment set if given.
 
         Args:
-            target: Object providing points.
-            stim_info (dict): May contain "CompartmentSet".
-            cell_manager: Required for target's point methods.
+            target_spec: Object providing points.
+            stim_info: May contain "CompartmentSet".
+            cell_manager: Necessary to retrieve references to neuron sections and neurons in general
 
         Returns:
-            list of points.
+            compat.List of TPointList (one TPointList per gid. In general it is a jagged array)
         """
         target = self._target_manager.get_target(target_spec)
-        compartment_set_name = stim_info.get("CompartmentSet")
-        if compartment_set_name:
+        if compartment_set_name := stim_info.get("CompartmentSet"):
             compartment_set = self._target_manager.get_compartment_set(compartment_set_name)
             return target.get_point_list_from_compartment_set(
                 cell_manager=cell_manager, compartment_set=compartment_set

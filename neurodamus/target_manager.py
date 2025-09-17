@@ -19,6 +19,63 @@ class TargetError(Exception):
     """A Exception class specific to data error with targets and nodesets"""
 
 
+class TPointList:
+    """List of target points (TPoint) in a neuron.
+
+    Each TPoint is defined by a triplet: (gid, sec_ref, x) where:
+      gid: neuron identifier
+      sec_ref: reference to the section
+      x (in [0, 1]): offset along the section
+
+    The object keeps also track of the respective section_ids for convenience since
+    there is no easy way to find the section id from its reference.
+
+    Maintains parallel lists of section IDs, section references, and offsets,
+    with methods to append, extend, validate, and iterate over the stored points.
+    """
+
+    def __init__(self, gid: int):
+        self.gid: int = gid
+        self.sclst_ids: list = []  # List of section ids
+        self.sclst: list = []  # List of section references
+        self.x: list = []  # List of point values
+
+    def append(self, section_id: int, section: object, point: float) -> None:
+        self.x.append(point)
+        self.sclst.append(section)
+        self.sclst_ids.append(section_id)
+
+    def extend(self, other: "TPointList") -> None:
+        assert isinstance(other, TPointList), f"Expected TPointList, got {type(other).__name__}"
+        self.x.extend(other.x)
+        self.sclst.extend(other.sclst)
+        self.sclst_ids.extend(other.sclst_ids)
+
+    def validate(self) -> None:
+        if len(self.x) != len(self.sclst) != len(self.sclst_ids):
+            raise RuntimeError(
+                f"TPointList invariant violated: "
+                f"x has {len(self.x)} elements, "
+                f"sclst has {len(self.sclst)} elements, "
+                f"sclst_ids has {len(self.sclst_ids)} elements. "
+                f"Expected all lists to have equal length."
+            )
+
+    def __len__(self) -> int:
+        self.validate()
+        return len(self.sclst)
+
+    def __iter__(self) -> Iterator[tuple[int, object, float]]:
+        self.validate()
+        return iter(zip(self.sclst_ids, self.sclst, self.x))
+
+    def __str__(self) -> str:
+        self.validate()
+        ids = np.array(self.sclst_ids)
+        xs = np.array(self.x)
+        return f"TPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"
+
+
 class TargetSpec:
     """Definition of a new-style target, accounting for multipopulation"""
 
@@ -465,7 +522,9 @@ class NodesetTarget:
 
         return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
 
-    def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
+    def get_point_list_from_compartment_set(
+        self, cell_manager, compartment_set
+    ) -> compat.List[TPointList]:
         """Builds a list of points grouped by GID from a compartment set,
         mapping sections and offsets for each relevant population.
 
@@ -501,8 +560,8 @@ class NodesetTarget:
         cell_manager,
         section_type: SectionType = SectionType.SOMA,
         compartment_type: CompartmentType = CompartmentType.CENTER,
-    ):
-        """Retrieve a TPointList containing compartments (based on section type and
+    ) -> compat.List[TPointList]:
+        """Retrieve TPointLists containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
@@ -618,43 +677,3 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
-
-
-class TPointList:
-    def __init__(self, gid: int):
-        self.gid: int = gid
-        self.sclst_ids: list = []  # List of section ids
-        self.sclst: list = []  # List of section references
-        self.x: list = []  # List of point values
-
-    def append(self, section_id: int, section: object, point: float) -> None:
-        self.x.append(point)
-        self.sclst.append(section)
-        self.sclst_ids.append(section_id)
-
-    def extend(self, other: "TPointList") -> None:
-        assert isinstance(other, TPointList), f"Expected TPointList, got {type(other).__name__}"
-        self.x.extend(other.x)
-        self.sclst.extend(other.sclst)
-        self.sclst_ids.extend(other.sclst_ids)
-
-    def validate(self) -> None:
-        if len(self.x) != len(self.sclst):
-            raise RuntimeError(
-                f"TPointList invariant violated: x has {len(self.x)} elements, "
-                f"sclst has {len(self.sclst)} elements. Expected both lists to be of equal length."
-            )
-
-    def __len__(self) -> int:
-        self.validate()
-        return len(self.sclst)
-
-    def __iter__(self) -> Iterator[tuple[int, object, float]]:
-        self.validate()
-        return iter(zip(self.sclst_ids, self.sclst, self.x))
-
-    def __str__(self) -> str:
-        self.validate()
-        ids = np.array(self.sclst_ids)
-        xs = np.array(self.x)
-        return f"TPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"
