@@ -118,9 +118,6 @@ def load_sonata(  # noqa: C901, PLR0915
 
         dry_run_stats.metype_counts += counts
         dry_run_stats.pop_metype_gids[node_population] = metype_gids
-        # dry_run_stats.pop_metype_gids[node_population] = {
-        #     k: v + 1 for k, v in metype_gids.items()
-        # }  # 1-based
         gidvec = dry_run_distribution(list(metype_gids.values()), stride, stride_offset)
 
         log_verbose("Loading node attributes... (subset of cells from each metype)")
