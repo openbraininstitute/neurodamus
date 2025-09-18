@@ -30,7 +30,7 @@ neurodamus.target\_manager
       NodeSetReader
       NodesetTarget
       SerializedSections
-      TPointList
+      TargetPointList
 
 neurodamus.stimulus\_manager
 ============================
