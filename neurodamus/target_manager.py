@@ -20,7 +20,7 @@ class TargetError(Exception):
     """A Exception class specific to data error with targets and nodesets"""
 
 
-class TPointList:
+class TargetPointList:
     """List of target points (TPoint) in a neuron.
 
     Each TPoint is defined by a triplet: (gid, sec_ref, x) where:
@@ -46,8 +46,10 @@ class TPointList:
         self.sclst.append(section)
         self.sclst_ids.append(section_id)
 
-    def extend(self, other: "TPointList") -> None:
-        assert isinstance(other, TPointList), f"Expected TPointList, got {type(other).__name__}"
+    def extend(self, other: "TargetPointList") -> None:
+        assert isinstance(other, TargetPointList), (
+            f"Expected TargetPointList, got {type(other).__name__}"
+        )
         self.x.extend(other.x)
         self.sclst.extend(other.sclst)
         self.sclst_ids.extend(other.sclst_ids)
@@ -55,7 +57,7 @@ class TPointList:
     def validate(self) -> None:
         if len(self.x) != len(self.sclst) != len(self.sclst_ids):
             raise RuntimeError(
-                f"TPointList invariant violated: "
+                f"TargetPointList invariant violated: "
                 f"x has {len(self.x)} elements, "
                 f"sclst has {len(self.sclst)} elements, "
                 f"sclst_ids has {len(self.sclst_ids)} elements. "
@@ -74,7 +76,7 @@ class TPointList:
         self.validate()
         ids = np.array(self.sclst_ids)
         xs = np.array(self.x)
-        return f"TPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"
+        return f"TargetPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"
 
 
 class TargetSpec:
@@ -303,7 +305,7 @@ class TargetManager:
         # Soma connection, just zero it
         offset = max(offset, 0)
 
-        result_point = TPointList(gid)
+        result_point = TargetPointList(gid)
         cell_sections = self.gid_to_sections(gid)
         if not cell_sections:
             raise Exception("Getting locations for non-bg sims is not implemented yet...")
@@ -527,7 +529,7 @@ class NodesetTarget:
 
     def get_point_list_from_compartment_set(
         self, cell_manager, compartment_set
-    ) -> compat.List[TPointList]:
+    ) -> compat.List[TargetPointList]:
         """Builds a list of points grouped by GID from a compartment set,
         mapping sections and offsets for each relevant population.
 
@@ -555,7 +557,7 @@ class NodesetTarget:
             if len(point_list) and point_list[-1].gid == gid:
                 point_list[-1].append(section_id, Nd.SectionRef(sec), offset)
             else:
-                point = TPointList(gid)
+                point = TargetPointList(gid)
                 point.append(section_id, Nd.SectionRef(sec), offset)
                 point_list.append(point)
 
@@ -566,8 +568,8 @@ class NodesetTarget:
         cell_manager,
         section_type: SectionType = SectionType.SOMA,
         compartment_type: CompartmentType = CompartmentType.CENTER,
-    ) -> compat.List[TPointList]:
-        """Retrieve TPointLists containing compartments (based on section type and
+    ) -> compat.List[TargetPointList]:
+        """Retrieve TargetPointLists containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
@@ -576,13 +578,14 @@ class NodesetTarget:
             compartment_type: CompartmentType
 
         Returns:
-            list of TPointList containing the compartment position and retrieved section references
+            list of TargetPointList containing the compartment position
+            and retrieved section references
         """
         section_type_str = section_type.to_string()
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
-            point_list = TPointList(gid)
+            point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
             secs = getattr(cell.CellRef, section_type_str)
 
