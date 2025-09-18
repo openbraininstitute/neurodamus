@@ -160,6 +160,16 @@ class SelectionNodeSet:
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
 
+    def __repr__(self):
+        gids = self.gids(raw_gids=True)
+        n = len(gids)
+        return (
+            f"SelectionNodeSet(n={n}, "
+            f"offset={self.offset}, "
+            f"population={self.population_name}, "
+            f"raw gids={self.gids(raw_gids=True)})"
+        )
+
     def __len__(self):
         return self._selection.flat_size
 
