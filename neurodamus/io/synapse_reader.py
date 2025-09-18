@@ -215,7 +215,7 @@ class SonataReader:
             # prepare data for the gid
             data = self._data.get(gid)
             if data is None:  # not in _data
-                self._preload_data_chunk([gid - 1])
+                self._preload_data_chunk([gid])
                 data = self._data[gid]
 
             # create the synapse parameters array, already patched
@@ -225,6 +225,10 @@ class SonataReader:
             # cache the results
             self._syn_params[gid] = syn_params
         return syn_params
+
+    def get_property(self, gid, field_name):
+        """Retrieves a full pre-loaded property given a gid and the property name."""
+        return self._data[gid][field_name]
 
     def _open_file(self, src, population, _):
         """Initializes the reader, opens the synapse file"""
@@ -253,10 +257,6 @@ class SonataReader:
             return True
         return field_name in self._population.attribute_names
 
-    def get_property(self, gid, field_name):
-        """Retrieves a full pre-loaded property given a gid and the property name."""
-        return self._data[gid][field_name]
-
     def preload_data(self, gids, minimal_mode=False):
         """Preload SONATA fields for the specified IDs.
         Set minimal_mode to True to read a single synapse per connection
@@ -277,7 +277,7 @@ class SonataReader:
 
         # fix+1
         self._data = self._data = {
-            k - 1: {**v, **({"sgid": v["sgid"] - 1} if "sgid" in v else {})}
+            k: {**v, **({"sgid": v["sgid"] - 1} if "sgid" in v else {})}
             for k, v in self._data.items()
         }
 
@@ -370,7 +370,7 @@ class SonataReader:
 
         # fix+1
         self._data = {
-            k + 1: {**v, **({"sgid": v["sgid"] + 1} if "sgid" in v else {})}
+            k: {**v, **({"sgid": v["sgid"] + 1} if "sgid" in v else {})}
             for k, v in self._data.items()
         }
 

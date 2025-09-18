@@ -18,7 +18,8 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 def test_gapjunction_sonata_reader():
     sonata_file = SIM_DIR / "mini_thalamus_sonata/gapjunction/edges.h5"
     sonata_reader = GapJunctionSynapseReader(sonata_file)
-    syn_params_sonata = sonata_reader.get_synapse_parameters(1)
+    # TODO fix+1
+    syn_params_sonata = sonata_reader.get_synapse_parameters(0)
     ref_junction_id_pre = np.array([10257., 43930., 226003., 298841., 324744.,
                                     1094745., 1167632., 1172523., 1260104.])
     ref_junction_id_post = np.array([14., 52., 71., 76., 78., 84., 89., 90., 93.])
