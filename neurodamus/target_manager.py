@@ -473,12 +473,6 @@ class NodesetTarget:
             sel |= n.selection(raw_gids=False)
         return sel.flatten()
 
-    def get_gids(self):
-        return self.gids(raw_gids=False)
-
-    def get_raw_gids(self):
-        return self.gids(raw_gids=True)
-
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.
 
@@ -640,7 +634,7 @@ class NodesetTarget:
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
-        gids = self.get_raw_gids() if raw_gids else self.gids(raw_gids=False)
+        gids = self.gids(raw_gids=True) if raw_gids else self.gids(raw_gids=False)
         contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 

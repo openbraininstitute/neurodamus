@@ -621,7 +621,7 @@ class ConnectionManagerBase:
         gids = self._raw_gids
 
         if dst_target:
-            gids = np.intersect1d(gids, dst_target.get_raw_gids())
+            gids = np.intersect1d(gids, dst_target.gids(raw_gids=True))
 
         created_conns_0 = self._cur_population.count()
         sgid_offset = self.src_pop_offset
