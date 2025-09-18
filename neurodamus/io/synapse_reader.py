@@ -215,7 +215,7 @@ class SonataReader:
             # prepare data for the gid
             data = self._data.get(gid)
             if data is None:  # not in _data
-                self._preload_data_chunk([gid])
+                self._preload_data_chunk([gid - 1])
                 data = self._data[gid]
 
             # create the synapse parameters array, already patched
@@ -269,14 +269,13 @@ class SonataReader:
 
         ranges = list(gen_ranges(len(gids), CHUNK_SIZE))
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
-            self._preload_data_chunk(gids[start:end], minimal_mode)
+            self._preload_data_chunk(gids[start:end] - 1, minimal_mode)
 
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
 
         # fix+1
-        gids = np.array(gids) - 1
         self._data = self._data = {
             k - 1: {**v, **({"sgid": v["sgid"] - 1} if "sgid" in v else {})}
             for k, v in self._data.items()
