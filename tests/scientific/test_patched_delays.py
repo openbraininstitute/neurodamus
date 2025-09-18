@@ -46,7 +46,7 @@ def test_eager_caching():
 
     # here we get the HOC object for the post cell
     tgt = n._target_manager.get_target('post_L5_PC')
-    post_gid = tgt.get_raw_gids()[0]
+    post_gid = tgt.gids(raw_gids=True)[0]
     post_cell = n.circuits.global_manager.get_cellref(post_gid)
     # here we check that all synaptic delays are rounded to timestep
     # we skip minis netcons (having precell == None)

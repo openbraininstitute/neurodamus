@@ -212,7 +212,7 @@ class CellManagerBase(_CellManager):
 
         if target_spec.name:
             logging.info(" -> Distributing '%s' target cells Round-Robin", target_spec)
-            target_gids = self._target_manager.get_target(target_spec).get_raw_gids()
+            target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
             gidvec, me_infos, full_size = loader_f(conf, target_gids, MPI.size, MPI.rank)
             total_cells = len(target_gids)
         else:
@@ -674,7 +674,7 @@ class LoadBalance:
             return False
 
         logging.info("Attempt reusing cx files from other targets...")
-        target_gids = self._get_target_raw_gids(target_spec)
+        target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
         cx_other = {}
 
         for previous_target in self._cx_targets:
@@ -720,7 +720,7 @@ class LoadBalance:
             return False
 
         if target_spec:  # target provided, otherwise everything
-            target_gids = self._get_target_raw_gids(target_spec)
+            target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
             if not self._cx_contains_gids(cx_filename, target_gids):
                 logging.warning(" => %s invalid: changed target definition!", cx_filename)
                 return False
@@ -889,10 +889,6 @@ class LoadBalance:
         for gid in gids:
             for line in cx_dict[gid]:
                 fp.write(line)  # raw lines, include \n
-
-    # -
-    def _get_target_raw_gids(self, target_spec) -> np.ndarray:
-        return self._target_manager.get_target(target_spec).get_raw_gids()
 
     def load_balance_info(self, target_spec):
         """Loads a load-balance info for a given target.
