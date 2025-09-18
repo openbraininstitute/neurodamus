@@ -167,7 +167,7 @@ class SelectionNodeSet:
             f"SelectionNodeSet(n={n}, "
             f"offset={self.offset}, "
             f"population={self.population_name}, "
-            f"raw gids={self.gids(raw_gids=True)})"
+            f"raw gids={gids})"
         )
 
     def __len__(self):
@@ -184,12 +184,18 @@ class SelectionNodeSet:
         for gid in self:
             yield gid + offset_add, self._gid_info.get(gid)
 
+    def selection(self, raw_gids):
+        """Return the internal Selection, optionally, with an offset"""
+        if raw_gids:
+            return self._selection
+
+        return libsonata.Selection(
+            [(start + self._offset, stop + self._offset) for start, stop in self._selection.ranges]
+        )
+
     def gids(self, raw_gids):
         """Return all GIDs as a flat array, optionally offset by the population"""
-        ans = np.asarray(self._selection.flatten(), dtype="uint32")
-        if raw_gids:
-            return ans
-        return np.add(ans, self._offset, dtype="uint32")
+        return np.asarray(self.selection(raw_gids=raw_gids).flatten(), dtype="uint32")
 
     def register_global(self, population_name):
         """Register this nodeset in a global population group
@@ -216,14 +222,6 @@ class SelectionNodeSet:
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
         return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
-
-    def get_selection(self, offset=0):
-        """Return the internal Selection, optionally, with an offset"""
-        if offset == 0:
-            return self._selection
-        return libsonata.Selection(
-            [(start + offset, stop + offset) for start, stop in self._selection.ranges]
-        )
 
     def add_selection(self, selection: libsonata.Selection, gid_info=None):
         """Add libsonata.Selection GIDs and optional metadata, updating offsets and max_gid
@@ -255,7 +253,7 @@ class SelectionNodeSet:
         self.add_selection(selection=libsonata.Selection(gids), gid_info=gid_info)
 
     def intersection(self, other: SelectionNodeSet, raw_gids=False) -> libsonata.Selection:
-        """Return GIDs common with another nodeset
+        """Return libsonata.Selection in common with another nodeset
 
         For nodesets to intersect they must belong to the same population and
         have common gids

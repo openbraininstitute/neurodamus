@@ -102,14 +102,14 @@ def test_from_zero_based_libsonata_selection_invalid_argument():
         SelectionNodeSet.from_zero_based_libsonata_selection("wrong")
 
 @pytest.mark.forked
-def test_get_selection():
+def test_selection():
     sel = libsonata.Selection([(3, 9), (11, 12)])
     ref = SelectionNodeSet(sel)
-    assert sel == ref.get_selection()
-
     offset = 3
+    ref._offset = offset
+    assert sel == ref.selection(raw_gids=True)
     sel = libsonata.Selection([(start+offset, stop+offset) for start, stop in sel.ranges])
-    assert sel == ref.get_selection(offset=offset)
+    assert sel == ref.selection(raw_gids=False)
 
 @pytest.mark.forked
 def test_intersection_basic():
