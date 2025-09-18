@@ -4,25 +4,31 @@
 
 New Stimulus classes must be registered, using the appropriate decorator.
 Also, when instantiated by the framework, __init__ is passed three arguments
-(1) target (2) stim_info: dict (3) cell_manager. Example
+(1) target_points (2) stim_info: dict (3) cell_manager. Example
 
 >>> @StimulusManager.register_type
 >>> class ShotNoise:
 >>>
->>> def __init__(self, target, stim_info: dict, cell_manager):
->>>     tpoints = target.get_point_list(cell_manager, section_type, compartment_type)
->>>     for point in tpoints:
+>>> def __init__(self, target_points, stim_info: dict, cell_manager):
+>>>     for point in target_points:
 >>>         gid = point.gid
 >>>         cell = cell_manager.get_cell(gid)
 
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource
 from .utils.logging import log_verbose
+
+if TYPE_CHECKING:
+    from .target_manager import TargetPointList, TargetSpec
+    from .utils import compat
 
 
 class StimulusManager:
@@ -48,11 +54,33 @@ class StimulusManager:
                 "StimulusSeed unset (default %d), set explicitly to vary noisy stimuli across runs",
                 SimConfig.rng_info.getStimulusSeed(),
             )
-        target = self._target_manager.get_target(target_spec)
-        log_verbose("Interpret stimulus")
         cell_manager = self._target_manager._cell_manager
-        stim = stim_t(target, stim_info, cell_manager)
+        log_verbose("Interpret stimulus")
+        target_points = self.get_point_list(target_spec, stim_info, cell_manager)
+        stim = stim_t(target_points, stim_info, cell_manager)
         self._stimulus.append(stim)
+
+    def get_point_list(
+        self, target_spec: TargetSpec, stim_info: dict, cell_manager
+    ) -> compat.List[TargetPointList]:
+        """Return points from target, using a specified compartment set if given.
+
+        Args:
+            target_spec: Object providing points.
+            stim_info: May contain "CompartmentSet".
+            cell_manager: Necessary to retrieve references to neuron sections and neurons in general
+
+        Returns:
+            compat.List of TargetPointList (one TargetPointList per gid.
+            In general it is a jagged array)
+        """
+        target = self._target_manager.get_target(target_spec)
+        if compartment_set_name := stim_info.get("CompartmentSet"):
+            compartment_set = self._target_manager.get_compartment_set(compartment_set_name)
+            return target.get_point_list_from_compartment_set(
+                cell_manager=cell_manager, compartment_set=compartment_set
+            )
+        return target.get_point_list(cell_manager=cell_manager)
 
     @staticmethod
     def reset_helpers():
@@ -76,7 +104,7 @@ class BaseStim:
 
     IsNoise = False
 
-    def __init__(self, _target, stim_info: dict, _cell_manager):
+    def __init__(self, _target_points: list[TargetPointList], stim_info: dict, _cell_manager):
         self.duration = float(stim_info["Duration"])  # duration [ms]
         self.delay = float(stim_info["Delay"])  # start time [ms]
         self.represents_physical_electrode = stim_info.get("RepresentsPhysicalElectrode", False)
@@ -89,8 +117,8 @@ class OrnsteinUhlenbeck(BaseStim):
     IsNoise = True
     stim_count = 0  # global count for seeding
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # sources go here
 
@@ -102,15 +130,14 @@ class OrnsteinUhlenbeck(BaseStim):
         seed2 = SimConfig.rng_info.getStimulusSeed() + 291204  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            gid = tpoint_list.gid
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
 
             self.compute_parameters(cell)
 
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -131,7 +158,7 @@ class OrnsteinUhlenbeck(BaseStim):
                 else:
                     cs = CurrentSource.ornstein_uhlenbeck(*ou_args, **ou_kwargs)
                 # attach source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save source
 
         OrnsteinUhlenbeck.stim_count += 1  # increment global count
@@ -186,8 +213,8 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
 
     IsNoise = True
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info):
         self.mean_perc = float(stim_info["MeanPercent"])
@@ -224,8 +251,8 @@ class ShotNoise(BaseStim):
     IsNoise = True
     stim_count = 0  # global count for seeding
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # CurrentSource's go here
 
@@ -237,15 +264,14 @@ class ShotNoise(BaseStim):
         seed2 = SimConfig.rng_info.getStimulusSeed() + 19216  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            gid = tpoint_list.gid
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
 
             self.compute_parameters(cell)
 
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -273,7 +299,7 @@ class ShotNoise(BaseStim):
                 else:
                     cs = CurrentSource.shot_noise(*shotnoise_args, **shotnoise_kwargs)
                 # attach current source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
         ShotNoise.stim_count += 1  # increment global count
@@ -380,8 +406,8 @@ class RelativeShotNoise(ShotNoise):
 
     IsNoise = True
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info: dict):
         """Parse parameters for RelativeShotNoise stimulus"""
@@ -426,8 +452,8 @@ class AbsoluteShotNoise(ShotNoise):
 
     IsNoise = True
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info: dict):
         """Parse parameters for AbsoluteShotNoise stimulus"""
@@ -454,23 +480,22 @@ class AbsoluteShotNoise(ShotNoise):
 class Linear(BaseStim):
     """Injects a linear current ramp."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            gid = tpoint_list.gid
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
 
             self.compute_parameters(cell)
 
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -484,7 +509,7 @@ class Linear(BaseStim):
                     represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):
@@ -504,8 +529,8 @@ class Linear(BaseStim):
 class Hyperpolarizing(Linear):
     """Injects a constant step with a cell's hyperpolarizing current."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     @staticmethod
     def parse_check_all_parameters(_stim_info: dict):
@@ -521,8 +546,8 @@ class Hyperpolarizing(Linear):
 class RelativeLinear(Linear):
     """Injects a linear current ramp relative to cell threshold."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_all_parameters(self, stim_info: dict):
         # Amplitude at start as percent of threshold
@@ -544,8 +569,8 @@ class RelativeLinear(Linear):
 class SubThreshold(Linear):
     """Injects a current step at some percent below a cell's threshold."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_all_parameters(self, stim_info: dict):
         # amplitude as percent below threshold = 100%
@@ -567,8 +592,8 @@ class Noise(BaseStim):
     IsNoise = True
     stim_count = 0  # global count for seeding
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # CurrentSource's go here
 
@@ -576,10 +601,9 @@ class Noise(BaseStim):
 
         sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            gid = tpoint_list.gid
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
 
             self.compute_parameters(cell)
@@ -592,7 +616,7 @@ class Noise(BaseStim):
             if self.delay > 0:
                 self.draw_already_used_numbers(rng, sim_dt)
 
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -608,7 +632,7 @@ class Noise(BaseStim):
                     represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
         Noise.stim_count += 1  # increment global count
@@ -664,18 +688,17 @@ class Noise(BaseStim):
 class Pulse(BaseStim):
     """Inject a pulse train with given amplitude, frequency and width."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -690,7 +713,7 @@ class Pulse(BaseStim):
                     represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):
@@ -705,18 +728,17 @@ class Pulse(BaseStim):
 class Sinusoidal(BaseStim):
     """Inject a sinusoidal current with given amplitude and frequency."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # CurrentSource's go here
 
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
@@ -731,7 +753,7 @@ class Sinusoidal(BaseStim):
                     represents_physical_electrode=self.represents_physical_electrode,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, tpoint_list.x[sec_id])
+                cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):
@@ -749,23 +771,22 @@ class Sinusoidal(BaseStim):
 class SEClamp(BaseStim):
     """Apply a single electrode voltage clamp."""
 
-    def __init__(self, target, stim_info: dict, cell_manager):
-        super().__init__(target, stim_info, cell_manager)
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = []  # SEClamp's go here
 
         self.parse_check_all_parameters(stim_info)
 
-        # apply stim to each point in target
-        tpoints = target.get_point_list(cell_manager)
-        for tpoint_list in tpoints:
-            for sec_id, sc in enumerate(tpoint_list.sclst):
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
 
                 # create single electrode voltage clamp at location
-                seclamp = Nd.h.SEClamp(tpoint_list.x[sec_id], sec=sc.sec)
+                seclamp = Nd.h.SEClamp(target_point_list.x[sec_id], sec=sc.sec)
 
                 seclamp.rs = self.rs
                 seclamp.dur1 = self.duration

@@ -761,6 +761,7 @@ class Node:
             if stim.get("Mode") == "Extracellular":
                 raise ConfigurationError("input_type extracellular_stimulation is not supported")
             target_spec = TargetSpec(stim.get("Target"))
+
             stim_name = stim["Name"]
             stim_pattern = stim["Pattern"]
             if stim_pattern == "SynapseReplay":
@@ -1022,7 +1023,9 @@ class Node:
         if rep_params.type == ReportType.COMPARTMENT_SET:
             rep_params.points = rep_params.target.get_point_list_from_compartment_set(
                 cell_manager=self._target_manager._cell_manager,
-                compartment_set=self._target_manager._compartment_sets[rep_params.compartment_set],
+                compartment_set=self._target_manager.get_compartment_set(
+                    rep_params.compartment_set
+                ),
             )
         else:
             sections, compartments = rep_params.sections, rep_params.compartments

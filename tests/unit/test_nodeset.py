@@ -117,7 +117,7 @@ def test_intersection_basic():
     a.register_global("pop")
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("pop") 
-    result = a.intersection(b)
+    result = a.intersection(b).flatten()
     assert np.array_equal(result, np.array([2, 3], dtype=np.uint32))
 
 @pytest.mark.forked
@@ -127,7 +127,7 @@ def test_intersection_different_population():
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("popB") 
     result = a.intersection(b)
-    assert result == []
+    assert not result
 
 @pytest.mark.forked
 def test_intersection_wrong_type():
@@ -143,7 +143,7 @@ def test_intersection_with_offset():
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("pop") 
     b._offset = 10
-    result = a.intersection(b)
+    result = a.intersection(b).flatten()
     assert np.array_equal(result, np.array([12, 13], dtype=np.uint32))
 
 
