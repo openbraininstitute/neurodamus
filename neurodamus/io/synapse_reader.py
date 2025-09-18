@@ -275,12 +275,6 @@ class SonataReader:
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
 
-        # fix+1
-        self._data = self._data = {
-            k: {**v, **({"sgid": v["sgid"] - 1} if "sgid" in v else {})}
-            for k, v in self._data.items()
-        }
-
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())
         needed_gids = sorted(orig_needed_gids_set)
@@ -367,12 +361,6 @@ class SonataReader:
                 needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
             sonata_attr = self.parameter_mapping.get(field, field)
             _populate(field, _read(sonata_attr))
-
-        # fix+1
-        self._data = {
-            k: {**v, **({"sgid": v["sgid"] + 1} if "sgid" in v else {})}
-            for k, v in self._data.items()
-        }
 
     def _load_params_custom(self, _populate, _read):
         # Position of the synapse

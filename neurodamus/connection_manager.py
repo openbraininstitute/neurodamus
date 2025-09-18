@@ -585,7 +585,8 @@ class ConnectionManagerBase:
 
         Helper function for _iterate_conn_params
         """
-        sgids = syns_params[syns_params.dtype.names[0]].astype("int64")
+        # TODO fix+1
+        sgids = syns_params[syns_params.dtype.names[0]].astype("int64") + 1
         sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
         conn_count = len(sgids_ranges) - 1
         return sgids, sgids_ranges, conn_count
