@@ -39,7 +39,8 @@ class SynapseParameters:
         "location": np.float64,
     }
 
-    _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0}
+    _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0,
+                  "D": 0, "DTC": 0, "F":0, "U":0, "delay":0, "nrrp": -1, "synType": -1, "weight": 1.}
     _reserved = {"maskValue": -1.0, "location": 0.5}
 
     @classmethod

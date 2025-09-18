@@ -285,6 +285,8 @@ class CellManagerBase(_CellManager):
             gid_info_items = ProgressBar.iter(self._local_nodes.items(), len(self._local_nodes))
 
         for gid, cell_info in gid_info_items:
+            if cell_info.emodel_tpl == "PointNeuron":
+                cell_type = PointCell
             cell = cell_type(gid, cell_info, self._circuit_conf)
             self._store_cell(gid + cell_offset, cell)
 
