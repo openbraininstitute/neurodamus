@@ -274,18 +274,26 @@ class SonataReader:
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
+
+        # fix+1
+        gids = np.array(gids) - 1
+        self._data = self._data = {
+            k - 1: {**v, **({"sgid": v["sgid"] - 1} if "sgid" in v else {})}
+            for k, v in self._data.items()
+        }
+
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())
         needed_gids = sorted(orig_needed_gids_set)
 
         def get_edge_and_lookup_gids(needed_gids: libsonata.Selection):
             """Retrieve edge and corresponding gid for"""
-            node_ids = np.array(needed_gids, dtype="int64") - 1
+            node_ids = np.array(needed_gids, dtype="int64")
             if self.LOOKUP_BY_TARGET_IDS:
                 edge_ids = self._population.afferent_edges(node_ids)
-                return edge_ids, self._population.target_nodes(edge_ids) + 1
+                return edge_ids, self._population.target_nodes(edge_ids)
             edge_ids = self._population.efferent_edges(node_ids)
-            return edge_ids, self._population.source_nodes(edge_ids) + 1
+            return edge_ids, self._population.source_nodes(edge_ids)
 
         # NOTE: needed_edge_ids, lookup_gids are used in _populate and _read
         needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
@@ -319,9 +327,9 @@ class SonataReader:
 
         # Populate the opposite node id
         if self.LOOKUP_BY_TARGET_IDS:
-            _populate("sgid", self._population.source_nodes(needed_edge_ids) + 1)
+            _populate("sgid", self._population.source_nodes(needed_edge_ids))
         else:
-            _populate("tgid", self._population.target_nodes(needed_edge_ids) + 1)
+            _populate("tgid", self._population.target_nodes(needed_edge_ids))
 
         # Make synapse index in the file explicit
         for name in sorted(self.SYNAPSE_INDEX_NAMES):
@@ -360,6 +368,12 @@ class SonataReader:
                 needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
             sonata_attr = self.parameter_mapping.get(field, field)
             _populate(field, _read(sonata_attr))
+
+        # fix+1
+        self._data = {
+            k + 1: {**v, **({"sgid": v["sgid"] + 1} if "sgid" in v else {})}
+            for k, v in self._data.items()
+        }
 
     def _load_params_custom(self, _populate, _read):
         # Position of the synapse
