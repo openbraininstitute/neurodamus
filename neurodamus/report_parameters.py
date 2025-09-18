@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from .utils.pyutils import StrEnumBase, cache_errors
 
 if TYPE_CHECKING:
-    from neurodamus.target_manager import TPointList
+    from neurodamus.target_manager import TargetPointList
 
 
 class ReportSetupError(Exception):
@@ -93,7 +93,7 @@ class ReportParameters:
     sections: SectionType
     compartments: CompartmentType
     compartment_set: str
-    points: list[TPointList] | None = None  # this is filled later with get_point_list
+    points: list[TargetPointList] | None = None  # this is filled later with get_point_list
 
 
 @cache_errors

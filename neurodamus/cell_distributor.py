@@ -212,7 +212,7 @@ class CellManagerBase(_CellManager):
 
         if target_spec.name:
             logging.info(" -> Distributing '%s' target cells Round-Robin", target_spec)
-            target_gids = self._target_manager.get_target(target_spec).get_raw_gids()
+            target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
             gidvec, me_infos, full_size = loader_f(conf, target_gids, MPI.size, MPI.rank)
             total_cells = len(target_gids)
         else:
@@ -890,7 +890,7 @@ class LoadBalance:
 
     # -
     def _get_target_raw_gids(self, target_spec) -> np.ndarray:
-        return self._target_manager.get_target(target_spec).get_raw_gids()
+        return self._target_manager.get_target(target_spec).gids(raw_gids=True)
 
     def load_balance_info(self, target_spec):
         """Loads a load-balance info for a given target.

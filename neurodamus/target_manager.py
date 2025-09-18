@@ -2,7 +2,8 @@ import itertools
 import logging
 from collections import defaultdict
 from collections.abc import Iterator
-from functools import lru_cache
+from functools import lru_cache, reduce
+from operator import or_
 
 import libsonata
 import numpy as np
@@ -17,6 +18,65 @@ from .utils.logging import log_verbose
 
 class TargetError(Exception):
     """A Exception class specific to data error with targets and nodesets"""
+
+
+class TargetPointList:
+    """List of target points (TPoint) in a neuron.
+
+    Each TPoint is defined by a triplet: (gid, sec_ref, x) where:
+      gid: neuron identifier
+      sec_ref: reference to the section
+      x (in [0, 1]): offset along the section
+
+    The object keeps also track of the respective section_ids for convenience since
+    there is no easy way to find the section id from its reference.
+
+    Maintains parallel lists of section IDs, section references, and offsets,
+    with methods to append, extend, validate, and iterate over the stored points.
+    """
+
+    def __init__(self, gid: int):
+        self.gid: int = gid
+        self.sclst_ids: list = []  # List of section ids
+        self.sclst: list = []  # List of section references
+        self.x: list = []  # List of point values
+
+    def append(self, section_id: int, section: object, point: float) -> None:
+        self.x.append(point)
+        self.sclst.append(section)
+        self.sclst_ids.append(section_id)
+
+    def extend(self, other: "TargetPointList") -> None:
+        assert isinstance(other, TargetPointList), (
+            f"Expected TargetPointList, got {type(other).__name__}"
+        )
+        self.x.extend(other.x)
+        self.sclst.extend(other.sclst)
+        self.sclst_ids.extend(other.sclst_ids)
+
+    def validate(self) -> None:
+        if len(self.x) != len(self.sclst) != len(self.sclst_ids):
+            raise RuntimeError(
+                f"TargetPointList invariant violated: "
+                f"x has {len(self.x)} elements, "
+                f"sclst has {len(self.sclst)} elements, "
+                f"sclst_ids has {len(self.sclst_ids)} elements. "
+                f"Expected all lists to have equal length."
+            )
+
+    def __len__(self) -> int:
+        self.validate()
+        return len(self.sclst)
+
+    def __iter__(self) -> Iterator[tuple[int, object, float]]:
+        self.validate()
+        return iter(zip(self.sclst_ids, self.sclst, self.x))
+
+    def __str__(self) -> str:
+        self.validate()
+        ids = np.array(self.sclst_ids)
+        xs = np.array(self.x)
+        return f"TargetPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"
 
 
 class TargetSpec:
@@ -107,7 +167,7 @@ class TargetManager:
         return (
             libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"])
             if run_conf["compartment_sets_file"]
-            else None
+            else {}
         )
 
     def load_targets(self, circuit):
@@ -142,6 +202,14 @@ class TargetManager:
         self.local_nodes.clear()
         # deference SectionRefs to sections
         self._section_access.clear()
+
+    def get_compartment_set(self, name: str):
+        if self._compartment_sets is None or name not in self._compartment_sets:
+            raise ConfigurationError(
+                f"Unknown compartment set: {name}. "
+                f"Known compartment sets: {', '.join(self._compartment_sets)}"
+            )
+        return self._compartment_sets[name]
 
     def get_target(self, target_spec: TargetSpec, target_pop=None):
         """Retrieves a target from any .target file or Sonata nodeset files.
@@ -237,7 +305,7 @@ class TargetManager:
         # Soma connection, just zero it
         offset = max(offset, 0)
 
-        result_point = TPointList(gid)
+        result_point = TargetPointList(gid)
         cell_sections = self.gid_to_sections(gid)
         if not cell_sections:
             raise Exception("Getting locations for non-bg sims is not implemented yet...")
@@ -387,25 +455,25 @@ class NodesetTarget:
         """
         return max(len(ns) for ns in self.nodesets)
 
-    def get_gids(self):
-        """Retrieve the final gids of the nodeset target"""
+    def gids(self, raw_gids):
+        """Return GIDs from a libsonata.Selection possibly made by a union of
+        libsonata.Selections.
+        """
         if not self.nodesets:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return np.array([])
-        nodesets = sorted(self.nodesets, key=lambda n: n.offset)  # Get gids ascending
-        gids = nodesets[0].gids(raw_gids=False)
-        for extra_nodes in nodesets[1:]:
-            gids = np.append(gids, extra_nodes.gids(raw_gids=False))
-        return gids
-
-    def get_raw_gids(self):
-        """Retrieve the raw gids of the nodeset target"""
-        if not self.nodesets:
-            logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
-            return []
-        if len(self.nodesets) > 1:
-            raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return np.array(self.nodesets[0].gids(raw_gids=True))
+        if raw_gids:
+            if len(self.nodesets) > 1:
+                raise TargetError(
+                    "Can not get raw gids for Nodeset target with "
+                    "multiple populations. "
+                    f"{len(self.nodesets)} found."
+                )
+            return np.array(self.nodesets[0].gids(raw_gids=True))
+        sel = libsonata.Selection([])
+        for n in self.nodesets:
+            sel |= n.selection(raw_gids=False)
+        return sel.flatten()
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.
@@ -443,21 +511,25 @@ class NodesetTarget:
         """Return the list of target gids in this rank (with offset)"""
         assert self.local_nodes, "Local nodes not set"
 
-        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids=False):
+        def pop_gid_intersect(nodeset: SelectionNodeSet, raw_gids):
             for local_ns in self.local_nodes:
                 if local_ns.population_name == nodeset.population_name:
                     return nodeset.intersection(local_ns, raw_gids)
-            return []
+            return libsonata.Selection([])
 
         if raw_gids:
             assert len(self.nodesets) == 1, "Multiple populations when asking for raw gids"
-            return pop_gid_intersect(self.nodesets[0], raw_gids=True)
+            return pop_gid_intersect(self.nodesets[0], raw_gids=True).flatten()
 
-        gids_groups = tuple(pop_gid_intersect(ns) for ns in self.nodesets)
+        return reduce(
+            or_,
+            (pop_gid_intersect(ns, raw_gids=False) for ns in self.nodesets),
+            libsonata.Selection([]),
+        ).flatten()
 
-        return np.concatenate(gids_groups) if gids_groups else np.empty(0, dtype=np.uint32)
-
-    def get_point_list_from_compartment_set(self, cell_manager, compartment_set):
+    def get_point_list_from_compartment_set(
+        self, cell_manager, compartment_set
+    ) -> compat.List[TargetPointList]:
         """Builds a list of points grouped by GID from a compartment set,
         mapping sections and offsets for each relevant population.
 
@@ -472,8 +544,11 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
+        sel = libsonata.Selection(
+            [(start - 1, stop - 1) for start, stop in sel_node_set.selection(raw_gids=True).ranges]
+        )
         # compartment_set is 0-based
-        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(offset=-1)):
+        for cl in compartment_set.filtered_iter(sel):
             raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
             # points are 1-based
             gid = sel_node_set._offset + raw_gid + 1
@@ -482,7 +557,7 @@ class NodesetTarget:
             if len(point_list) and point_list[-1].gid == gid:
                 point_list[-1].append(section_id, Nd.SectionRef(sec), offset)
             else:
-                point = TPointList(gid)
+                point = TargetPointList(gid)
                 point.append(section_id, Nd.SectionRef(sec), offset)
                 point_list.append(point)
 
@@ -493,8 +568,8 @@ class NodesetTarget:
         cell_manager,
         section_type: SectionType = SectionType.SOMA,
         compartment_type: CompartmentType = CompartmentType.CENTER,
-    ):
-        """Retrieve a TPointList containing compartments (based on section type and
+    ) -> compat.List[TargetPointList]:
+        """Retrieve TargetPointLists containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
@@ -503,13 +578,14 @@ class NodesetTarget:
             compartment_type: CompartmentType
 
         Returns:
-            list of TPointList containing the compartment position and retrieved section references
+            list of TargetPointList containing the compartment position
+            and retrieved section references
         """
         section_type_str = section_type.to_string()
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
-            point_list = TPointList(gid)
+            point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
             secs = getattr(cell.CellRef, section_type_str)
 
@@ -561,7 +637,7 @@ class NodesetTarget:
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
-        gids = self.get_raw_gids() if raw_gids else self.get_gids()
+        gids = self.gids(raw_gids=True) if raw_gids else self.gids(raw_gids=False)
         contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 
@@ -610,43 +686,3 @@ class SerializedSections:
             else:
                 # Store a SectionRef to the section at the index specified by v_value
                 self.isec2sec[int(v_value)] = Nd.SectionRef(sec=sec)
-
-
-class TPointList:
-    def __init__(self, gid: int):
-        self.gid: int = gid
-        self.sclst_ids: list = []  # List of section ids
-        self.sclst: list = []  # List of section references
-        self.x: list = []  # List of point values
-
-    def append(self, section_id: int, section: object, point: float) -> None:
-        self.x.append(point)
-        self.sclst.append(section)
-        self.sclst_ids.append(section_id)
-
-    def extend(self, other: "TPointList") -> None:
-        assert isinstance(other, TPointList), f"Expected TPointList, got {type(other).__name__}"
-        self.x.extend(other.x)
-        self.sclst.extend(other.sclst)
-        self.sclst_ids.extend(other.sclst_ids)
-
-    def validate(self) -> None:
-        if len(self.x) != len(self.sclst):
-            raise RuntimeError(
-                f"TPointList invariant violated: x has {len(self.x)} elements, "
-                f"sclst has {len(self.sclst)} elements. Expected both lists to be of equal length."
-            )
-
-    def __len__(self) -> int:
-        self.validate()
-        return len(self.sclst)
-
-    def __iter__(self) -> Iterator[tuple[int, object, float]]:
-        self.validate()
-        return iter(zip(self.sclst_ids, self.sclst, self.x))
-
-    def __str__(self) -> str:
-        self.validate()
-        ids = np.array(self.sclst_ids)
-        xs = np.array(self.x)
-        return f"TPointList(gid={self.gid}, size={len(self)}):\n  ids: {ids}\n  x:   {xs}"

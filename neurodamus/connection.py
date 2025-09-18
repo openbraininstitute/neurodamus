@@ -159,7 +159,7 @@ class ConnectionBase:
 class Connection(ConnectionBase):
     """A Connection object serves as a container for synapses formed from
     a presynaptic and a postsynaptic gid, including Points where those
-    synapses are placed (stored in TPointList)
+    synapses are placed (stored in TargetPointList)
     """
 
     __slots__ = (
@@ -309,7 +309,7 @@ class Connection(ConnectionBase):
         times. Consider add_synapses to add multiple synapses in bulk
 
         Args:
-            syn_tpoints: TPointList with one point on the tgid where the
+            syn_tpoints: TargetPointList with one point on the tgid where the
                 associated synapse exists
             params_obj: Parameters object for the Synapse to be placed
             syn_id: Optional id for the synapse to be used for seeding rng

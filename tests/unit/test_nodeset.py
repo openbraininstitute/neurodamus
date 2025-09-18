@@ -102,14 +102,14 @@ def test_from_zero_based_libsonata_selection_invalid_argument():
         SelectionNodeSet.from_zero_based_libsonata_selection("wrong")
 
 @pytest.mark.forked
-def test_get_selection():
+def test_selection():
     sel = libsonata.Selection([(3, 9), (11, 12)])
     ref = SelectionNodeSet(sel)
-    assert sel == ref.get_selection()
-
     offset = 3
+    ref._offset = offset
+    assert sel == ref.selection(raw_gids=True)
     sel = libsonata.Selection([(start+offset, stop+offset) for start, stop in sel.ranges])
-    assert sel == ref.get_selection(offset=offset)
+    assert sel == ref.selection(raw_gids=False)
 
 @pytest.mark.forked
 def test_intersection_basic():
@@ -117,7 +117,7 @@ def test_intersection_basic():
     a.register_global("pop")
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("pop") 
-    result = a.intersection(b)
+    result = a.intersection(b).flatten()
     assert np.array_equal(result, np.array([2, 3], dtype=np.uint32))
 
 @pytest.mark.forked
@@ -127,7 +127,7 @@ def test_intersection_different_population():
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("popB") 
     result = a.intersection(b)
-    assert result == []
+    assert not result
 
 @pytest.mark.forked
 def test_intersection_wrong_type():
@@ -143,7 +143,7 @@ def test_intersection_with_offset():
     b = SelectionNodeSet([2, 3, 4])
     b.register_global("pop") 
     b._offset = 10
-    result = a.intersection(b)
+    result = a.intersection(b).flatten()
     assert np.array_equal(result, np.array([12, 13], dtype=np.uint32))
 
 
