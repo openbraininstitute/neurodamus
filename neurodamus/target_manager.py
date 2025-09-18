@@ -453,25 +453,31 @@ class NodesetTarget:
         """
         return max(len(ns) for ns in self.nodesets)
 
-    def get_gids(self):
-        """Retrieve the final gids of the nodeset target"""
+    def gids(self, raw_gids):
+        """Return GIDs from a libsonata.Selection possibly made by a union of
+        libsonata.Selections.
+        """
         if not self.nodesets:
             logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
             return np.array([])
-        nodesets = sorted(self.nodesets, key=lambda n: n.offset)  # Get gids ascending
-        gids = nodesets[0].gids(raw_gids=False)
-        for extra_nodes in nodesets[1:]:
-            gids = np.append(gids, extra_nodes.gids(raw_gids=False))
-        return gids
+        if raw_gids:
+            if len(self.nodesets) > 1:
+                raise TargetError(
+                    "Can not get raw gids for Nodeset target with "
+                    "multiple populations. "
+                    f"{len(self.nodesets)} found."
+                )
+            return np.array(self.nodesets[0].gids(raw_gids=True))
+        sel = libsonata.Selection([])
+        for n in self.nodesets:
+            sel |= n.selection(raw_gids=False)
+        return sel.flatten()
+
+    def get_gids(self):
+        return self.gids(raw_gids=False)
 
     def get_raw_gids(self):
-        """Retrieve the raw gids of the nodeset target"""
-        if not self.nodesets:
-            logging.warning("Nodeset '%s' can't be materialized. No node populations", self.name)
-            return []
-        if len(self.nodesets) > 1:
-            raise TargetError("Can not get raw gids for Nodeset target with multiple populations.")
-        return np.array(self.nodesets[0].gids(raw_gids=True))
+        return self.gids(raw_gids=True)
 
     def __contains__(self, gid):
         """Determine if a given gid is included in the gid list for this target regardless of rank.
@@ -634,7 +640,7 @@ class NodesetTarget:
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
-        gids = self.get_raw_gids() if raw_gids else self.get_gids()
+        gids = self.get_raw_gids() if raw_gids else self.gids(raw_gids=False)
         contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 

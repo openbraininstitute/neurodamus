@@ -823,12 +823,12 @@ class ConnectionManagerBase:
         )
 
         # temporary set for faster lookup
-        src_gids = src_target and set(src_target.get_gids())
+        src_gids = src_target and set(src_target.gids(raw_gids=False))
 
         for population in conn_populations:
             logging.debug("Connections from population %s", population)
             tgids = np.fromiter(population.target_gids(), "uint32")
-            tgids = np.intersect1d(tgids, dst_target.get_gids())
+            tgids = np.intersect1d(tgids, dst_target.gids(raw_gids=False))
             if selected_gids:
                 tgids = np.intersect1d(tgids, selected_gids + tgid_offset)
             for conn in population.get_connections(tgids):

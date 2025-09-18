@@ -164,7 +164,7 @@ class CoreReportConfigEntry:
             ]
             entry.set_points(gids, section_ids, compartment_ids)
         else:
-            entry.set_gids(rep_params.target.get_gids())
+            entry.set_gids(rep_params.target.gids(raw_gids=False))
         return entry
 
 
