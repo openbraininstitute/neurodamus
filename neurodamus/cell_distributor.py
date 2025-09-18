@@ -201,6 +201,11 @@ class CellManagerBase(_CellManager):
             )
         else:
             gidvec, me_infos, *cell_counts = self._load_nodes_balance(loader_f, load_balancer)
+
+        # TODO fix+1
+        gidvec += 1
+        me_infos = {k + 1: v for k, v in me_infos.items()}
+
         self._local_nodes.add_gids(gidvec, me_infos)
         self._total_cells = cell_counts[0]
         logging.info(" => Loaded info about %d target cells (out of %d)", *cell_counts)

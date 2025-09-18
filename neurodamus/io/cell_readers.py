@@ -69,23 +69,6 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     groups = gid_metype_bundle[stride_offset::stride]
     return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
-
-def load_sonata_one_based_decorator(func):
-    """Temporary decorator. Make load_sonata output 1-based
-
-    when you remove this, fix the # TODO fix+1 in cell_distributor
-    """
-
-    def wrapper(*args, **kwargs):
-        gidvec, meinfos, fullsize = func(*args, **kwargs)
-        if meinfos is not None:
-            meinfos = {k + 1: v for k, v in meinfos.items()}
-        return gidvec + 1, meinfos, fullsize
-
-    return wrapper
-
-
-@load_sonata_one_based_decorator
 def load_sonata(  # noqa: C901, PLR0915
     circuit_conf,
     all_gids,
