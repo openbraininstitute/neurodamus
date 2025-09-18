@@ -69,6 +69,7 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
     groups = gid_metype_bundle[stride_offset::stride]
     return np.concatenate(groups) if groups else EMPTY_GIDVEC
 
+
 def load_sonata(  # noqa: C901, PLR0915
     circuit_conf,
     all_gids,

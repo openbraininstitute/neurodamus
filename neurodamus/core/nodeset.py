@@ -184,13 +184,6 @@ class SelectionNodeSet:
         for gid in self:
             yield gid + offset_add, self._gid_info.get(gid)
 
-    def gids(self, raw_gids):
-        """Return all GIDs as a flat array, optionally offset by the population"""
-        ans = np.asarray(self._selection.flatten(), dtype="uint32")
-        if raw_gids:
-            return ans
-        return np.add(ans, self._offset, dtype="uint32")
-
     def selection(self, raw_gids):
         """Return the internal Selection, optionally offset by the population"""
         if raw_gids:
@@ -198,6 +191,10 @@ class SelectionNodeSet:
         return libsonata.Selection(
             [(start + self._offset, stop + self._offset) for start, stop in self._selection.ranges]
         )
+
+    def gids(self, raw_gids):
+        """Return all GIDs as a flat array, optionally offset by the population"""
+        return np.asarray(self.selection(raw_gids=raw_gids).flatten(), dtype="uint32")
 
     def register_global(self, population_name):
         """Register this nodeset in a global population group
