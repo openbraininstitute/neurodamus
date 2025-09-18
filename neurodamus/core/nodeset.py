@@ -181,6 +181,14 @@ class SelectionNodeSet:
             return ans
         return np.add(ans, self._offset, dtype="uint32")
 
+    def selection(self, raw_gids):
+        """Return the internal Selection, optionally offset by the population"""
+        if raw_gids:
+            return self._selection
+        return libsonata.Selection(
+            [(start + self._offset, stop + self._offset) for start, stop in self._selection.ranges]
+        )
+
     def register_global(self, population_name):
         """Register this nodeset in a global population group
 
@@ -206,14 +214,6 @@ class SelectionNodeSet:
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
         return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
-
-    def get_selection(self, offset=0):
-        """Return the internal Selection, optionally, with an offset"""
-        if offset == 0:
-            return self._selection
-        return libsonata.Selection(
-            [(start + offset, stop + offset) for start, stop in self._selection.ranges]
-        )
 
     def add_selection(self, selection: libsonata.Selection, gid_info=None):
         """Add libsonata.Selection GIDs and optional metadata, updating offsets and max_gid

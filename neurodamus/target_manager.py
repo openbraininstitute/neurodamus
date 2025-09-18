@@ -472,8 +472,11 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        # compartment_set is 0-based
-        for cl in compartment_set.filtered_iter(sel_node_set.get_selection(offset=-1)):
+        # compartment_set is 0-based. We transform the selection in 0-based
+        sel = libsonata.Selection(
+            [(start - 1, stop - 1) for start, stop in sel_node_set.selection(raw_gids=True).ranges]
+        )
+        for cl in compartment_set.filtered_iter(sel):
             raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
             # points are 1-based
             gid = sel_node_set._offset + raw_gid + 1
