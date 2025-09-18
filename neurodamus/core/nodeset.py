@@ -185,10 +185,9 @@ class SelectionNodeSet:
             yield gid + offset_add, self._gid_info.get(gid)
 
     def selection(self, raw_gids):
-        """Return the internal Selection, optionally, with an offset"""
+        """Return the internal Selection, optionally offset by the population"""
         if raw_gids:
             return self._selection
-
         return libsonata.Selection(
             [(start + self._offset, stop + self._offset) for start, stop in self._selection.ranges]
         )

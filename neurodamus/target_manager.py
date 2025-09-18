@@ -637,7 +637,7 @@ class NodesetTarget:
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
-        gids = self.gids(raw_gids=True) if raw_gids else self.gids(raw_gids=False)
+        gids = self.gids(raw_gids=raw_gids)
         contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 

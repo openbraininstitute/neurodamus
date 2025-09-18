@@ -585,7 +585,8 @@ class ConnectionManagerBase:
 
         Helper function for _iterate_conn_params
         """
-        sgids = syns_params[syns_params.dtype.names[0]].astype("int64")
+        # TODO fix+1
+        sgids = syns_params[syns_params.dtype.names[0]].astype("int64") + 1
         sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
         conn_count = len(sgids_ranges) - 1
         return sgids, sgids_ranges, conn_count
@@ -596,7 +597,8 @@ class ConnectionManagerBase:
         Helper function for _iterate_conn_params
         """
         if self._load_offsets:
-            syn_index = self._synapse_reader.get_property(base_tgid, "synapse_index")
+            # TODO fix+1
+            syn_index = self._synapse_reader.get_property(base_tgid - 1, "synapse_index")
             return {"synapse_index": syn_index}
         return {}
 
@@ -642,7 +644,8 @@ class ConnectionManagerBase:
 
         for base_tgid in gids:
             tgid = base_tgid + tgid_offset
-            syns_params = self._synapse_reader.get_synapse_parameters(base_tgid)
+            # TODO fix+1
+            syns_params = self._synapse_reader.get_synapse_parameters(base_tgid - 1)
             logging.debug("GID %d Syn count: %d", tgid, len(syns_params))
 
             sgids, sgids_ranges, conn_count = self._compute_sgids_ranges(syns_params)
