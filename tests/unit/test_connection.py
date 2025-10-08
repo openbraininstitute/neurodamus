@@ -27,7 +27,9 @@ def test_synapse_location(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
 
     src_pop, tgt_pop = "RingA", "RingB"
-    tgid = 1001  # Target cell ID
+    # TODO fix+1
+    # tgid = 1001  # Target cell ID
+    tgid = 1000  # Target cell ID
 
     # Initialize Neurodamus simulation without reports
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)

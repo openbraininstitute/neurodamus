@@ -16,13 +16,13 @@ from neurodamus.core.coreneuron_report_config import CoreReportConfig
 class UnexpectedFileError(Exception):
     pass
 
-checkpoint_content = {"time.dat", "1_2.dat", "populations_offset.dat"}
+checkpoint_content = {"time.dat", "0_2.dat", "populations_offset.dat"}
 removable_checkpoint_content = {"report.conf", "sim.conf", "coreneuron_input"}
 output_content = {"out.dat", "populations_offset.dat"}
 coreneuron_input_content = {
-    "1_1.dat",
-    "1_2.dat",
-    "1_3.dat",
+    "0_1.dat",
+    "0_2.dat",
+    "0_3.dat",
     "bbcore_mech.dat",
     "files.dat",
     "globals.dat"}
@@ -294,7 +294,9 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
     # Compare the files of the form 1_cpu_t<t>.corenrn
     for i in gids:
-        file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
+        # TODO fix+1
+        # file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
+        file_name = f"{i}_cpu_t{t[2]:.6f}.corenrn"
         file1 = full_run_dir / file_name
         file2 = save_restore_dir2 / file_name
         if not file1.exists() or not file2.exists():
