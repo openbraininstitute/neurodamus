@@ -86,7 +86,7 @@ def load_sonata(  # noqa: C901, PLR0915
     import libsonata
 
     # TODO fix+1
-    all_gids = np.array(all_gids) - 1 if all_gids is not None else None
+    # all_gids = np.array(all_gids) - 1 if all_gids is not None else None
     node_file = circuit_conf.CellLibraryFile
     node_store = libsonata.NodeStorage(node_file)
     node_pop = node_store.open_population(node_population)

@@ -81,7 +81,8 @@ class ConnectionBase:
             syndelay_override: The delay for this connection, overriding "delay" property
             synapses_offset: The offset within the edge file (metadata)
         """
-        self.sgid = int(sgid or -1)
+        # TODO fix+1
+        self.sgid = int(sgid)# or -1)
         self.tgid = int(tgid)
         self.weight_factor = weight_factor
         self.syndelay_override = syndelay_override

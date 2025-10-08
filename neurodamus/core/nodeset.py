@@ -220,7 +220,9 @@ class SelectionNodeSet:
         if not isinstance(sel, libsonata.Selection):
             raise TypeError(f"Expected libsonata.Selection, got {type(sel).__name__}")
 
-        return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
+        # TODO fix+1
+        # return cls(libsonata.Selection([(start + 1, stop + 1) for start, stop in sel.ranges]))
+        return cls(sel)
 
     def add_selection(self, selection: libsonata.Selection, gid_info=None):
         """Add libsonata.Selection GIDs and optional metadata, updating offsets and max_gid

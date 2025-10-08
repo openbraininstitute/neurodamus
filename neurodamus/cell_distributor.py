@@ -203,8 +203,8 @@ class CellManagerBase(_CellManager):
             gidvec, me_infos, *cell_counts = self._load_nodes_balance(loader_f, load_balancer)
 
         # TODO fix+1
-        gidvec += 1
-        me_infos = {k + 1: v for k, v in me_infos.items()}
+        # gidvec += 1
+        # me_infos = {k + 1: v for k, v in me_infos.items()}
 
         self._local_nodes.add_gids(gidvec, me_infos)
         self._total_cells = cell_counts[0]
@@ -248,9 +248,8 @@ class CellManagerBase(_CellManager):
         population = targetspec.population
         if population in load_balancer:
             all_gids = load_balancer.get(population).get((MPI.rank, cycle_i), [])
-            all_gids = (
-                np.array(all_gids, dtype="uint32") + 1
-            )  # TODO fix+1 once load_sonata accepts 0-based gids
+            # TODO fix+1 once load_sonata accepts 0-based gids
+            all_gids = np.array(all_gids, dtype="uint32")# + 1
             total_cells = len(all_gids)
             logging.debug("Loading %d cells in rank %d", total_cells, MPI.rank)
             if total_cells == 0:
