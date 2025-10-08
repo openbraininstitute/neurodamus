@@ -219,22 +219,9 @@ def test_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [
-            0,
-            0,
-            4.881986,
-            5.089319,
-            4.790715,
-            5.095573,
-            5.490706,
-            5.18951,
-            5.373385,
-            5.192794,
-            5.219076,
-            5.072542,
-            5.301134,
-            0,
-        ],
+        [0.      , 0.      , 5.31412 , 5.066208, 5.164577, 4.547906,
+             4.836953, 5.045876, 5.239702, 4.59391 , 5.063867, 4.701305,
+              4.676288, 0.      ], atol=1e-6
     )
     npt.assert_allclose(
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
@@ -257,22 +244,8 @@ def test_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [
-            0,
-            0,
-            6.581311,
-            6.899133,
-            7.000418,
-            6.623692,
-            6.859104,
-            6.43775,
-            6.369685,
-            6.825659,
-            6.487686,
-            6.438033,
-            6.957322,
-            0,
-        ],
+        [0.      , 0.      , 6.494314, 6.502537, 6.38973 , 6.236444,             6.390461, 6.41935 , 6.917499, 6.841842, 6.775967, 6.585732,
+              6.477575, 0.      ],
     )
     npt.assert_allclose(
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
@@ -306,7 +279,8 @@ def test_shot_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [0, 0, 0, 0, 0, 0, 15.809228, 5.922412, 2.179451, 0.80178, 16.902339, 0],
+        [ 0.      ,  0.      ,  0.      ,  0.      ,  0.      , 14.880641,
+             26.338049,  9.829806,  3.617131, 13.246825,  4.953525,  0.      ],
         atol=1e-6,
     )
     npt.assert_allclose(signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5])
@@ -366,19 +340,7 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [
-            0,
-            0,
-            0,
-            2.244623,
-            5.828031,
-            8.581348,
-            9.838848,
-            10.419317,
-            11.512229,
-            11.929373,
-            0,
-        ],
+        [ 0.      ,  0.      ,  0.      ,  2.068218,  5.593634,  8.070117,               9.898022, 11.062847, 11.884291, 12.026643,  0.      ],
         atol=1e-6,
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2])
@@ -389,7 +351,7 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     # add dummy "input_resistance" in the target cell, try again
     cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
-    cell = cell_manager.get_cell(2)
+    cell = cell_manager.get_cell(1)
     cell.extra_attrs["input_resistance"] = 0.01
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[1]
@@ -400,19 +362,7 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.ConductanceSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [
-            0,
-            0,
-            0,
-            3.020382,
-            8.752334,
-            12.78625,
-            15.184817,
-            16.831108,
-            16.9444,
-            17.017716,
-            0,
-        ],
+        [ 0.      ,  0.      ,  0.      ,  3.219106,  8.006227, 12.182084,              14.733251, 16.342092, 17.127701, 17.404557,  0.      ],
         atol=1e-6,
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2])
@@ -442,7 +392,7 @@ def test_absolute_shot_noise(ringtest_stimulus_manager):
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
-        signal_source.stim_vec, [0, 0, 0, 2.987401, 5.837131, 7.698501, 0], atol=1e-6
+        signal_source.stim_vec, [0.      , 0.      , 0.      , 2.096963, 4.376184, 6.543954,              0.      ], atol=1e-6
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
@@ -453,7 +403,8 @@ def test_absolute_shot_noise(ringtest_stimulus_manager):
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.ConductanceSource)
     npt.assert_allclose(
-        signal_source.stim_vec, [0, 0, 0, 1.961163, 4.489483, 7.321958, 0], atol=1e-6
+        signal_source.stim_vec, [0.      , 0.      , 0.      , 2.764308, 5.142798, 7.528094,
+          0.      ], atol=1e-6
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
@@ -483,7 +434,7 @@ def test_ornstein_uhlenbeck(ringtest_stimulus_manager):
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
-        signal_source.stim_vec, [0, 10, 10.847061, 11.000316, 10.01365, 9.830591, 0], atol=1e-6
+        signal_source.stim_vec, [ 0.      , 10.      , 10.646869, 11.108686, 11.766644, 10.415158,               0.      ], atol=1e-6
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
@@ -540,7 +491,7 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     # add dummy "input_resistance" in the target cell, try again
     cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
-    cell = cell_manager.get_cell(2)
+    cell = cell_manager.get_cell(1)
     cell.extra_attrs["input_resistance"] = 0.02
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[1]
