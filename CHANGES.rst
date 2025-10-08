@@ -18,7 +18,7 @@ Version 3.11.0
   * coreneuron: test reports (mostly compartment and summation) (#337)
 
 *Bug Fixes*
-* fix for `pytest-cov: 7.0.0` (#385)
+  * fix for `pytest-cov: 7.0.0` (#385)
 
 
 Version 3.10.0
