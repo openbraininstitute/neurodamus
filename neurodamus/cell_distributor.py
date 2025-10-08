@@ -202,7 +202,7 @@ class CellManagerBase(_CellManager):
         else:
             gidvec, me_infos, *cell_counts = self._load_nodes_balance(loader_f, load_balancer)
 
-        # TODO fix+1
+        #  TODO fix+1
         gidvec += 1
         me_infos = {k + 1: v for k, v in me_infos.items()}
 
