@@ -2,6 +2,25 @@
 Change Log
 ==========
 
+
+Version 3.11.0
+==============
+**8 October 2025**
+
+*New Features*
+* `compartment sets`: stimulus (#378)
+* enable `cell_permute` for coreneuron (#375)
+
+*Improvements*
+* rework `node_sets` (#381)
+* `pytest-cov 7.0.0`: improve coverage (#389)
+* `compartment sets`: additional test (#379)
+* coreneuron: test reports (mostly compartment and summation) (#337)
+
+*Bug Fixes*
+* fix for `pytest-cov: 7.0.0` (#385)
+
+
 Version 3.10.0
 ==============
 **27 August 2025**
