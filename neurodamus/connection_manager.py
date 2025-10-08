@@ -899,7 +899,7 @@ class ConnectionManagerBase:
 
         """
         self._synapse_reader = None  # Destroy to release memory (all cached params)
-        logging.info("Instantiating %s... Params: %s", _conn_type, str(conn_params))
+        logging.info("Instantiating %s... Params: %s", _conn_type, conn_params)
         n_created_conns = 0
 
         for popid, pop in self._populations.items():
