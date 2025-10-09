@@ -546,7 +546,8 @@ class NodesetTarget:
 
         # TODO fix+1
         # sel = libsonata.Selection(
-        #     [(start - 1, stop - 1) for start, stop in sel_node_set.selection(raw_gids=True).ranges]
+        #     [(start - 1, stop - 1) for start, stop in
+        # sel_node_set.selection(raw_gids=True).ranges]
         # )
         # for cl in compartment_set.filtered_iter(sel):
         # compartment_set is 0-based
