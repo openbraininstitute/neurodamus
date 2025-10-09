@@ -44,7 +44,7 @@ def compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_p
     Returns:
         float or ndarray: Average of (start_diameter + end_diameter) / 4 for afferent vessels.
     """
-    endfeet = manager_gliovasc._gliovascular.afferent_edges(astro_id-1)
+    endfeet = manager_gliovasc._gliovascular.afferent_edges(astro_id)
     vasc_node_ids = libsonata.Selection(manager_gliovasc._gliovascular.source_nodes(endfeet))
     d_starts = vasculature_pop.get_attribute("start_diameter", vasc_node_ids)
     d_ends = vasculature_pop.get_attribute("end_diameter", vasc_node_ids)
@@ -89,7 +89,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
         R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
         npt.assert_allclose(R0pas, R0pas_ref)
 
-    astrocyte = manager_gliovasc._cell_manager.gid2cell[1 + manager_gliovasc._gid_offset]
+    astrocyte = manager_gliovasc._cell_manager.gid2cell[manager_gliovasc._gid_offset]
     Rad_vec = Nd.Vector()
     Rad_vec.record(next(iter(astrocyte.endfeet))(0.5).vascouplingB._ref_Rad)
 
@@ -97,7 +97,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     n.run()
 
     # Check RingA cells spikes
-    spike_gid_ref = np.array(range(1001, 1008))
+    spike_gid_ref = np.array(range(1000, 1007))
     timestamps_ref = np.array([2.075]*len(spike_gid_ref))
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
@@ -106,8 +106,8 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(timestamps_ref, timestamps)
 
     # Check AstrocytesA spikes
-    spike_gid_ref = np.array([1, 2, 3, 4])
-    timestamps_ref = np.array([5.475, 6.725, 7.675, 8.775])
+    spike_gid_ref = np.array(range(4))
+    timestamps_ref = np.array([5.5, 6.725, 7.675, 8.775])
     astrocyteA_spikes = n._spike_vecs[1]
     timestamps = np.array(astrocyteA_spikes[0])
     spike_gids = np.array(astrocyteA_spikes[1])
@@ -123,7 +123,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(Rad_ref, Rad_vec[::20])
 
     # Check R0pas stability
-    R0pas_new = get_vascouplingB_attribute(1, manager_gliovasc, "R0pas")
+    R0pas_new = get_vascouplingB_attribute(astro_ids[0], manager_gliovasc, "R0pas")
     npt.assert_allclose(R0pas_new, R0pas_refs[0])
 
 

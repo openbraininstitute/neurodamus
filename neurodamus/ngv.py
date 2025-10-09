@@ -104,7 +104,9 @@ class Astrocyte(BaseCell):
         sec.insert("vascouplingB")
         sec(0.5).vascouplingB.R0pas = R0pas
         # connect to parent sec
-        parent_sec = self.get_sec(parent_id + 1)
+        # TODO fix+1
+        # parent_sec = self.get_sec(parent_id + 1)
+        parent_sec = self.get_sec(parent_id)
         sec.connect(parent_sec)
 
     def get_glut(self, section_id):
@@ -417,7 +419,9 @@ class GlioVascularManager(ConnectionManagerBase):
             self._connect_endfeet(astro_id)
 
     def _connect_endfeet(self, astro_id):
-        endfeet = self._gliovascular.afferent_edges(astro_id - 1)  # 0-based for libsonata API
+        # TODO fix+1
+        # endfeet = self._gliovascular.afferent_edges(astro_id - 1)  # 0-based for libsonata API
+        endfeet = self._gliovascular.afferent_edges(astro_id)
         if endfeet.flat_size > 0:
             # Get endfeet input
 
