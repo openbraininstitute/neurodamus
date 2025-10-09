@@ -249,7 +249,7 @@ class CellManagerBase(_CellManager):
         if population in load_balancer:
             all_gids = load_balancer.get(population).get((MPI.rank, cycle_i), [])
             # TODO fix+1 once load_sonata accepts 0-based gids
-            all_gids = np.array(all_gids, dtype="uint32")# + 1
+            all_gids = np.array(all_gids, dtype="uint32")  # + 1
             total_cells = len(all_gids)
             logging.debug("Loading %d cells in rank %d", total_cells, MPI.rank)
             if total_cells == 0:
