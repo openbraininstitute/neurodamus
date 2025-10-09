@@ -20,12 +20,10 @@ def test_simulation_sonata_config(create_tmp_simulation_config_file):
 
     # compare spikes with refs
     spike_gids = np.array([
-        1., 2., 3., 1., 2., 3., 1., 1., 2., 3., 3., 3., 3., 3., 1., 3., 2., 1., 3., 1., 2.
-    ])  # 1-based
-    timestamps = np.array([
-        0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7., 7.4, 8.6, 13.8, 19.6, 25.7, 32., 36.4, 38.5,
-        40.8, 42.6, 45.2, 48.3, 49.9
+        0., 1., 2., 0., 1., 2., 0., 0., 1., 2., 2., 2., 2., 2., 0., 2., 1., 0., 2., 0., 1.
     ])
+    timestamps = np.array([ 0.2,  0.3,  0.3,  2.5,  3.4,  4.2,  5.5,  7. ,  7.4,  8.6, 13.8,
+               19.6, 25.7, 32. , 36.4, 38.5, 40.9, 42.6, 45.2, 48.3, 49.9])
     obtained_timestamps = nd._spike_vecs[0][0].as_numpy()
     obtained_spike_gids = nd._spike_vecs[0][1].as_numpy()
     npt.assert_allclose(spike_gids, obtained_spike_gids)
@@ -49,10 +47,8 @@ def test_v5_sonata_config(create_tmp_simulation_config_file):
 
     spike_gids = np.array([
         4, 2, 0
-    ]) + 1  # Conform to nd 1-based
-    timestamps = np.array([
-        33.425, 37.35, 39.725
     ])
+    timestamps = np.array([32.275, 37.2  , 39.15 ])
 
     obtained_timestamps = nd._spike_vecs[0][0].as_numpy()
     obtained_spike_gids = nd._spike_vecs[0][1].as_numpy()
@@ -76,8 +72,8 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
 
     cell_manager = nd.circuits.get_node_manager("default")
     gids = cell_manager.get_final_gids()
+    assert 0 in gids
     assert 1 in gids
-    assert 2 in gids
 
     syn_manager = cell_manager.connection_managers["external_default"]  # unnamed population
     syn_manager_2 = nd.circuits.get_edge_manager("external_default", "default")
@@ -87,26 +83,26 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     assert syn_manager.connection_count == 509
     assert len(syn_manager._populations) == 1  # connectivity and projections get merged
 
-    cell1_src_gids = np.array([c.sgid for c in syn_manager.get_connections(1)], dtype="int")
+    cell1_src_gids = np.array([c.sgid for c in syn_manager.get_connections(0)], dtype="int")
     proj_syn_manager = nd.circuits.get_edge_manager("thalamus-proj32-blob_projections", "default")
-    projections_src_gids = np.array([c.sgid for c in proj_syn_manager.get_connections(1)],
+    projections_src_gids = np.array([c.sgid for c in proj_syn_manager.get_connections(0)],
                                     dtype="int")
     assert len(projections_src_gids) == 17
     assert len(cell1_src_gids) == 316
 
     gj_manager = nd.circuits.get_edge_manager("default", "default", GapJunctionManager)
     # Ensure we got our GJ instantiated and bi-directional
-    gjs_1 = list(gj_manager.get_connections(1))
+    gjs_1 = list(gj_manager.get_connections(0))
     assert len(gjs_1) == 1
-    assert gjs_1[0].sgid == 2
-    gjs_2 = list(gj_manager.get_connections(2))
+    assert gjs_1[0].sgid == 1
+    gjs_2 = list(gj_manager.get_connections(1))
     assert len(gjs_2) == 1
-    assert gjs_2[0].sgid == 1
+    assert gjs_2[0].sgid == 0
 
     # P2: Assert simulation went well
     # Check voltages
     from neuron import h
-    c = cell_manager.get_cell(1)
+    c = cell_manager.get_cell(0)
     voltage_vec = h.Vector()
     voltage_vec.record(c._cellref.soma[0](0.5)._ref_v, 0.125)
     h.finitialize()  # reinit for the recordings to be registered
@@ -119,7 +115,7 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     v = voltage_vec.as_numpy()
     v_increase_rate = np.diff(v, 2)
     v_peaks, _heights = find_peaks(v_increase_rate, 2)
-    assert len(v_peaks) == 7
+    assert len(v_peaks) == 6
 
     # SPIKES
     # NOTE: Test assertions should ideally be against irrefutable values. However it is almost
@@ -129,5 +125,5 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     # to occur
     spikes = nd._spike_vecs[0]
     assert spikes[1].size() == 2
-    assert spikes[1][0] == 1
-    assert spikes[0][0] == pytest.approx(21.025)
+    assert spikes[1][0] == 0
+    assert spikes[0][0] == pytest.approx(20.925)
