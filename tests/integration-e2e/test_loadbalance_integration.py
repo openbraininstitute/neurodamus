@@ -77,7 +77,6 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     # check the spikes
     spike_dat = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
 
-    assert False, spike_dat
     timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
     assert len(timestamps_A) == 21
     ref_times = np.array([0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7.0, 7.4, 8.6, 13.8, 19.6, 25.7, 32.,
