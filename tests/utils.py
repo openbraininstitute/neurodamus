@@ -133,8 +133,7 @@ def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: i
             nd.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf["Path"].split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
-    # TODO fix+1
-    selection = edges.afferent_edges(tgt_rawgid)# - 1)
+    selection = edges.afferent_edges(tgt_rawgid)
     return src_gid, tgt_gid, edges, selection
 
 

@@ -395,7 +395,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet.from_zero_based_libsonata_selection(node_selection)
+                ns = SelectionNodeSet(node_selection)
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -544,13 +544,6 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        # TODO fix+1
-        # sel = libsonata.Selection(
-        #     [(start - 1, stop - 1) for start, stop in
-        # sel_node_set.selection(raw_gids=True).ranges]
-        # )
-        # for cl in compartment_set.filtered_iter(sel):
-        # compartment_set is 0-based
         for cl in compartment_set.filtered_iter(sel_node_set.selection(raw_gids=True)):
             raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
             gid = sel_node_set._offset + raw_gid

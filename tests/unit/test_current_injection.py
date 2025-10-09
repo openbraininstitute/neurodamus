@@ -29,8 +29,6 @@ def test_current_injection(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
-    # TODO fix+1
-    # cell_id = 1001
     cell_id = 1000
     manager = nd.circuits.get_node_manager("RingB")
     cell_ringB = manager.get_cell(cell_id)

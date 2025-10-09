@@ -41,7 +41,6 @@ class CompartmentMapping:
         return num_segments
 
     def register_mapping(self):
-        # TODO fix+1 this can go
         sections = [
             ("somatic", "soma"),
             ("axonal", "axon"),

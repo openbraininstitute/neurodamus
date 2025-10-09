@@ -57,8 +57,6 @@ class SpikeManager:
             raise MissingSpikesPopulationError("Spikes population not found: " + population)
         spikes = spikes_file[population]
         spike_dict = spikes.get_dict()
-        # TODO fix+1
-        # return spike_dict["timestamps"], spike_dict["node_ids"] + 1
         return spike_dict["timestamps"], spike_dict["node_ids"]
 
     def _store_events(self, tvec, gidvec):

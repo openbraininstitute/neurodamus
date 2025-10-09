@@ -1119,8 +1119,6 @@ def get_debug_cell_gids(cli_options):
         gids = []
         for token in tokens:
             gids.extend(parse_gid_token(token))
-        # TODO fix+1
-        # gids = [gid + 1 for gid in gids]
         gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
     except ValueError as e:
         raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
