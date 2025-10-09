@@ -33,10 +33,6 @@ class CompartmentMapping:
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
             start_idx = section_offset * num_electrodes
             end_idx = (section_offset + num_segments) * num_electrodes - 1
-
-            print(start_idx, end_idx, all_lfp_factors)
-            
-
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
         self.pc.nrnbbcore_register_mapping(
