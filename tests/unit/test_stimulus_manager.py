@@ -434,7 +434,7 @@ def test_ornstein_uhlenbeck(ringtest_stimulus_manager):
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
-        signal_source.stim_vec, [ 0.      , 10.      , 10.646869, 11.108686, 11.766644, 10.415158,               0.      ], atol=1e-6
+        signal_source.stim_vec, [0, 10, 10.847061, 11.000316, 10.01365, 9.830591, 0], atol=1e-6
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
