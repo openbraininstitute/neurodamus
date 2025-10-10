@@ -50,7 +50,9 @@ def test_v5_sonata_config(create_tmp_simulation_config_file):
     spike_gids = np.array([
         4, 2, 0
     ])
-    timestamps = np.array([32.275, 37.2  , 39.15 ])
+    timestamps = np.array([
+        33.425, 37.35, 39.725
+    ])
 
     obtained_timestamps = nd._spike_vecs[0][0].as_numpy()
     obtained_spike_gids = nd._spike_vecs[0][1].as_numpy()
