@@ -163,8 +163,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     # Check the cpu assign file, format: ihost ngid (index, gid, subtreeindex) ..
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2 0 1 1 1 2 0\n1 2 0 1 0 2 3 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 1  1 1 0\n1 2  0 0 0  2 2 0\n"
     # Ensure load-bal is reused for smaller targets in multisplit
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
@@ -208,8 +207,7 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2 0 1 0 2 3 0\n1 1 1 2 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 0  2 2 0\n1 1  1 1 0\n"
 
 def test_WholeCell(target_manager, circuit_conf, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
@@ -232,8 +230,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2 0 1 0 2 3 0\n1 1 1 2 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 0  2 2 0\n1 1  1 1 0\n"
 
 def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
@@ -254,7 +251,7 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 1 0 1 0\n1 2 1 2 0 2 3 0\n"
+    assert content == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
 
 class MockedTargetManager:
     """
