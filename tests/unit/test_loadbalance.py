@@ -13,29 +13,6 @@ from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 base_dir = Path("sim_conf")
 pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
-class MockedTargetManager:
-    """
-    A mock target manager, for the single purpose of returning the provided targets
-    """
-
-    def __init__(self, *targets) -> None:
-        self.targets = {t.name.split(":")[-1]: t for t in targets}
-
-    def get_target(self, target_spec, target_pop=None):
-        from neurodamus.target_manager import TargetSpec
-
-        if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
-        if target_pop:
-            target_spec.population = target_pop
-        target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
-        target_pop = target_spec.population
-        target = self.targets[target_name]
-        return target if target_pop is None else target.make_subtarget(target_pop)
-
-    def register_local_nodes(*_):
-        pass
-
 @pytest.fixture
 def target_manager():
     from neurodamus.core.nodeset import SelectionNodeSet
@@ -46,6 +23,15 @@ def target_manager():
     t1 = NodesetTarget("All", [nodes_t1], [nodes_t1])
     t2 = NodesetTarget("VerySmall", [nodes_t2], [nodes_t2])
     return MockedTargetManager(t1, t2)
+
+
+def test_loadbalance_mode():
+    assert LoadBalanceMode.parse("RoundRobin") == LoadBalanceMode.RoundRobin
+    assert LoadBalanceMode.parse("WholeCell") == LoadBalanceMode.WholeCell
+    assert LoadBalanceMode.parse("MultiSplit") == LoadBalanceMode.MultiSplit
+    assert LoadBalanceMode.parse("Memory") == LoadBalanceMode.Memory
+    with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
+        assert LoadBalanceMode.parse("BlaBla")
 
 @pytest.fixture
 def circuit_conf_bigcell():
@@ -74,15 +60,6 @@ def circuit_conf():
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
-
-def test_loadbalance_mode():
-    assert LoadBalanceMode.parse("RoundRobin") == LoadBalanceMode.RoundRobin
-    assert LoadBalanceMode.parse("WholeCell") == LoadBalanceMode.WholeCell
-    assert LoadBalanceMode.parse("MultiSplit") == LoadBalanceMode.MultiSplit
-    assert LoadBalanceMode.parse("Memory") == LoadBalanceMode.Memory
-    with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
-        assert LoadBalanceMode.parse("BlaBla")
-
 
 def test_loadbal_no_cx(target_manager, caplog):
     from neurodamus.cell_distributor import LoadBalance, TargetSpec
@@ -280,5 +257,26 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 1 0 1 0\n1 2 1 2 0 2 3 0\n"
 
+class MockedTargetManager:
+    """
+    A mock target manager, for the single purpose of returning the provided targets
+    """
 
+    def __init__(self, *targets) -> None:
+        self.targets = {t.name.split(":")[-1]: t for t in targets}
+
+    def get_target(self, target_spec, target_pop=None):
+        from neurodamus.target_manager import TargetSpec
+
+        if not isinstance(target_spec, TargetSpec):
+            target_spec = TargetSpec(target_spec)
+        if target_pop:
+            target_spec.population = target_pop
+        target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
+        target_pop = target_spec.population
+        target = self.targets[target_name]
+        return target if target_pop is None else target.make_subtarget(target_pop)
+
+    def register_local_nodes(*_):
+        pass
 
