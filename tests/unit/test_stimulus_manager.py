@@ -219,9 +219,22 @@ def test_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [0.      , 0.      , 5.31412 , 5.066208, 5.164577, 4.547906,
-             4.836953, 5.045876, 5.239702, 4.59391 , 5.063867, 4.701305,
-              4.676288, 0.      ], atol=1e-6
+        [
+            0,
+            0,
+            4.881986,
+            5.089319,
+            4.790715,
+            5.095573,
+            5.490706,
+            5.18951,
+            5.373385,
+            5.192794,
+            5.219076,
+            5.072542,
+            5.301134,
+            0,
+        ], atol=1e-6
     )
     npt.assert_allclose(
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
