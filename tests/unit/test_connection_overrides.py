@@ -276,27 +276,56 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
 
     # ####
 
-    def dump(obj):
-        print(obj, type(obj))
-        for name in dir(obj):
-            if name.startswith("__"):
-                continue
-            try:
-                attr = getattr(obj, name)
-                # skip methods entirely
-                if not callable(attr):
-                    print(f"  {name} = {attr}")
-            except Exception:
-                pass
+    # def dump(obj):
+    #     print(obj, type(obj))
+    #     for name in dir(obj):
+    #         if name.startswith("__"):
+    #             continue
+    #         try:
+    #             attr = getattr(obj, name)
+    #             # skip methods entirely
+    #             if not callable(attr):
+    #                 print(f"  {name} = {attr}")
+    #         except Exception:
+    #             pass
 
+    # gids_to_check = [0, 1, 2, 1000, 1001]
+
+    # for gid in gids_to_check:
+    #     cell = nd._pc.gid2cell(gid)
+    #     print(f"\n=== Cell {gid} ===")
+    #     nclist = Ndc.cvode.netconlist("", cell, "")
+    #     for nc in nclist:
+    #         dump(nc)
+
+    def record_netcons_events(nd, gids):
+        recorded = {}  # gid -> list of (nc index, srcgid, Vector)
+
+        for gid in gids:
+            cell = nd._pc.gid2cell(gid)
+            nclist = Ndc.cvode.netconlist("", cell, "")
+            recorded[gid] = []
+
+            for i, nc in enumerate(nclist):
+                vec = Ndc.Vector()
+                nc.record(vec)  # record NetCon events properly
+                recorded[gid].append((i, nc.srcgid(), vec))
+
+        # initialize and run
+        Ndc.finitialize()
+        nd.run()
+
+        # print results
+        for gid in gids:
+            print(f"\n=== Cell {gid} ===")
+            for i, srcgid, vec in recorded[gid]:
+                times = list(vec)
+                print(f"NetCon {i}, srcgid={srcgid}, fired at: {times}")
+
+    # usage
     gids_to_check = [0, 1, 2, 1000, 1001]
+    record_netcons_events(nd, gids_to_check)
 
-    for gid in gids_to_check:
-        cell = nd._pc.gid2cell(gid)
-        print(f"\n=== Cell {gid} ===")
-        nclist = Ndc.cvode.netconlist("", cell, "")
-        for nc in nclist:
-            dump(nc)
     assert False
 
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
