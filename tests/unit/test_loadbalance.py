@@ -109,7 +109,7 @@ def test_loadbal_subtarget(target_manager, caplog):
     with caplog.at_level(logging.INFO):
         assert not lbal._cx_valid(TargetSpec("random_target"))
         assert " => No Cx files available for requested target" in caplog.records[-1].message
-    assert lbal._cx_valid(TargetSpec("RingA:All")), lbal._cx_targets  # yes!
+    assert lbal._cx_valid(TargetSpec("RingA:All"))  # yes!
     assert not lbal._cx_valid(TargetSpec("VerySmall"))  # not yet, need to derive subtarget
 
     with caplog.at_level(logging.INFO):
