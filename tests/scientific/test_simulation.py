@@ -22,8 +22,10 @@ def test_simulation_sonata_config(create_tmp_simulation_config_file):
     spike_gids = np.array([
         0., 1., 2., 0., 1., 2., 0., 0., 1., 2., 2., 2., 2., 2., 0., 2., 1., 0., 2., 0., 1.
     ])
-    timestamps = np.array([ 0.2,  0.3,  0.3,  2.5,  3.4,  4.2,  5.5,  7. ,  7.4,  8.6, 13.8,
-               19.6, 25.7, 32. , 36.4, 38.5, 40.9, 42.6, 45.2, 48.3, 49.9])
+    timestamps = np.array([
+        0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7., 7.4, 8.6, 13.8, 19.6, 25.7, 32., 36.4, 38.5,
+        40.8, 42.6, 45.2, 48.3, 49.9
+    ])
     obtained_timestamps = nd._spike_vecs[0][0].as_numpy()
     obtained_spike_gids = nd._spike_vecs[0][1].as_numpy()
     npt.assert_allclose(spike_gids, obtained_spike_gids)
