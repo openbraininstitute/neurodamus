@@ -28,7 +28,9 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     spike_gids = np.array([
         4, 2, 0
     ])  # 0-based
-    timestamps = np.array([33.425, 37.35, 39.725 ])
+    timestamps = np.array([
+        33.425, 37.35, 39.725
+    ])
     spike_file = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
     obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
     npt.assert_allclose(spike_gids, obtained_spike_gids)
