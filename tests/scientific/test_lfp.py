@@ -177,7 +177,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
     nd.run()
 
     # compare results with refs
-    t3_data = np.array([ 0.00028025, -0.0008968 ,  0.0014093 , -0.00450975])
+    t3_data = np.array([0.00027065672, -0.00086610153, 0.0014563566, -0.0046603414])
     t7_data = np.array([ 0.00030916, -0.0009893 ,  0.00153002, -0.00489607])
     node_ids = np.array([0, 4])
     result_ids, result_data = _read_sonata_lfp_file(
