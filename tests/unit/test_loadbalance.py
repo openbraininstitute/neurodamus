@@ -13,6 +13,7 @@ from neurodamus.core.configuration import ConfigurationError, LoadBalanceMode
 base_dir = Path("sim_conf")
 pattern = "_loadbal_*.RingA"  # Matches any hash for population RingA
 
+
 @pytest.fixture
 def target_manager():
     from neurodamus.core.nodeset import SelectionNodeSet
@@ -43,6 +44,29 @@ def test_loadbal_no_cx(target_manager, caplog):
         assert not lbal._cx_valid(TargetSpec("random_target"))
         assert " => No complexity files for current circuit yet" in caplog.records[-1].message
 
+def test_loadbal_subtarget(target_manager, caplog):
+    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
+    from neurodamus.cell_distributor import LoadBalance, TargetSpec
+
+    nodes_file = "/gpfs/fake_node_path"
+    lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "RingA")
+    shutil.copyfile(RINGTEST_DIR / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
+
+    lbal = LoadBalance(1, nodes_file, "RingA", target_manager, 4)
+    assert "RingA_All" in lbal._cx_targets
+    assert not lbal._valid_loadbalance
+    with caplog.at_level(logging.INFO):
+        assert not lbal._cx_valid(TargetSpec("random_target"))
+        assert " => No Cx files available for requested target" in caplog.records[-1].message
+    assert lbal._cx_valid(TargetSpec("RingA:All"))  # yes!
+    assert not lbal._cx_valid(TargetSpec("VerySmall"))  # not yet, need to derive subtarget
+
+    with caplog.at_level(logging.INFO):
+        assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
+        assert len(caplog.records) >= 2
+        assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
+        assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
+
 @pytest.fixture
 def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
@@ -70,30 +94,6 @@ def circuit_conf():
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
-
-def test_loadbal_subtarget(target_manager, caplog):
-    """Ensure given the right files are in the lbal dir, the correct situation is detected"""
-    from neurodamus.cell_distributor import LoadBalance, TargetSpec
-
-    nodes_file = "/gpfs/fake_node_path"
-    lbdir, _ = LoadBalance._get_circuit_loadbal_dir(nodes_file, "RingA")
-    shutil.copyfile(RINGTEST_DIR / "cx_RingA_RingA#.dat", lbdir / "cx_RingA_All#.dat")
-
-    lbal = LoadBalance(1, nodes_file, "RingA", target_manager, 4)
-    assert "RingA_All" in lbal._cx_targets
-    assert not lbal._valid_loadbalance
-    with caplog.at_level(logging.INFO):
-        assert not lbal._cx_valid(TargetSpec("random_target"))
-        assert " => No Cx files available for requested target" in caplog.records[-1].message
-    assert lbal._cx_valid(TargetSpec("RingA:All"))  # yes!
-    assert not lbal._cx_valid(TargetSpec("VerySmall"))  # not yet, need to derive subtarget
-
-    with caplog.at_level(logging.INFO):
-        assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
-        assert len(caplog.records) >= 2
-        assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
-        assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
-
 
 def test_load_balance_integrated(target_manager, circuit_conf):
     """Comprehensive test using real cells and deriving cx for a sub-target"""
