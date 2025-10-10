@@ -234,7 +234,7 @@ def test_noise(ringtest_stimulus_manager):
             5.072542,
             5.301134,
             0,
-        ], atol=1e-6
+        ],
     )
     npt.assert_allclose(
         signal_source.time_vec, [0, 1, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6]
