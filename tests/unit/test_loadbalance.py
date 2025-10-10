@@ -33,6 +33,16 @@ def test_loadbalance_mode():
     with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
         assert LoadBalanceMode.parse("BlaBla")
 
+def test_loadbal_no_cx(target_manager, caplog):
+    from neurodamus.cell_distributor import LoadBalance, TargetSpec
+
+    lbal = LoadBalance(1, "/gpfs/fake_path_to_nodes_1", "pop", target_manager, 4)
+    assert not lbal._cx_targets
+    assert not lbal._valid_loadbalance
+    with caplog.at_level(logging.INFO):
+        assert not lbal._cx_valid(TargetSpec("random_target"))
+        assert " => No complexity files for current circuit yet" in caplog.records[-1].message
+
 @pytest.fixture
 def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
@@ -60,17 +70,6 @@ def circuit_conf():
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
-
-def test_loadbal_no_cx(target_manager, caplog):
-    from neurodamus.cell_distributor import LoadBalance, TargetSpec
-
-    lbal = LoadBalance(1, "/gpfs/fake_path_to_nodes_1", "pop", target_manager, 4)
-    assert not lbal._cx_targets
-    assert not lbal._valid_loadbalance
-    with caplog.at_level(logging.INFO):
-        assert not lbal._cx_valid(TargetSpec("random_target"))
-        assert " => No complexity files for current circuit yet" in caplog.records[-1].message
-
 
 def test_loadbal_subtarget(target_manager, caplog):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
