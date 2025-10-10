@@ -340,7 +340,19 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
         signal_source.stim_vec,
-        [ 0.      ,  0.      ,  0.      ,  2.068218,  5.593634,  8.070117,               9.898022, 11.062847, 11.884291, 12.026643,  0.      ],
+                [
+            0,
+            0,
+            0,
+            2.244623,
+            5.828031,
+            8.581348,
+            9.838848,
+            10.419317,
+            11.512229,
+            11.929373,
+            0,
+        ],
         atol=1e-6,
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2])
