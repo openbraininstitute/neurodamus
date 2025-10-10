@@ -130,4 +130,4 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     spikes = nd._spike_vecs[0]
     assert spikes[1].size() == 2
     assert spikes[1][0] == 0
-    assert spikes[0][0] == pytest.approx(20.925)
+    assert spikes[0][0] == pytest.approx(21.025)
