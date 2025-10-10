@@ -144,7 +144,6 @@ def _read_sonata_lfp_file(lfp_file):
 
 
 def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
-    pass
     import numpy.testing as npt
     import json
     from neurodamus import Neurodamus
