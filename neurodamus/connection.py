@@ -387,7 +387,7 @@ class Connection(ConnectionBase):
 
             with Nd.section_in_stack(sec):
                 syn_obj = self._create_synapse(
-                    cell, syn_params, x, self._synapse_ids[syn_i], base_seed
+                    cell, syn_params, x, self._synapse_ids[syn_i], base_seed, sec
                 )
                 n_syns += 1
 
@@ -463,7 +463,7 @@ class Connection(ConnectionBase):
         self._netcons.append(nc)
         return nc
 
-    def _create_synapse(self, cell, params_obj, x, syn_id, base_seed):
+    def _create_synapse(self, cell, params_obj, x, syn_id, base_seed, section):
         """Instantiate synapses (GABBAB inhibitory, AMPANMDA excitatory, etc)
         passing the creation helper the synapse params.
 
@@ -486,7 +486,7 @@ class Connection(ConnectionBase):
             self._mod_overrides.add(self._mod_override)
             override_helper = self._mod_override + "Helper"
             helper_cls = getattr(Nd.h, override_helper)
-            add_params = (self._src_pop_id, self._dst_pop_id)
+            add_params = (self._src_pop_id, self._dst_pop_id, section)
         else:
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
