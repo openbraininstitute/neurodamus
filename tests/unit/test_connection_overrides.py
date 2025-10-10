@@ -274,154 +274,119 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     voltage_trace = Ndc.Vector()
     cell_ringB = nd.circuits.get_node_manager("RingB").get_cell(1000)
 
-    # ####
-
-    # def dump(obj):
-    #     print(obj, type(obj))
-    #     for name in dir(obj):
-    #         if name.startswith("__"):
-    #             continue
-    #         try:
-    #             attr = getattr(obj, name)
-    #             # skip methods entirely
-    #             if not callable(attr):
-    #                 print(f"  {name} = {attr}")
-    #         except Exception:
-    #             pass
-
-    # gids_to_check = [0, 1, 2, 1000, 1001]
-
-    # for gid in gids_to_check:
-    #     cell = nd._pc.gid2cell(gid)
-    #     print(f"\n=== Cell {gid} ===")
-    #     nclist = Ndc.cvode.netconlist("", cell, "")
-    #     for nc in nclist:
-    #         dump(nc)
-
-    def record_netcons_events(nd, gids):
-        recorded = {}  # gid -> list of (nc index, srcgid, Vector)
-
-        for gid in gids:
-            cell = nd._pc.gid2cell(gid)
-            nclist = Ndc.cvode.netconlist("", cell, "")
-            recorded[gid] = []
-
-            for i, nc in enumerate(nclist):
-                vec = Ndc.Vector()
-                nc.record(vec)  # record NetCon events properly
-                recorded[gid].append((i, nc.srcgid(), vec))
-
-        # initialize and run
-        Ndc.finitialize()
-        nd.run()
-
-        # print results
-        for gid in gids:
-            print(f"\n=== Cell {gid} ===")
-            for i, srcgid, vec in recorded[gid]:
-                times = list(vec)
-                print(f"NetCon {i}, srcgid={srcgid}, fired at: {times}")
-
-    # usage
-    gids_to_check = [0, 1, 2, 1000, 1001]
-    record_netcons_events(nd, gids_to_check)
-
-    assert False
-
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
-    utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # convert Ndc.Vector to numpy array
+    v = np.array(list(voltage_trace))
+
+    # build time axis (assuming default dt from NEURON)
+    dt = Ndc.dt  # NEURON simulation timestep
+    t = np.arange(len(v)) * dt
+
+    plt.figure(figsize=(8,4))
+    plt.plot(t, v)
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Membrane voltage (mV)")
+    plt.title("Cell 1000 voltage trace")
+    plt.grid(True)
+    plt.show()
 
 
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "NEURON",
-#             "node_set": "Mosaic",
-#             "conditions": {
-#                 "mechanisms": {
-#                     "ProbAMPANMDA_EMS": {
-#                         "tau_d_NMDA": 1001.1
-#                     },
-#                 },
-#             },
-#         },
-#     },
-# ], indirect=True)
-# def test_override_globals_from_conditions(create_tmp_simulation_config_file):
-#     """
-#     Override global synapse variable from the conditions section
-#     """
-#     from neurodamus import Neurodamus
-#     from neurodamus.core import NeuronWrapper as Ndc
-
-#     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-
-#     assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1001.1)
+    # utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
 
 
-# @pytest.mark.parametrize("create_tmp_simulation_config_file", [
-#     {
-#         "simconfig_fixture": "ringtest_baseconfig",
-#         "extra_config": {
-#             "target_simulator": "NEURON",
-#             "node_set": "Mosaic",
-#             "connection_overrides": [
-#                 {
-#                     "name": "A2B",
-#                     "source": "RingA",
-#                     "target": "RingB",
-#                     "modoverride": "GABAAB",
-#                     "synapse_configure":
-#                     "tau_d_NMDA_ProbAMPANMDA_EMS = 1001.1 tau_r_NMDA_ProbAMPANMDA_EMS = 1002.1",
-#                 },
-#                 {
-#                     "name": "A2B_delayed",
-#                     "source": "RingA",
-#                     "target": "RingB",
-#                     "modoverride": "GABAAB",
-#                     "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1003.1",
-#                 },
-#                 {
-#                     "name": "A2A",
-#                     "source": "RingA",
-#                     "target": "RingA",
-#                     "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1005.1",
-#                 },
-#                 {
-#                     "name": "ZZZ",
-#                     "source": "RingA",
-#                     "target": "RingA",
-#                     "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1006.1",
-#                 },
-#             ],
-#             "conditions": {
-#                 "mechanisms": {
-#                     "ProbAMPANMDA_EMS": {
-#                         "tau_d_NMDA": 1007.1
-#                     },
-#                 },
-#             },
-#         },
-#     },
-# ], indirect=True)
-# def test_override_globals(create_tmp_simulation_config_file):
-#     """
-#     Tests whether global synapse parameter overrides take effect as expected.
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "conditions": {
+                "mechanisms": {
+                    "ProbAMPANMDA_EMS": {
+                        "tau_d_NMDA": 1001.1
+                    },
+                },
+            },
+        },
+    },
+], indirect=True)
+def test_override_globals_from_conditions(create_tmp_simulation_config_file):
+    """
+    Override global synapse variable from the conditions section
+    """
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeuronWrapper as Ndc
 
-#     Key aspects being tested:
-#     - The global override ignores synapse type, delay, and order.
-#     - The order of application might depend on the order in the edges file.
-#     If equal the order in the `connection_overrides` list.
-#     - The override in the synapse overrides the one in conditions
-#     """
-#     from neurodamus import Neurodamus
-#     from neurodamus.core import NeuronWrapper as Ndc
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
-#     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1001.1)
 
-#     assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
-#     assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {
+                    "name": "A2B",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "modoverride": "GABAAB",
+                    "synapse_configure":
+                    "tau_d_NMDA_ProbAMPANMDA_EMS = 1001.1 tau_r_NMDA_ProbAMPANMDA_EMS = 1002.1",
+                },
+                {
+                    "name": "A2B_delayed",
+                    "source": "RingA",
+                    "target": "RingB",
+                    "modoverride": "GABAAB",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1003.1",
+                },
+                {
+                    "name": "A2A",
+                    "source": "RingA",
+                    "target": "RingA",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1005.1",
+                },
+                {
+                    "name": "ZZZ",
+                    "source": "RingA",
+                    "target": "RingA",
+                    "synapse_configure": "tau_d_NMDA_ProbAMPANMDA_EMS = 1006.1",
+                },
+            ],
+            "conditions": {
+                "mechanisms": {
+                    "ProbAMPANMDA_EMS": {
+                        "tau_d_NMDA": 1007.1
+                    },
+                },
+            },
+        },
+    },
+], indirect=True)
+def test_override_globals(create_tmp_simulation_config_file):
+    """
+    Tests whether global synapse parameter overrides take effect as expected.
+
+    Key aspects being tested:
+    - The global override ignores synapse type, delay, and order.
+    - The order of application might depend on the order in the edges file.
+    If equal the order in the `connection_overrides` list.
+    - The override in the synapse overrides the one in conditions
+    """
+    from neurodamus import Neurodamus
+    from neurodamus.core import NeuronWrapper as Ndc
+
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
+    assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
