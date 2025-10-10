@@ -271,7 +271,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     assert nclist[2].delay == pytest.approx(0.1)
 
     # TODO fix+1
-    # utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
+    utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
