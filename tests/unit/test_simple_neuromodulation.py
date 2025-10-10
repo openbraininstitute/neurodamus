@@ -69,14 +69,14 @@ def test_neuromodulation(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
-    gid = 1001
+    gid = 1000
     edges_BB = nd.circuits.get_edge_manager("RingB", "RingB")
-    assert [conn.sgid for conn in edges_BB.get_connections(gid)] == [1002]
+    assert [conn.sgid for conn in edges_BB.get_connections(gid)] == [1001]
     edges_AB = nd.circuits.get_edge_manager("RingA", "RingB")
-    assert [conn.sgid for conn in edges_AB.get_connections(gid)] == [1]
+    assert [conn.sgid for conn in edges_AB.get_connections(gid)] == [0]
     edges_VB = nd.circuits.get_edge_manager("virtual_neurons", "RingB")
     assert isinstance(edges_VB, NeuroModulationManager)
-    assert [conn.sgid for conn in edges_VB.get_connections(gid)] == [2001, 2002]
+    assert [conn.sgid for conn in edges_VB.get_connections(gid)] == [2000, 2001]
 
     cell = nd._pc.gid2cell(gid)
     # check cell gid 1001 has 2 syns from neurons,
@@ -87,8 +87,8 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     # 1 from the replay via the neuromodulatory project (virtual_neurons->B)
     nclist = Nrn.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
-    assert nclist[0].srcgid() == 1
-    assert nclist[1].srcgid() == 1002
+    assert nclist[0].srcgid() == 0
+    assert nclist[1].srcgid() == 1001
     assert nclist[2].srcgid() < 0
     replay_netcon = nclist[2]
     assert replay_netcon.pre().hname() == "VecStim[0]"  # source obj is VecStim
@@ -124,10 +124,10 @@ def test_find_closest_cell_synapse(create_tmp_simulation_config_file):
         if src_pop != "virtual_neurons"
     ]
     base_conns = list(
-        chain.from_iterable(base_manager.get_connections(1001) for base_manager in base_managers)
+        chain.from_iterable(base_manager.get_connections(1000) for base_manager in base_managers)
     )
 
-    conns = list(edges_VB.get_connections(post_gids=1001))
+    conns = list(edges_VB.get_connections(post_gids=1000))
     assert len(conns) == 2
     assert len(conns[0].synapse_params) == 1
     assert len(conns[1].synapse_params) == 2
@@ -197,7 +197,7 @@ def test_override_strength_dtc(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file)
 
-    cell = nd._pc.gid2cell(1001)
+    cell = nd._pc.gid2cell(1000)
     # check cell gid 1001 has 2 syns from neurons,
     # neuromodulatory projection don't create addition synapses
     assert cell.synlist.count() == 2

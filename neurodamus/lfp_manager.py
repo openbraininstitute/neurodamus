@@ -55,7 +55,7 @@ class LFPManager:
 
     @staticmethod
     def get_sonata_node_id(gid, population_info):
-        return population_info[0], gid - population_info[1] - 1
+        return population_info[0], gid - population_info[1]
 
     def get_node_id_subsets(self, node_id, population_name):
         node_ids = self._lfp_file[population_name]["node_ids"]

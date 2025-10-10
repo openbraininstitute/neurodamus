@@ -44,7 +44,7 @@ def test_input_resistance():
     assert target_small.gid_count() == 5
     assert cell_manager.total_cells == 5
     assert len(cell_manager.local_nodes) == 5
-    for gid in (1, 2, 3, 4, 5):
+    for gid in range(5):
         assert gid in target_small
         assert gid in gids
 

@@ -112,7 +112,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
     assert neuron_MPI.rank == rank
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    local_gids_ref = [[1, 3], [2]]
+    local_gids_ref = [[0, 2], [1]]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.gids(raw_gids=False)
 
     np.testing.assert_allclose(local_gids, local_gids_ref[neuron_MPI.rank])
@@ -134,7 +134,7 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     from neurodamus import Neurodamus
     from neurodamus.core.coreneuron_configuration import CoreConfig
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True, keep_build=True)
-    local_gids_ref = [[2], []]
+    local_gids_ref = [[1], []]
     local_gids = n.circuits.get_node_manager("RingA").local_nodes.gids(raw_gids=False)
     np.testing.assert_allclose(local_gids, local_gids_ref[rank])
     # test that it runs with a fake cell
@@ -147,5 +147,5 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     # - all the ranks write in the folder for rank 0 (as coreneuron would want to do)
     # - if you assert if a file is there, it will do it in its own, changed, cwd.
 
-    assert (Path(CoreConfig.datadir) / "2_1.dat").exists()
+    assert (Path(CoreConfig.datadir) / "1_1.dat").exists()
     assert (Path(CoreConfig.datadir) / "1002_1.dat").exists()

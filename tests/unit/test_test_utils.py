@@ -23,9 +23,9 @@ def get_edges_data(create_tmp_simulation_config_file):
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
-    sgid, tgid = 1, 2
+    sgid, tgid = 0, 1
     cell = n._pc.gid2cell(tgid)
-    selection = edges.afferent_edges(tgid - 1)
+    selection = edges.afferent_edges(tgid)
     nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
     return sgid, tgid, cell, edges, selection, nclist
 

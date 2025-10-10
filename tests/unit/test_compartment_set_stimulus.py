@@ -56,6 +56,6 @@ def test_compartment_set_input(create_tmp_simulation_config_file):
                     for pp in seg.point_processes()
                     if "IClamp" in pp.hname() and seg.x > 0 and seg.x < 1
                 )
-                assert count == clamps.get((cell.gid-1, section_id), 0)
+                assert count == clamps.get((cell.gid, section_id), 0)
 
 

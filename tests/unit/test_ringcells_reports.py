@@ -317,15 +317,15 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert soma_report.exists()
     data = read_ascii_report(soma_report)
     assert len(data) == 2500  # 500 time steps * 5 soma sections
-    # check soma signal peak for cell 1001 as in test_current_injection.py
-    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
+    # check soma signal peak for cell 1000 as in test_current_injection.py
+    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1000]
     check_signal_peaks(cell_voltage_vec, [92, 291])
 
     compartment_i_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_i_report.exists()
     data = read_ascii_report(compartment_i_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
-    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1000]
 
     check_signal_peaks(cell_current_vec, [9,  29,  50,  70, 110, 132, 152, 173, 193],
                        threshold=0.05)
@@ -334,7 +334,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert compartment_pas_report.exists()
     data = read_ascii_report(compartment_pas_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
-    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1000]
     assert any(cell_current_vec), "The pas current is always 0. This is very suspicious"
 
 @pytest.mark.parametrize(

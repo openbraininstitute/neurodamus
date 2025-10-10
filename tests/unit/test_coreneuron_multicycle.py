@@ -13,7 +13,7 @@ from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.core.configuration import SimConfig
 from tests.utils import check_directory
 
-ref_gids = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3])  # 1-based
+ref_gids = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2])
 ref_timestamps = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
 
 
