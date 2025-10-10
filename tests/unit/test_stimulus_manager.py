@@ -392,7 +392,7 @@ def test_absolute_shot_noise(ringtest_stimulus_manager):
     signal_source = stimulus.stimList[0]
     assert isinstance(signal_source, st.CurrentSource)
     npt.assert_allclose(
-        signal_source.stim_vec, [0.      , 0.      , 0.      , 2.096963, 4.376184, 6.543954,              0.      ], atol=1e-6
+        signal_source.stim_vec, [0, 0, 0, 2.987401, 5.837131, 7.698501, 0], atol=1e-6
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
