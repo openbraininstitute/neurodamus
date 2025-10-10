@@ -184,7 +184,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
         Path(CoreConfig.output_root) / "lfp.h5")["default"]
 
     npt.assert_allclose(result_data.data[3], t3_data)
-    npt.assert_allclose(result_data.data[7], t7_data, atol=1e-8)
+    npt.assert_allclose(result_data.data[7], t7_data)
     npt.assert_allclose(result_ids, node_ids)
 
 
