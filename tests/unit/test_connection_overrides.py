@@ -276,8 +276,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
-    # TODO fix+1. This may be in neurodamus-models
-    # utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
+    utils.check_signal_peaks(voltage_trace, [15, 58, 167, 272, 388], threshold=0.5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

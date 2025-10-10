@@ -709,7 +709,9 @@ class SpontMinis(ArtificialStim):
 
         src_pop_id, dst_pop_id = conn.population_id
         rng_seed = self._rng_info.getMinisSeed()
-        tgid_seed = conn.tgid + 250
+        tgid_seed = (
+            conn.tgid + 250 + 1
+        )  # keep +1 to match legacy 1-based Neurodamus for reproducibility setup RNG
 
         seed2 = src_pop_id * 65536 + dst_pop_id + rng_seed
         ips.setRNGs(
