@@ -143,8 +143,7 @@ class SonataReader:
     """Reader for SONATA edge files.
 
     Uses libsonata directly and contains a bunch of workarounds to accomodate files
-    created in the transition to SONATA. Also translates all GIDs from 0-based as on disk
-    to the 1-based convention in Neurodamus.
+    created in the transition to SONATA.
 
     Will read each attribute for multiple GIDs at once and cache read data in a columnar
     fashion.
@@ -273,7 +272,6 @@ class SonataReader:
 
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
-        # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
 
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())
@@ -403,30 +401,28 @@ class SonataReader:
 
     def get_counts(self, tgids):
         """Counts synapses for the given target neuron ids. Returns a dict"""
-        node_ids = tgids - 1
-        edge_ids = self._population.afferent_edges(node_ids)
+        edge_ids = self._population.afferent_edges(tgids)
         target_nodes = self._population.target_nodes(edge_ids)
         unique_nodes, counts = np.unique(target_nodes, return_counts=True)
-        unique_gids = unique_nodes + 1
+        unique_gids = unique_nodes
         counts_dict = dict(zip(unique_gids, counts))
         for gid in tgids:
             counts_dict.setdefault(gid, 0)
         return counts_dict
 
     def get_conn_counts(self, tgids):
-        """Counts synapses per connetion for all the given target neuron ids.
+        """Counts synapses per connection for all the given target neuron ids.
         Returns a dict whose value is a numpy stuctured array
         """
         if missing_gids := set(tgids) - set(self._counts):
             missing_gids = np.fromiter(missing_gids, dtype="uint32")
             missing_gids.sort()
-            missing_nodes = missing_gids - 1
-            edge_ids = self._population.afferent_edges(missing_nodes)
+            edge_ids = self._population.afferent_edges(missing_gids)
             target_nodes = self._population.target_nodes(edge_ids)
             source_nodes = self._population.source_nodes(edge_ids)
             connections = np.empty(len(target_nodes), dtype="uint64,uint64")
-            connections["f0"] = target_nodes + 1  # nodes to 1-based gids
-            connections["f1"] = source_nodes + 1
+            connections["f0"] = target_nodes
+            connections["f1"] = source_nodes
 
             tgt_src_pairs, counts = np.unique(connections, return_counts=True)
             pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]

@@ -116,7 +116,7 @@ def load_sonata(  # noqa: C901, PLR0915
             emodel_templates = [emodel.removeprefix("hoc:") for emodel in model_templates]
             meinfos.load_infoNP(gids, morpho_names, emodel_templates, mtypes, etypes)
 
-        return gidvec, meinfos, total_cells  # 1-based
+        return gidvec, meinfos, total_cells
 
     def load_nodes_base_info():
         if SimConfig.dry_run or load_mode == "load_nodes_metype":

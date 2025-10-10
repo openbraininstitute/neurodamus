@@ -383,7 +383,7 @@ class NodeSetReader:
         def _get_nodeset(pop_name):
             storage = self._population_stores.get(pop_name)
             population = storage.open_population(pop_name)
-            # Create SelectionNodeSet object with 1-based gids
+            # Create SelectionNodeSet object with gids
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:

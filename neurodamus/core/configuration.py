@@ -1086,7 +1086,7 @@ def get_debug_cell_gids(cli_options):
     - A file path containing one GID per line
 
     Returns:
-        List of 1-based GIDs as integers, or None if not provided.
+        List of GIDs as integers, or None if not provided.
 
     Raises:
         ConfigurationError: if the format is invalid or file doesn't exist.
