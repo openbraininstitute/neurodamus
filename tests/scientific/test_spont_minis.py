@@ -44,12 +44,12 @@ def test_spont_minis(create_tmp_simulation_config_file):
     edges_a: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
     # Note: Before #198 we would instantiate a projection conn as being internal
     assert len(list(edges_a.all_connections())) == 1
-    conn_2_1 = next(edges_a.get_connections(1, 2))
-    assert conn_2_1._spont_minis.rate == SPONT_RATE
+    conn_1_0 = next(edges_a.get_connections(0, 1))
+    assert conn_1_0._spont_minis.rate == SPONT_RATE
 
-    c1 = edges_a.cell_manager.get_cellref(1)
+    c0 = edges_a.cell_manager.get_cellref(0)
     voltage_vec = Nd.Vector()
-    voltage_vec.record(c1.soma[0](0.5)._ref_v)
+    voltage_vec.record(c0.soma[0](0.5)._ref_v)
     Nd.finitialize()  # reinit for the recordings to be registered
 
     nd.run()

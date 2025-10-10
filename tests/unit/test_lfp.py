@@ -50,13 +50,13 @@ def test_read_lfp_factors():
     lfp.load_lfp_config(LFP_FILE, pop_list)
 
     # Test the function with valid inputs for both populations
-    result = lfp.read_lfp_factors(3, ("RingA", 0)).to_python()
+    result = lfp.read_lfp_factors(2, ("RingA", 0)).to_python()
     expected_result = np.array(
         [0.111, 0.112, 0.121, 0.122, 0.131, 0.132, 0.141, 0.142, 0.151, 0.152]
         )
     npt.assert_allclose(result, expected_result)
 
-    result = lfp.read_lfp_factors(1002, ("RingB", 1000)).to_python()
+    result = lfp.read_lfp_factors(1001, ("RingB", 1000)).to_python()
     expected_result = np.array([
         0.064, 0.065, 0.066, 0.074, 0.075, 0.076, 0.084, 0.085, 0.086,
         0.094, 0.095, 0.096, 0.104, 0.105, 0.106
@@ -65,11 +65,11 @@ def test_read_lfp_factors():
 
     # Test the function with invalid input
     # (non-existent gid)
-    result_no_gid = lfp.read_lfp_factors(4, ("RingA", 0)).to_python()
+    result_no_gid = lfp.read_lfp_factors(3, ("RingA", 0)).to_python()
     # (non-existent pop)
-    result_no_pop = lfp.read_lfp_factors(1, ("WrongPop", 0)).to_python()
+    result_no_pop = lfp.read_lfp_factors(0, ("WrongPop", 0)).to_python()
     # (wrong offset)
-    result_wrong_offset = lfp.read_lfp_factors(1, ("RingA", 10)).to_python()
+    result_wrong_offset = lfp.read_lfp_factors(0, ("RingA", 10)).to_python()
     expected_result = []
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 
@@ -86,24 +86,24 @@ def test_number_electrodes():
     lfp.load_lfp_config(LFP_FILE, pop_list)
 
     # Test the function with valid input
-    num_electrodes_1 = lfp.get_number_electrodes(1, ("RingA", 0))
-    num_electrodes_2 = lfp.get_number_electrodes(2, ("RingA", 0))
-    num_electrodes_3 = lfp.get_number_electrodes(3, ("RingA", 0))
+    num_electrodes_1 = lfp.get_number_electrodes(0, ("RingA", 0))
+    num_electrodes_2 = lfp.get_number_electrodes(1, ("RingA", 0))
+    num_electrodes_3 = lfp.get_number_electrodes(2, ("RingA", 0))
     expected_num_electrodes = 2
     assert num_electrodes_1 == num_electrodes_2 == num_electrodes_3 == expected_num_electrodes
 
-    num_electrodes_1001 = lfp.get_number_electrodes(1001, ("RingB", 1000))
-    num_electrodes_1002 = lfp.get_number_electrodes(1002, ("RingB", 1000))
+    num_electrodes_1001 = lfp.get_number_electrodes(1000, ("RingB", 1000))
+    num_electrodes_1002 = lfp.get_number_electrodes(1001, ("RingB", 1000))
     expected_num_electrodes = 3
     assert num_electrodes_1001 == num_electrodes_1002 == expected_num_electrodes
 
     # Test the function with invalid input
     # (non-existent gid)
-    result_no_gid = lfp.get_number_electrodes(4, ("RingA", 0))
+    result_no_gid = lfp.get_number_electrodes(3, ("RingA", 0))
     # (non-existent pop)
-    result_no_pop = lfp.get_number_electrodes(1, ("WrongPop", 0))
+    result_no_pop = lfp.get_number_electrodes(0, ("WrongPop", 0))
     # (wrong offset)
-    result_wrong_offset = lfp.get_number_electrodes(1, ("RingA", 10))
+    result_wrong_offset = lfp.get_number_electrodes(0, ("RingA", 10))
     expected_result = 0
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
 

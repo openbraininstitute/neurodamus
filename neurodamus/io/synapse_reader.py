@@ -143,8 +143,7 @@ class SonataReader:
     """Reader for SONATA edge files.
 
     Uses libsonata directly and contains a bunch of workarounds to accomodate files
-    created in the transition to SONATA. Also translates all GIDs from 0-based as on disk
-    to the 1-based convention in Neurodamus.
+    created in the transition to SONATA.
 
     Will read each attribute for multiple GIDs at once and cache read data in a columnar
     fashion.
@@ -226,6 +225,10 @@ class SonataReader:
             self._syn_params[gid] = syn_params
         return syn_params
 
+    def get_property(self, gid, field_name):
+        """Retrieves a full pre-loaded property given a gid and the property name."""
+        return self._data[gid][field_name]
+
     def _open_file(self, src, population, _):
         """Initializes the reader, opens the synapse file"""
         try:
@@ -253,10 +256,6 @@ class SonataReader:
             return True
         return field_name in self._population.attribute_names
 
-    def get_property(self, gid, field_name):
-        """Retrieves a full pre-loaded property given a gid and the property name."""
-        return self._data[gid][field_name]
-
     def preload_data(self, gids, minimal_mode=False):
         """Preload SONATA fields for the specified IDs.
         Set minimal_mode to True to read a single synapse per connection
@@ -269,23 +268,23 @@ class SonataReader:
 
         ranges = list(gen_ranges(len(gids), CHUNK_SIZE))
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
-            self._preload_data_chunk(gids[start:end], minimal_mode)
+            self._preload_data_chunk(gids[start:end] - 1, minimal_mode)
 
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
-        # NOTE: to disambiguate, gids are 1-based cell ids, while node_ids are 0-based sonata ids
+
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())
         needed_gids = sorted(orig_needed_gids_set)
 
         def get_edge_and_lookup_gids(needed_gids: libsonata.Selection):
             """Retrieve edge and corresponding gid for"""
-            node_ids = np.array(needed_gids, dtype="int64") - 1
+            node_ids = np.array(needed_gids, dtype="int64")
             if self.LOOKUP_BY_TARGET_IDS:
                 edge_ids = self._population.afferent_edges(node_ids)
-                return edge_ids, self._population.target_nodes(edge_ids) + 1
+                return edge_ids, self._population.target_nodes(edge_ids)
             edge_ids = self._population.efferent_edges(node_ids)
-            return edge_ids, self._population.source_nodes(edge_ids) + 1
+            return edge_ids, self._population.source_nodes(edge_ids)
 
         # NOTE: needed_edge_ids, lookup_gids are used in _populate and _read
         needed_edge_ids, lookup_gids = get_edge_and_lookup_gids(needed_gids)
@@ -319,9 +318,9 @@ class SonataReader:
 
         # Populate the opposite node id
         if self.LOOKUP_BY_TARGET_IDS:
-            _populate("sgid", self._population.source_nodes(needed_edge_ids) + 1)
+            _populate("sgid", self._population.source_nodes(needed_edge_ids))
         else:
-            _populate("tgid", self._population.target_nodes(needed_edge_ids) + 1)
+            _populate("tgid", self._population.target_nodes(needed_edge_ids))
 
         # Make synapse index in the file explicit
         for name in sorted(self.SYNAPSE_INDEX_NAMES):
@@ -402,30 +401,28 @@ class SonataReader:
 
     def get_counts(self, tgids):
         """Counts synapses for the given target neuron ids. Returns a dict"""
-        node_ids = tgids - 1
-        edge_ids = self._population.afferent_edges(node_ids)
+        edge_ids = self._population.afferent_edges(tgids)
         target_nodes = self._population.target_nodes(edge_ids)
         unique_nodes, counts = np.unique(target_nodes, return_counts=True)
-        unique_gids = unique_nodes + 1
+        unique_gids = unique_nodes
         counts_dict = dict(zip(unique_gids, counts))
         for gid in tgids:
             counts_dict.setdefault(gid, 0)
         return counts_dict
 
     def get_conn_counts(self, tgids):
-        """Counts synapses per connetion for all the given target neuron ids.
+        """Counts synapses per connection for all the given target neuron ids.
         Returns a dict whose value is a numpy stuctured array
         """
         if missing_gids := set(tgids) - set(self._counts):
             missing_gids = np.fromiter(missing_gids, dtype="uint32")
             missing_gids.sort()
-            missing_nodes = missing_gids - 1
-            edge_ids = self._population.afferent_edges(missing_nodes)
+            edge_ids = self._population.afferent_edges(missing_gids)
             target_nodes = self._population.target_nodes(edge_ids)
             source_nodes = self._population.source_nodes(edge_ids)
             connections = np.empty(len(target_nodes), dtype="uint64,uint64")
-            connections["f0"] = target_nodes + 1  # nodes to 1-based gids
-            connections["f1"] = source_nodes + 1
+            connections["f0"] = target_nodes
+            connections["f1"] = source_nodes
 
             tgt_src_pairs, counts = np.unique(connections, return_counts=True)
             pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]

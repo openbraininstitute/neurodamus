@@ -57,7 +57,7 @@ class SpikeManager:
             raise MissingSpikesPopulationError("Spikes population not found: " + population)
         spikes = spikes_file[population]
         spike_dict = spikes.get_dict()
-        return spike_dict["timestamps"], spike_dict["node_ids"] + 1
+        return spike_dict["timestamps"], spike_dict["node_ids"]
 
     def _store_events(self, tvec, gidvec):
         """Stores the events in the _gid_fire_events GroupedMultiMap.

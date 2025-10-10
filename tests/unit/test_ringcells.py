@@ -44,12 +44,12 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
-    src_gids = [1, 2]
-    target_gids = np.roll(src_gids, -1)
+    src_gids = [0, 1]
+    target_gids = [1, 0]
     for sgid, tgid in zip(src_gids, target_gids):
         cell = n._pc.gid2cell(tgid)
         check_cell(cell)
-        selection = edges.afferent_edges(tgid - 1)
+        selection = edges.afferent_edges(tgid)
 
         assert cell.synlist.count() == selection.flat_size
         for syn in cell.synlist:
@@ -86,9 +86,9 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     from neurodamus.utils.dump_cellstate import dump_cellstate
 
     connections = [
-        [("RingA", 3), ("RingA", 1)],
-        [("RingB", 2), ("RingB", 1)],
-        [("RingA", 1), ("RingB", 1)],
+        [("RingA", 2), ("RingA", 0)],
+        [("RingB", 1), ("RingB", 0)],
+        [("RingA", 0), ("RingB", 0)],
     ]
 
     for (s_pop, s_rawgid), (t_pop, t_rawgid) in connections:
@@ -114,7 +114,7 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
                 n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
         edge_storage = EdgeStorage(edges_file)
         edges = edge_storage.open_population(edge_pop)
-        selection = edges.afferent_edges(t_rawgid - 1)
+        selection = edges.afferent_edges(t_rawgid)
 
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
         utils.check_netcons(sgid, nclist, edges, selection)

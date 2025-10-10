@@ -57,23 +57,23 @@ def test_multipop_simple(create_tmp_simulation_config_file):
     assert len(list(edges_A.all_connections())) == 2
     cell_man = edges_A.cell_manager
     assert cell_man.local_nodes.offset == 0
-    assert set(cell_man.local_nodes.gids(raw_gids=True)) == set(cell_man.gid2cell) == {1, 2, 3}
+    assert set(cell_man.local_nodes.gids(raw_gids=True)) == set(cell_man.gid2cell) == {0, 1, 2}
 
     edges_B: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeB")
     assert len(list(edges_B.all_connections())) == 2
     cell_man = edges_B.cell_manager
     assert cell_man.local_nodes.offset == 1000
-    assert set(cell_man.local_nodes.gids(raw_gids=True)) == {1, 2}
-    assert set(cell_man.local_nodes.gids(raw_gids=False)) == set(cell_man.gid2cell) == {1001, 1002}
+    assert set(cell_man.local_nodes.gids(raw_gids=True)) == {0, 1}
+    assert set(cell_man.local_nodes.gids(raw_gids=False)) == set(cell_man.gid2cell) == {1000, 1001}
 
     for conn in edges_A.all_connections():
-        assert conn.tgid <= 3
-        assert conn.sgid <= 3
+        assert conn.tgid < 3
+        assert conn.sgid < 3
         assert conn.synapses[0].verboseLevel == 0
 
     for conn in edges_B.all_connections():
-        assert 1000 < conn.tgid <= 1003
-        assert 1000 < conn.sgid <= 1003
+        assert 1000 <= conn.tgid < 1003
+        assert 1000 <= conn.sgid < 1003
         assert conn.synapses[0].verboseLevel == 1
 
 
@@ -137,14 +137,14 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     assert len(list(edges_A.all_connections())) == 2
     cell_man_A = edges_A.cell_manager
     assert cell_man_A.local_nodes.offset == 0
-    assert set(cell_man_A.local_nodes.gids(raw_gids=True)) == set(cell_man_A.gid2cell) == {1, 2, 3}
+    assert set(cell_man_A.local_nodes.gids(raw_gids=True)) == set(cell_man_A.gid2cell) == {0, 1, 2}
 
     edges_B: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeB")
     assert len(list(edges_B.all_connections())) == 2
     cell_man_B = edges_B.cell_manager
     assert cell_man_B.local_nodes.offset == 1000
-    assert set(cell_man_B.local_nodes.gids(raw_gids=True)) == {1, 2}
-    assert set(cell_man_B.local_nodes.gids(raw_gids=False)) == set(cell_man_B.gid2cell) == {1001, 1002}
+    assert set(cell_man_B.local_nodes.gids(raw_gids=True)) == {0, 1}
+    assert set(cell_man_B.local_nodes.gids(raw_gids=False)) == set(cell_man_B.gid2cell) == {1000, 1001}
 
     edges_AB: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeB")
     assert len(list(edges_AB.all_connections())) == 3
@@ -157,30 +157,30 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     assert edges_BA.src_cell_manager == cell_man_B
 
     for conn in edges_A.all_connections():
-        assert conn.tgid <= 3
-        assert conn.sgid <= 3
+        assert conn.tgid < 3
+        assert conn.sgid < 3
         assert conn.synapses[0].verboseLevel == 0
 
     for conn in edges_B.all_connections():
-        assert 1000 < conn.tgid <= 1003
-        assert 1000 < conn.sgid <= 1003
+        assert 1000 <= conn.tgid < 1003
+        assert 1000 <= conn.sgid < 1003
         assert conn.synapses[0].verboseLevel == 1
 
     for conn in edges_BA.all_connections():
-        assert 0 < conn.tgid <= 3
-        assert 1000 < conn.sgid <= 1003
+        assert 0 <= conn.tgid < 3
+        assert 1000 <= conn.sgid < 1003
         assert conn.synapses[0].verboseLevel == 2
 
     for conn in edges_AB.all_connections():
-        assert 1000 < conn.tgid <= 1003
-        assert 0 < conn.sgid <= 3
+        assert 1000 <= conn.tgid < 1003
+        assert 0 <= conn.sgid < 3
         assert conn.synapses[0].verboseLevel == 3
 
     # Replay will create spikes for all instantiated cells targeting popA
     # That means popA->popA and popB->popA
-    conn_2_1 = next(edges_A.get_connections(1, 2))
+    conn_2_1 = next(edges_A.get_connections(0, 1))
     assert len(conn_2_1._replay.time_vec) == 1
-    conn_1001_1 = next(edges_BA.get_connections(1, 1001))
+    conn_1001_1 = next(edges_BA.get_connections(0, 1000))
     assert len(conn_1001_1._replay.time_vec) == 1
     for c in edges_B.all_connections():
         assert c._replay is None
@@ -188,7 +188,7 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
         assert c._replay is None
 
     # Prepare run
-    c1 = edges_A.cell_manager.get_cellref(1)
+    c1 = edges_A.cell_manager.get_cellref(0)
     voltage_vec = Nd.Vector()
     voltage_vec.record(c1.soma[0](0.5)._ref_v)
     Nd.finitialize()  # reinit for the recordings to be registered

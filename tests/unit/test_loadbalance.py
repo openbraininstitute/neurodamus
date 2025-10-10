@@ -19,8 +19,8 @@ def target_manager():
     from neurodamus.core.nodeset import SelectionNodeSet
     from neurodamus.target_manager import NodesetTarget
 
-    nodes_t1 = SelectionNodeSet([1, 2, 3]).register_global("RingA")
-    nodes_t2 = SelectionNodeSet([1]).register_global("RingA")
+    nodes_t1 = SelectionNodeSet([0, 1, 2]).register_global("RingA")
+    nodes_t2 = SelectionNodeSet([0]).register_global("RingA")
     t1 = NodesetTarget("All", [nodes_t1], [nodes_t1])
     t2 = NodesetTarget("VerySmall", [nodes_t2], [nodes_t2])
     return MockedTargetManager(t1, t2)
@@ -34,7 +34,6 @@ def test_loadbalance_mode():
     with pytest.raises(ConfigurationError, match=r"Unknown load balance mode"):
         assert LoadBalanceMode.parse("BlaBla")
 
-
 def test_loadbal_no_cx(target_manager, caplog):
     from neurodamus.cell_distributor import LoadBalance, TargetSpec
 
@@ -44,7 +43,6 @@ def test_loadbal_no_cx(target_manager, caplog):
     with caplog.at_level(logging.INFO):
         assert not lbal._cx_valid(TargetSpec("random_target"))
         assert " => No complexity files for current circuit yet" in caplog.records[-1].message
-
 
 def test_loadbal_subtarget(target_manager, caplog):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
@@ -69,7 +67,6 @@ def test_loadbal_subtarget(target_manager, caplog):
         assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
         assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
 
-
 @pytest.fixture
 def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
@@ -84,7 +81,6 @@ def circuit_conf_bigcell():
         CircuitTarget="All",
     )
 
-
 @pytest.fixture
 def circuit_conf():
     """Test nodes file contains 3 small cells with 2 dendrites each"""
@@ -98,7 +94,6 @@ def circuit_conf():
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
-
 
 def test_load_balance_integrated(target_manager, circuit_conf):
     """Comprehensive test using real cells and deriving cx for a sub-target"""
@@ -147,7 +142,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     captured = capsys.readouterr()
     assert "3 cells\n4 pieces" in captured.out
     assert re.match(
-        r"(?s:.)*at least one cell is broken into 2 pieces \(bilist\[\d\], gid 1\)", captured.out
+        r"(?s:.)*at least one cell is broken into 2 pieces \(bilist\[\d\], gid 0\)", captured.out
     )
     assert "RingA_All" in lbal._cx_targets
     assert "RingA_All" in lbal._valid_loadbalance
@@ -159,17 +154,16 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     assert cx_filename.exists()
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
-    assert list(cx_saved.keys()) == [1, 2, 3]
-    assert float(cx_saved[1][0].split()[1]) > float(cx_saved[2][0].split()[1]) == float(
-        cx_saved[3][0].split()[1]), (
-        "cell complexity should be gid 1 > gid2 == gid3"
+    assert list(cx_saved.keys()) == [0, 1, 2]
+    assert float(cx_saved[0][0].split()[1]) > float(cx_saved[1][0].split()[1]) == float(
+        cx_saved[2][0].split()[1]), (
+        "cell complexity should be gid0 > gid1 == gid2"
     )
 
     # Check the cpu assign file, format: ihost ngid (index, gid, subtreeindex) ..
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 1  1 2 0\n1 2  0 1 0  2 3 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 1  1 1 0\n1 2  0 0 0  2 2 0\n"
     # Ensure load-bal is reused for smaller targets in multisplit
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
@@ -204,17 +198,16 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     assert cx_filename.exists()
     with open(cx_filename) as cx_file:
         cx_saved = lbal._read_msdat(cx_file)
-    assert list(cx_saved.keys()) == [1, 2, 3]
-    assert float(cx_saved[1][0].split()[1]) == float(cx_saved[2][0].split()[1]) == float(
-        cx_saved[3][0].split()[1]), (
-        "cell complexity should be gid 1 == gid2 == gid3"
+    assert list(cx_saved.keys()) == [0, 1, 2]
+    assert float(cx_saved[0][0].split()[1]) == float(cx_saved[1][0].split()[1]) == float(
+        cx_saved[2][0].split()[1]), (
+        "cell complexity should be gid0 == gid1 == gid2"
     )
 
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 0  2 2 0\n1 1  1 1 0\n"
 
 def test_WholeCell(target_manager, circuit_conf, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
@@ -237,8 +230,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 2  0 1 0  2 3 0\n1 1  1 2 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 2  0 0 0  2 2 0\n1 1  1 1 0\n"
 
 def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
@@ -259,8 +251,7 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
     content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 1  0 1 0\n1 2  1 2 0  2 3 0\n"
-
+    assert content == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
 
 class MockedTargetManager:
     """
@@ -284,3 +275,4 @@ class MockedTargetManager:
 
     def register_local_nodes(*_):
         pass
+

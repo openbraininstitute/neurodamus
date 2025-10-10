@@ -225,7 +225,7 @@ def make_extra_config(base, simulator):
         make_extra_config("v5_sonata_config", "NEURON"),
         make_extra_config("v5_sonata_config", "CORENEURON"),
         make_extra_config("ringtest_baseconfig", "NEURON"),
-        make_extra_config("ringtest_baseconfig", "CORENEURON")
+        make_extra_config("ringtest_baseconfig", "CORENEURON"),
     ],
     indirect=True,
 )
