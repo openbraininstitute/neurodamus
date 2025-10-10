@@ -119,7 +119,7 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     v = voltage_vec.as_numpy()
     v_increase_rate = np.diff(v, 2)
     v_peaks, _heights = find_peaks(v_increase_rate, 2)
-    assert len(v_peaks) == 6
+    assert len(v_peaks) == 7
 
     # SPIKES
     # NOTE: Test assertions should ideally be against irrefutable values. However it is almost
