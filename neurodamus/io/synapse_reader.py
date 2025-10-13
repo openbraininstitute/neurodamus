@@ -400,7 +400,32 @@ class SonataReader:
                 _populate("offset", _read("morpho_offset_segment_post"))
 
     def get_counts(self, tgids):
-        """Counts synapses for the given target neuron ids. Returns a dict"""
+        """Count synapses for the given target neuron ids.
+
+        Parameters
+        ----------
+        tgids : array-like of int
+            One or more target neuron gids to query.
+
+        Returns
+        -------
+        dict[int, int]
+            Mapping target gid -> number of synapse edges targeting that gid.
+            Any requested gid that has no synapses present in the underlying
+            population will be included with a value of 0.
+
+        Notes
+        -----
+        The implementation queries the underlying libsonata population using
+        self._population.afferent_edges and self._population.target_nodes to
+        determine the edge-to-target mapping and then counts occurrences.
+
+        Example
+        -------
+        >>> tgids = np.array([10, 20, 30])
+        >>> counts = reader.get_counts(tgids)
+        >>> # Possible result: {10: 5, 20: 0, 30: 2}
+        """
         edge_ids = self._population.afferent_edges(tgids)
         target_nodes = self._population.target_nodes(edge_ids)
         unique_nodes, counts = np.unique(target_nodes, return_counts=True)
@@ -411,8 +436,40 @@ class SonataReader:
         return counts_dict
 
     def get_conn_counts(self, tgids):
-        """Counts synapses per connetion for all the given target neuron ids.
-        Returns a dict whose value is a numpy stuctured array
+        """Count synapses per source→target connection for given target gids.
+
+        Parameters
+        ----------
+        tgids : array-like of int
+            One or more target neuron gids to query.
+
+        Returns
+        -------
+        dict[int, dict[int, int]]
+            Mapping target gid -> dict mapping source gid -> number of synapses
+            from that source to the target. If a requested gid has no synapses
+            it will be present with value equal to EMPTY_DATA (typically an empty dict).
+
+        Notes
+        -----
+        - The method queries the underlying libsonata population using
+        self._population.afferent_edges, self._population.target_nodes and
+        self._population.source_nodes, then counts unique (target, source)
+        pairs.
+        - Results are cached in self._counts; only missing tgids are read from
+        the file on subsequent calls.
+
+        Example
+        -------
+        >>> # Suppose target 10 has 3 incoming synapses: two from source 1 and
+        >>> # one from source 2; target 20 has none.
+        >>> tgids = np.array([10, 20])
+        >>> conn_counts = reader.get_conn_counts(tgids)
+        >>> # Result:
+        >>> # {
+        >>> #   10: {1: 2, 2: 1},
+        >>> #   20: {}
+        >>> # }
         """
 
         if missing_gids := set(tgids) - set(self._counts):
