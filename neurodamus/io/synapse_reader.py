@@ -411,21 +411,27 @@ class SonataReader:
         return counts_dict
 
     def get_conn_counts(self, tgids):
-        """Counts synapses per connection for all the given target neuron ids.
+        """Counts synapses per connetion for all the given target neuron ids.
         Returns a dict whose value is a numpy stuctured array
         """
+
         if missing_gids := set(tgids) - set(self._counts):
             missing_gids = np.fromiter(missing_gids, dtype="uint32")
             missing_gids.sort()
-            edge_ids = self._population.afferent_edges(missing_gids)
+
+            missing_nodes = missing_gids
+            edge_ids = self._population.afferent_edges(missing_nodes)
             target_nodes = self._population.target_nodes(edge_ids)
             source_nodes = self._population.source_nodes(edge_ids)
             connections = np.empty(len(target_nodes), dtype="uint64,uint64")
             connections["f0"] = target_nodes
             connections["f1"] = source_nodes
 
+
             tgt_src_pairs, counts = np.unique(connections, return_counts=True)
+            
             pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]
+
 
             for conn_i, start_i in enumerate(pairs_start_i[:-1]):
                 end_i = pairs_start_i[conn_i + 1]

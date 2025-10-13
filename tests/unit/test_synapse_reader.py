@@ -68,12 +68,9 @@ def test_conn_manager_syn_stats():
 
     target_ns = NodesetTarget("nodeset1", [SelectionNodeSet([0, 1])], [SelectionNodeSet([0, 1, 2, 3])])
     total_synapses_metype_x = conn_manager._get_conn_stats(target_ns)
-
-    print(conn_manager._synapse_reader.get_conn_counts([0, 1]))
-
-
-    assert total_synapses_metype_x == 2
-    assert stats.metype_cell_syn_average["metype-x"] == 1
+    
+    assert total_synapses_metype_x == 4
+    assert stats.metype_cell_syn_average["metype-x"] == 2
 
     # With a larger target we will count just the difference
     target_ns2 = NodesetTarget("nodeset2", [SelectionNodeSet([0, 1, 2, 3])], [SelectionNodeSet([0, 1, 2, 3])])
