@@ -62,29 +62,29 @@ def test_conn_manager_syn_stats():
     cell_manager.population_name = "pop-A"
 
     stats = DryRunStats()
-    stats.pop_metype_gids = {"pop-A": {"metype-x": [0, 1], "metype-y": [2]}}
+    stats.pop_metype_gids = {"pop-A": {"metype-x": [1], "metype-y": [2]}}
     conn_manager = ConnectionManagerBase(None, None, cell_manager, None, dry_run_stats=stats)
     conn_manager._synapse_reader = SonataReader(sonata_file, "NodeA__NodeA__chemical")
 
-    target_ns = NodesetTarget("nodeset1", [SelectionNodeSet([0, 1])], [SelectionNodeSet([0, 1, 2, 3])])
+    target_ns = NodesetTarget("nodeset1", [SelectionNodeSet([1])], local_nodes=[SelectionNodeSet([1, 2, 3, 4])])
     total_synapses_metype_x = conn_manager._get_conn_stats(target_ns)
     assert total_synapses_metype_x == 2
-    assert stats.metype_cell_syn_average["metype-x"] == 1
+    assert stats.metype_cell_syn_average["metype-x"] == 2
 
     # With a larger target we will count just the difference
-    target_ns2 = NodesetTarget("nodeset2", [SelectionNodeSet([0, 1, 2, 3])], [SelectionNodeSet([0, 1, 2, 3])])
+    target_ns2 = NodesetTarget("nodeset2", [SelectionNodeSet([1, 2, 3, 4])], local_nodes=[SelectionNodeSet([1, 2, 3, 4])])
     additional_synapses = conn_manager._get_conn_stats(target_ns2)
     assert additional_synapses == 2
-    assert stats.metype_cell_syn_average["metype-x"] == 1
+    assert stats.metype_cell_syn_average["metype-x"] == 2
     assert stats.metype_cell_syn_average["metype-y"] == 2
 
     # If we reinitialize the conn_manager and stats object then we should get the sum
     stats = DryRunStats()
-    stats.pop_metype_gids = {"pop-A": {"metype-x": [0, 1], "metype-y": [2]}}
+    stats.pop_metype_gids = {"pop-A": {"metype-x": [1], "metype-y": [2]}}
     conn_manager = ConnectionManagerBase(None, None, cell_manager, None, dry_run_stats=stats)
     conn_manager._synapse_reader = SonataReader(sonata_file, "NodeA__NodeA__chemical")
 
     total_synapses = conn_manager._get_conn_stats(target_ns2)
     assert total_synapses == total_synapses_metype_x + additional_synapses
-    assert stats.metype_cell_syn_average["metype-x"] == 1
+    assert stats.metype_cell_syn_average["metype-x"] == 2
     assert stats.metype_cell_syn_average["metype-y"] == 2
