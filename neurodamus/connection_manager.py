@@ -747,6 +747,10 @@ class ConnectionManagerBase:
                     continue
 
                 sample_counts = self._synapse_reader.get_conn_counts(sample)
+
+                print(sample_counts)
+                assert False
+
                 total_connections = 0
                 selected_conn_count = 0
                 new_conn_count = 0  # Let's count those which were not "created" before

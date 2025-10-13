@@ -232,6 +232,20 @@ class DryRunStats:
         self.synapse_memory_total = 0
         _, _, self.base_memory, _ = get_task_level_mem_usage()
 
+    def __str__(self) -> str:
+        s = f"DryRunStats:\n"
+        s += f"  metype_memory={self.metype_memory!r}\n"
+        s += f"  metype_cell_syn_average={dict(self.metype_cell_syn_average)!r}\n"
+        s += f"  pop_metype_gids={self.pop_metype_gids}\n"
+        s += f"  metype_counts={dict(self.metype_counts)!r}\n"
+        s += f"  synapse_counts={dict(self.synapse_counts)!r}\n"
+        s += f"  suggested_nodes={self.suggested_nodes!r}\n"
+        s += f"  synapse_memory_total={self.synapse_memory_total!r}\n"
+        s += f"  base_memory={getattr(self, 'base_memory', None)!r}\n"
+        s += f"  cell_memory_total={getattr(self, 'cell_memory_total', None)!r}\n"
+        s += f"  simulation_estimate={getattr(self, 'simulation_estimate', None)!r}\n"
+        return s
+
     def import_allocation_stats(self, filename, cycle_i=0, ignore_cache=False) -> dict:
         """Import allocation dictionary from serialized pickle file."""
 
@@ -598,3 +612,5 @@ class DryRunStats:
         print_allocation_stats(bucket_memory)
         export_allocation_stats(bucket_allocation, self._ALLOCATION_FILENAME, num_ranks, cycles)
         return bucket_allocation, bucket_memory, metype_memory_usage
+
+
