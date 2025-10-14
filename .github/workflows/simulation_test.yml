@@ -194,24 +194,32 @@ jobs:
     - name: Build h5py with local HDF5
       run: |
         if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-            # Homebrew HDF5-MPI paths
-            export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
-            export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
-            # Ensure dynamic loader picks up correct HDF5 at runtime
+            export HDF5_PREFIX=$(brew --prefix hdf5-mpi)
+            export HDF5_INCLUDEDIR=$HDF5_PREFIX/include
+            export HDF5_LIBDIR=$HDF5_PREFIX/lib
+            export HDF5_DIR=$HDF5_PREFIX
             export DYLD_LIBRARY_PATH=$HDF5_LIBDIR:$DYLD_LIBRARY_PATH
-            # Uninstall any pre-existing h5py
             pip uninstall -y h5py || true
         else
             export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
             export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
 
-        # Upgrade pip & setuptools to avoid build errors
         python -m pip install --upgrade pip setuptools
-
-        # Build h5py from source on macOS, use cached wheel on Linux
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR HDF5_DIR=$HDF5_DIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+
+        # --- runtime check ---
+        python - <<'EOF'
+        import h5py
+        import numpy as np
+
+        # Simple check: create file, dataset, read type
+        with h5py.File('test.h5', 'w') as f:
+            dset = f.create_dataset('data', data=np.arange(5))
+            t = dset.dtype
+        print("h5py test passed, dtype:", t)
+        EOF
 
     - name: Install neurodamus
       run: |
