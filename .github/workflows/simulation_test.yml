@@ -194,19 +194,19 @@ jobs:
     - name: Build h5py with local HDF5
       run: |
         if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-            export HDF5_PREFIX=$(brew --prefix hdf5-mpi)
-            export HDF5_INCLUDEDIR=$HDF5_PREFIX/include
-            export HDF5_LIBDIR=$HDF5_PREFIX/lib
-            export HDF5_DIR=$HDF5_PREFIX
-            export DYLD_LIBRARY_PATH=$HDF5_LIBDIR:$DYLD_LIBRARY_PATH
+            # Homebrew HDF5-MPI prefix
+            export HDF5_DIR=$(brew --prefix hdf5-mpi)
+            export DYLD_LIBRARY_PATH=$HDF5_DIR/lib:$DYLD_LIBRARY_PATH
             pip uninstall -y h5py || true
         else
             export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
             export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
 
-        python -m pip install --upgrade pip setuptools
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR HDF5_DIR=$HDF5_DIR \
+        python -m pip install --upgrade pip setuptools wheel
+
+        # Build h5py
+        CC="mpicc" HDF5_MPI="ON" \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
         # --- runtime check ---
