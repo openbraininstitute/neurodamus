@@ -55,7 +55,23 @@ def test_syn_read_counts():
 
 
 def test_conn_manager_syn_stats():
-    """Test _get_conn_stats in isolation using a mocked instance of SynapseRuleManager
+    """
+    Test ConnectionManagerBase._get_conn_stats using a mocked SynapseRuleManager.
+
+    Verifies that synapse statistics are correctly computed and accumulated
+    in DryRunStats when targeting different sets of nodes.
+
+    Test scenario:
+    - The Sonata edges file has:
+        * 2 edges from node 0 to node 1
+        * 2 edges from node 1 to node 0
+    - DryRunStats is initialized with metypes "metype-x" and "metype-y" 
+      for population "pop-A".
+
+    Checks:
+    1. Correct count for a single-node target.
+    2. Correct additional count when expanding the target.
+    3. Correct cumulative count when reinitializing the manager and stats.
     """
     sonata_file = SIM_DIR / "usecase3/local_edges_A.h5"
     cell_manager = Mock(CellDistributor)
