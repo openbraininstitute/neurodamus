@@ -97,7 +97,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     n.run()
 
     # Check RingA cells spikes
-    spike_gid_ref = np.array(range(1000, 1007))
+    spike_gid_ref = np.array(range(7)) + 1000
     timestamps_ref = np.array([2.075]*len(spike_gid_ref))
     ringA_spikes = n._spike_vecs[0]
     timestamps = np.array(ringA_spikes[0])
@@ -123,7 +123,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(Rad_ref, Rad_vec[::20])
 
     # Check R0pas stability
-    R0pas_new = get_vascouplingB_attribute(astro_ids[0], manager_gliovasc, "R0pas")
+    R0pas_new = get_vascouplingB_attribute(0, manager_gliovasc, "R0pas")
     npt.assert_allclose(R0pas_new, R0pas_refs[0])
 
 
