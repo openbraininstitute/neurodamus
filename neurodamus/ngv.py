@@ -104,7 +104,7 @@ class Astrocyte(BaseCell):
         sec.insert("vascouplingB")
         sec(0.5).vascouplingB.R0pas = R0pas
         # connect to parent sec
-        parent_sec = self.get_sec(parent_id)
+        parent_sec = self.get_sec(parent_id + 1)
         sec.connect(parent_sec)
 
     def get_glut(self, section_id):
