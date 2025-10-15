@@ -263,6 +263,10 @@ class MorphIOWrapper:
         last_type = None
         type_start_index = 0
 
+        for i in self._morph.sections:
+            print(i)
+        assert False
+
         for i, sec in enumerate(self._morph.sections, start=1):
             sec_type = self._morph.section_types[sec.id]
 

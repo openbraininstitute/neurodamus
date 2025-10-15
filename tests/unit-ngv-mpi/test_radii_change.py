@@ -72,63 +72,59 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
-    # astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
+    astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
 
-    # manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
-    # vasculature_pop = manager_gliovasc._vasculature
+    manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
+    vasculature_pop = manager_gliovasc._vasculature
 
-    # R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
-    #               for astro_id in astro_ids]
+    R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
+                  for astro_id in astro_ids]
 
-    # for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
-    #     # check Rad
-    #     Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
-    #     npt.assert_allclose(Rads, [14.7]*len(Rads))
+    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
+        # check Rad
+        Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
+        npt.assert_allclose(Rads, [14.7]*len(Rads))
 
-    #     # check R0pas
-    #     R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
-    #     npt.assert_allclose(R0pas, R0pas_ref)
+        # check R0pas
+        R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
+        npt.assert_allclose(R0pas, R0pas_ref)
 
-    # astrocyte = manager_gliovasc._cell_manager.gid2cell[manager_gliovasc._gid_offset]
-    # Rad_vec = Nd.Vector()
-    # Rad_vec.record(next(iter(astrocyte.endfeet))(0.5).vascouplingB._ref_Rad)
-
-    Nd._pc.prcellstate(0, f"py_Neuron_t{Nd.t}")
+    astrocyte = manager_gliovasc._cell_manager.gid2cell[manager_gliovasc._gid_offset]
+    Rad_vec = Nd.Vector()
+    Rad_vec.record(next(iter(astrocyte.endfeet))(0.5).vascouplingB._ref_Rad)
 
     Nd.finitialize()
     n.run()
 
+    # Check RingA cells spikes
+    spike_gid_ref = np.array(range(7)) + 1000
+    timestamps_ref = np.array([2.075]*len(spike_gid_ref))
+    ringA_spikes = n._spike_vecs[0]
+    timestamps = np.array(ringA_spikes[0])
+    spike_gids = np.array(ringA_spikes[1])
+    npt.assert_equal(spike_gid_ref, spike_gids)
+    npt.assert_allclose(timestamps_ref, timestamps)
 
+    # Check AstrocytesA spikes
+    spike_gid_ref = np.array(range(4))
+    timestamps_ref = np.array([5.475, 6.725, 7.675, 8.775])
+    astrocyteA_spikes = n._spike_vecs[1]
+    timestamps = np.array(astrocyteA_spikes[0])
+    spike_gids = np.array(astrocyteA_spikes[1])
+    npt.assert_equal(spike_gids, spike_gid_ref)
+    npt.assert_allclose(timestamps, timestamps_ref)
 
-    # # Check RingA cells spikes
-    # spike_gid_ref = np.array(range(7)) + 1000
-    # timestamps_ref = np.array([2.075]*len(spike_gid_ref))
-    # ringA_spikes = n._spike_vecs[0]
-    # timestamps = np.array(ringA_spikes[0])
-    # spike_gids = np.array(ringA_spikes[1])
-    # npt.assert_equal(spike_gid_ref, spike_gids)
-    # npt.assert_allclose(timestamps_ref, timestamps)
+    # Check Rad variation
+    Rad_ref = np.array(
+        [14.7, 14.7000011, 14.70000471, 14.70001065, 14.70001896, 14.70002959, 14.70004255,
+         14.70005779, 14.7000753,  14.70009505, 14.70011703, 14.70014121, 14.70016757,
+         14.70019609, 14.70022675, 14.70025952, 14.70029439, 14.70033134, 14.70037035,
+         14.70041139, 14.70045445])
+    npt.assert_allclose(Rad_ref, Rad_vec[::20])
 
-    # # Check AstrocytesA spikes
-    # spike_gid_ref = np.array(range(4))
-    # timestamps_ref = np.array([5.475, 6.725, 7.675, 8.775])
-    # astrocyteA_spikes = n._spike_vecs[1]
-    # timestamps = np.array(astrocyteA_spikes[0])
-    # spike_gids = np.array(astrocyteA_spikes[1])
-    # npt.assert_equal(spike_gids, spike_gid_ref)
-    # npt.assert_allclose(timestamps, timestamps_ref)
-
-    # # Check Rad variation
-    # Rad_ref = np.array(
-    #     [14.7, 14.7000011, 14.70000471, 14.70001065, 14.70001896, 14.70002959, 14.70004255,
-    #      14.70005779, 14.7000753,  14.70009505, 14.70011703, 14.70014121, 14.70016757,
-    #      14.70019609, 14.70022675, 14.70025952, 14.70029439, 14.70033134, 14.70037035,
-    #      14.70041139, 14.70045445])
-    # npt.assert_allclose(Rad_ref, Rad_vec[::20])
-
-    # # Check R0pas stability
-    # R0pas_new = get_vascouplingB_attribute(0, manager_gliovasc, "R0pas")
-    # npt.assert_allclose(R0pas_new, R0pas_refs[0])
+    # Check R0pas stability
+    R0pas_new = get_vascouplingB_attribute(0, manager_gliovasc, "R0pas")
+    npt.assert_allclose(R0pas_new, R0pas_refs[0])
 
 
 # @pytest.mark.parametrize("create_tmp_simulation_config_file", [
