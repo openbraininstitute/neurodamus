@@ -96,8 +96,8 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     from neurodamus.utils.dump_cellstate import dump_cellstate
     from pathlib import Path
 
-    outputfile = Path("cellstate_" + str(astro_id) + ".json")
-    dump_cellstate(n._pc, Nd.cvode, astro_id, outputfile)
+    outputfile = Path("cellstate_0.json")
+    dump_cellstate(n._pc, Nd.cvode, 0, outputfile)
 
     # Nd.finitialize()
     # n.run()
