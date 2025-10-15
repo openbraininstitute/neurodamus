@@ -491,7 +491,7 @@ class Connection(ConnectionBase):
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
 
-        syn_helper = helper_cls(self.tgid, params_obj, x, syn_id, base_seed, *add_params)
+        syn_helper = helper_cls(self.tgid+1, params_obj, x, syn_id, base_seed, *add_params)
 
         # set the synapse conductance obtained from the synapse file
         # this variable is exclusively used for delay connections
