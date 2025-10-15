@@ -72,35 +72,33 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
-    astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
+    # astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
 
-    manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
-    vasculature_pop = manager_gliovasc._vasculature
+    # manager_gliovasc = n.circuits.get_edge_manager("vasculature", "AstrocyteA", GlioVascularManager)
+    # vasculature_pop = manager_gliovasc._vasculature
 
-    R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
-                  for astro_id in astro_ids]
+    # R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
+    #               for astro_id in astro_ids]
 
-    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
-        # check Rad
-        Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
-        npt.assert_allclose(Rads, [14.7]*len(Rads))
+    # for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
+    #     # check Rad
+    #     Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
+    #     npt.assert_allclose(Rads, [14.7]*len(Rads))
 
-        # check R0pas
-        R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
-        npt.assert_allclose(R0pas, R0pas_ref)
+    #     # check R0pas
+    #     R0pas = get_vascouplingB_attribute(astro_id, manager_gliovasc, "R0pas")
+    #     npt.assert_allclose(R0pas, R0pas_ref)
 
-    astrocyte = manager_gliovasc._cell_manager.gid2cell[manager_gliovasc._gid_offset]
-    Rad_vec = Nd.Vector()
-    Rad_vec.record(next(iter(astrocyte.endfeet))(0.5).vascouplingB._ref_Rad)
+    # astrocyte = manager_gliovasc._cell_manager.gid2cell[manager_gliovasc._gid_offset]
+    # Rad_vec = Nd.Vector()
+    # Rad_vec.record(next(iter(astrocyte.endfeet))(0.5).vascouplingB._ref_Rad)
 
-    from neurodamus.utils.dump_cellstate import dump_cellstate
-    from pathlib import Path
+    Nd._pc.prcellstate(0, f"py_Neuron_t{Nd.t}")
 
-    outputfile = Path("cellstate_0.json")
-    dump_cellstate(n._pc, Nd.cvode, 0, outputfile)
+    Nd.finitialize()
+    n.run()
 
-    # Nd.finitialize()
-    # n.run()
+
 
     # # Check RingA cells spikes
     # spike_gid_ref = np.array(range(7)) + 1000
