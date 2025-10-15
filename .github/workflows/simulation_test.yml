@@ -234,6 +234,7 @@ jobs:
         export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
         export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
         export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
+        export LIBSONATA_ZERO_BASED_GIDS=1
         if [[ "${{matrix.os}}" == *"macOS"* ]]; then
           export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
           export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
