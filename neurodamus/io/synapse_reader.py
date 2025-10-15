@@ -272,7 +272,6 @@ class SonataReader:
 
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
-
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())
         needed_gids = sorted(orig_needed_gids_set)
@@ -407,20 +406,20 @@ class SonataReader:
         tgids : array-like of int
             One or more target neuron gids to query.
 
-        Returns
+        Returns:
         -------
         dict[int, int]
             Mapping target gid -> number of synapse edges targeting that gid.
             Any requested gid that has no synapses present in the underlying
             population will be included with a value of 0.
 
-        Notes
+        Notes:
         -----
         The implementation queries the underlying libsonata population using
         self._population.afferent_edges and self._population.target_nodes to
         determine the edge-to-target mapping and then counts occurrences.
 
-        Example
+        Example:
         -------
         >>> tgids = np.array([10, 20, 30])
         >>> counts = reader.get_counts(tgids)
@@ -443,14 +442,14 @@ class SonataReader:
         tgids : array-like of int
             One or more target neuron gids to query.
 
-        Returns
+        Returns:
         -------
         dict[int, dict[int, int]]
             Mapping target gid -> dict mapping source gid -> number of synapses
             from that source to the target. If a requested gid has no synapses
             it will be present with value equal to EMPTY_DATA (typically an empty dict).
 
-        Notes
+        Notes:
         -----
         - The method queries the underlying libsonata population using
         self._population.afferent_edges, self._population.target_nodes and
@@ -459,7 +458,7 @@ class SonataReader:
         - Results are cached in self._counts; only missing tgids are read from
         the file on subsequent calls.
 
-        Example
+        Example:
         -------
         >>> # Suppose target 10 has 3 incoming synapses: two from source 1 and
         >>> # one from source 2; target 20 has none.
@@ -471,7 +470,6 @@ class SonataReader:
         >>> #   20: {}
         >>> # }
         """
-
         if missing_gids := set(tgids) - set(self._counts):
             missing_gids = np.fromiter(missing_gids, dtype="uint32")
             missing_gids.sort()
@@ -484,11 +482,9 @@ class SonataReader:
             connections["f0"] = target_nodes
             connections["f1"] = source_nodes
 
-
             tgt_src_pairs, counts = np.unique(connections, return_counts=True)
-            
-            pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]
 
+            pairs_start_i = np.diff(tgt_src_pairs["f0"], prepend=np.nan, append=np.nan).nonzero()[0]
 
             for conn_i, start_i in enumerate(pairs_start_i[:-1]):
                 end_i = pairs_start_i[conn_i + 1]

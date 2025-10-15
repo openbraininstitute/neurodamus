@@ -233,7 +233,7 @@ class DryRunStats:
         _, _, self.base_memory, _ = get_task_level_mem_usage()
 
     def __str__(self) -> str:
-        s = f"DryRunStats:\n"
+        s = "DryRunStats:\n"
         s += f"  metype_memory={self.metype_memory!r}\n"
         s += f"  metype_cell_syn_average={dict(self.metype_cell_syn_average)!r}\n"
         s += f"  pop_metype_gids={self.pop_metype_gids}\n"
@@ -612,5 +612,3 @@ class DryRunStats:
         print_allocation_stats(bucket_memory)
         export_allocation_stats(bucket_allocation, self._ALLOCATION_FILENAME, num_ranks, cycles)
         return bucket_allocation, bucket_memory, metype_memory_usage
-
-
