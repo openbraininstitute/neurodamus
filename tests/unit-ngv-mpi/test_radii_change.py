@@ -50,7 +50,6 @@ def compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_p
     d_ends = vasculature_pop.get_attribute("end_diameter", vasc_node_ids)
     return (d_starts+d_ends)/4
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(NGV_DIR),
