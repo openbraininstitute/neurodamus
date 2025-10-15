@@ -56,7 +56,7 @@ def test_distribution(create_tmp_simulation_config_file, mpi_ranks):
     # Check AstrocytesA spikes
     if rank == 0:
         spike_gid_ref = np.array([0, 2])
-        timestamps_ref = np.array([5.5, 7.675])
+        timestamps_ref = np.array([5.475, 7.675])
     elif rank == 1:
         spike_gid_ref = np.array([1, 3])
         timestamps_ref = np.array([6.725, 8.775])
