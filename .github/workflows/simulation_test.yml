@@ -191,35 +191,20 @@ jobs:
       run: |
         MPICC=mpicc pip install --no-binary=mpi4py mpi4py
 
-    - name: Build h5py with local HDF5
+    - name: Build h5py with the local hdf5
       run: |
         if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-            # Homebrew HDF5-MPI prefix
-            export HDF5_DIR=$(brew --prefix hdf5-mpi)
-            export DYLD_LIBRARY_PATH=$HDF5_DIR/lib:$DYLD_LIBRARY_PATH
-            pip uninstall -y h5py || true
+          export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
+          export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
         else
-            export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
-            export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
+          export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
+          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
         fi
-
-        python -m pip install --upgrade pip setuptools wheel
-
-        # Build h5py
-        CC="mpicc" HDF5_MPI="ON" \
+        # Upgrade setuptools again, to avoid build error from `project.license`
+        # Neuron installed older setuptools but it doesn't work for h5py
+        python -m pip install --upgrade pip setuptools
+        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
           pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
-
-        # --- runtime check ---
-        python - <<'EOF'
-        import h5py
-        import numpy as np
-
-        # Simple check: create file, dataset, read type
-        with h5py.File('test.h5', 'w') as f:
-            dset = f.create_dataset('data', data=np.arange(5))
-            t = dset.dtype
-        print("h5py test passed, dtype:", t)
-        EOF
 
     - name: Install neurodamus
       run: |
