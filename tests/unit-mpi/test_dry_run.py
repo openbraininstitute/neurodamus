@@ -57,14 +57,13 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
         assert nd._dry_run_stats.metype_counts == expected_metypes_count
         assert nd._dry_run_stats.suggested_nodes > 0
 
-#TODO Juan: remove copy_memory_files and make it deterministic
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
-def test_dry_run_distribute_cells(create_tmp_simulation_config_file, copy_memory_files, mpi_ranks):
+def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -105,7 +104,6 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, copy_memory
             'RingB': {}
         }]
     assert rank_allocation_standard == expected_allocation[rank]
-
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
