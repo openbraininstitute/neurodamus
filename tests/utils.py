@@ -302,27 +302,6 @@ def check_synapse(syn, edges, selection, **kwargs):
     if "NMDA_ratio" in kwargs and hasattr(syn, "NMDA_ratio"):
         assert np.isclose(syn.NMDA_ratio, kwargs["NMDA_ratio"])
 
-
-def check_signal_peaks(x, ref_peaks_pos, threshold=1, tolerance=0):
-    """
-    Check the given signal peaks comparing with the given
-    reference
-
-    Args:
-        x: given signal, typically voltage.
-        ref_peaks_pos: the position of the signal peaks
-        taken as reference.
-        threshold: peak detection threshold measured with
-        respect of the surrounding baseline of the signal
-        tolerance: peak detection tolerance window per peak
-
-    Raises:
-        AssertionError: If any of the reference peak
-        positions doesn't match with the obtained peaks
-    """
-    peaks_pos = find_peaks(x, prominence=threshold)[0]
-    np.testing.assert_allclose(peaks_pos, ref_peaks_pos, atol=tolerance)
-
 def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()

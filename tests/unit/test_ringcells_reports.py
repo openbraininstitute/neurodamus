@@ -7,8 +7,12 @@ from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
 from neurodamus.utils.pyutils import CumulativeError
 from neurodamus.node import Node
-from tests.utils import (check_signal_peaks, read_ascii_report,
+from tests.utils import (read_ascii_report,
                          record_compartment_reports, write_ascii_reports)
+
+import numpy as np
+from scipy.signal import find_peaks
+
 
 
 @pytest.mark.parametrize(
@@ -319,7 +323,8 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert len(data) == 2500  # 500 time steps * 5 soma sections
     # check soma signal peak for cell 1001 as in test_current_injection.py
     cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
-    check_signal_peaks(cell_voltage_vec, [92, 291])
+    peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
+    np.testing.assert_allclose(peaks_pos, [92, 291])
 
     compartment_i_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_i_report.exists()
@@ -327,8 +332,8 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
     cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
 
-    check_signal_peaks(cell_current_vec, [9,  29,  50,  70, 110, 132, 152, 173, 193],
-                       threshold=0.05)
+    peaks_pos = find_peaks(cell_current_vec, prominence=0.05)[0]
+    np.testing.assert_allclose(peaks_pos, [9,  29,  50,  70, 110, 132, 152, 173, 193])
     
     compartment_pas_report = Path(n._run_conf["OutputRoot"]) / ("compartment_pas.txt")
     assert compartment_pas_report.exists()
