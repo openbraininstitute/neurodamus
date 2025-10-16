@@ -5,7 +5,7 @@ import struct
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Union, get_args, get_origin, get_type_hints
+from typing import ClassVar, Union, get_args, get_origin, get_type_hints
 
 from ._utils import run_only_rank0
 from neurodamus.report_parameters import ReportType
@@ -172,6 +172,15 @@ class CoreReportConfigEntry:
 class CoreReportConfig:
     """Handler of report.conf, the configuration of the coreNeuron reports."""
 
+    # Version of the "report.conf" file.
+    # Format: v<major>[.<minor>] (e.g., v1.3 or v2).
+    # - Major version must match the one expected by neuron.
+    # - Minor version must be greater than or equal to the minimum required by neuron.
+    #   Note: If the minor version is higher than expected, neuron is compatible
+    #   but will return results as if the file were from the older version, which
+    #   may not be what you intended.
+    report_conf_version: ClassVar[str] = "v1"
+
     reports: dict[str, CoreReportConfigEntry] = field(default_factory=dict, init=False)
     pop_offsets: dict[str, int] = field(default=None, init=False)
     spike_filename: str = field(default=None, init=False)
@@ -200,6 +209,8 @@ class CoreReportConfig:
         # always override
         logging.info("Writing coreneuron report config file: %s", path)
         with open(path, "wb") as f:
+            # version
+            f.write(f"{CoreReportConfig.report_conf_version}\n".encode())
             # number of reports
             f.write(f"{len(self.reports)}\n".encode())
             # dump each entry
@@ -217,10 +228,27 @@ class CoreReportConfig:
                 f.write(f"{self.spike_filename}\n".encode())
         logging.info("Done! coreneuron report config was written")
 
+    # ruff: noqa: C901
     @classmethod
     def load(cls, path: str) -> CoreReportConfig:
         config = cls()
         with open(path, "rb") as f:
+            # --- Check version ---
+            version_line = f.readline().decode().strip()
+            if not version_line:
+                return config
+
+            # we are more strict than neuron because we want to be sure that
+            # we write and edit always with the same version in mind
+            accepted_versions = {
+                CoreReportConfig.report_conf_version,
+                CoreReportConfig.report_conf_version + ".0",
+            }
+            if version_line not in accepted_versions:
+                raise ValueError(
+                    f"Unexpected file version: {version_line.decode().strip()}. "
+                    f"Expected: {accepted_versions}"
+                )
             # --- Read number of reports ---
             line = f.readline()
             if not line:
