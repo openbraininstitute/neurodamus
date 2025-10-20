@@ -459,7 +459,6 @@ class ConnectionManagerBase:
 
         Args:
             weight_factor: Factor to scale all netcon weights (default: 1)
-            only_gids: Create connections only for these tgids (default: Off)
         """
         if SimConfig.dry_run:
             syn_count = self._get_conn_stats(None)
@@ -695,8 +694,8 @@ class ConnectionManagerBase:
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:
-            dst_nodeset: The target to estimate synapses for
-            src_nodeset: The source nodes allowed for the given synapses
+            dst_target: The target to estimate synapses for
+            src_target: The source nodes allowed for the given synapses
 
         Returns:
             The estimated number of synapses which would be created
