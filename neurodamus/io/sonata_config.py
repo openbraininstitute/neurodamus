@@ -176,7 +176,6 @@ class SonataConfig:
                     if edge_pop_name == inner_pop_name or (
                         edge_storage.source == edge_storage.target == node_pop_name
                         and edge_type == "chemical"
-                        and edge_pop_name == "default"
                     ):
                         edges_file = edge_config["edges_file"]
                         if not os.path.isabs(edges_file):
