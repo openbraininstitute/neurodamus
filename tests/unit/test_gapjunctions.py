@@ -5,14 +5,16 @@ import numpy.testing as npt
 import pytest
 import pickle
 
-from tests.utils import check_signal_peaks
-
 from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
 from neurodamus.connection_manager import SynapseRuleManager
 from neurodamus.core.configuration import SimConfig
 from neurodamus.gap_junction import GapJunctionManager
 from pathlib import Path
+
+import numpy as np
+from scipy.signal import find_peaks
+
 
 
 @pytest.mark.parametrize(
@@ -81,7 +83,9 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
     tgtvar_vec.record(tgt_cellref.soma[0](0.5)._ref_v)
     h.finitialize()  # reinit for the recordings to be registered
     nd.run()
-    check_signal_peaks(tgtvar_vec, [52, 57, 252, 257, 452, 457])
+
+    peaks_pos = find_peaks(tgtvar_vec, prominence=1)[0]
+    np.testing.assert_allclose(peaks_pos, [52, 57, 252, 257, 452, 457])
 
 
 @pytest.mark.parametrize(

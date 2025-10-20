@@ -276,18 +276,6 @@ def test_merge_simulation_configs(create_tmp_simulation_config_file):
         assert len(config_data["run"]) == 3
 
 
-def test_check_signal_peaks():
-    x = np.array([-60., -59., -20., -30., -50., -40., -55., -59., -10., -15., -30., -49., -60.])
-    ref_pos = [2, 5, 8]
-    utils.check_signal_peaks(x, ref_pos)
-
-    x_ramp = x + np.arange(len(x)) * 2
-    utils.check_signal_peaks(x_ramp, ref_pos)
-
-    x_ramp = x + np.arange(len(x)) * -2
-    utils.check_signal_peaks(x_ramp, ref_pos)
-
-
 def test_compare_outdat_files_identical(tmp_path):
     content = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3"""
     file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'

@@ -7,6 +7,10 @@ import tempfile
 
 from neurodamus import Neurodamus
 
+import numpy as np
+from scipy.signal import find_peaks
+
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -110,4 +114,5 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
         npt.assert_allclose(timestamps_ref, timestamps)
 
         # Check voltage variation in RingB population cell
-        utils.check_signal_peaks(voltage_vec, voltage_peaks_ref)
+        peaks_pos = find_peaks(voltage_vec, prominence=1)[0]
+        np.testing.assert_allclose(peaks_pos, voltage_peaks_ref)
