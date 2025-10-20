@@ -2,6 +2,11 @@
 # Copyright 2018 - Blue Brain Project, EPFL
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from neurodamus.report_parameters import ReportParameters
+
 import gc
 import glob
 import itertools
@@ -1010,13 +1015,9 @@ class Node:
         self._sonatareport_helper.prepare_datasets()
 
     @cache_errors
-    def _set_point_list_in_rep_params(self, rep_params):
+    def _set_point_list_in_rep_params(self, rep_params: ReportParameters):
         """Dispatcher: it helps to retrieve the points of a target and set them in
         the report parameters.
-
-        Args:
-            target: The target name or object
-            manager: The cell manager to access gids and metype infos
 
         Returns: The target list of points
         """
