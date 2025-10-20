@@ -55,8 +55,6 @@ def dry_run_distribution(gid_metype_bundle, stride=1, stride_offset=0):
 
     Args:
         gid_metype_bundle: list of lists of gids to be distributed
-        mpi_size: MPI size
-        mpi_rank: MPI rank
     Returns:
         A numpy array of gids that are sequentially in the same metype
     """

@@ -143,7 +143,6 @@ class SelectionNodeSet:
             gids: The gids to handle
             gid_info: a map containing METype information about each cell.
                 In v5 and v6 values are METypeItem's
-            offset: offset of the gids. Used to set a SelectionNodeSet from another one
         """
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)

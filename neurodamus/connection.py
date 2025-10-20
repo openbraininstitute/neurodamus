@@ -510,11 +510,7 @@ class Connection(ConnectionBase):
         return syn_helper.synapse
 
     def finalize_gap_junctions(self):
-        """When all parameters are set, create synapses and netcons
-
-        Args:
-            cell: The cell to create synapses and netcons on.
-        """
+        """When all parameters are set, create synapses and netcons"""
         self._synapses = compat.List()
         self._netcons = []
 

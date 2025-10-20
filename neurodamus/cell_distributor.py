@@ -744,8 +744,9 @@ class LoadBalance:
     def generate_load_balance(self, target_spec, cell_distributor):
         """Context manager that creates load balance for the circuit instantiated within
 
+        target_str: a string representation of the target.
+
         Args:
-            target_str: a string representation of the target.
             cell_distributor: the cell distributor object to which we can query
                 the cells to be load balanced
         """
