@@ -13,6 +13,9 @@ from neurodamus.connection import NetConType
 from neurodamus.core.configuration import ConfigurationError, Feature, SimConfig
 from neurodamus.replay import MissingSpikesPopulationError, SpikeManager
 
+import numpy as np
+from scipy.signal import find_peaks
+
 INPUT_SPIKES_FILE = str(RINGTEST_DIR / "input_spikes.h5")
 
 
@@ -204,7 +207,8 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)
+    peaks_pos = find_peaks(voltage_vec, prominence=0.5)[0]
+    np.testing.assert_allclose(peaks_pos, [42, 84])
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -257,4 +261,9 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd.run()
 
-    utils.check_signal_peaks(voltage_vec, [42, 84], 0.5)
+    peaks_pos = find_peaks(voltage_vec, prominence=0.5)[0]
+    np.testing.assert_allclose(peaks_pos, [42, 84])
+
+
+
+    

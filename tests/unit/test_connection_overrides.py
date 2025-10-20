@@ -5,8 +5,10 @@ https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connect
 """
 
 
-import numpy as np
+
 import pytest
+import numpy as np
+from scipy.signal import find_peaks
 
 from tests import utils
 
@@ -276,8 +278,21 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
-    utils.check_signal_peaks(voltage_trace, [15,  58, 167, 272, 388], threshold=0.5)
+    peaks_pos = find_peaks(voltage_trace, prominence=0.3)[0]
+    np.testing.assert_allclose(peaks_pos, [ 15,  58, 125, 167, 272, 306, 388])
 
+    ## debug: print the voltage_trage and the detected peaks
+    # import matplotlib.pyplot as plt
+    # trace = np.array(voltage_trace)
+    # plt.figure()
+    # plt.plot(trace, label="Voltage trace")
+    # plt.scatter(peaks_pos, trace[peaks_pos], marker="x", s=80, label="Peaks")
+    # plt.grid(True)
+    # plt.xlabel("Time index")
+    # plt.ylabel("Voltage (mV)")
+    # plt.title("Spontaneous Minis Trace with Peaks")
+    # plt.legend()
+    # plt.show()
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
