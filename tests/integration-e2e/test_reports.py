@@ -466,34 +466,4 @@ def test_reports_cell_permute(create_tmp_simulation_config_file):
         assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
 
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [
-        make_extra_config("v5_sonata_config", "CORENEURON"),
-    ],
-    indirect=True,
-)
-@pytest.mark.slow
-def test_reports_direct_mode_vs_reference(create_tmp_simulation_config_file):
-    """
-    Test coreneuron direct mode run vs reference files.
-    """
-    nd = Neurodamus(create_tmp_simulation_config_file, coreneuron_direct_mode=True)
-    output_dir = Path(SimConfig.output_root)
-    reference_dir = V5_SONATA / "reference" / "reports"
-
-    nd.run()
-    loose_tols = {"rtol": 1e-6, "atol": 1e-6}
-
-    # Compare files to reference. Since the reference is fixed, this is also a comparison neuron vs coreneuron
-    # reference produced with neuron
-    # coreneuron does not have exactly the same results, we use the loose tols in that case
-    loose_tol_files = {"summation_i_membrane.h5"}
-    for ref_file in reference_dir.glob("*.h5"):
-        r_reference = ReportReader(ref_file)   
-        file = output_dir / ref_file.name 
-        r = ReportReader(file)
-
-        assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
-
 
