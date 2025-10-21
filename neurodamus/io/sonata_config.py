@@ -14,6 +14,7 @@ class ConnectionTypes(str, Enum):
     NeuroModulation = "NeuroModulation"
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
+    PointNeuron = "PointNeuron"
 
 
 class SonataConfig:
@@ -157,6 +158,7 @@ class SonataConfig:
                     ]
                     circuit_config["MorphologyType"] = "h5"
             circuit_config["Engine"] = "NGV" if node_prop.type == "astrocyte" else "METype"
+            circuit_config["Engine"] = "AllenPoint" if node_prop.type == "allen_point" else "METype"
 
             # Find inner connectivity
             # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
@@ -175,7 +177,7 @@ class SonataConfig:
                     inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
                     if edge_pop_name == inner_pop_name or (
                         edge_storage.source == edge_storage.target == node_pop_name
-                        and edge_type == "chemical"
+                        and (edge_type == "chemical" or edge_type == "point_neuron")
                     ):
                         edges_file = edge_config["edges_file"]
                         if not os.path.isabs(edges_file):
@@ -209,6 +211,7 @@ class SonataConfig:
             "synapse_astrocyte": ConnectionTypes.NeuroGlial,
             "endfoot": ConnectionTypes.GlioVascular,
             "neuromodulatory": ConnectionTypes.NeuroModulation,
+            "point_neuron": ConnectionTypes.PointNeuron,
         }
         internal_edge_pops = {c_conf["nrnPath"] for c_conf in self._circuits.values()}
         projections = {}
