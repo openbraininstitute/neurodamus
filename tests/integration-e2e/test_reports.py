@@ -465,5 +465,3 @@ def test_reports_cell_permute(create_tmp_simulation_config_file):
 
         assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
 
-
-
