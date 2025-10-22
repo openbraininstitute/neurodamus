@@ -19,11 +19,17 @@ def test_comparison():
     v2 = GitVersion("1.2.3-15-gbbbbbb")
     v3 = GitVersion("1.2.4-5-gcccccc")
     v4 = GitVersion("1.2.3-10-gaaaaaa")
+    v5 = GitVersion("9.0a")
+    v6 = GitVersion("9.0.0")
+    v7 = GitVersion("9.0")
 
     assert v1 < v2
     assert v2 < v3
     assert v1 == v4
     assert v3 > v2
+    assert v5 < v6
+    assert v5 < v7
+    assert v6 == v7
 
 def test_check_environment_pass(monkeypatch):
     # Patch neuron.__version__ to a newer version
