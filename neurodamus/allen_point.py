@@ -42,29 +42,36 @@ class PointConnection(Connection):
     def finalize(
         self,
         cell,
-        base_seed=0,
-        **kwargs):
-        """When all parameters are set, create synapses and netcons
+        base_seed=None,
+        attach_src_cell=True,
+        **kw
+        ):
+        """Create netcons for point neuron connections
 
         Args:
-            cell: The cell to create synapses and netcons on.
-            base_seed: base seed value (Default: None - no adjustment)
-            replay_mode: Policy to initialize replay in this conection
+            cell: The cell to create netcons on.
 
         """
-        # Initialize member lists
-        # self._synapses = compat.List()  # Used by ConnUtils
         self._netcons = []
-        # self._init_artificial_stims(cell, replay_mode)
         n_syns = 0
         for syn_params in self.synapse_params:
             n_syns += 1
-            nc = Nd.pc.gid_connect(self.sgid, cell.CellRef.pointcell)
-            nc.delay = self.syndelay_override or syn_params.delay
-            nc.weight[0] = syn_params.weight * self.weight_factor
-            nc.threshold = SimConfig.spike_threshold
-            self._netcons.append(nc)
-        #TODO: replay 
+            if attach_src_cell:
+                nc = Nd.pc.gid_connect(self.sgid, cell.CellRef.pointcell)
+                nc.delay = self.syndelay_override or syn_params.delay
+                nc.weight[0] = syn_params.weight * self.weight_factor
+                nc.threshold = SimConfig.spike_threshold
+                self._netcons.append(nc)
+            if self._replay is not None and self._replay.has_data():
+                vecstim = Nd.VecStim()
+                vecstim.play(self._replay.time_vec)
+                nc = Nd.NetCon(vecstim, 
+                               cell.CellRef.pointcell,10,
+                               self.syndelay_override or syn_params.delay,
+                               syn_params.weight
+                )
+                nc.weight[0] = syn_params.weight * self.weight_factor
+                self._replay._store(vecstim, nc)
 
         return n_syns
 
