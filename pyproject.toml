@@ -10,7 +10,9 @@ name="neurodamus"
 authors = [
     {name = "Blue Brain Project, EPFL"}
 ]
-maintainers = [{maintainers = "Open Brain Institute"}]
+maintainers = [
+  { name = "Open Brain Institute" }
+]
 description = "An OBI Simulation Control application for NEURON"
 license = {file = "LICENSE.txt"}
 readme = "README.rst"
