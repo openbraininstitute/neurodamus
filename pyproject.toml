@@ -8,8 +8,9 @@ build-backend = "hatchling.build"
 [project]
 name="neurodamus"
 authors = [
-    {name = "Open Brain Institute"},
+    {name = "Blue Brain Project, EPFL"}
 ]
+maintainers = [{maintainers = "Open Brain Institute"}]
 description = "An OBI Simulation Control application for NEURON"
 license = {file = "LICENSE.txt"}
 readme = "README.rst"
