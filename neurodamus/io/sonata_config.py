@@ -158,7 +158,7 @@ class SonataConfig:
                     ]
                     circuit_config["MorphologyType"] = "h5"
             circuit_config["Engine"] = "NGV" if node_prop.type == "astrocyte" else "METype"
-            circuit_config["Engine"] = "AllenPoint" if node_prop.type == "allen_point" else "METype"
+            circuit_config["Engine"] = "AllenPoint" if node_prop.type == "point_neuron" else "METype"
 
             # Find inner connectivity
             # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
