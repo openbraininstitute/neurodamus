@@ -71,15 +71,17 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     lines = cx_file.splitlines()
     assert len(lines) == 5
     assert int(lines[1]) == 3, "Number of gids different than 3."
-    # Gid should be without offset (2 instead of 1002)
-    assert int(lines[3].split()[0]) == 2, "gid 2 not found."
+    # Gid should be without offset (1 instead of 1001)
+    assert int(lines[3].split()[0]) == 1, "gid 1 not found."
 
     # check the spikes
     spike_dat = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
+
     timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
     assert len(timestamps_A) == 21
     ref_times = np.array([0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7.0, 7.4, 8.6, 13.8, 19.6, 25.7, 32.,
                           36.4, 38.5, 40.8, 42.6, 45.2, 48.3, 49.9])
-    ref_gids = np.array([1, 2, 3, 1, 2, 3, 1, 1, 2, 3, 3, 3, 3, 3, 1, 3, 2, 1, 3, 1, 2])
+    ref_gids = np.array([0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 2, 2, 2, 2, 0, 2, 1, 0, 2, 0, 1])
+
     npt.assert_allclose(timestamps_A, ref_times)
     npt.assert_allclose(gids_A, ref_gids)

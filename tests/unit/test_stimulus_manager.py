@@ -389,7 +389,7 @@ def test_relative_shot_noise(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     # add dummy "input_resistance" in the target cell, try again
     cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
-    cell = cell_manager.get_cell(2)
+    cell = cell_manager.get_cell(1)
     cell.extra_attrs["input_resistance"] = 0.01
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[1]
@@ -540,7 +540,7 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
         ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     # add dummy "input_resistance" in the target cell, try again
     cell_manager = ringtest_stimulus_manager._target_manager._cell_manager
-    cell = cell_manager.get_cell(2)
+    cell = cell_manager.get_cell(1)
     cell.extra_attrs["input_resistance"] = 0.02
     ringtest_stimulus_manager.interpret(target_onecell, stim_info)
     stimulus = ringtest_stimulus_manager._stimulus[1]

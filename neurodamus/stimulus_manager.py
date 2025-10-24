@@ -142,7 +142,13 @@ class OrnsteinUhlenbeck(BaseStim):
                 if not sc.exists():
                     continue
 
-                rng = random.Random123(seed1, seed2, seed3(gid))  # setup RNG
+                rng = random.Random123(
+                    seed1,
+                    seed2,
+                    seed3(
+                        gid + 1
+                    ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
+                )  # setup RNG
                 ou_args = (self.tau, self.sigma, self.mean, self.duration)
                 ou_kwargs = {
                     "dt": self.dt,
@@ -276,7 +282,13 @@ class ShotNoise(BaseStim):
                 if not sc.exists():
                     continue
 
-                rng = random.Random123(seed1, seed2, seed3(gid))  # setup RNG
+                rng = random.Random123(
+                    seed1,
+                    seed2,
+                    seed3(
+                        gid + 1
+                    ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
+                )  # setup RNG
                 shotnoise_args = (
                     self.tau_D,
                     self.tau_R,
@@ -609,7 +621,9 @@ class Noise(BaseStim):
             self.compute_parameters(cell)
 
             rng = random.Random123(
-                Noise.stim_count + 100, SimConfig.rng_info.getStimulusSeed() + 500, gid + 300
+                Noise.stim_count + 100,
+                SimConfig.rng_info.getStimulusSeed() + 500,
+                gid + 300 + 1,  # keep +1 to match legacy 1-based Neurodamus for reproducibility
             )
 
             # draw already used numbers
