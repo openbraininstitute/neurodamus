@@ -265,7 +265,7 @@ class SonataReader:
 
         ranges = list(gen_ranges(len(gids), CHUNK_SIZE))
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
-            self._preload_data_chunk(gids[start:end] - 1, minimal_mode)
+            self._preload_data_chunk(gids[start:end], minimal_mode)
 
     def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
