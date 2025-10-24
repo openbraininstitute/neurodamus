@@ -149,8 +149,8 @@ def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
     Neurodamus(create_tmp_simulation_config_file)
-    soma1 = Nd._pc.gid2cell(1).soma[0]
-    soma2 = Nd._pc.gid2cell(2).soma[0]
+    soma1 = Nd._pc.gid2cell(0).soma[0]
+    soma2 = Nd._pc.gid2cell(1).soma[0]
 
     assert np.isclose(soma1.gnabar_hh, 0.12)
     assert np.isclose(soma1.e_pas, -70)

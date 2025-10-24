@@ -417,7 +417,7 @@ class GlioVascularManager(ConnectionManagerBase):
             self._connect_endfeet(astro_id)
 
     def _connect_endfeet(self, astro_id):
-        endfeet = self._gliovascular.afferent_edges(astro_id - 1)  # 0-based for libsonata API
+        endfeet = self._gliovascular.afferent_edges(astro_id)
         if endfeet.flat_size > 0:
             # Get endfeet input
 

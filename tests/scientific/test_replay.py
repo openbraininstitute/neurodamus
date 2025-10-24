@@ -47,13 +47,13 @@ def test_replay_sim(sonata_config):
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
-    conn_2_1 = next(edges_a.get_connections(1, 2))
-    time_vec = conn_2_1._replay.time_vec.as_numpy()
+    conn_1_0 = next(edges_a.get_connections(0, 1))
+    time_vec = conn_1_0._replay.time_vec.as_numpy()
     assert len(time_vec) == 1
     assert time_vec[0] == 3
 
-    conn_1_2 = next(edges_a.get_connections(2, 1))
-    time_vec = conn_1_2._replay.time_vec.as_numpy()
+    conn_0_1 = next(edges_a.get_connections(1, 0))
+    time_vec = conn_0_1._replay.time_vec.as_numpy()
     assert len(time_vec) == 1
     assert time_vec[0] == 2
 
@@ -61,7 +61,7 @@ def test_replay_sim(sonata_config):
     gids = nd._spike_vecs[0][1].as_numpy().astype(int)
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
-    assert gids[0] == 3
+    assert gids[0] == 2
     assert numpy.allclose(times, [0.75])
 
     os.unlink(config_file.name)
@@ -87,13 +87,13 @@ def test_many_replay_sim(sonata_config):
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
-    conn_2_1 = next(edges_a.get_connections(1, 2))
-    time_vec = conn_2_1._replay.time_vec.as_numpy()
+    conn_1_0 = next(edges_a.get_connections(0, 1))
+    time_vec = conn_1_0._replay.time_vec.as_numpy()
     assert len(time_vec) == 14
     npt.assert_allclose(time_vec[:8], [0.175, 3., 3., 3.025, 5.7, 8., 8.975, 13.95])
 
-    conn_1_2 = next(edges_a.get_connections(2, 1))
-    time_vec = conn_1_2._replay.time_vec.as_numpy()
+    conn_0_1 = next(edges_a.get_connections(1, 0))
+    time_vec = conn_0_1._replay.time_vec.as_numpy()
     assert len(time_vec) == 17
     npt.assert_allclose(time_vec[:8], [0.1, 2., 2.275, 4., 4.35, 7.725, 12.525, 16.825])
 
@@ -101,7 +101,7 @@ def test_many_replay_sim(sonata_config):
     gids = nd._spike_vecs[0][1].as_numpy().astype(int)
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
-    assert gids[0] == 3
+    assert gids[0] == 2
     assert numpy.allclose(times, [0.75])
 
     os.unlink(config_file.name)
@@ -127,20 +127,20 @@ def test_replay_sonata_spikes(sonata_config):
 
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeA")
 
-    conn_2_1 = next(edges_a.get_connections(1, 2))
-    time_vec = conn_2_1._replay.time_vec.as_numpy()
+    conn_1_0 = next(edges_a.get_connections(0, 1))
+    time_vec = conn_1_0._replay.time_vec.as_numpy()
     assert len(time_vec) == 11
     npt.assert_allclose(time_vec[:8], [0.175, 3.025, 5.7, 8.975, 13.95, 20.15, 26.125, 31.725])
 
-    conn_1_2 = next(edges_a.get_connections(2, 1))
-    time_vec = conn_1_2._replay.time_vec.as_numpy()
+    conn_0_1 = next(edges_a.get_connections(1, 0))
+    time_vec = conn_0_1._replay.time_vec.as_numpy()
     assert len(time_vec) == 13
     npt.assert_allclose(time_vec[:8], [0.1, 2.275, 4.35, 7.725, 12.525, 16.825, 21.4, 26.05])
 
     # projections get replay too
     edges_a = nd.circuits.get_edge_manager("NodeA", "NodeB")
-    conn_2_1001 = next(edges_a.get_connections(1001, 2))
-    time_vec = conn_2_1001._replay.time_vec.as_numpy()
+    conn_1_1000 = next(edges_a.get_connections(1000, 1))
+    time_vec = conn_1_1000._replay.time_vec.as_numpy()
     assert len(time_vec) == 11
     npt.assert_allclose(time_vec[:8], [0.175, 3.025, 5.7, 8.975, 13.95, 20.15, 26.125, 31.725])
 

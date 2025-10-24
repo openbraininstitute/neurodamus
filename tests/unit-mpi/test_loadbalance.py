@@ -78,7 +78,7 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
     nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
 
     if rank == 0:
-        cell_id = 1001
+        cell_id = 1000
         manager = nd.circuits.get_node_manager("RingB")
         cell_ringB = manager.get_cell(cell_id)
         voltage_vec = Nd.Vector()
@@ -87,7 +87,7 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
     Nd.finitialize()
     nd.run()
 
-    spike_gid_ref = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3])
+    spike_gid_ref = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2])
     timestamps_ref = np.array([5.1, 5.1, 5.1, 25.1, 25.1, 25.1, 45.1, 45.1, 45.1])
     voltage_peaks_ref = np.array([92, 291])
 
