@@ -1560,7 +1560,7 @@ class Node:
         """Check for .corenrn or .nrn files in the current directory
         and move them to CoreConfig.output_root_path(create=True).
         """
-        current_dir = Path(".")
+        current_dir = Path.cwd()
         output_root = Path(SimConfig.output_root_path(create=True))
 
         # Iterate through files in the current directory

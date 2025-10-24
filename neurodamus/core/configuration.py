@@ -207,7 +207,6 @@ class _SimConfig:
 
     # In principle not all vars need to be required as they'r set by the parameter functions
     simulation_config_dir = None
-    current_dir = None
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
@@ -277,15 +276,9 @@ class _SimConfig:
         cls._init_hoc_config_objs()
 
     @classmethod
-    def current_dir_path(cls):
-        if cls.current_dir:
-            return cls.current_dir
-        return str(Path.cwd())
-
-    @classmethod
     def build_path(cls):
         """Default to <currend_dir>/build if save is None"""
-        return cls.save or str(Path(cls.current_dir_path()) / "build")
+        return cls.save or str(Path(cls.simulation_config_dir) / "build")
 
     @classmethod
     def coreneuron_datadir_path(cls, create=False):
@@ -804,31 +797,6 @@ def _randomize_gaba_risetime(config: _SimConfig):
 
 
 @SimConfig.validator
-def _current_dir(config: _SimConfig):
-    curdir = config.run_conf.get("CurrentDir")
-
-    if curdir is None:
-        log_verbose("CurrentDir using simulation config path [default]")
-        curdir = config.simulation_config_dir
-    else:
-        if not os.path.isabs(curdir):
-            if curdir == ".":
-                logging.warning(
-                    "Setting CurrentDir to '.' is discouraged and "
-                    "shall never be used in production jobs."
-                )
-            else:
-                raise ConfigurationError("CurrentDir: Relative paths not allowed")
-            curdir = os.path.abspath(curdir)
-        if not os.path.isdir(curdir):
-            raise ConfigurationError("CurrentDir doesnt exist: " + curdir)
-
-    log_verbose("CurrentDir = %s", curdir)
-    config.run_conf["CurrentDir"] = curdir
-    config.current_dir = curdir
-
-
-@SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
     output_path = config.run_conf.get("OutputRoot")
@@ -838,7 +806,7 @@ def _output_root(config: _SimConfig):
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
     if not Path(output_path).is_absolute():
-        output_path = Path(config.current_dir_path()) / output_path
+        output_path = Path(config.simulation_config_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
     config.run_conf["OutputRoot"] = str(output_path)
@@ -860,7 +828,7 @@ def _check_save(config: _SimConfig):
     assert isinstance(save_path, str), "Save must be a string path"
     path_obj = Path(save_path)
     if not path_obj.is_absolute():
-        path_obj = Path(config.current_dir) / path_obj
+        path_obj = Path(config.simulation_config_dir) / path_obj
 
     config.save = str(path_obj)
 
@@ -880,7 +848,7 @@ def _check_restore(config: _SimConfig):
     assert isinstance(restore, str), "Restore must be a string path"
     path_obj = Path(restore)
     if not path_obj.is_absolute():
-        path_obj = Path(config.current_dir) / path_obj
+        path_obj = Path(config.simulation_config_dir) / path_obj
 
     config.restore = str(path_obj)
 
