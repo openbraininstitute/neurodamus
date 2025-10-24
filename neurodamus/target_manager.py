@@ -383,7 +383,7 @@ class NodeSetReader:
         def _get_nodeset(pop_name):
             storage = self._population_stores.get(pop_name)
             population = storage.open_population(pop_name)
-            # Create SelectionNodeSet object with 1-based gids
+            # Create SelectionNodeSet object with gids
             try:
                 node_selection = self.nodesets.materialize(nodeset_name, population)
             except libsonata.SonataError as e:
@@ -395,7 +395,7 @@ class NodeSetReader:
                 return None
             if node_selection:
                 logging.debug("Nodeset %s: Appending gids from %s", nodeset_name, pop_name)
-                ns = SelectionNodeSet.from_zero_based_libsonata_selection(node_selection)
+                ns = SelectionNodeSet(node_selection)
                 ns.register_global(pop_name)
                 return ns
             return None
@@ -544,14 +544,9 @@ class NodesetTarget:
             return point_list
         sel_node_set = self.populations[population_name]
 
-        sel = libsonata.Selection(
-            [(start - 1, stop - 1) for start, stop in sel_node_set.selection(raw_gids=True).ranges]
-        )
-        # compartment_set is 0-based
-        for cl in compartment_set.filtered_iter(sel):
+        for cl in compartment_set.filtered_iter(sel_node_set.selection(raw_gids=True)):
             raw_gid, section_id, offset = cl.node_id, cl.section_id, cl.offset
-            # points are 1-based
-            gid = sel_node_set._offset + raw_gid + 1
+            gid = sel_node_set._offset + raw_gid
             cell = cell_manager.get_cell(gid)
             sec = cell.get_sec(section_id)
             if len(point_list) and point_list[-1].gid == gid:
@@ -637,7 +632,7 @@ class NodesetTarget:
         if not self.gid_count():
             return ([False] * len(items)) if hasattr(items, "__len__") else False
 
-        gids = self.gids(raw_gids=True) if raw_gids else self.gids(raw_gids=False)
+        gids = self.gids(raw_gids=raw_gids)
         contained = np.isin(items, gids, kind="table")
         return bool(contained) if contained.ndim == 0 else contained
 

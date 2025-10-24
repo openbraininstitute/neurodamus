@@ -41,8 +41,8 @@ def test_cli_prcellgid(create_tmp_simulation_config_file):
         ["neurodamus", create_tmp_simulation_config_file, "--dump-cell-state=1", "--keep-build"],
         check=True,
     )
-    assert (tmp_path / "output" / "2_py_Neuron_t0.0.nrndat").is_file()
-    assert (tmp_path / "output" / "2_py_Neuron_t50.0.nrndat").is_file()
+    assert (tmp_path / "output" / "1_py_Neuron_t0.0.nrndat").is_file()
+    assert (tmp_path / "output" / "1_py_Neuron_t50.0.nrndat").is_file()
 
 
 @pytest.mark.parametrize(

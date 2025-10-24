@@ -201,6 +201,7 @@ class CellManagerBase(_CellManager):
             )
         else:
             gidvec, me_infos, *cell_counts = self._load_nodes_balance(loader_f, load_balancer)
+
         self._local_nodes.add_gids(gidvec, me_infos)
         self._total_cells = cell_counts[0]
         logging.info(" => Loaded info about %d target cells (out of %d)", *cell_counts)
@@ -672,7 +673,7 @@ class LoadBalance:
             return False
 
         logging.info("Attempt reusing cx files from other targets...")
-        target_gids = self._get_target_raw_gids(target_spec)
+        target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
         cx_other = {}
 
         for previous_target in self._cx_targets:
@@ -718,7 +719,7 @@ class LoadBalance:
             return False
 
         if target_spec:  # target provided, otherwise everything
-            target_gids = self._get_target_raw_gids(target_spec)
+            target_gids = self._target_manager.get_target(target_spec).gids(raw_gids=True)
             if not self._cx_contains_gids(cx_filename, target_gids):
                 logging.warning(" => %s invalid: changed target definition!", cx_filename)
                 return False
@@ -888,10 +889,6 @@ class LoadBalance:
         for gid in gids:
             for line in cx_dict[gid]:
                 fp.write(line)  # raw lines, include \n
-
-    # -
-    def _get_target_raw_gids(self, target_spec) -> np.ndarray:
-        return self._target_manager.get_target(target_spec).gids(raw_gids=True)
 
     def load_balance_info(self, target_spec):
         """Loads a load-balance info for a given target.
