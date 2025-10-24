@@ -63,5 +63,6 @@ def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
     ])
     spike_file = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
     obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
+    
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     npt.assert_allclose(timestamps, obtained_timestamps)

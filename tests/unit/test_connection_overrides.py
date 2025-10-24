@@ -56,9 +56,9 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
-        ("RingA", 3, "RingA", 1),
-        ("RingB", 2, "RingB", 1),
-        ("RingA", 1, "RingB", 1),
+        ("RingA", 2, "RingA", 0),
+        ("RingB", 1, "RingB", 0),
+        ("RingA", 0, "RingB", 0),
     ]
 
     overrides = {
@@ -134,9 +134,9 @@ def test_synapse_without_weight(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
-        ("RingA", 3, "RingA", 1),
-        ("RingB", 2, "RingB", 1),
-        ("RingA", 1, "RingB", 1),
+        ("RingA", 2, "RingA", 0),
+        ("RingB", 1, "RingB", 0),
+        ("RingA", 0, "RingB", 0),
     ]
 
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
@@ -174,9 +174,9 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
-        ("RingA", 3, "RingA", 1),
-        ("RingB", 2, "RingB", 1),
-        ("RingA", 1, "RingB", 1),
+        ("RingA", 2, "RingA", 0),
+        ("RingB", 1, "RingB", 0),
+        ("RingA", 0, "RingB", 0),
     ]
 
     overrides = {("RingA", "RingB"): {
@@ -257,13 +257,13 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Ndc
 
     nd = Neurodamus(create_tmp_simulation_config_file)
-    # get all the netcons targetting 1001 from neuron directly
-    cell = nd._pc.gid2cell(1001)
+    # get all the netcons targetting 1000 from neuron directly
+    cell = nd._pc.gid2cell(1000)
     nclist = Ndc.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     # assert that the old netcons are still there
-    assert nclist[0].srcgid() == 1
-    assert nclist[1].srcgid() == 1002
+    assert nclist[0].srcgid() == 0
+    assert nclist[1].srcgid() == 1001
     # test the spont_minis netcon
     assert nclist[2].srcgid() == -1
     assert nclist[2].weight[4] == int(NetConType.NC_SPONTMINI)
@@ -273,7 +273,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     assert nclist[2].delay == pytest.approx(0.1)
 
     voltage_trace = Ndc.Vector()
-    cell_ringB = nd.circuits.get_node_manager("RingB").get_cell(1001)
+    cell_ringB = nd.circuits.get_node_manager("RingB").get_cell(1000)
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
     Ndc.finitialize()  # reinit for the recordings to be registered
     nd.run()
