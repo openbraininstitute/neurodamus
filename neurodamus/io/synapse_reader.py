@@ -142,11 +142,8 @@ class SynapseParameters:
 class SonataReader:
     """Reader for SONATA edge files.
 
-    Uses libsonata directly and contains a bunch of workarounds to accomodate files
-    created in the transition to SONATA.
-
-    Will read each attribute for multiple GIDs at once and cache read data in a columnar
-    fashion.
+    Uses libsonata. It will read each attribute for multiple GIDs
+    at once and cache read data in a columnar fashion.
 
     FIXME Remove the caching at the np.recarray level.
     """
@@ -225,10 +222,6 @@ class SonataReader:
             self._syn_params[gid] = syn_params
         return syn_params
 
-    def get_property(self, gid, field_name):
-        """Retrieves a full pre-loaded property given a gid and the property name."""
-        return self._data[gid][field_name]
-
     def _open_file(self, src, population, _):
         """Initializes the reader, opens the synapse file"""
         try:
@@ -255,6 +248,10 @@ class SonataReader:
         if field_name in self.SYNAPSE_INDEX_NAMES:
             return True
         return field_name in self._population.attribute_names
+
+    def get_property(self, gid, field_name):
+        """Retrieves a full pre-loaded property given a gid and the property name."""
+        return self._data[gid][field_name]
 
     def preload_data(self, gids, minimal_mode=False):
         """Preload SONATA fields for the specified IDs.
