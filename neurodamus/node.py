@@ -75,6 +75,7 @@ from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.pyutils import cache_errors
 from .utils.timeit import TimerManager, timeit
+from .utils.version import check_environment
 from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 from neurodamus.utils.pyutils import CumulativeError, rmtree
@@ -340,6 +341,7 @@ class Node:
             config_file: A Sonata config file
             options: A dictionary of run options typically coming from cmd line
         """
+        check_environment()
         options = options or {}
         assert isinstance(config_file, str), "`config_file` should be a string"
         assert config_file, "`config_file` cannot be empty"

@@ -8,9 +8,12 @@ build-backend = "hatchling.build"
 [project]
 name="neurodamus"
 authors = [
-    {name = "Blue Brain Project, EPFL"},
+    {name = "Blue Brain Project, EPFL"}
 ]
-description = "A BBP Simulation Control application for NEURON"
+maintainers = [
+  { name = "Open Brain Institute" }
+]
+description = "An OBI Simulation Control application for NEURON"
 license = {file = "LICENSE.txt"}
 readme = "README.rst"
 dynamic = ["version"]
@@ -18,7 +21,8 @@ dependencies = [
     "h5py",
     "docopt-ng",
     "libsonata",
-    "psutil"
+    "psutil",
+    "packaging"
 ]
 requires-python=">=3.9"
 
