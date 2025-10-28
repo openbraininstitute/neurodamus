@@ -617,7 +617,13 @@ class NodesetTarget:
                     break
                 sec = secs[isec]
 
-                section_id = cell.get_section_id(sec)
+                try:
+                    section_id = cell.get_section_id(sec)
+                except Exception:  # noqa: BLE001
+                    if "axon" in str(sec):
+                        # Skip the ghost axon added in allen's circuit
+                        continue
+
                 if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
