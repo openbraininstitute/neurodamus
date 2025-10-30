@@ -8,7 +8,9 @@ import weakref
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from typing import DefaultDict
 
+import memray
 import numpy as np
 
 from .connection_manager import ConnectionManagerBase
@@ -34,7 +36,7 @@ from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
 from .utils.logging import log_all, log_verbose
-from .utils.memory import DryRunStats, get_mem_usage_kb
+from .utils.memory import DryRunStats
 
 
 class VirtualCellPopulation:
@@ -305,44 +307,34 @@ class CellManagerBase(_CellManager):
         logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
         cell_offset = self._local_nodes.offset
 
-        prev_metype = None
-        prev_memory = get_mem_usage_kb()
-        metype_n_cells = 0
         memory_dict = {}
         MAX_CELLS = 50
 
-        def store_metype_stats(metype, n_cells):
-            nonlocal prev_memory
-            end_memory = get_mem_usage_kb()
-            memory_allocated = end_memory - prev_memory
-            log_all(
-                logging.DEBUG,
-                " * METype %s: %.1f KiB averaged over %d cells",
-                metype,
-                memory_allocated / n_cells,
-                n_cells,
-            )
-            memory_dict[metype] = max(0, memory_allocated / n_cells)
-            prev_memory = end_memory
 
+        # Batching metypes
+        metypes_cells = DefaultDict(list)
         for gid, cell_info in self._local_nodes.iter_cell_info():
             if cell_info is None:
                 continue
             metype = f"{cell_info.mtype}-{cell_info.etype}"
+            metypes_cells[metype].append((gid, cell_info))
+
+        for metype, cells in metypes_cells.items():
             if metype in skip_metypes:
                 continue
-            if prev_metype is not None and metype != prev_metype:
-                store_metype_stats(prev_metype, metype_n_cells)
-                metype_n_cells = 0
-            if metype_n_cells >= MAX_CELLS:
-                continue
-            cell = cell_type(gid, cell_info, self._circuit_conf)
-            self._store_cell(gid + cell_offset, cell)
-            prev_metype = metype
-            metype_n_cells += 1
 
-        if prev_metype is not None and metype_n_cells > 0:
-            store_metype_stats(prev_metype, metype_n_cells)
+            n_cells = 0
+            tmp_file = Path(f".tmp_{metype}.bin")
+            dst = memray.FileDestination(tmp_file, True, True)
+            with memray.Tracker(destination=dst, memory_interval_ms=10000):
+                for gid, cell_info in cells[:MAX_CELLS]:
+                    cell = cell_type(gid, cell_info, self._circuit_conf)
+                    self._store_cell(gid + cell_offset, cell)
+                    n_cells += 1
+            reader = memray.FileReader(tmp_file)
+            peak_memory = reader.metadata.peak_memory / 1024
+            tmp_file.unlink()
+            memory_dict[metype] = max(0, peak_memory / n_cells)
 
         return memory_dict
 
