@@ -18,7 +18,8 @@ dependencies = [
     "h5py",
     "docopt-ng",
     "libsonata",
-    "psutil"
+    "psutil",
+    "memray"
 ]
 requires-python=">=3.9"
 
