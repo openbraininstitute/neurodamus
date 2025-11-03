@@ -252,6 +252,10 @@ class _SimConfig:
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
+        log_verbose(
+            "SimulationConfigDir using directory of simulation config file: %s",
+            cls.simulation_config_dir,
+        )
 
         cls.projections = cls._config_parser.parsedProjections
         cls.connections = cls._config_parser.parsedConnects
