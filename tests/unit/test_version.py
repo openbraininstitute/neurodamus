@@ -1,7 +1,7 @@
 # test_git_version.py
 
 import pytest
-from neurodamus.utils.version import GitVersion, check_environment
+from neurodamus.utils.version import GitVersion
 
 def test_parsing():
     v = GitVersion("1.2.3-45-gabcdef")
@@ -30,21 +30,3 @@ def test_comparison():
     assert v5 < v6
     assert v5 < v7
     assert v6 == v7
-
-def test_check_environment_pass(monkeypatch):
-    # Patch neuron.__version__ to a newer version
-    class DummyNeuron:
-        __version__ = "9.0a-1500-gabcd"
-
-    monkeypatch.setitem(__import__('sys').modules, 'neuron', DummyNeuron())
-    # Should not raise
-    check_environment()
-
-def test_check_environment_fail(monkeypatch):
-    # Patch neuron.__version__ to an older version
-    class DummyNeuron:
-        __version__ = "9.0a-1000-gabcd"
-
-    monkeypatch.setitem(__import__('sys').modules, 'neuron', DummyNeuron())
-    with pytest.raises(RuntimeError):
-        check_environment()

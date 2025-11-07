@@ -16,19 +16,6 @@ from functools import total_ordering
 from packaging import version
 
 
-def check_environment():
-    """Ensure programs in the environment (like neuron) are compatible with Neurodamus."""
-    import neuron
-
-    # Neurodamus requires NEURON >= 9.0a-1485-g0d990513b because
-    # the layout of `report.conf` changed in this commit.
-    req_version = GitVersion("9.0a-1485-g0d990513b")
-
-    curr_neuron_version = GitVersion(neuron.__version__)
-    if curr_neuron_version < req_version:
-        raise RuntimeError(f"NEURON >= {req_version} required, found {curr_neuron_version}")
-
-
 @total_ordering
 class GitVersion:
     """Represents a Git-style version string: base[-commits-gHASH]. Comparison considers
