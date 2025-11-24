@@ -426,7 +426,7 @@ class SonataReader:
         target_nodes = self._population.target_nodes(edge_ids)
         unique_nodes, counts = np.unique(target_nodes, return_counts=True)
         unique_gids = unique_nodes
-        counts_dict = dict(zip(unique_gids, counts))
+        counts_dict = dict(zip(unique_gids, counts, strict=True))
         for gid in tgids:
             counts_dict.setdefault(gid, 0)
         return counts_dict

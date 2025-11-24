@@ -228,7 +228,7 @@ class SignalSource:
         amp = gamma(rng, gamma_shape, gamma_scale, len(nev))
 
         E = Nd.h.Vector(ntstep, 0)  # full signal
-        for n, A in zip(nev, amp):
+        for n, A in zip(nev, amp, strict=True):
             E.x[int(n)] += sign * A  # add impulses, may overlap due to rounding to timestep
 
         # perform equivalent of convolution with bi-exponential impulse response

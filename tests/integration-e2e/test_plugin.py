@@ -62,7 +62,7 @@ class ACellManager(CellManagerBase):
             np.ones(local_cell_count, dtype='f4'),  # fake field 1
             np.arange(local_cell_count, dtype='f4')  # fake field 2
         ]
-        cell_info = dict(zip(gidvec, np.stack(properties, axis=-1)))
+        cell_info = dict(zip(gidvec, np.stack(properties, axis=-1), strict=True))
         return gidvec, cell_info, total_cells
 
 
@@ -89,7 +89,7 @@ class ACellConnection(ConnectionBase):
         self._synapses = (syn,)
         self._netcons = []
 
-        for sgid, syn_params in zip(self._src_gids, self._synapse_params):
+        for sgid, syn_params in zip(self._src_gids, self._synapse_params, strict=True):
             nc = Nd.pc.gid_connect(sgid, syn)
             nc.weight[0] = syn_params.conductance * self._conn_params.weight_factor
             nc.delay = syn_params.delay

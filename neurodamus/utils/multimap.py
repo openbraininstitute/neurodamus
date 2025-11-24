@@ -67,7 +67,7 @@ class GroupedMultiMap(collections.abc.Mapping):
         )
 
     def items(self):
-        return zip(self._keys, self._values)
+        return zip(self._keys, self._values, strict=True)
 
     def __contains__(self, key):
         return self.find(key) is not None

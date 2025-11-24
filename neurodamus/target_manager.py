@@ -70,7 +70,7 @@ class TargetPointList:
 
     def __iter__(self) -> Iterator[tuple[int, object, float]]:
         self.validate()
-        return iter(zip(self.sclst_ids, self.sclst, self.x))
+        return iter(zip(self.sclst_ids, self.sclst, self.x, strict=True))
 
     def __str__(self) -> str:
         self.validate()

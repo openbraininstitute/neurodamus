@@ -1,10 +1,10 @@
-# Blue Brain Project - EPFL, 2024
-"""A library of functions shared across tools.
-"""
+"""A library of functions shared across tools."""
 
 import math
 import os
 import sys
+
+import numpy as np
 
 PROGRESS_STEPS = 50
 DEFAULT_HISTOGRAM_NBINS = 40
@@ -12,11 +12,10 @@ DEFAULT_HISTOGRAM_NBINS = 40
 
 def show_histogram(buckets, n_bins=DEFAULT_HISTOGRAM_NBINS):
     """A simple histogram CLI visualizer"""
-    import numpy  # optional
     MiB = float(1024 * 1024)
-    freq, bins = numpy.histogram(buckets, bins=n_bins)
+    freq, bins = np.histogram(buckets, bins=n_bins)
     bin_start = bins[0]
-    for count, bin_end in zip(freq, bins[1:]):
+    for count, bin_end in zip(freq, bins[1:], strict=True):
         if count:
             print(f"  [{bin_start/MiB:5.0f} - {bin_end/MiB:5.0f}]: {count:0d}")
         bin_start = bin_end

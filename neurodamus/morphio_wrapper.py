@@ -332,7 +332,9 @@ class MorphIOWrapper:
             (
                 f"soma {{ pt3dadd({p[0]:.8g}, {p[1]:.8g}, {p[2]:.8g}, {d:.8g}) }}"
                 for p, d in zip(
-                    reversed(self._morph.soma.points), reversed(self._morph.soma.diameters)
+                    reversed(self._morph.soma.points),
+                    reversed(self._morph.soma.diameters),
+                    strict=True,
                 )
             )
         )
@@ -360,7 +362,7 @@ class MorphIOWrapper:
             # 3D point info
             cmds.extend(
                 f"{tstr} {{ pt3dadd({p[0]:.8g}, {p[1]:.8g}, {p[2]:.8g}, {d:.8g}) }}"
-                for p, d in zip(sec.points, sec.diameters)
+                for p, d in zip(sec.points, sec.diameters, strict=True)
             )
 
         return cmds

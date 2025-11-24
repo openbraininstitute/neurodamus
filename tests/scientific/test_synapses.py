@@ -213,7 +213,7 @@ def test__constrained_hill():
 
 def get_target_raw_gids(target_manager, target_name):
     tgt = target_manager.get_target(target_name)
-    return tuple(zip(tgt.population_names, tgt.gids(raw_gids=True)))
+    return tuple(zip(tgt.population_names, tgt.gids(raw_gids=True), strict=True))
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
