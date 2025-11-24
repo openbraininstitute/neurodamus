@@ -1,7 +1,5 @@
 import json
-import h5py
 from pathlib import Path
-import logging
 
 import numpy as np
 from libsonata import EdgeStorage, SpikeReader, ElementReportReader
@@ -50,7 +48,7 @@ def merge_dicts(parent: dict, child: dict):
         if isinstance(d, dict):
             # Delete the key if present
             d.pop("override_field", None)
-            for key, value in d.items():
+            for value in d.values():
                 sanitize_dict(value)
         elif isinstance(d, list):
             for item in d:
@@ -355,6 +353,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
         ascii_recorders[rep_name] = (recorder, tvec)
     return ascii_recorders
 
+
 def write_ascii_reports(ascii_recorders, output_path):
     """Write out the report in ASCII format"""
     for rep_name, (recorder, tvec) in ascii_recorders.items():
@@ -362,8 +361,12 @@ def write_ascii_reports(ascii_recorders, output_path):
         with open(filename, "w") as f:
             f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
             for gid, secname, data_vec in recorder:
-                f.writelines(f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
-                            for t, data in zip(tvec, data_vec, strict=True))
+                f.writelines(
+                    f"{gid:<10}{secname:<20}{t:<20.4f}{data:<20.4f}\n"
+                    # Note: strict=False is used because tvec has length longer than data_vec
+                    # see discussion in https://github.com/openbraininstitute/neurodamus/pull/423
+                    for t, data in zip(tvec, data_vec, strict=False)
+                )
 
 
 def read_ascii_report(filename):
