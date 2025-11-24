@@ -79,7 +79,7 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
                   for astro_id in astro_ids]
 
-    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
+    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs, strict=True):
         # check Rad
         Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
         npt.assert_allclose(Rads, [14.7]*len(Rads))
@@ -148,7 +148,7 @@ def test_vasccouplingB_radii_mpi(create_tmp_simulation_config_file, mpi_ranks):
     R0pas_refs = [compute_R0pas_from_vasculature_pop(astro_id, manager_gliovasc, vasculature_pop)
                   for astro_id in astro_ids]
 
-    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs):
+    for astro_id, R0pas_ref in zip(astro_ids, R0pas_refs, strict=True):
         # check Rad
         Rads = get_vascouplingB_attribute(astro_id, manager_gliovasc, "Rad")
         npt.assert_allclose(Rads, [14.7]*len(Rads))

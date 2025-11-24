@@ -82,7 +82,7 @@ class BaseCell:
             raise SectionIdError(f"Cannot parse section name: {section_name}") from e
 
         offset = 0
-        for name, count in zip(BaseCell._section_layout, self.get_section_counts()):
+        for name, count in zip(BaseCell._section_layout, self.get_section_counts(), strict=True):
             name = name[0]
             if name == section_type:
                 if local_idx >= count:
@@ -107,7 +107,7 @@ class BaseCell:
         calculated based on the original cell structure.
         """
         idx = section_id
-        for name, count in zip(BaseCell._section_layout, self.get_section_counts()):
+        for name, count in zip(BaseCell._section_layout, self.get_section_counts(), strict=True):
             name, accessor_fn = name[0], name[1]
             if idx < count:
                 section_list = accessor_fn(self._cellref)

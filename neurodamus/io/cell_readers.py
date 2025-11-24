@@ -220,7 +220,7 @@ def load_sonata(  # noqa: C901, PLR0915
             prop_data = node_pop.get_dynamics_attribute(prop_name, node_sel)
         else:
             prop_data = node_pop.get_attribute(prop_name, node_sel)
-        for gid, val in zip(meinfos.keys(), prop_data):
+        for gid, val in zip(meinfos.keys(), prop_data, strict=True):
             meinfos[gid].extra_attrs[prop_name] = val
 
     return gidvec, meinfos, fullsize
@@ -235,7 +235,7 @@ def _getNeededAttributes(node_reader, etype_path, emodels, gidvec):
         gidvec: Array of 0-based cell gids
     """
     add_params_list = []
-    for gid, emodel in zip(gidvec, emodels):
+    for gid, emodel in zip(gidvec, emodels, strict=True):
         Nd.h.load_file(ospath.join(etype_path, emodel) + ".hoc")  # hoc doesn't throw
         attr_names = getattr(Nd, emodel + "_NeededAttributes", None)  # format "attr1;attr2;attr3"
         vals = []
@@ -318,7 +318,7 @@ def _retrieve_unique_metypes(node_reader, all_gids, skip_metypes=()) -> dict:
 
     gids_per_metype = defaultdict(list)
     count_per_metype = defaultdict(int)
-    for gid, mtype, etype in zip(all_gids, mtypes, etypes):
+    for gid, mtype, etype in zip(all_gids, mtypes, etypes, strict=True):
         metype = f"{mtype}-{etype}"
         gids_per_metype[metype].append(gid)
         count_per_metype[metype] += 1

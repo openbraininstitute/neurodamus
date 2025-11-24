@@ -154,7 +154,7 @@ class Astrocyte(BaseCell):
             ]
         )
         for sec, parent_id, length, diameter, R0pas in zip(
-            self.endfeet, parent_ids, lengths, diameters, R0passes
+            self.endfeet, parent_ids, lengths, diameters, R0passes, strict=True
         ):
             self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
 

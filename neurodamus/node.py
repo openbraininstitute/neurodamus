@@ -1477,7 +1477,7 @@ class Node:
             self._sonatareport_helper.create_spikefile(output_root, file_name)
             # write spikes per population
             for (population, population_offset), (spikevec, idvec) in zip(
-                self._spike_populations, self._spike_vecs
+                self._spike_populations, self._spike_vecs, strict=True
             ):
                 extra_args = (
                     (population, population_offset) if population else ("All", population_offset)

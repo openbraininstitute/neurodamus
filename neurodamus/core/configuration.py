@@ -1163,7 +1163,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
     all_conn_blocks = config.connections.values()
 
     # On a first phase process only for t=0
-    for name, conn_conf in zip(config.connections, all_conn_blocks):
+    for name, conn_conf in zip(config.connections, all_conn_blocks, strict=True):
         conn_conf["_name"] = name
         if float(conn_conf.get("Delay", 0)) > 0.0:
             continue
