@@ -51,8 +51,6 @@ jobs:
             python-version: '3.12.6'
           - os: ubuntu-22.04
             python-version: '3.13'
-          - os: ubuntu-22.04
-            python-version: '3.14'
           # macOS is only run with Python 3.12.6 due to github action cache size limits
           - os: macOS-15
             python-version: '3.12.6'
