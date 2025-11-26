@@ -226,7 +226,7 @@ class METype(BaseCell):
 
 
 class Cell_V6(METype):  # noqa: N801
-    __slots__ = ("local_to_global_matrix",)
+    __slots__ = ("local_to_global_matrix", "seg_points")
 
     def __init__(self, gid, meinfo, circuit_conf):
         mepath = circuit_conf.METypePath
@@ -273,6 +273,77 @@ class Cell_V6(METype):  # noqa: N801
 
     def delete_axon(self):
         self._cellref.replace_axon()
+
+    def get_seg_points(self, scale=1):
+        """Get the segment points for all neurons.
+
+        This method retrieves the extreme points of every neuron segment,
+         returning a consistent structure across ranks.
+
+        Args:
+            scale: A scale factor for the points.
+
+        Returns:
+            list: A list of lists of local points for each neuron segment.
+        """
+        if hasattr(self, "seg_points"):
+            if scale == 1:
+                return self.seg_points
+            return [i * scale for i in self.seg_points]
+
+        def get_seg_extremes(sec, loc2glob):
+            """Get extremes and roto-translate in global coordinates"""
+
+            def get_local_seg_extremes(nseg, pp):
+                """Compute the position of beginning and end of each compartment in a section
+
+                Assumption: all the compartments have the same length
+
+                Args:
+                    nseg: number of compartments.
+                    pp: a nX4 matrix of positions of points.
+                    The first col give the relative position, (x in neuron) along the
+                    axis. It is in the interval [0, 1].
+                    The other 3 columns give x,y,z triplets of the points in a global system of
+                    reference.
+
+                Returns:
+                - a matrix 3Xn of the position of the extremes of every proper compartment
+                """
+                if not pp:
+                    # when section has no 3d points, i.e. new axons, return placeholder
+                    return np.array([])
+                pp = np.array(pp)
+                x_rel, xp, yp, zp = pp[:, 0], pp[:, 1], pp[:, 2], pp[:, 3]
+                x = np.linspace(0, 1, nseg + 1)
+                xp_seg = np.interp(x, x_rel, xp)
+                yp_seg = np.interp(x, x_rel, yp)
+                zp_seg = np.interp(x, x_rel, zp)
+
+                return np.transpose([xp_seg, yp_seg, zp_seg])
+
+            ll = [
+                [sec.arc3d(i) / sec.L, sec.x3d(i), sec.y3d(i), sec.z3d(i)] for i in range(sec.n3d())
+            ]
+            ans = get_local_seg_extremes(
+                sec.nseg,
+                ll,
+            )
+            if loc2glob:
+                ans = np.array(
+                    loc2glob(ans),
+                    dtype=float,
+                    order="C",
+                )
+            return ans
+
+        self.seg_points = {
+            sec.name(): get_seg_extremes(sec, loc2glob=self.local_to_global_coord_mapping)
+            for sec in self.CellRef.all
+        }
+        if scale == 1:
+            return self.seg_points
+        return {k: i * scale for k, i in self.seg_points.items()}
 
     def __getattr__(self, item):
         prop = self.extra_attrs.get(item)
@@ -377,7 +448,9 @@ class METypeItem:
         cli_opts = SimConfig.cli_options
         self.local_to_global_matrix = (
             self._make_coord_map_matrix(position, rotation, scale)
-            if cli_opts is None or cli_opts.enable_coord_mapping
+            if cli_opts is None
+            or cli_opts.enable_coord_mapping
+            or SimConfig.has_extracellular_stimulus
             else False
         )
 

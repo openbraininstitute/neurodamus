@@ -1,6 +1,10 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
+import re
+
+import numpy as np
+from scipy.interpolate import interp1d
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -491,17 +495,167 @@ class ConductanceSource(SignalSource):
         )
 
 
-# EStim class is a derivative of TStim for stimuli with an extracelular electrode. The main
-# difference is that it collects all elementary stimuli pulses and converts them using a
-# VirtualElectrode object before it injects anything
-#
-# The stimulus is defined on the hoc level by using the addpoint function for every (step) change
-# in extracellular electrode voltage. At this stage only step changes can be used. Gradual,
-# i.e. sinusoidal changes will be implemented in the future
-# After every step has been defined, you have to call initElec() to perform the frequency dependent
-# transformation. This transformation turns e_electrode into e_extracellular at distance d=1 micron
-# from the electrode. After the transformation is complete, NO MORE STEPS CAN BE ADDED!
-# You can then use inject() to first scale e_extracellular down by a distance dependent factor
-# and then vector.play() it into the currently accessed compartment
-#
-# TODO: 1. more stimulus primitives than step. 2. a dt of 0.1 ms is hardcoded. make this flexible!
+class ElectrodeSource(SignalSource):
+    def __init__(
+        self,
+        delay,
+        duration,
+        fields,
+        ramp_up_time,
+        ramp_down_time,
+        dt,
+        soma_position,
+        nrn_segment_points,
+    ):
+        """Creates a new source that injects a signal under e_extracellular"""
+        # initialize time vector and stimulus vector
+        super().__init__(base_amp=0, delay=delay)
+        # self.stim_delay = delay
+        # self.duration = duration
+        self.fields = fields
+        self.dt = dt
+        self.ramp_up_time = (
+            ramp_up_time  # Time over which the stimulus ramps up to its maximum amplitude (in ms)
+        )
+        self.ramp_down_time = (
+            ramp_down_time  # Time over which the stimulus ramps down to zero (in ms)
+        )
+        self.sin_signals = []  # List to hold individual sinusoidal components
+        self.add_multiple_sins(
+            duration + self.ramp_up_time + self.ramp_down_time,
+            self.fields,
+            step=self.dt,
+            delay=delay,
+        )  # Defines the temporal profile of the signal
+        self.soma_position = soma_position
+        self.nrn_seg_points = nrn_segment_points
+        self.extracellulars = []
+
+    def add_multiple_sins(self, total_duration, fields, step=0.025, **kw):
+        """Add multiple sinusoidal signals
+        Args:
+            total_duration: Total duration, in ms, including ramp-up and ramp-down periods
+            freq: The wave frequency, in Hz
+            step: The step, in ms (default: 0.025)
+        """
+        delay = kw.get("delay", 0)
+        self.delay(delay)
+
+        tvec = Nd.h.Vector()
+        tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
+        self.time_vec.append(tvec)
+        self.delay(total_duration)
+
+        for field in fields:
+            stim = Nd.h.Vector(len(tvec))
+            freq = field.get("Frequency", 0)
+            phase = field.get("Phase", 0)
+            stim.sin(freq, phase, step)
+            # print(f"++WJI sin signal {stim.as_numpy()} {len(stim)}")
+
+            self.sin_signals.append(stim)
+        # print(f"++WJI {self.stim_vec.as_numpy()} {len(self.stim_vec)}")
+        # self._add_point(base_amp)  # Last point
+
+        return self
+
+    def attach_to(self, section, position):
+        amplitudes = self.compute_potential_amplitudes(section, position)
+        # sum all the sinusoid signals
+        stim_vec_sum = sum((v.c() * s for v, s in zip(self.sin_signals, amplitudes)))
+        self.apply_ramp(stim_vec_sum, self.dt)
+        self.stim_vec.append(stim_vec_sum)
+        self._add_point(self._base_amp)  # Last point
+
+        section.insert("extracellular")
+        seg = section(position)
+        self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
+
+    def apply_ramp(self, signal_hocvec, step=0.025):
+        """Apply signal ramp up and down
+        Args:
+            signal_vec: the signal vector to apply ramp, type hoc.Vector
+            step: timestep
+        """
+        ramp_up_number = int(
+            self.ramp_up_time / step
+        )  # Number of time points during the ramp-up window
+        ramp_down_number = int(
+            self.ramp_down_time / step
+        )  # Number of time points during the ramp-down window
+
+        if ramp_up_number > 0:
+            ramp_up = np.linspace(0, 1, ramp_up_number)
+            signal_hocvec[:ramp_up_number] *= ramp_up
+        if ramp_down_number > 0:
+            ramp_down = np.linspace(1, 0, ramp_down_number)
+            signal_hocvec[-ramp_down_number:] *= ramp_down
+
+    def compute_potential_amplitudes(self, section, x):
+        """Compute potential amplitudes for the given segment
+        Args:
+            section: hoc section
+            x: offset along the section, in [0, 1]
+
+        Returns:
+            potential amplitude in [Vx, Vy, Vz]
+
+        """
+        seg_position = self.get_segment_position(section, x)
+
+        return self.uniform_potentials(seg_position)
+
+    def get_segment_position(self, section, x):
+        """Get the global coordinates of the segment
+
+        Args:
+            section: hoc section
+            x : x: offset along the section, in [0, 1]
+
+        Returns:
+            global coordinates [x, y, z]
+        """
+        if "soma" in section.name():
+            return self.soma_position
+        if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
+            if "axon" in section.name():
+                pattern = r"axon\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    axon_index = int(match.group(1))
+                    return self.interp_axon_positions(x, axon_index)
+            else:
+                raise ValueError(f"section {section.name()} has no 3d points defined")
+        else:
+            all_seg_points = self.nrn_seg_points
+            seg_index = int(np.floor((len(all_seg_points) - 1) * x))
+            return all_seg_points[seg_index]
+        return None
+
+    def interp_axon_positions(self, x, axon_index):
+        """Interpolate positions of the axon segment because of no 3d point for the new axons"""
+        # Specifies list of points for each Cartesian coordinate
+        # Assume that the axon is oriented along the z-axis, 30 um displaced for the 1st axon,
+        # 60 um for the 2nd
+        # the same x- and y-coordinates as soma
+        xpos = [self.soma_position[0], self.soma_position[0]]
+        ypos = [self.soma_position[1], self.soma_position[1]]
+        zpos = [self.soma_position[2], self.soma_position[2] + 30 * int(axon_index + 1)]
+        lens = [0, 1]
+
+        # Interpolate the coordinates for the given location x along the segment
+        f_x = interp1d(lens, xpos)
+        seg_x = f_x(x)
+        f_y = interp1d(lens, ypos)
+        seg_y = f_y(x)
+        f_z = interp1d(lens, zpos)
+        seg_z = f_z(x)
+
+        return np.array([seg_x, seg_y, seg_z])
+
+    def uniform_potentials(self, seg_positions):
+        """Calculates potential amplitude relative to point(0,0,0)"""
+        distance = seg_positions * 1e-6  # Converts from um to m
+        return [
+            np.dot(distance, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
+            for field in self.fields
+        ]  # Converts from V to mV
