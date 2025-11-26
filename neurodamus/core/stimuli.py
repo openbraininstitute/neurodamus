@@ -4,7 +4,6 @@ import logging
 import re
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -510,8 +509,6 @@ class ElectrodeSource(SignalSource):
         """Creates a new source that injects a signal under e_extracellular"""
         # initialize time vector and stimulus vector
         super().__init__(base_amp=0, delay=delay)
-        # self.stim_delay = delay
-        # self.duration = duration
         self.fields = fields
         self.dt = dt
         self.ramp_up_time = (
@@ -551,11 +548,7 @@ class ElectrodeSource(SignalSource):
             freq = field.get("Frequency", 0)
             phase = field.get("Phase", 0)
             stim.sin(freq, phase, step)
-            # print(f"++WJI sin signal {stim.as_numpy()} {len(stim)}")
-
             self.sin_signals.append(stim)
-        # print(f"++WJI {self.stim_vec.as_numpy()} {len(self.stim_vec)}")
-        # self._add_point(base_amp)  # Last point
 
         return self
 
@@ -613,7 +606,7 @@ class ElectrodeSource(SignalSource):
             x : x: offset along the section, in [0, 1]
 
         Returns:
-            global coordinates [x, y, z]
+            global coordinates [x, y, z], type np.array
         """
         if "soma" in section.name():
             return self.soma_position
@@ -632,23 +625,21 @@ class ElectrodeSource(SignalSource):
         return None
 
     def interp_axon_positions(self, x, axon_index):
-        """Interpolate positions of the axon segment because of no 3d point for the new axons"""
-        # Specifies list of points for each Cartesian coordinate
-        # Assume that the axon is oriented along the z-axis, 30 um displaced for the 1st axon,
-        # 60 um for the 2nd
-        # the same x- and y-coordinates as soma
+        """Interpolate positions of the axon segment for the given x,
+        because of no 3d point for the new axons.
+        Assume that the axon is oriented along the z-axis from soma, 30 um displaced for 1st axon,
+        60 um for 2nd axon, the same x- and y-coordinates as soma.
+        x=0 is soma, and x=1 is the end of the axon section.
+        """
         xpos = [self.soma_position[0], self.soma_position[0]]
         ypos = [self.soma_position[1], self.soma_position[1]]
         zpos = [self.soma_position[2], self.soma_position[2] + 30 * int(axon_index + 1)]
         lens = [0, 1]
 
         # Interpolate the coordinates for the given location x along the segment
-        f_x = interp1d(lens, xpos)
-        seg_x = f_x(x)
-        f_y = interp1d(lens, ypos)
-        seg_y = f_y(x)
-        f_z = interp1d(lens, zpos)
-        seg_z = f_z(x)
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
 
         return np.array([seg_x, seg_y, seg_z])
 
