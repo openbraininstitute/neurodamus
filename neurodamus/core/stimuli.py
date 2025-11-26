@@ -555,7 +555,7 @@ class ElectrodeSource(SignalSource):
     def attach_to(self, section, position):
         amplitudes = self.compute_potential_amplitudes(section, position)
         # sum all the sinusoid signals
-        stim_vec_sum = sum((v.c() * s for v, s in zip(self.sin_signals, amplitudes)))
+        stim_vec_sum = sum((v * s for v, s in zip(self.sin_signals, amplitudes)))
         self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(stim_vec_sum)
         self._add_point(self._base_amp)  # Last point
