@@ -511,12 +511,8 @@ class ElectrodeSource(SignalSource):
         super().__init__(base_amp=0, delay=delay)
         self.fields = fields
         self.dt = dt
-        self.ramp_up_time = (
-            ramp_up_time  # Time over which the stimulus ramps up to its maximum amplitude (in ms)
-        )
-        self.ramp_down_time = (
-            ramp_down_time  # Time over which the stimulus ramps down to zero (in ms)
-        )
+        self.ramp_up_time = ramp_up_time
+        self.ramp_down_time = ramp_down_time
         self.sin_signals = []  # List to hold individual sinusoidal components
         self.add_multiple_sins(
             duration + self.ramp_up_time + self.ramp_down_time,
@@ -556,7 +552,7 @@ class ElectrodeSource(SignalSource):
         amplitudes = self.compute_potential_amplitudes(section, position)
         # sum all the sinusoid signals
         stim_vec_sum = sum((v * s for v, s in zip(self.sin_signals, amplitudes)))
-        self.apply_ramp(stim_vec_sum, self.dt)
+        self.apply_ramp(stim_vec_sum)
         self.stim_vec.append(stim_vec_sum)
         self._add_point(self._base_amp)  # Last point
 
@@ -564,17 +560,17 @@ class ElectrodeSource(SignalSource):
         seg = section(position)
         self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
 
-    def apply_ramp(self, signal_hocvec, step=0.025):
+    def apply_ramp(self, signal_hocvec):
         """Apply signal ramp up and down
         Args:
             signal_vec: the signal vector to apply ramp, type hoc.Vector
             step: timestep
         """
         ramp_up_number = int(
-            self.ramp_up_time / step
+            self.ramp_up_time / self.dt
         )  # Number of time points during the ramp-up window
         ramp_down_number = int(
-            self.ramp_down_time / step
+            self.ramp_down_time / self.dt
         )  # Number of time points during the ramp-down window
 
         if ramp_up_number > 0:

@@ -40,6 +40,10 @@ NODE_TYPES = [
     SonataAttribute("x", type=np.float32, prefix=True),
     SonataAttribute("y", type=np.float32, prefix=True),
     SonataAttribute("z", type=np.float32, prefix=True),
+    SonataAttribute("rotation_angle_xaxis", type=np.float32, prefix=True),
+    SonataAttribute("rotation_angle_yaxis", type=np.float32, prefix=True),
+    SonataAttribute("rotation_angle_zaxis", type=np.float32, prefix=True),
+    SonataAttribute("z", type=np.float32, prefix=True),
     SonataAttribute("radius", type=np.float32, prefix=True),
     SonataAttribute("start_diameter", type=np.float32, prefix=True),
     SonataAttribute("end_diameter", type=np.float32, prefix=True)
