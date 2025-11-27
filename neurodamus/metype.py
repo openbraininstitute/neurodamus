@@ -226,12 +226,13 @@ class METype(BaseCell):
 
 
 class Cell_V6(METype):  # noqa: N801
-    __slots__ = ("local_to_global_matrix", "seg_points")
+    __slots__ = ("all_segment_points", "local_to_global_matrix")
 
     def __init__(self, gid, meinfo, circuit_conf):
         mepath = circuit_conf.METypePath
         morpho_path = circuit_conf.MorphologyPath
         detailed_axon = circuit_conf.DetailedAxon
+        self.all_segment_points = {}  # {section_name: [all_seg_points for the section]}
         super().__init__(gid, mepath, meinfo.emodel_tpl, morpho_path, meinfo, detailed_axon)
 
     def _instantiate_cell(self, gid, etype_path, emodel, morpho_path, meinfos_v6, detailed_axon):
@@ -274,22 +275,10 @@ class Cell_V6(METype):  # noqa: N801
     def delete_axon(self):
         self._cellref.replace_axon()
 
-    def get_seg_points(self, scale=1):
-        """Get the segment points for all neurons.
-
-        This method retrieves the extreme points of every neuron segment,
-         returning a consistent structure across ranks.
-
-        Args:
-            scale: A scale factor for the points.
-
-        Returns:
-            list: A list of lists of local points for each neuron segment.
+    def get_all_segment_points(self):
+        """This method retrieves the extreme points of every neuron segment,
+        and assign to attribute self.all_segment_points
         """
-        if hasattr(self, "seg_points"):
-            if scale == 1:
-                return self.seg_points
-            return [i * scale for i in self.seg_points]
 
         def get_seg_extremes(sec, loc2glob):
             """Get extremes and roto-translate in global coordinates"""
@@ -337,13 +326,11 @@ class Cell_V6(METype):  # noqa: N801
                 )
             return ans
 
-        self.seg_points = {
-            sec.name(): get_seg_extremes(sec, loc2glob=self.local_to_global_coord_mapping)
-            for sec in self.CellRef.all
-        }
-        if scale == 1:
-            return self.seg_points
-        return {k: i * scale for k, i in self.seg_points.items()}
+        if not self.all_segment_points:
+            self.all_segment_points = {
+                sec.name(): get_seg_extremes(sec, loc2glob=self.local_to_global_coord_mapping)
+                for sec in self.CellRef.all
+            }
 
     def __getattr__(self, item):
         prop = self.extra_attrs.get(item)
