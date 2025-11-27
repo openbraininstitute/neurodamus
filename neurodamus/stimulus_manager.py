@@ -840,15 +840,17 @@ class UniformEField(BaseStim):
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
+            cell.get_all_segment_points()
+            all_seg_points = cell.all_segment_points
             soma = cell.CellRef.soma[0]
-            soma_seg_points = cell.get_seg_points()[soma.name()]
+            soma_seg_points = all_seg_points[soma.name()]
             # soma position is the average of all its 3d points
             soma_position = np.array(soma_seg_points).mean(axis=0)
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
-                nrn_segment_points = cell.get_seg_points()[sc.sec.name()]
+                nrn_segment_points = all_seg_points[sc.sec.name()]
                 es = ElectrodeSource(
                     self.delay,
                     self.duration,
