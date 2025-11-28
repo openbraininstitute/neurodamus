@@ -300,7 +300,7 @@ class SonataConfig:
             )
             stimulus["Mode"] = input_type_translation.get(stimulus["Mode"], stimulus["Mode"])
             stimulus["Name"] = name
-            if stimulus["Pattern"] == "UniformEField":
+            if stimulus["Pattern"] == "SpatiallyUniformEField":
                 fields = [
                     self._translate_dict({}, field) for field in self._sim_conf.input(name).fields
                 ]
