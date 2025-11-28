@@ -641,8 +641,9 @@ class ElectrodeSource(SignalSource):
 
     def uniform_potentials(self, seg_positions):
         """Calculates potential amplitude relative to point(0,0,0)"""
-        distance = seg_positions * 1e-6  # Converts from um to m
+        base_point = self.soma_position
+        displacement = (seg_positions - base_point) * 1e-6  # Converts from um to m
         return [
-            np.dot(distance, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
+            np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
             for field in self.fields
         ]  # Converts from V to mV
