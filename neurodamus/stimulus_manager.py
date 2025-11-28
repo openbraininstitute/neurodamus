@@ -83,7 +83,7 @@ class StimulusManager:
             return target.get_point_list_from_compartment_set(
                 cell_manager=cell_manager, compartment_set=compartment_set
             )
-        if stim_info["Pattern"] == "UniformEField":
+        if stim_info["Pattern"] == "SpatiallyUniformEField":
             section_type = SectionType.ALL
             compart_type = CompartmentType.ALL
         else:
@@ -826,7 +826,7 @@ class SEClamp(BaseStim):
 
 
 @StimulusManager.register_type
-class UniformEField(BaseStim):
+class SpatiallyUniformEField(BaseStim):
     """Inject a temporally-oscillating extracellular potential field."""
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
