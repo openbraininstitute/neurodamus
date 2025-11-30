@@ -504,7 +504,7 @@ class ElectrodeSource(SignalSource):
         ramp_down_time,
         dt,
         soma_position,
-        nrn_segment_points,
+        sec_segment_points,
     ):
         """Creates a new source that injects a signal under e_extracellular"""
         # initialize time vector and stimulus vector
@@ -521,15 +521,14 @@ class ElectrodeSource(SignalSource):
             delay=delay,
         )  # Defines the temporal profile of the signal
         self.soma_position = soma_position
-        self.nrn_seg_points = nrn_segment_points
-        self.extracellulars = []
+        self.sec_seg_points = sec_segment_points
 
-    def add_multiple_sins(self, total_duration, fields, step=0.025, **kw):
+    def add_multiple_sins(self, total_duration, fields, step, **kw):
         """Add multiple sinusoidal signals
         Args:
-            total_duration: Total duration, in ms, including ramp-up and ramp-down periods
-            freq: The wave frequency, in Hz
-            step: The step, in ms (default: 0.025)
+            total_duration: total duration, in ms, including ramp-up and ramp-down periods
+            freq: wave frequency, in Hz
+            step: the time step, in ms
         """
         delay = kw.get("delay", 0)
         self.delay(delay)
@@ -615,7 +614,7 @@ class ElectrodeSource(SignalSource):
             else:
                 raise ValueError(f"section {section.name()} has no 3d points defined")
         else:
-            all_seg_points = self.nrn_seg_points
+            all_seg_points = self.sec_seg_points
             seg_index = int(np.floor((len(all_seg_points) - 1) * x))
             return all_seg_points[seg_index]
         return None
