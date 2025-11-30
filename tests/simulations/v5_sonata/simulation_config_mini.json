@@ -45,29 +45,6 @@
             "delay": 0.0,
             "duration": 30000,
             "node_set": "Mosaic"
-        },
- "ex_efields": {
-            "input_type": "extracellular_stimulation",
-            "module": "spatially_uniform_e_field",
-            "delay": 0,
-            "duration": 1000,
-            "node_set": "Mosaic",
-            "fields": [
-                {
-                    "Ex": 6.3254108,
-                    "Ey": -2.055676,
-                    "Ez": 7.4674878,
-                    "frequency": 10
-                },
-                {
-                    "Ex": 1,
-                    "Ey": 1,
-                    "Ez": 1,
-                    "frequency": 1
-                }
-            ],
-            "ramp_up_time": 100.0,
-            "ramp_down_time": 10.0
         }
     },
     "reports": {

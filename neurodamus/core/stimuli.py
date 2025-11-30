@@ -1,7 +1,6 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
-import re
 
 import numpy as np
 
@@ -495,40 +494,28 @@ class ConductanceSource(SignalSource):
 
 
 class ElectrodeSource(SignalSource):
-    def __init__(
-        self,
-        delay,
-        duration,
-        fields,
-        ramp_up_time,
-        ramp_down_time,
-        dt,
-        soma_position,
-        sec_segment_points,
-    ):
+    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position):
         """Creates a new source that injects a signal under e_extracellular"""
-        # initialize time vector and stimulus vector
         super().__init__(base_amp=0, delay=delay)
         self.fields = fields
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.sin_signals = []  # List to hold individual sinusoidal components
-        self.add_multiple_sins(
+        self.sin_signals = self.add_multiple_sins(
             duration + self.ramp_up_time + self.ramp_down_time,
             self.fields,
             step=self.dt,
             delay=delay,
-        )  # Defines the temporal profile of the signal
-        self.soma_position = soma_position
-        self.sec_seg_points = sec_segment_points
+        )
+        self.base_position = base_position
 
     def add_multiple_sins(self, total_duration, fields, step, **kw):
         """Add multiple sinusoidal signals
         Args:
             total_duration: total duration, in ms, including ramp-up and ramp-down periods
-            freq: wave frequency, in Hz
+            fields: dict of the stimulus fields parameters
             step: the time step, in ms
+        Returns: a list of sine signal vectors
         """
         delay = kw.get("delay", 0)
         self.delay(delay)
@@ -537,111 +524,52 @@ class ElectrodeSource(SignalSource):
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
         self.delay(total_duration)
-
+        res = []
         for field in fields:
-            stim = Nd.h.Vector(len(tvec))
+            sin_vec = Nd.h.Vector(len(tvec))
             freq = field.get("Frequency", 0)
             phase = field.get("Phase", 0)
-            stim.sin(freq, phase, step)
-            self.sin_signals.append(stim)
+            sin_vec.sin(freq, phase, step)
+            res.append(sin_vec)
 
-        return self
+        return res
 
-    def attach_to(self, section, position):
-        amplitudes = self.compute_potential_amplitudes(section, position)
+    def attach_to(self, section, x, inject_position):
+        amplitudes = self.uniform_potentials(inject_position)
         # sum all the sinusoid signals
         stim_vec_sum = sum((v * s for v, s in zip(self.sin_signals, amplitudes)))
-        self.apply_ramp(stim_vec_sum)
+        self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(stim_vec_sum)
         self._add_point(self._base_amp)  # Last point
 
         section.insert("extracellular")
-        seg = section(position)
+        seg = section(x)
         self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
 
-    def apply_ramp(self, signal_hocvec):
+    def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
         Args:
-            signal_vec: the signal vector to apply ramp, type hoc.Vector
-            step: timestep
+            signal_vec: the signal vector to apply ramp, type hoc Vector
+            step: time step
         """
         ramp_up_number = int(
-            self.ramp_up_time / self.dt
+            self.ramp_up_time / step
         )  # Number of time points during the ramp-up window
         ramp_down_number = int(
-            self.ramp_down_time / self.dt
+            self.ramp_down_time / step
         )  # Number of time points during the ramp-down window
 
         if ramp_up_number > 0:
             ramp_up = np.linspace(0, 1, ramp_up_number)
-            signal_hocvec[:ramp_up_number] *= ramp_up
+            signal_vec[:ramp_up_number] *= ramp_up
         if ramp_down_number > 0:
             ramp_down = np.linspace(1, 0, ramp_down_number)
-            signal_hocvec[-ramp_down_number:] *= ramp_down
+            signal_vec[-ramp_down_number:] *= ramp_down
 
-    def compute_potential_amplitudes(self, section, x):
-        """Compute potential amplitudes for the given segment
-        Args:
-            section: hoc section
-            x: offset along the section, in [0, 1]
-
-        Returns:
-            potential amplitude in [Vx, Vy, Vz]
-
-        """
-        seg_position = self.get_segment_position(section, x)
-
-        return self.uniform_potentials(seg_position)
-
-    def get_segment_position(self, section, x):
-        """Get the global coordinates of the segment
-
-        Args:
-            section: hoc section
-            x : x: offset along the section, in [0, 1]
-
-        Returns:
-            global coordinates [x, y, z], type np.array
-        """
-        if "soma" in section.name():
-            return self.soma_position
-        if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
-            if "axon" in section.name():
-                pattern = r"axon\[(\d+)\]$"
-                if match := re.search(pattern, section.name()):
-                    axon_index = int(match.group(1))
-                    return self.interp_axon_positions(x, axon_index)
-            else:
-                raise ValueError(f"section {section.name()} has no 3d points defined")
-        else:
-            all_seg_points = self.sec_seg_points
-            seg_index = int(np.floor((len(all_seg_points) - 1) * x))
-            return all_seg_points[seg_index]
-        return None
-
-    def interp_axon_positions(self, x, axon_index):
-        """Interpolate positions of the axon segment for the given x,
-        because of no 3d point for the new axons.
-        Assume that the axon is oriented along the z-axis from soma, 30 um displaced for 1st axon,
-        60 um for 2nd axon, the same x- and y-coordinates as soma.
-        x=0 is soma, and x=1 is the end of the axon section.
-        """
-        xpos = [self.soma_position[0], self.soma_position[0]]
-        ypos = [self.soma_position[1], self.soma_position[1]]
-        zpos = [self.soma_position[2], self.soma_position[2] + 30 * int(axon_index + 1)]
-        lens = [0, 1]
-
-        # Interpolate the coordinates for the given location x along the segment
-        seg_x = np.interp(x, lens, xpos)
-        seg_y = np.interp(x, lens, ypos)
-        seg_z = np.interp(x, lens, zpos)
-
-        return np.array([seg_x, seg_y, seg_z])
-
-    def uniform_potentials(self, seg_positions):
-        """Calculates potential amplitude relative to point(0,0,0)"""
-        base_point = self.soma_position
-        displacement = (seg_positions - base_point) * 1e-6  # Converts from um to m
+    def uniform_potentials(self, injection_position):
+        """Calculates potential amplitude relative to base_point"""
+        base_point = self.base_position
+        displacement = (injection_position - base_point) * 1e-6  # Converts from um to m
         return [
             np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
             for field in self.fields
