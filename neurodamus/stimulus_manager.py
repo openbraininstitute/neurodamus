@@ -850,7 +850,7 @@ class SpatiallyUniformEField(BaseStim):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
-                nrn_segment_points = all_seg_points[sc.sec.name()]
+                sec_segment_points = all_seg_points[sc.sec.name()]
                 es = ElectrodeSource(
                     self.delay,
                     self.duration,
@@ -859,7 +859,7 @@ class SpatiallyUniformEField(BaseStim):
                     self.ramp_down_time,
                     self.dt,
                     soma_position,
-                    nrn_segment_points,
+                    sec_segment_points,
                 )
 
                 es.attach_to(sc.sec, target_point_list.x[sec_id])
