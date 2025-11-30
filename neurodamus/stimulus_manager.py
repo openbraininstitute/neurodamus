@@ -19,6 +19,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -850,7 +851,6 @@ class SpatiallyUniformEField(BaseStim):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
-                sec_segment_points = all_seg_points[sc.sec.name()]
                 es = ElectrodeSource(
                     self.delay,
                     self.duration,
@@ -858,11 +858,13 @@ class SpatiallyUniformEField(BaseStim):
                     self.ramp_up_time,
                     self.ramp_down_time,
                     self.dt,
-                    soma_position,
-                    sec_segment_points,
+                    base_position=soma_position,
                 )
 
-                es.attach_to(sc.sec, target_point_list.x[sec_id])
+                segment_position = self.get_segment_position(
+                    all_seg_points, soma_position, sc.sec, target_point_list.x[sec_id]
+                )
+                es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
 
                 self.stimList.append(es)  # save Extracellular field
 
@@ -873,21 +875,50 @@ class SpatiallyUniformEField(BaseStim):
         self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
         return True
 
+    def get_segment_position(self, all_seg_points, soma_position, section, x):
+        """Get the global coordinates of the segment
+
+        Args:
+            all_seg_points: all the segment positions in the cell
+            soma_position: the soma position
+            section: hoc section
+            x : x: offset along the section, in [0, 1]
+
+        Returns:
+            global coordinates [x, y, z], type np.array
+        """
+        if "soma" in section.name():
+            return soma_position
+        if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
+            if "axon" in section.name():
+                pattern = r"axon\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    axon_index = int(match.group(1))
+                    return self.interp_axon_positions(x, axon_index, soma_position)
+            else:
+                raise ValueError(f"section {section.name()} has no 3d points defined")
+        else:
+            sec_seg_points = all_seg_points[section.name()]
+            seg_index = int(np.floor((len(sec_seg_points) - 1) * x))
+            return sec_seg_points[seg_index]
+        return None
+
     @staticmethod
-    def get_soma_position(section):
-        """Averaging all of the 3d points associated to a soma"""
-        n3d = section.n3d()
-        xpos = []
-        ypos = []
-        zpos = []
+    def interp_axon_positions(x, axon_index, soma_position):
+        """Interpolate positions of the axon segment for the given x,
+        because of no 3d point for the new axons.
+        Assume that the axon is oriented along the z-axis from soma, 30 um displaced for 1st axon,
+        60 um for 2nd axon, the same x- and y-coordinates as soma.
+        x=0 is soma, and x=1 is the end of the axon section.
+        """
+        xpos = [soma_position[0], soma_position[0]]
+        ypos = [soma_position[1], soma_position[1]]
+        zpos = [soma_position[2], soma_position[2] + 30 * int(axon_index + 1)]
+        lens = [0, 1]
 
-        for n in range(n3d):
-            xpos.append(section.x3d(n))
-            ypos.append(section.y3d(n))
-            zpos.append(section.z3d(n))
+        # Interpolate the coordinates for the given location x along the segment
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
 
-        x = np.mean(xpos)
-        y = np.mean(ypos)
-        z = np.mean(zpos)
-
-        return np.array([x, y, z])
+        return np.array([seg_x, seg_y, seg_z])

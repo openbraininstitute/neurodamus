@@ -14,12 +14,12 @@ def test_apply_ramp():
     ref_up_time = 5  # 5 time steps from 0
     ref_down_time = 3  # 3 time steps to 0
 
-    stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, [], [])
+    stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0])
     stim_vec = h.Vector(range(1, 11))
     assert np.isclose(stimulus.ramp_up_time, ref_up_time)
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
     assert np.isclose(stimulus.dt, dt)
-    stimulus.apply_ramp(stim_vec)
+    stimulus.apply_ramp(stim_vec, stimulus.dt)
     assert np.allclose(stim_vec.as_numpy(), [0, 0.5, 1.5, 3, 5, 6, 7, 8, 4.5, 0])
 
 
