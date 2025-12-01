@@ -4,6 +4,8 @@ from unittest.mock import Mock, seal
 import numpy.testing as npt
 import pytest
 
+from tests.conftest import RINGTEST_DIR
+
 from neurodamus import Node
 from neurodamus.metype import BaseCell, Cell_V6, SectionIdError
 
@@ -107,7 +109,12 @@ def test_get_sec():
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
-    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {"network": str(RINGTEST_DIR / "circuit_config_bigA.json")},
+        }
+    ],
     indirect=True,
 )
 def test_get_segment_points(create_tmp_simulation_config_file):
@@ -125,11 +132,27 @@ def test_get_segment_points(create_tmp_simulation_config_file):
         "TestCell[0].soma[0]",
         "TestCell[0].dend[0]",
         "TestCell[0].dend[1]",
+        "TestCell[0].dend[2]",
+        "TestCell[0].dend[3]",
+        "TestCell[0].dend[4]",
+        "TestCell[0].dend[5]",
+        "TestCell[0].dend[6]",
+        "TestCell[0].dend[7]",
+        "TestCell[0].dend[8]",
+        "TestCell[0].dend[9]",
     ]
-    soma_seg_points = cell0.all_segment_points["TestCell[0].soma[0]"]
     soma_obj = cell0.CellRef.soma[0]
+    soma_seg_points = cell0.all_segment_points[soma_obj.name()]
     assert len(soma_seg_points) == soma_obj.nseg + 1
-    npt.assert_allclose(soma_seg_points, [[-12.289086, -4.12521, 2.0], [7.880934, 11.772383, 2.0]])
+    npt.assert_allclose(
+        soma_seg_points,
+        [
+            [-31.542698, -0.650061, 2.0],
+            [-10.916599, 2.58374, 2.0],
+            [9.709499, 5.817541, 2.0],
+            [30.335598, 9.051342, 2.0],
+        ],
+    )
     dend0 = cell0.CellRef.dend[0]
     dend0_seg_points = cell0.all_segment_points["TestCell[0].dend[0]"]
     assert len(dend0_seg_points) == dend0.nseg + 1

@@ -567,7 +567,9 @@ class ElectrodeSource(SignalSource):
             signal_vec[-ramp_down_number:] *= ramp_down
 
     def uniform_potentials(self, injection_position):
-        """Calculates potential amplitude relative to base_point"""
+        """Calculates potential amplitude relative to base_point
+        Units: Ex,Ey,Ez in V/m, segment position in um
+        """
         base_point = self.base_position
         displacement = (injection_position - base_point) * 1e-6  # Converts from um to m
         return [
