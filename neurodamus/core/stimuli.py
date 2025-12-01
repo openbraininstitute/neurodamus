@@ -501,7 +501,7 @@ class ElectrodeSource(SignalSource):
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.sin_signals = self.add_multiple_sins(
+        self.signals = self.add_cosines(
             duration + self.ramp_up_time + self.ramp_down_time,
             self.fields,
             step=self.dt,
@@ -509,8 +509,8 @@ class ElectrodeSource(SignalSource):
         )
         self.base_position = base_position
 
-    def add_multiple_sins(self, total_duration, fields, step, **kw):
-        """Add multiple sinusoidal signals
+    def add_cosines(self, total_duration, fields, step, **kw):
+        """Add multiple cosinusoidal signals
         Args:
             total_duration: total duration, in ms, including ramp-up and ramp-down periods
             fields: dict of the stimulus fields parameters
@@ -526,18 +526,18 @@ class ElectrodeSource(SignalSource):
         self.delay(total_duration)
         res = []
         for field in fields:
-            sin_vec = Nd.h.Vector(len(tvec))
+            vec = Nd.h.Vector(len(tvec))
             freq = field.get("Frequency", 0)
             phase = field.get("Phase", 0)
-            sin_vec.sin(freq, phase, step)
-            res.append(sin_vec)
+            vec.sin(freq, phase + np.pi / 2, step)
+            res.append(vec)
 
         return res
 
     def attach_to(self, section, x, inject_position):
         amplitudes = self.uniform_potentials(inject_position)
         # sum all the sinusoid signals
-        stim_vec_sum = sum((v * s for v, s in zip(self.sin_signals, amplitudes, strict=True)))
+        stim_vec_sum = sum((v * s for v, s in zip(self.signals, amplitudes, strict=True)))
         self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(stim_vec_sum)
         self._add_point(self._base_amp)  # Last point

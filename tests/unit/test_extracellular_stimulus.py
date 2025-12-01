@@ -34,7 +34,7 @@ def test_apply_ramp():
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
                 "run": {"dt": 1},
                 "inputs": {
-                    "one_sin_efield": {
+                    "one_efield": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
@@ -50,9 +50,9 @@ def test_apply_ramp():
     ],
     indirect=True,
 )
-def test_one_sin_field_noramp(create_tmp_simulation_config_file):
+def test_one_field_noramp(create_tmp_simulation_config_file):
     """
-    One sinusoid field without ramp
+    One cosinusoid field without ramp
     1. check the size of stimList, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 3rd stimulus, no ramp_up_time and ramp_down_time
     3. check the base point of the stimli = the mean of the soma segment points
@@ -82,45 +82,45 @@ def test_one_sin_field_noramp(create_tmp_simulation_config_file):
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
     seg_signal_source = stimulus.stimList[3]
     ref_stimvec = [
-        0,
-        0.505609,
-        0.818093,
-        0.818093,
-        0.505609,
-        0,
-        -0.505609,
-        -0.818093,
-        -0.818093,
-        -0.505609,
-        0,
-        0,
+        0.860194,
+        0.695911,
+        0.265814,
+        -0.265814,
+        -0.695911,
+        -0.860194,
+        -0.695911,
+        -0.265814,
+        0.265814,
+        0.695911,
+        0.860194,
+        0.0,
     ]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
-    npt.assert_allclose(seg_signal_source.stim_vec, ref_stimvec, atol=1e-14, rtol=1e-6)
+    npt.assert_allclose(seg_signal_source.stim_vec, ref_stimvec, rtol=1e-5)
     n.clear_model()
 
 
-REF_SIN = np.array(
+REF_COSINE = np.array(
     [
-        0,
-        0.505609 / 2,
-        0.818093,
-        0.818093,
-        0.505609,
-        0,
-        -0.505609,
-        -0.818093,
-        -0.818093,
-        -0.505609,
-        0,
-        0.505609,
-        0.818093,
-        0.818093,
-        0.505609,
-        0,
-        -0.505609 / 3,
-        0,
-        0,
+        0.0,
+        0.347956,
+        0.265814,
+        -0.265814,
+        -0.695911,
+        -0.860194,
+        -0.695911,
+        -0.265814,
+        0.265814,
+        0.695911,
+        0.860194,
+        0.695911,
+        0.265814,
+        -0.265814,
+        -0.695911,
+        -0.573462,
+        -0.23197,
+        -0.0,
+        0.0,
     ]
 )
 
@@ -134,7 +134,7 @@ REF_SIN = np.array(
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
                 "run": {"dt": 1},
                 "inputs": {
-                    "one_sin_efield": {
+                    "one_efield": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
@@ -150,13 +150,13 @@ REF_SIN = np.array(
     ],
     indirect=True,
 )
-def test_one_sin_field_withramp(create_tmp_simulation_config_file):
+def test_one_field_withramp(create_tmp_simulation_config_file):
     """
-    A sinusoid field with ramp up and down
+    A cosinusoid field with ramp up and down
     1. check the size of stimList, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a sin wave with 3 ramp up steps and 4 ramp down steps
+    and a cosine wave with 3 ramp up steps and 4 ramp down steps
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -178,7 +178,7 @@ def test_one_sin_field_withramp(create_tmp_simulation_config_file):
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
     seg_signal_source = stimulus.stimList[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
-    npt.assert_allclose(seg_signal_source.stim_vec, REF_SIN, atol=1e-14, rtol=1e-6)
+    npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE, rtol=1e-5)
     n.clear_model()
 
 
@@ -216,7 +216,7 @@ REF_CONSTANT = np.array(
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
                 "run": {"dt": 1},
                 "inputs": {
-                    "one_sin_efield": {
+                    "one_efield": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
@@ -294,11 +294,11 @@ def test_one_constant_field(create_tmp_simulation_config_file):
 )
 def test_two_fields(create_tmp_simulation_config_file):
     """
-    Two fields that should be summed together sin + constant fields
+    Two fields that should be summed together cosine + constant fields
     1. check the size of stimList, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 3rd stimlus the sum of the sin fields and constant fields
+    and a constant vec for 3rd stimlus the sum of the cosine fields and constant fields
     4. check an extracellar mechanism is added to each segment
     """
 
@@ -323,7 +323,7 @@ def test_two_fields(create_tmp_simulation_config_file):
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
     seg_signal_source = stimulus.stimList[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
-    npt.assert_allclose(seg_signal_source.stim_vec, REF_SIN + REF_CONSTANT, rtol=1e-6)
+    npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
     for sec in cell.all:
         for seg in sec:
             assert hasattr(seg, "extracellular")

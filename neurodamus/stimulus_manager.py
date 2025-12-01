@@ -828,7 +828,10 @@ class SEClamp(BaseStim):
 
 @StimulusManager.register_type
 class SpatiallyUniformEField(BaseStim):
-    """Inject a temporally-oscillating extracellular potential field."""
+    """Inject a temporally-oscillating extracellular potential field.
+    The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
+    in time, and whose gradient (i.e., E field) is constant.
+    """
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         super().__init__(target_points, stim_info, cell_manager)
