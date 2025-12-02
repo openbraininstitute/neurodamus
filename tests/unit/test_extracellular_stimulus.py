@@ -9,6 +9,12 @@ from neurodamus import Node
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 
+from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
+
+from scipy.signal import find_peaks
+from pathlib import Path
+from neurodamus.core import NeuronWrapper as Nd
+
 
 def test_apply_ramp():
     """Test the function apply_ramp"""
@@ -328,3 +334,75 @@ def test_two_fields(create_tmp_simulation_config_file):
         for seg in sec:
             assert hasattr(seg, "extracellular")
     n.clear_model()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "inputs": {
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingA",
+                        "represents_physical_electrode": True,
+                        "amp_start": 10,
+                        "width": 1,
+                        "frequency": 50,
+                    },
+                    "ex_efields": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 0,
+                        "duration": 10,
+                        "node_set": "Mosaic",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
+                    },
+                },
+                "reports": {
+                    "compartment_v": {
+                        "type": "compartment",
+                        "cells": "Mosaic",
+                        "variable_name": "v",
+                        "sections": "all",
+                        "dt": 1,
+                        "start_time": 0.0,
+                        "end_time": 50.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
+    """Check the compartment ASCII reports including the efields stimulus"""
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file)
+    ascii_recorders = record_compartment_reports(n._target_manager)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+
+    # Write ASCII reports
+    write_ascii_reports(ascii_recorders, n._run_conf["OutputRoot"])
+
+    # Read ASCII reports
+    soma_report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
+    assert soma_report.exists()
+    data = read_ascii_report(soma_report)
+    assert len(data) == 1250  # 50 time steps * 5*5 compartments
+    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1000]
+    peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
+    ref_peak_v = [9, 29, 49, 59, 79, 99, 105, 109, 129, 149, 155, 159, 179, 199, 205, 209, 229]
+    np.testing.assert_allclose(peaks_pos, ref_peak_v)

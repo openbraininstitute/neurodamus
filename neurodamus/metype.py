@@ -278,10 +278,16 @@ class Cell_V6(METype):  # noqa: N801
     def get_all_segment_points(self):
         """This method retrieves the extreme points of every neuron segment,
         and assign to attribute self.all_segment_points
+        Returns: {section_name: list of the [x,y,z] coordinates of the segment end points}
+        e.g. a soma with 3 segments -> {"cell.soma[0]": list 4 [x,y,z] points}
         """
 
         def get_seg_extremes(sec, loc2glob):
-            """Get extremes and roto-translate in global coordinates"""
+            """Get extremes and roto-translate in global coordinates
+            Args:
+                sec: the hoc section
+                loc2glod: matrix to convert from local to global coordinates
+            """
 
             def get_local_seg_extremes(nseg, pp):
                 """Compute the position of beginning and end of each compartment in a section
