@@ -8,7 +8,7 @@ Version 4.0.0
 
 *New Features*
   * No longer support python 3.9 (#423)
-  * Make neurodamus gids 0-based (#391)
+  * Make neurodamus gids 0-based, still requires the env var LIBSONATA_ZERO_BASED_GIDS=1 for libsonata-report <=1.2.7(#391)
 
 *Improvements*
   * Add OBI ticket templates
