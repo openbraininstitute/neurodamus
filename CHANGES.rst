@@ -4,6 +4,8 @@ Change Log
 
 Version 4.0.0
 ==============
+**2 December 2025**
+
 *New Features*
   * No longer support python 3.9 (#423)
   * Make neurodamus gids 0-based (#391)
