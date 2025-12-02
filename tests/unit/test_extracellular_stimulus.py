@@ -1,19 +1,17 @@
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
 import pytest
-from neuron import h
+from scipy.signal import find_peaks
 
 from tests.conftest import RINGTEST_DIR
-
-from neurodamus import Node
-from neurodamus.core.stimuli import ElectrodeSource
-from neurodamus.stimulus_manager import SpatiallyUniformEField
-
 from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
 
-from scipy.signal import find_peaks
-from pathlib import Path
+from neurodamus import Node
 from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.stimuli import ElectrodeSource
+from neurodamus.stimulus_manager import SpatiallyUniformEField
 
 
 def test_apply_ramp():
@@ -23,7 +21,7 @@ def test_apply_ramp():
     ref_down_time = 3  # 3 time steps to 0
 
     stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0])
-    stim_vec = h.Vector(range(1, 11))
+    stim_vec = Nd.Vector(range(1, 11))
     assert np.isclose(stimulus.ramp_up_time, ref_up_time)
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
     assert np.isclose(stimulus.dt, dt)
