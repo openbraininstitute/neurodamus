@@ -2,6 +2,26 @@
 Change Log
 ==========
 
+Version 4.0.0
+==============
+**2 December 2025**
+
+*New Features*
+  * No longer support python 3.9 (#423)
+  * Make neurodamus gids 0-based, still requires the env var LIBSONATA_ZERO_BASED_GIDS=1 for libsonata-report <=1.2.7(#391)
+
+*Improvements*
+  * Add OBI ticket templates
+  * check environment (#415)
+  * remove current_dir since it is unused after swtich to sonata (#416)
+  * add test to check that direct mode produces the same files as file mode (#413)
+  * remove `check_signal_peaks` as it is superfluous (#407)
+  * `dump_cellstate` for astrocytes (#406)
+
+*Bug Fixes*
+  * fix new ruff complaining about docstrings and h5py unpinning (#411)
+  * block h5py version since the last wheel fails with mac (#401)
+
 
 Version 3.11.0
 ==============
