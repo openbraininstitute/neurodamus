@@ -545,6 +545,7 @@ class ElectrodeSource(SignalSource):
         section.insert("extracellular")
         seg = section(x)
         self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
+        self.signals.clear()  # clear the list to free memory
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
