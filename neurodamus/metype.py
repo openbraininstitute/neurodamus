@@ -286,7 +286,7 @@ class Cell_V6(METype):  # noqa: N801
             """Get extremes and roto-translate in global coordinates
             Args:
                 sec: the hoc section
-                loc2glod: matrix to convert from local to global coordinates
+                loc2glob: matrix to convert from local to global coordinates
             """
 
             def get_local_seg_extremes(nseg, pp):
