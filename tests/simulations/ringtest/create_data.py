@@ -74,8 +74,27 @@ def make_ringtest_nodes():
         "y": it.count(1),
         "z": it.count(2),
         "morphology": "cell_small",
+        "rotation_angle_xaxis": 0,
+        "rotation_angle_yaxis": 0,
+        "rotation_angle_zaxis": 0.
     }
     make_nodes(filename="nodes_A.h5", name="RingA", count=3, wanted_attributes=wanted)
+
+    wanted = {
+        "node_type_id": -1,
+        "model_template": "hoc:TestCell",
+        "model_type": "biophysical",
+        "mtype": ["MTYPE0", "MTYPE1", "MTYPE2"],
+        "etype": ["ETYPE0", "ETYPE1", "ETYPE2"],
+        "x": it.count(0),
+        "y": it.count(1),
+        "z": it.count(2),
+        "morphology": ["cell_big", "cell_small", "cell_small"],
+        "rotation_angle_xaxis": 0,
+        "rotation_angle_yaxis": 0,
+        "rotation_angle_zaxis": 0.
+    }
+    make_nodes(filename="nodes_A_bigcell.h5", name="RingA", count=3, wanted_attributes=wanted)
 
     wanted = {
         "node_type_id": -1,
@@ -86,6 +105,9 @@ def make_ringtest_nodes():
         "y": it.count(4),
         "z": it.count(5),
         "morphology": "cell_small",
+        "rotation_angle_xaxis": 0,
+        "rotation_angle_yaxis": 0,
+        "rotation_angle_zaxis": 0.
     }
     make_nodes(filename="nodes_B.h5", name="RingB", count=2, wanted_attributes=wanted)
 

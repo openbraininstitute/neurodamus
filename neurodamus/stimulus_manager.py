@@ -19,11 +19,15 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
-from .core.stimuli import ConductanceSource, CurrentSource
+from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
+from .report_parameters import CompartmentType, SectionType
 from .utils.logging import log_verbose
 
 if TYPE_CHECKING:
@@ -80,7 +84,15 @@ class StimulusManager:
             return target.get_point_list_from_compartment_set(
                 cell_manager=cell_manager, compartment_set=compartment_set
             )
-        return target.get_point_list(cell_manager=cell_manager)
+        if stim_info["Pattern"] == "SpatiallyUniformEField":
+            section_type = SectionType.ALL
+            compart_type = CompartmentType.ALL
+        else:
+            section_type = SectionType.SOMA
+            compart_type = CompartmentType.CENTER
+        return target.get_point_list(
+            cell_manager=cell_manager, section_type=section_type, compartment_type=compart_type
+        )
 
     @staticmethod
     def reset_helpers():
@@ -812,3 +824,110 @@ class SEClamp(BaseStim):
         self.rs = float(stim_info.get("RS", 0.01))  # series resistance [MOhm]
         if self.delay > 0:
             logging.warning("%s ignores delay", self.__class__.__name__)
+
+
+@StimulusManager.register_type
+class SpatiallyUniformEField(BaseStim):
+    """Inject a temporally-oscillating extracellular potential field.
+    The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
+    in time, and whose gradient (i.e., E field) is constant.
+    """
+
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
+
+        self.stimList = []  # Extracellular fields go here
+
+        self.parse_check_all_parameters(stim_info)
+
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
+            cell = cell_manager.get_cell(gid)
+            cell.get_all_segment_points()
+            all_seg_points = cell.all_segment_points
+            soma = cell.CellRef.soma[0]
+            soma_seg_points = all_seg_points[soma.name()]
+            # soma position is the average of all its 3d points
+            soma_position = np.array(soma_seg_points).mean(axis=0)
+            for sec_id, sc in enumerate(target_point_list.sclst):
+                # skip sections not in this split
+                if not sc.exists():
+                    continue
+                es = ElectrodeSource(
+                    self.delay,
+                    self.duration,
+                    self.fields,
+                    self.ramp_up_time,
+                    self.ramp_down_time,
+                    self.dt,
+                    base_position=soma_position,
+                )
+
+                segment_position = self.get_segment_position(
+                    all_seg_points, soma_position, sc.sec, target_point_list.x[sec_id]
+                )
+                es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
+
+                self.stimList.append(es)  # save Extracellular field
+
+    def parse_check_all_parameters(self, stim_info: dict):
+        self.dt = float(SimConfig.run_conf["Dt"])
+        self.fields = stim_info["Fields"]
+        self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
+        self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
+        return True
+
+    @staticmethod
+    def get_segment_position(all_seg_points, soma_position, section, x):
+        """Get the global coordinates of the segment
+
+        Args:
+            all_seg_points: all the segment positions in the cell
+            soma_position: the soma position
+            section: hoc section
+            x : x: offset along the section, in [0, 1]
+
+        Returns:
+            global coordinates [x, y, z], type np.array
+        """
+        if "soma" in section.name():
+            return soma_position
+        if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
+            if "axon" in section.name():
+                pattern = r"axon\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    axon_index = int(match.group(1))
+                    return SpatiallyUniformEField.interp_axon_positions(
+                        x, axon_index, soma_position
+                    )
+            else:
+                raise ValueError(f"section {section.name()} has no 3d points defined")
+        else:
+            sec_seg_points = all_seg_points[section.name()]
+            seg_index = int(np.floor((len(sec_seg_points) - 1) * x))
+            return sec_seg_points[seg_index]
+        return None
+
+    @staticmethod
+    def interp_axon_positions(x, axon_index, soma_position):
+        """Interpolate positions of the axon segment for the given x,
+        because of no 3d point for the new axons.
+        Assume that the axon is oriented along the z-axis from soma, 30 um displaced for 1st axon,
+        60 um for 2nd axon, the same x- and y-coordinates as soma.
+        x=0 is soma, and x=1 is the end of the axon section.
+        """
+        xpos = [soma_position[0], soma_position[0]]
+        ypos = [soma_position[1], soma_position[1]]
+        zpos = [
+            soma_position[2] + 30 * int(axon_index),
+            soma_position[2] + 30 * int(axon_index + 1),
+        ]
+        lens = [0, 1]
+
+        # Interpolate the coordinates for the given location x along the segment
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
+
+        return np.array([seg_x, seg_y, seg_z])

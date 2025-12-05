@@ -2,6 +2,8 @@
 
 import logging
 
+import numpy as np
+
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
 
@@ -491,17 +493,87 @@ class ConductanceSource(SignalSource):
         )
 
 
-# EStim class is a derivative of TStim for stimuli with an extracelular electrode. The main
-# difference is that it collects all elementary stimuli pulses and converts them using a
-# VirtualElectrode object before it injects anything
-#
-# The stimulus is defined on the hoc level by using the addpoint function for every (step) change
-# in extracellular electrode voltage. At this stage only step changes can be used. Gradual,
-# i.e. sinusoidal changes will be implemented in the future
-# After every step has been defined, you have to call initElec() to perform the frequency dependent
-# transformation. This transformation turns e_electrode into e_extracellular at distance d=1 micron
-# from the electrode. After the transformation is complete, NO MORE STEPS CAN BE ADDED!
-# You can then use inject() to first scale e_extracellular down by a distance dependent factor
-# and then vector.play() it into the currently accessed compartment
-#
-# TODO: 1. more stimulus primitives than step. 2. a dt of 0.1 ms is hardcoded. make this flexible!
+class ElectrodeSource(SignalSource):
+    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position):
+        """Creates a new source that injects a signal under e_extracellular"""
+        super().__init__(base_amp=0, delay=delay)
+        self.fields = fields
+        self.dt = dt
+        self.ramp_up_time = ramp_up_time
+        self.ramp_down_time = ramp_down_time
+        self.signals = self.add_cosines(
+            duration + self.ramp_up_time + self.ramp_down_time,
+            self.fields,
+            step=self.dt,
+            delay=delay,
+        )
+        self.base_position = base_position
+
+    def add_cosines(self, total_duration, fields, step, **kw):
+        """Add multiple cosinusoidal signals
+        Args:
+            total_duration: total duration, in ms, including ramp-up and ramp-down periods
+            fields: dict of the stimulus fields parameters
+            step: the time step, in ms
+        Returns: a list of sine signal vectors
+        """
+        delay = kw.get("delay", 0)
+        self.delay(delay)
+
+        tvec = Nd.h.Vector()
+        tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
+        self.time_vec.append(tvec)
+        self.delay(total_duration)
+        res = []
+        for field in fields:
+            vec = Nd.h.Vector(len(tvec))
+            freq = field.get("Frequency", 0)
+            phase = field.get("Phase", 0)
+            vec.sin(freq, phase + np.pi / 2, step)
+            res.append(vec)
+
+        return res
+
+    def attach_to(self, section, x, inject_position):
+        amplitudes = self.uniform_potentials(inject_position)
+        # sum all the sinusoid signals
+        stim_vec_sum = sum((v * s for v, s in zip(self.signals, amplitudes, strict=True)))
+        self.apply_ramp(stim_vec_sum, self.dt)
+        self.stim_vec.append(stim_vec_sum)
+        self._add_point(self._base_amp)  # Last point
+
+        section.insert("extracellular")
+        seg = section(x)
+        self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
+        self.signals.clear()  # clear the list to free memory
+
+    def apply_ramp(self, signal_vec, step):
+        """Apply signal ramp up and down
+        Args:
+            signal_vec: the signal vector to apply ramp, type hoc Vector
+            step: time step
+        """
+        ramp_up_number = int(
+            self.ramp_up_time / step
+        )  # Number of time points during the ramp-up window
+        ramp_down_number = int(
+            self.ramp_down_time / step
+        )  # Number of time points during the ramp-down window
+
+        if ramp_up_number > 0:
+            ramp_up = np.linspace(0, 1, ramp_up_number)
+            signal_vec[:ramp_up_number] *= ramp_up
+        if ramp_down_number > 0:
+            ramp_down = np.linspace(1, 0, ramp_down_number)
+            signal_vec[-ramp_down_number:] *= ramp_down
+
+    def uniform_potentials(self, injection_position):
+        """Calculates potential amplitude relative to base_point
+        Units: Ex,Ey,Ez in V/m, segment position in um
+        """
+        base_point = self.base_position
+        displacement = (injection_position - base_point) * 1e-6  # Converts from um to m
+        return [
+            np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
+            for field in self.fields
+        ]  # Converts from V to mV

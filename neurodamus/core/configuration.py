@@ -228,6 +228,7 @@ class _SimConfig:
     num_target_ranks = None
     coreneuron_direct_mode = False
     crash_test_mode = False
+    has_extracellular_stimulus = False
 
     _validators = []
     _cell_requirements = {}
@@ -414,14 +415,13 @@ class _SimConfig:
 SimConfig = _SimConfig()
 
 
-def _check_params(  # noqa: C901
+def _check_params(
     section_name,
     data,
     required_fields,
     numeric_fields=(),
     non_negatives=(),
     valid_values=None,
-    deprecated_values=None,
 ):
     """Generic function to check a dict-like data set conforms to the field prescription"""
     for param in required_fields:
@@ -449,16 +449,6 @@ def _check_params(  # noqa: C901
         if val and val not in valid:
             raise ConfigurationError(
                 f"simulation config param value is invalid: [{section_name}] {param} = {val}"
-            )
-
-    for param, deprecated in (deprecated_values or {}).items():
-        val = data.get(param)
-        if val and val in deprecated:
-            logging.warning(
-                "simulation config param value is deprecated: [%s] %s = %s",
-                section_name,
-                param,
-                val,
             )
 
 
@@ -524,11 +514,12 @@ def _stimulus_params(config: _SimConfig):
         "Width",
         "Lambda",
         "Weight",
-        "NumOfSynapses",
         "Seed",
+        "RampUpTime",
+        "RampDownTime",
     )
     valid_values = {
-        "Mode": ("Current", "Voltage", "Conductance", "spikes"),
+        "Mode": ("Current", "Voltage", "Conductance", "spikes", "Extracellular"),
         "Pattern": {
             "Hyperpolarizing",
             "Linear",
@@ -542,14 +533,11 @@ def _stimulus_params(config: _SimConfig):
             "SubThreshold",
             "SynapseReplay",
             "OrnsteinUhlenbeck",
-            "NPoisson",
-            "NPoissonInhomogeneous",
-            "ReplayVoltageTrace",
             "AbsoluteShotNoise",
             "RelativeOrnsteinUhlenbeck",
+            "SpatiallyUniformEField",
         },
     }
-    deprecated_values = {"Pattern": ("NPoisson", "NPoissonInhomogeneous", "ReplayVoltageTrace")}
     for stim in config.stimuli:
         _check_params(
             "Stimulus " + stim["Name"],
@@ -558,8 +546,9 @@ def _stimulus_params(config: _SimConfig):
             numeric_fields,
             non_negatives,
             valid_values,
-            deprecated_values,
         )
+        if stim["Mode"] == "Extracellular":
+            config.has_extracellular_stimulus = True
 
 
 @SimConfig.validator
