@@ -337,6 +337,19 @@ def test_two_fields(create_tmp_simulation_config_file):
     n.clear_model()
 
 
+def test_interpolate_axon_coordinates():
+    """Test interpolate their coordinates based on the soma position"""
+    from neurodamus.core import NeuronWrapper as Nd
+
+    soma_position = [-0.60355, 4.2006, 2.0]
+    section = Nd.h.Section(name="TestCell[0].axon[0]")
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.5)
+    npt.assert_allclose(position, [-0.60355, 4.2006, 17.0])
+    section = Nd.h.Section(name="TestCell[0].axon[1]")
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.8)
+    npt.assert_allclose(position, [-0.60355, 4.2006, 56])
+
+
 @pytest.mark.parametrize(
     ("create_tmp_simulation_config_file", "ref_peak"),
     [
