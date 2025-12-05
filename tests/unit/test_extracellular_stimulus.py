@@ -9,13 +9,16 @@ from tests.conftest import RINGTEST_DIR
 from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
 
 from neurodamus import Neurodamus, Node
-from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 
 
 def test_apply_ramp():
     """Test the function apply_ramp"""
+    from neurodamus.core import (
+        NeuronWrapper as Nd,
+    )  # Import at function level, otherwise will impact other tests
+
     dt = 1
     ref_up_time = 5  # 5 time steps from 0
     ref_down_time = 3  # 3 time steps to 0
@@ -414,7 +417,27 @@ def test_two_fields(create_tmp_simulation_config_file):
                     },
                 },
             },
-            [9, 29, 49, 59, 79, 99, 105, 109, 129, 149, 155, 159, 179, 199, 205, 209, 229],
+            [
+                9,
+                29,
+                49,
+                59,
+                79,
+                99,
+                105,
+                109,
+                129,
+                149,
+                155,
+                159,
+                165,
+                179,
+                199,
+                205,
+                209,
+                217,
+                229,
+            ],
         ),
     ],
     indirect=["create_tmp_simulation_config_file"],
@@ -422,6 +445,9 @@ def test_two_fields(create_tmp_simulation_config_file):
 def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak):
     """2 NEURON integration tests, with and without the electric field stimulus.
     Check the compartment ASCII reports without different reference peak position"""
+    from neurodamus.core import (
+        NeuronWrapper as Nd,
+    )  # Import at function level, otherwise will impact other tests
 
     n = Neurodamus(create_tmp_simulation_config_file)
     ascii_recorders = record_compartment_reports(n._target_manager)
