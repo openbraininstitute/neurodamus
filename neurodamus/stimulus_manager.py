@@ -878,7 +878,8 @@ class SpatiallyUniformEField(BaseStim):
         self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
         return True
 
-    def get_segment_position(self, all_seg_points, soma_position, section, x):
+    @staticmethod
+    def get_segment_position(all_seg_points, soma_position, section, x):
         """Get the global coordinates of the segment
 
         Args:
@@ -897,7 +898,9 @@ class SpatiallyUniformEField(BaseStim):
                 pattern = r"axon\[(\d+)\]$"
                 if match := re.search(pattern, section.name()):
                     axon_index = int(match.group(1))
-                    return self.interp_axon_positions(x, axon_index, soma_position)
+                    return SpatiallyUniformEField.interp_axon_positions(
+                        x, axon_index, soma_position
+                    )
             else:
                 raise ValueError(f"section {section.name()} has no 3d points defined")
         else:
@@ -916,7 +919,10 @@ class SpatiallyUniformEField(BaseStim):
         """
         xpos = [soma_position[0], soma_position[0]]
         ypos = [soma_position[1], soma_position[1]]
-        zpos = [soma_position[2], soma_position[2] + 30 * int(axon_index + 1)]
+        zpos = [
+            soma_position[2] + 30 * int(axon_index),
+            soma_position[2] + 30 * int(axon_index + 1),
+        ]
         lens = [0, 1]
 
         # Interpolate the coordinates for the given location x along the segment
