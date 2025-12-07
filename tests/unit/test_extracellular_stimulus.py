@@ -36,21 +36,21 @@ def test_interpolate_axon_coordinates():
     """Test interpolate axon's coordinates along y-axis from the soma position"""
     from neurodamus.core import NeuronWrapper as Nd
 
-    soma_position = [-0.60355, 4.2, 2.]
+    soma_position = [-0.60355, 4.2, 2.0]
     section = Nd.h.Section(name="TestCell[0].axon[0]")
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
-    npt.assert_allclose(position, [-0.60355, 4.2, 2.])
+    npt.assert_allclose(position, [-0.60355, 4.2, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.5)
-    npt.assert_allclose(position, [-0.60355, 19.2, 2.])
+    npt.assert_allclose(position, [-0.60355, 19.2, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
-    npt.assert_allclose(position, [-0.60355, 34.2, 2.])
+    npt.assert_allclose(position, [-0.60355, 34.2, 2.0])
     section = Nd.h.Section(name="TestCell[0].axon[1]")
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
-    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+    npt.assert_allclose(position, [-0.60355, 34.2, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.8)
-    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+    npt.assert_allclose(position, [-0.60355, 58.2, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
-    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+    npt.assert_allclose(position, [-0.60355, 64.2, 2.0])
 
 
 @pytest.mark.parametrize(
@@ -101,7 +101,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     dt = stimulus.dt
     soma_signal_source = stimulus.stimList[0]
     soma_obj = cellref.soma[0]
-    soma_seg_points = cell.all_segment_points[soma_obj.name()]
+    soma_seg_points = cell.segment_global_coords[soma_obj.name()]
     assert isinstance(soma_signal_source, ElectrodeSource)
     npt.assert_allclose(soma_signal_source.base_position, np.array(soma_seg_points).mean(axis=0))
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)

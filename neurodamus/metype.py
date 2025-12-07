@@ -226,13 +226,14 @@ class METype(BaseCell):
 
 
 class Cell_V6(METype):  # noqa: N801
-    __slots__ = ("all_segment_points", "local_to_global_matrix")
+    __slots__ = ("local_to_global_matrix", "segment_global_coords", "segment_local_coords")
 
     def __init__(self, gid, meinfo, circuit_conf):
         mepath = circuit_conf.METypePath
         morpho_path = circuit_conf.MorphologyPath
         detailed_axon = circuit_conf.DetailedAxon
-        self.all_segment_points = {}  # {section_name: [all_seg_points for the section]}
+        self.segment_global_coords = {}  # {section_name: list of all segments global coordinates}
+        self.segment_local_coords = {}  # {section_name: list of all segments local coordinates}
         super().__init__(gid, mepath, meinfo.emodel_tpl, morpho_path, meinfo, detailed_axon)
 
     def _instantiate_cell(self, gid, etype_path, emodel, morpho_path, meinfos_v6, detailed_axon):
@@ -275,68 +276,71 @@ class Cell_V6(METype):  # noqa: N801
     def delete_axon(self):
         self._cellref.replace_axon()
 
-    def get_all_segment_points(self):
-        """This method retrieves the extreme points of every neuron segment,
-        and assign to attribute self.all_segment_points
-        Returns: {section_name: list of the [x,y,z] coordinates of the segment end points}
-        e.g. a soma with 3 segments -> {"cell.soma[0]": list 4 [x,y,z] points}
+    def get_segment_local_coordinates(self):
+        """Retrieves the local extreme points of every section segment,
+        assign to self.segment_local_coords
         """
-
-        def get_seg_extremes(sec, loc2glob):
-            """Get extremes and roto-translate in global coordinates
-            Args:
-                sec: the hoc section
-                loc2glob: matrix to convert from local to global coordinates
-            """
-
-            def get_local_seg_extremes(nseg, pp):
-                """Compute the position of beginning and end of each compartment in a section
-
-                Assumption: all the compartments have the same length
-
-                Args:
-                    nseg: number of compartments.
-                    pp: a nX4 matrix of positions of points.
-                    The first col give the relative position, (x in neuron) along the
-                    axis. It is in the interval [0, 1].
-                    The other 3 columns give x,y,z triplets of the points in a global system of
-                    reference.
-
-                Returns:
-                - a matrix 3Xn of the position of the extremes of every proper compartment
-                """
-                if not pp:
-                    # when section has no 3d points, i.e. new axons, return placeholder
-                    return np.array([])
-                pp = np.array(pp)
-                x_rel, xp, yp, zp = pp[:, 0], pp[:, 1], pp[:, 2], pp[:, 3]
-                x = np.linspace(0, 1, nseg + 1)
-                xp_seg = np.interp(x, x_rel, xp)
-                yp_seg = np.interp(x, x_rel, yp)
-                zp_seg = np.interp(x, x_rel, zp)
-
-                return np.transpose([xp_seg, yp_seg, zp_seg])
-
-            ll = [
+        if self.segment_local_coords:
+            return
+        for sec in self.CellRef.all:
+            seg_pt3ds = [
                 [sec.arc3d(i) / sec.L, sec.x3d(i), sec.y3d(i), sec.z3d(i)] for i in range(sec.n3d())
             ]
-            ans = get_local_seg_extremes(
-                sec.nseg,
-                ll,
-            )
-            if loc2glob:
-                ans = np.array(
-                    loc2glob(ans),
-                    dtype=float,
-                    order="C",
-                )
-            return ans
+            self.segment_local_coords[sec.name()] = self.get_local_seg_extremes(sec.nseg, seg_pt3ds)
 
-        if not self.all_segment_points:
-            self.all_segment_points = {
-                sec.name(): get_seg_extremes(sec, loc2glob=self.local_to_global_coord_mapping)
-                for sec in self.CellRef.all
-            }
+    def get_segment_global_coordinates(self):
+        """Retrieves the local extreme points of every section segment,
+        convert to global coordinates, and assign to attribute self.segment_global_coords
+        Returns: {section_name: list of the [x,y,z] coordinates of the segment end points}
+        e.g. a soma with 3 segments -> {"cell.soma[0]": [[x1,y1,z1], [x2,y2,z2]]}
+        """
+        if self.segment_global_coords:
+            return
+        if not self.segment_local_coords:
+            self.get_segment_local_coordinates()
+
+        for sec_name, local_coords in self.segment_local_coords.items():
+            self.segment_global_coords[sec_name] = self.local_to_global(
+                local_coords, self.local_to_global_coord_mapping
+            )
+
+    @staticmethod
+    def local_to_global(local_seg_extremes, loc2glob):
+        """Get extremes and roto-translate in global coordinates
+        Args:
+            local_seg_extremes: local coordinates of segment points
+            loc2glob: matrix to convert from local to global coordinates
+        """
+        return np.array(loc2glob(local_seg_extremes), dtype=float, order="C")
+
+    @staticmethod
+    def get_local_seg_extremes(nseg, pp):
+        """Compute the local position of beginning and end of each compartment in a section
+
+        Assumption: all the compartments have the same length
+
+        Args:
+            nseg: number of compartments.
+            pp: a nX4 matrix of positions of points.
+            The first col give the relative position, (x in neuron) along the
+            axis. It is in the interval [0, 1].
+            The other 3 columns give x,y,z triplets of the points in a global system of
+            reference.
+
+        Returns:
+        - a matrix 3Xn of the position of the extremes of every proper compartment
+        """
+        if not pp:
+            # when section has no 3d points, i.e. new axons, return placeholder
+            return np.array([])
+        pp = np.array(pp)
+        x_rel, xp, yp, zp = pp[:, 0], pp[:, 1], pp[:, 2], pp[:, 3]
+        x = np.linspace(0, 1, nseg + 1)
+        xp_seg = np.interp(x, x_rel, xp)
+        yp_seg = np.interp(x, x_rel, yp)
+        zp_seg = np.interp(x, x_rel, zp)
+
+        return np.transpose([xp_seg, yp_seg, zp_seg])
 
     def __getattr__(self, item):
         prop = self.extra_attrs.get(item)
