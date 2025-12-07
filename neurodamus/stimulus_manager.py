@@ -844,12 +844,11 @@ class SpatiallyUniformEField(BaseStim):
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
-            cell.get_all_segment_points()
-            all_seg_points = cell.all_segment_points
+            cell.get_segment_global_coordinates()
+            all_seg_points = cell.segment_global_coords
             soma = cell.CellRef.soma[0]
-            soma_seg_points = all_seg_points[soma.name()]
             # soma position is the average of all its 3d points
-            soma_position = np.array(soma_seg_points).mean(axis=0)
+            soma_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
@@ -865,7 +864,10 @@ class SpatiallyUniformEField(BaseStim):
                 )
 
                 segment_position = self.get_segment_position(
-                    all_seg_points, soma_position, sc.sec, target_point_list.x[sec_id]
+                    all_seg_points[sc.sec.name()],
+                    soma_position,
+                    sc.sec,
+                    target_point_list.x[sec_id],
                 )
                 es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
 
@@ -879,11 +881,11 @@ class SpatiallyUniformEField(BaseStim):
         return True
 
     @staticmethod
-    def get_segment_position(all_seg_points, soma_position, section, x):
+    def get_segment_position(sec_seg_points, soma_position, section, x):
         """Get the global coordinates of the segment
 
         Args:
-            all_seg_points: all the segment positions in the cell
+            sec_seg_points: segment local positions in the section
             soma_position: the soma position
             section: hoc section
             x : x: offset along the section, in [0, 1]
@@ -904,7 +906,6 @@ class SpatiallyUniformEField(BaseStim):
             else:
                 raise ValueError(f"section {section.name()} has no 3d points defined")
         else:
-            sec_seg_points = all_seg_points[section.name()]
             seg_index = int(np.floor((len(sec_seg_points) - 1) * x))
             return sec_seg_points[seg_index]
         return None

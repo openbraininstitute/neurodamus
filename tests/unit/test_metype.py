@@ -127,22 +127,10 @@ def test_get_segment_points(create_tmp_simulation_config_file):
     cell0 = next(iter(cell_manager.cells))
     assert isinstance(cell0, Cell_V6)
     assert cell0.gid == 0
-    cell0.get_all_segment_points()
-    assert list(cell0.all_segment_points.keys()) == [
-        "TestCell[0].soma[0]",
-        "TestCell[0].dend[0]",
-        "TestCell[0].dend[1]",
-        "TestCell[0].dend[2]",
-        "TestCell[0].dend[3]",
-        "TestCell[0].dend[4]",
-        "TestCell[0].dend[5]",
-        "TestCell[0].dend[6]",
-        "TestCell[0].dend[7]",
-        "TestCell[0].dend[8]",
-        "TestCell[0].dend[9]",
-    ]
+    cell0.get_segment_global_coordinates()
+    assert len(cell0.segment_global_coords) == 11
     soma_obj = cell0.CellRef.soma[0]
-    soma_seg_points = cell0.all_segment_points[soma_obj.name()]
+    soma_seg_points = cell0.segment_global_coords[soma_obj.name()]
     assert len(soma_seg_points) == soma_obj.nseg + 1
     npt.assert_allclose(
         soma_seg_points,
@@ -154,6 +142,6 @@ def test_get_segment_points(create_tmp_simulation_config_file):
         ],
     )
     dend0 = cell0.CellRef.dend[0]
-    dend0_seg_points = cell0.all_segment_points["TestCell[0].dend[0]"]
+    dend0_seg_points = cell0.segment_global_coords[dend0.name()]
     assert len(dend0_seg_points) == dend0.nseg + 1
     npt.assert_allclose(dend0_seg_points, [[15.0, 1.0, 2.0], [115.0, 1.0, 2.0], [215.0, 1.0, 2.0]])
