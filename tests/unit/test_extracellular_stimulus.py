@@ -32,6 +32,27 @@ def test_apply_ramp():
     assert np.allclose(stim_vec.as_numpy(), [0, 0.5, 1.5, 3, 5, 6, 7, 8, 4.5, 0])
 
 
+def test_interpolate_axon_coordinates():
+    """Test interpolate axon's coordinates along y-axis from the soma position"""
+    from neurodamus.core import NeuronWrapper as Nd
+
+    soma_position = [-0.60355, 4.2, 2.]
+    section = Nd.h.Section(name="TestCell[0].axon[0]")
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
+    npt.assert_allclose(position, [-0.60355, 4.2, 2.])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.5)
+    npt.assert_allclose(position, [-0.60355, 19.2, 2.])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
+    npt.assert_allclose(position, [-0.60355, 34.2, 2.])
+    section = Nd.h.Section(name="TestCell[0].axon[1]")
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
+    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.8)
+    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
+    npt.assert_allclose(position, [-0.60355, 4.2006, 2.])
+
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -335,19 +356,6 @@ def test_two_fields(create_tmp_simulation_config_file):
         for seg in sec:
             assert hasattr(seg, "extracellular")
     n.clear_model()
-
-
-def test_interpolate_axon_coordinates():
-    """Test interpolate their coordinates based on the soma position"""
-    from neurodamus.core import NeuronWrapper as Nd
-
-    soma_position = [-0.60355, 4.2006, 2.0]
-    section = Nd.h.Section(name="TestCell[0].axon[0]")
-    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.5)
-    npt.assert_allclose(position, [-0.60355, 4.2006, 17.0])
-    section = Nd.h.Section(name="TestCell[0].axon[1]")
-    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.8)
-    npt.assert_allclose(position, [-0.60355, 4.2006, 56])
 
 
 @pytest.mark.parametrize(
