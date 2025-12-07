@@ -918,11 +918,11 @@ class SpatiallyUniformEField(BaseStim):
         x=0 is soma, and x=1 is the end of the axon section.
         """
         xpos = [soma_position[0], soma_position[0]]
-        ypos = [soma_position[1], soma_position[1]]
-        zpos = [
-            soma_position[2] + 30 * int(axon_index),
-            soma_position[2] + 30 * int(axon_index + 1),
+        ypos = [
+            soma_position[1] + 30 * int(axon_index),
+            soma_position[1] + 30 * int(axon_index + 1),
         ]
+        zpos = [soma_position[2], soma_position[2]]
         lens = [0, 1]
 
         # Interpolate the coordinates for the given location x along the segment
