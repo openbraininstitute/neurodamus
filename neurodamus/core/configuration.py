@@ -980,6 +980,15 @@ def _cell_permute(config: _SimConfig):
         )
 
 
+@SimConfig.validator
+def _extracellular_stimulation(config: _SimConfig):
+    if config.has_extracellular_stimulus and config.use_coreneuron:
+        raise ConfigurationError(
+            "Extracellular stimulation is not supported with CoreNEURON -"
+            " CoreNEURON cannot simulate a model that contains the extracellular mechanism"
+        )
+
+
 def get_debug_cell_gids(cli_options):
     """Parse the --dump-cell-state option from CLI.
 
