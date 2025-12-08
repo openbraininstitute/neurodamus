@@ -57,7 +57,6 @@ def test_efields_stimulus_neuron(create_tmp_simulation_config_file):
             2.0,
             2.0,
             2.0,
-            0.0,
             2.0,
             0.0,
             2.0,
@@ -65,7 +64,6 @@ def test_efields_stimulus_neuron(create_tmp_simulation_config_file):
             0.0,
             2.0,
             0.0,
-            1.0,
         ]
     )
     ref_timestamps = np.array(
@@ -78,19 +76,17 @@ def test_efields_stimulus_neuron(create_tmp_simulation_config_file):
             4.2,
             7.2,
             7.3,
-            8.5,
+            8.6,
             13.8,
-            19.5,
-            25.6,
-            28.8,
+            19.6,
+            25.7,
             32.0,
-            35.7,
+            35.8,
             38.5,
-            40.3,
-            41.9,
-            45.1,
+            41.3,
+            42.0,
+            45.2,
             47.7,
-            49.5,
         ]
     )
     obtained_timestamps = nd._spike_vecs[0][0].as_numpy()

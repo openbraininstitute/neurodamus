@@ -845,9 +845,17 @@ class SpatiallyUniformEField(BaseStim):
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
             all_seg_points = cell.compute_segment_global_coordinates()
+            local_seg_points = cell.compute_segment_local_coordinates()
             soma = cell.CellRef.soma[0]
             # soma position is the average of all its 3d points
-            soma_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
+            soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
+            soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+
+            def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
+                return cell.local_to_global(
+                    np.vstack([soma_local_position, pos]), cell.local_to_global_coord_mapping
+                )[1]
+
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
@@ -859,14 +867,18 @@ class SpatiallyUniformEField(BaseStim):
                     self.ramp_up_time,
                     self.ramp_down_time,
                     self.dt,
-                    base_position=soma_position,
+                    base_position=soma_global_position,
                 )
-
-                segment_position = self.get_segment_position(
-                    all_seg_points[sc.sec.name()],
-                    soma_position,
-                    sc.sec,
-                    target_point_list.x[sec_id],
+                segment_position = (
+                    self.get_segment_position(
+                        all_seg_points[sc.sec.name()],
+                        soma_local_position,
+                        sc.sec,
+                        target_point_list.x[sec_id],
+                        local_to_global,
+                    )
+                    if "soma" not in sc.sec.name()
+                    else soma_global_position
                 )
                 es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
 
@@ -880,35 +892,38 @@ class SpatiallyUniformEField(BaseStim):
         return True
 
     @staticmethod
-    def get_segment_position(sec_seg_points, soma_position, section, x):
-        """Get the global coordinates of the segment
+    def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
+        """Get the global coordinates of the segment.
+        For axon and myelin, intepolate along the y-axis of the local soma coordinates,
+        and then convert to global coordinates.
 
         Args:
-            sec_seg_points: segment local positions in the section
-            soma_position: the soma position
+            sec_seg_points: segment global positions in the current section
+            soma_local_position: soma local position to interpolate axon and myelin position
             section: hoc section
             x : x: offset along the section, in [0, 1]
-
+            func_loc2glob: function to convert local coordinates to global ones for axon and myelin,
+                              return the local coordinates if None
         Returns:
             global coordinates [x, y, z], type np.array
         """
-        if "soma" in section.name():
-            return soma_position
         if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
             if "axon" in section.name():
                 pattern = r"axon\[(\d+)\]$"
                 if match := re.search(pattern, section.name()):
                     axon_index = int(match.group(1))
-                    return SpatiallyUniformEField.interp_axon_positions(
-                        x, axon_index, soma_position
+                    local_positions = SpatiallyUniformEField.interp_axon_positions(
+                        x, axon_index, soma_local_position
                     )
+                    return func_loc2glob(local_positions) if func_loc2glob else local_positions
             elif "myelin" in section.name():
                 pattern = r"myelin\[(\d+)\]$"
                 if match := re.search(pattern, section.name()):
                     myelin_index = int(match.group(1))
-                    return SpatiallyUniformEField.interp_myelin_positions(
-                        x, myelin_index, soma_position
+                    local_positions = SpatiallyUniformEField.interp_myelin_positions(
+                        x, myelin_index, soma_local_position
                     )
+                    return func_loc2glob(local_positions) if func_loc2glob else local_positions
             else:
                 raise ValueError(f"section {section.name()} has no 3d points defined")
         else:
@@ -918,10 +933,10 @@ class SpatiallyUniformEField(BaseStim):
 
     @staticmethod
     def interp_axon_positions(x, axon_index, soma_position):
-        """Interpolate positions of the axon segment for the given x,
+        """Interpolate the coordinates of the axon segment for the given x,
         because of no 3d point for the new axons.
         Assume that the axon is oriented along the y-axis from soma, 30 um displaced for 1st axon,
-        60 um for 2nd axon, the same x- and y-coordinates as soma.
+        60 um for 2nd axon, the same x- and z-coordinates as soma.
         x=0 is soma, and x=1 is the end of the axon section.
         """
         if axon_index > 1:
@@ -943,10 +958,10 @@ class SpatiallyUniformEField(BaseStim):
 
     @staticmethod
     def interp_myelin_positions(x, myelin_index, soma_position):
-        """Interpolate the position of the myelin segment for the given x,
+        """Interpolate the coordinates of the myelin segment for the given x,
         because of no 3d point for the new myelin section.
         Assume that the myelin is oriented along the y-axis from soma,
-        1000 um displaced after the 2nd axon
+        1000 um displaced after the 2nd axon, i.e. [soma-60, soma-1000]
         """
         if myelin_index > 0:
             raise ValueError("More than 1 myelin section exist!")
