@@ -9,6 +9,7 @@ from tests.conftest import RINGTEST_DIR
 from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
 
 from neurodamus import Neurodamus, Node
+from neurodamus.core.configuration import ConfigurationError
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 
@@ -501,3 +502,40 @@ def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak)
     peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
     np.testing.assert_allclose(peaks_pos, ref_peak)
     n.clear_model()  # clear up the reporting vector, required for the next run.
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "CORENEURON",
+                "inputs": {
+                    "ex_efields": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 0,
+                        "duration": 10,
+                        "node_set": "Mosaic",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
+                    },
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_coreneuron_exception(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    with pytest.raises(
+        ConfigurationError,
+        match="CoreNEURON cannot simulate a model that contains the extracellular mechanism",
+    ):
+        Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
