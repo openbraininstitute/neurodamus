@@ -127,7 +127,7 @@ def test_get_segment_points(create_tmp_simulation_config_file):
     cell0 = next(iter(cell_manager.cells))
     assert isinstance(cell0, Cell_V6)
     assert cell0.gid == 0
-    cell0.get_segment_global_coordinates()
+    cell0.compute_segment_global_coordinates()
     assert len(cell0.segment_global_coords) == 11
     soma_obj = cell0.CellRef.soma[0]
     soma_seg_points = cell0.segment_global_coords[soma_obj.name()]

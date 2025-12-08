@@ -276,33 +276,33 @@ class Cell_V6(METype):  # noqa: N801
     def delete_axon(self):
         self._cellref.replace_axon()
 
-    def get_segment_local_coordinates(self):
+    def compute_segment_local_coordinates(self):
         """Retrieves the local extreme points of every section segment,
         assign to self.segment_local_coords
         """
         if self.segment_local_coords:
-            return
+            return self.segment_local_coords
         for sec in self.CellRef.all:
             seg_pt3ds = [
                 [sec.arc3d(i) / sec.L, sec.x3d(i), sec.y3d(i), sec.z3d(i)] for i in range(sec.n3d())
             ]
             self.segment_local_coords[sec.name()] = self.get_local_seg_extremes(sec.nseg, seg_pt3ds)
+        return self.segment_local_coords
 
-    def get_segment_global_coordinates(self):
+    def compute_segment_global_coordinates(self):
         """Retrieves the local extreme points of every section segment,
         convert to global coordinates, and assign to attribute self.segment_global_coords
         Returns: {section_name: list of the [x,y,z] coordinates of the segment end points}
         e.g. a soma with 3 segments -> {"cell.soma[0]": [[x1,y1,z1], [x2,y2,z2]]}
         """
         if self.segment_global_coords:
-            return
-        if not self.segment_local_coords:
-            self.get_segment_local_coordinates()
+            return self.segment_global_coords
 
-        for sec_name, local_coords in self.segment_local_coords.items():
+        for sec_name, local_coords in self.compute_segment_local_coordinates().items():
             self.segment_global_coords[sec_name] = self.local_to_global(
                 local_coords, self.local_to_global_coord_mapping
             )
+        return self.segment_global_coords
 
     @staticmethod
     def local_to_global(local_seg_extremes, loc2glob):

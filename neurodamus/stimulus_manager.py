@@ -844,8 +844,7 @@ class SpatiallyUniformEField(BaseStim):
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
-            cell.get_segment_global_coordinates()
-            all_seg_points = cell.segment_global_coords
+            all_seg_points = cell.compute_segment_global_coordinates()
             soma = cell.CellRef.soma[0]
             # soma position is the average of all its 3d points
             soma_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
@@ -903,6 +902,13 @@ class SpatiallyUniformEField(BaseStim):
                     return SpatiallyUniformEField.interp_axon_positions(
                         x, axon_index, soma_position
                     )
+            elif "myelin" in section.name():
+                pattern = r"myelin\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    myelin_index = int(match.group(1))
+                    return SpatiallyUniformEField.interp_myelin_positions(
+                        x, myelin_index, soma_position
+                    )
             else:
                 raise ValueError(f"section {section.name()} has no 3d points defined")
         else:
@@ -914,14 +920,40 @@ class SpatiallyUniformEField(BaseStim):
     def interp_axon_positions(x, axon_index, soma_position):
         """Interpolate positions of the axon segment for the given x,
         because of no 3d point for the new axons.
-        Assume that the axon is oriented along the z-axis from soma, 30 um displaced for 1st axon,
+        Assume that the axon is oriented along the y-axis from soma, 30 um displaced for 1st axon,
         60 um for 2nd axon, the same x- and y-coordinates as soma.
         x=0 is soma, and x=1 is the end of the axon section.
         """
+        if axon_index > 1:
+            raise ValueError("More than 2 axon sections exist!")
         xpos = [soma_position[0], soma_position[0]]
         ypos = [
-            soma_position[1] + 30 * int(axon_index),
-            soma_position[1] + 30 * int(axon_index + 1),
+            soma_position[1] - 30 * int(axon_index),
+            soma_position[1] - 30 * int(axon_index + 1),
+        ]
+        zpos = [soma_position[2], soma_position[2]]
+        lens = [0, 1]
+
+        # Interpolate the coordinates for the given location x along the segment
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
+
+        return np.array([seg_x, seg_y, seg_z])
+
+    @staticmethod
+    def interp_myelin_positions(x, myelin_index, soma_position):
+        """Interpolate the position of the myelin segment for the given x,
+        because of no 3d point for the new myelin section.
+        Assume that the myelin is oriented along the y-axis from soma,
+        1000 um displaced after the 2nd axon
+        """
+        if myelin_index > 0:
+            raise ValueError("More than 1 myelin section exist!")
+        xpos = [soma_position[0], soma_position[0]]
+        ypos = [
+            (soma_position[1] - 60) - 1000 * int(myelin_index),
+            (soma_position[1] - 60) - 1000 * int(myelin_index + 1),
         ]
         zpos = [soma_position[2], soma_position[2]]
         lens = [0, 1]

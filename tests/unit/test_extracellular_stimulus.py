@@ -41,16 +41,30 @@ def test_interpolate_axon_coordinates():
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
     npt.assert_allclose(position, [-0.60355, 4.2, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.5)
-    npt.assert_allclose(position, [-0.60355, 19.2, 2.0])
+    npt.assert_allclose(position, [-0.60355, 4.2 - 30 * 0.5, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
-    npt.assert_allclose(position, [-0.60355, 34.2, 2.0])
+    npt.assert_allclose(position, [-0.60355, 4.2 - 30, 2.0])
     section = Nd.h.Section(name="TestCell[0].axon[1]")
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
-    npt.assert_allclose(position, [-0.60355, 34.2, 2.0])
+    npt.assert_allclose(position, [-0.60355, 4.2 - 30, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.8)
-    npt.assert_allclose(position, [-0.60355, 58.2, 2.0])
+    npt.assert_allclose(position, [-0.60355, 4.2 - 30 - 30 * 0.8, 2.0])
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
-    npt.assert_allclose(position, [-0.60355, 64.2, 2.0])
+    npt.assert_allclose(position, [-0.60355, 4.2 - 60, 2.0])
+
+
+def test_interpolate_myelin_coordinates():
+    """Test interpolate myelin's coordinates along y-axis from the soma position"""
+    from neurodamus.core import NeuronWrapper as Nd
+
+    soma_position = [-0.60355, 4.2, 2.0]
+    section = Nd.h.Section(name="TestCell[0].myelin[0]")
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
+    npt.assert_allclose(position, [-0.60355, 4.2 - 60, 2.0])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0.4)
+    npt.assert_allclose(position, [-0.60355, 4.2 - 60 - 1000 * 0.4, 2.0])
+    position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=1)
+    npt.assert_allclose(position, [-0.60355, 4.2 - 1060, 2.0])
 
 
 @pytest.mark.parametrize(
