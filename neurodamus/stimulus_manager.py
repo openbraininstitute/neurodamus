@@ -85,14 +85,12 @@ class StimulusManager:
                 cell_manager=cell_manager, compartment_set=compartment_set
             )
         if stim_info["Pattern"] == "SpatiallyUniformEField":
-            section_type = SectionType.ALL
-            compart_type = CompartmentType.ALL
-        else:
-            section_type = SectionType.SOMA
-            compart_type = CompartmentType.CENTER
-        return target.get_point_list(
-            cell_manager=cell_manager, section_type=section_type, compartment_type=compart_type
-        )
+            return target.get_point_list(
+                cell_manager=cell_manager,
+                section_type=SectionType.ALL,
+                compartment_type=CompartmentType.ALL,
+            )
+        return target.get_point_list(cell_manager=cell_manager)
 
     @staticmethod
     def reset_helpers():
@@ -828,9 +826,9 @@ class SEClamp(BaseStim):
 
 @StimulusManager.register_type
 class SpatiallyUniformEField(BaseStim):
-    """Inject a temporally-oscillating extracellular potential field.
+    """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
-    in time, and whose gradient (i.e., E field) is constant.
+    in time, and whose spatial gradient (i.e., E field) is constant.
     """
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):

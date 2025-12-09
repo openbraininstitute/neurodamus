@@ -15,14 +15,19 @@ from neurodamus.stimulus_manager import SpatiallyUniformEField
 
 
 def test_apply_ramp():
-    """Test the function apply_ramp"""
+    """Test the function apply_ramp
+    case 1: ramp_up/down_time > dt, is a multiple of dt
+    case 2: ramp_up/down_time > dt, not  a multiple of dt
+    case 3: ramp_up/down_time < dt
+    """
     from neurodamus.core import (
         NeuronWrapper as Nd,
     )  # Import at function level, otherwise will impact other tests
 
-    dt = 1
-    ref_up_time = 5  # 5 time steps from 0
-    ref_down_time = 3  # 3 time steps to 0
+    # case 1
+    dt = 0.5
+    ref_up_time = 2  # 4 time steps from 0
+    ref_down_time = 1.5  # 2 time steps to 0
 
     stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0])
     stim_vec = Nd.Vector(range(1, 11))
@@ -30,7 +35,33 @@ def test_apply_ramp():
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
     assert np.isclose(stimulus.dt, dt)
     stimulus.apply_ramp(stim_vec, stimulus.dt)
-    assert np.allclose(stim_vec.as_numpy(), [0, 0.5, 1.5, 3, 5, 6, 7, 8, 4.5, 0])
+    assert np.allclose(stim_vec.as_numpy(), [0, 2 / 3, 2, 4, 5, 6, 7, 8, 4.5, 0])
+
+    # case 2
+    dt = 0.5
+    ref_up_time = 2.4  # 4 time steps from 0
+    ref_down_time = 1.7  # 3 time steps to 0
+
+    stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0])
+    stim_vec = Nd.Vector(range(1, 11))
+    assert np.isclose(stimulus.ramp_up_time, ref_up_time)
+    assert np.isclose(stimulus.ramp_down_time, ref_down_time)
+    assert np.isclose(stimulus.dt, dt)
+    stimulus.apply_ramp(stim_vec, stimulus.dt)
+    assert np.allclose(stim_vec.as_numpy(), [0, 2 / 3, 2, 4, 5, 6, 7, 8, 4.5, 0])
+
+    # case 3
+    dt = 0.5
+    ref_up_time = 0.3
+    ref_down_time = 0.4
+
+    stimulus = ElectrodeSource(0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0])
+    stim_vec = Nd.Vector(range(1, 11))
+    assert np.isclose(stimulus.ramp_up_time, ref_up_time)
+    assert np.isclose(stimulus.ramp_down_time, ref_down_time)
+    assert np.isclose(stimulus.dt, dt)
+    stimulus.apply_ramp(stim_vec, stimulus.dt)
+    assert np.allclose(stim_vec.as_numpy(), list(range(1, 11)))
 
 
 def test_interpolate_axon_coordinates():
