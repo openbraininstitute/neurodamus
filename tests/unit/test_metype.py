@@ -135,13 +135,22 @@ def test_get_segment_points(create_tmp_simulation_config_file):
     npt.assert_allclose(
         soma_seg_points,
         [
-            [-31.542698, -0.650061, 2.0],
-            [-10.916599, 2.58374, 2.0],
-            [9.709499, 5.817541, 2.0],
-            [30.335598, 9.051342, 2.0],
+            [27.169665, 14.716397, 10.445964],
+            [9.473245, 6.573606, 2.934297],
+            [-8.223174, -1.569184, -4.577369],
+            [-25.919593, -9.711975, -12.089035],
         ],
+        rtol=1e-6,
     )
     dend0 = cell0.CellRef.dend[0]
     dend0_seg_points = cell0.segment_global_coords[dend0.name()]
     assert len(dend0_seg_points) == dend0.nseg + 1
-    npt.assert_allclose(dend0_seg_points, [[15.0, 1.0, 2.0], [115.0, 1.0, 2.0], [215.0, 1.0, 2.0]])
+    npt.assert_allclose(
+        dend0_seg_points,
+        [
+            [-12.945952, -5.82375, -1.29223],
+            [-99.252297, -51.315415, -23.240427],
+            [-185.558643, -96.807081, -45.188625],
+        ],
+        rtol=1e-6
+    )

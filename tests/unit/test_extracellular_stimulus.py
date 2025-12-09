@@ -125,44 +125,45 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
     seg_signal_source = stimulus.stimList[3]
     ref_stimvec = [
-        0.860194,
-        0.695911,
-        0.265814,
-        -0.265814,
-        -0.695911,
-        -0.860194,
-        -0.695911,
-        -0.265814,
-        0.265814,
-        0.695911,
-        0.860194,
+        -0.505702,
+        -0.409122,
+        -0.156271,
+        0.156271,
+        0.409122,
+        0.505702,
+        0.409122,
+        0.156271,
+        -0.156271,
+        -0.409122,
+        -0.505702,
         0.0,
     ]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, ref_stimvec, rtol=1e-5)
+
     n.clear_model()
 
 
 REF_COSINE = np.array(
     [
-        0.0,
-        0.347956,
-        0.265814,
-        -0.265814,
-        -0.695911,
-        -0.860194,
-        -0.695911,
-        -0.265814,
-        0.265814,
-        0.695911,
-        0.860194,
-        0.695911,
-        0.265814,
-        -0.265814,
-        -0.695911,
-        -0.573462,
-        -0.23197,
         -0.0,
+        -0.204561,
+        -0.156271,
+        0.156271,
+        0.409122,
+        0.505702,
+        0.409122,
+        0.156271,
+        -0.156271,
+        -0.409122,
+        -0.505702,
+        -0.409122,
+        -0.156271,
+        0.156271,
+        0.409122,
+        0.337135,
+        0.136374,
+        0.0,
         0.0,
     ]
 )
@@ -227,24 +228,24 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
 
 REF_CONSTANT = np.array(
     [
-        0.0,
-        0.860194,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.720387,
-        1.146925,
-        0.573462,
-        0.0,
+        -0.0,
+        -0.482168,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.64289,
+        -0.321445,
+        -0.0,
         0.0,
     ]
 )
@@ -341,7 +342,7 @@ def test_two_fields(create_tmp_simulation_config_file):
     1. check the size of stimList, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 3rd stimlus the sum of the cosine fields and constant fields
+       for 3rd stimlus the sum of the cosine fields and constant fields
     4. check an extracellar mechanism is added to each segment
     """
 
@@ -366,9 +367,9 @@ def test_two_fields(create_tmp_simulation_config_file):
     seg_signal_source = stimulus.stimList[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
-    for sec in cell.all:
-        for seg in sec:
-            assert hasattr(seg, "extracellular")
+
+    assert all(sec.has_membrane("extracellular") for sec in cell.all)
+
     n.clear_model()
 
 
@@ -403,11 +404,6 @@ def test_two_fields(create_tmp_simulation_config_file):
 def test_two_fields_delay(create_tmp_simulation_config_file):
     """
     Check the delay is applied correctly into the stimulus stim_vec and time_vec
-    1. check the size of stimList, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 3rd stimlus the sum of the cosine fields and constant fields
-    4. check an extracellar mechanism is added to each segment
     """
 
     n = Node(create_tmp_simulation_config_file)
@@ -415,8 +411,6 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     n.create_cells()
     n.enable_stimulus()
     stimulus = n._stim_manager._stimulus[0]
-    cell_manager = n.circuits.get_node_manager("RingA")
-    cell = cell_manager.get_cellref(0)
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     delay = stimulus.delay
@@ -431,9 +425,6 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     npt.assert_allclose(
         seg_signal_source.stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5
     )
-    for sec in cell.all:
-        for seg in sec:
-            assert hasattr(seg, "extracellular")
     n.clear_model()
 
 
@@ -444,6 +435,7 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
             {
                 "simconfig_fixture": "ringtest_baseconfig",
                 "extra_config": {
+                    "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
                     "target_simulator": "NEURON",
                     "inputs": {
                         "Stimulus": {
@@ -466,17 +458,42 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
                             "sections": "all",
                             "dt": 1,
                             "start_time": 0.0,
-                            "end_time": 50.0,
+                            "end_time": 20.0,
                         }
                     },
                 },
             },
-            [9, 29, 49, 59, 79, 99, 109, 129, 149, 159, 179, 199, 209, 229],
+            [
+                6,
+                27,
+                48,
+                69,
+                90,
+                111,
+                132,
+                153,
+                174,
+                195,
+                216,
+                237,
+                258,
+                279,
+                300,
+                321,
+                342,
+                363,
+                384,
+                405,
+                426,
+                447,
+                468,
+            ],
         ),
         (
             {
                 "simconfig_fixture": "ringtest_baseconfig",
                 "extra_config": {
+                    "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
                     "target_simulator": "NEURON",
                     "inputs": {
                         "Stimulus": {
@@ -494,14 +511,14 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
                             "input_type": "extracellular_stimulation",
                             "module": "spatially_uniform_e_field",
                             "delay": 0,
-                            "duration": 10,
-                            "node_set": "Mosaic",
+                            "duration": 50,
+                            "node_set": "RingA_Cell0",
                             "fields": [
-                                {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                                {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 10},
                                 {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
                             ],
-                            "ramp_up_time": 3.0,
-                            "ramp_down_time": 4.0,
+                            "ramp_up_time": 1.0,
+                            "ramp_down_time": 2.0,
                         },
                     },
                     "reports": {
@@ -512,31 +529,38 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
                             "sections": "all",
                             "dt": 1,
                             "start_time": 0.0,
-                            "end_time": 50.0,
+                            "end_time": 20.0,
                         }
                     },
                 },
             },
             [
-                9,
-                29,
-                49,
-                59,
-                79,
-                99,
-                105,
-                109,
-                129,
-                149,
-                155,
-                159,
-                165,
-                179,
-                199,
-                205,
-                209,
-                217,
-                229,
+                6,
+                21,
+                27,
+                42,
+                48,
+                63,
+                69,
+                90,
+                111,
+                132,
+                153,
+                174,
+                195,
+                216,
+                237,
+                258,
+                279,
+                300,
+                321,
+                342,
+                363,
+                384,
+                405,
+                426,
+                447,
+                468,
             ],
         ),
     ],
@@ -558,12 +582,12 @@ def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak)
     write_ascii_reports(ascii_recorders, n._run_conf["OutputRoot"])
 
     # Read ASCII reports
-    soma_report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
-    assert soma_report.exists()
-    data = read_ascii_report(soma_report)
-    assert len(data) == 1250  # 50 time steps * 5*5 compartments
-    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1000]
-    peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
+    report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
+    assert report.exists()
+    data = read_ascii_report(report)
+    cell0_voltage_vec = [vec[3] for vec in data if vec[0] == 0]
+    assert len(cell0_voltage_vec) == 21 * 23  # 21 time steps * 23 compartments
+    peaks_pos = find_peaks(cell0_voltage_vec, prominence=1)[0]
     np.testing.assert_allclose(peaks_pos, ref_peak)
     n.clear_model()  # clear up the reporting vector, required for the next run.
 
