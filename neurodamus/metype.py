@@ -270,7 +270,7 @@ class Cell_V6(METype):  # noqa: N801
                 "run neurodamus with `enable_coord_mapping=True`"
             )
         if self.local_to_global_matrix is None:
-            raise Exception("Nodes don't provide all 3d position/rotation info")
+            raise Exception(f"Nodes {self.gid} don't provide all 3d position/rotation info")
         return vector_rotate_translate(points, self.local_to_global_matrix)
 
     def delete_axon(self):
