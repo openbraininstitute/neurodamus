@@ -494,8 +494,18 @@ class ConductanceSource(SignalSource):
 
 
 class ElectrodeSource(SignalSource):
+    """Constructs an extracellular potential field as the sum of multiple user-defined e-fields,
+    and applies the resulting signal to the segment's e_extracellular.
+
+    Args:
+        fields: list of user-defined electric field components (e.g. cosinuoid fields)
+        duration: duration of the signal, not including ramp up and ramp down.
+        ramp_up_time: duration during which the signal amplitude ramps up linearly to 0, in ms
+        ramp_down_time: duration during which the signal amplitude ramps down linearly to 0, in ms
+        base_position: coordinate [x, y, z] of the ground point where potential is 0
+    """
+
     def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position):
-        """Creates a new source that injects a signal under e_extracellular"""
         super().__init__(base_amp=0, delay=delay)
         self.fields = fields
         self.duration = duration
@@ -504,7 +514,7 @@ class ElectrodeSource(SignalSource):
         self.ramp_down_time = ramp_down_time
         self.base_position = base_position
 
-    def add_cosines(self, total_duration, fields, step):
+    def add_cosines(self, total_duration):
         """Add multiple cosinusoidal signals
         Args:
             total_duration: total duration, in ms, including ramp-up and ramp-down periods
@@ -513,26 +523,24 @@ class ElectrodeSource(SignalSource):
         Returns: a list of cosine signal vectors
         """
         tvec = Nd.h.Vector()
-        tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
+        tvec.indgen(self._cur_t, self._cur_t + total_duration, self.dt)
         self.time_vec.append(tvec)
         self.delay(total_duration)
         res = []
-        for field in fields:
+        for field in self.fields:
             vec = Nd.h.Vector(len(tvec))
             freq = field.get("Frequency", 0)
             phase = field.get("Phase", 0)
-            vec.sin(freq, phase + np.pi / 2, step)
+            vec.sin(freq, phase + np.pi / 2, self.dt)
             res.append(vec)
 
         return res
 
     def attach_to(self, section, x, inject_position):
-        signals = self.add_cosines(
-            self.duration + self.ramp_up_time + self.ramp_down_time, self.fields, step=self.dt
-        )
+        signals = self.add_cosines(self.duration + self.ramp_up_time + self.ramp_down_time)
         amplitudes = self.uniform_potentials(inject_position)
         # scale each signal by amplitude, and sum together to get the final stim_vec
-        stim_vec_sum = (np.array(amplitudes)[:, None] * np.array(signals)).sum(axis=0)
+        stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
         self._add_point(self._base_amp)  # Last point
