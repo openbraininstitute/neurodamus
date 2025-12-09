@@ -498,28 +498,20 @@ class ElectrodeSource(SignalSource):
         """Creates a new source that injects a signal under e_extracellular"""
         super().__init__(base_amp=0, delay=delay)
         self.fields = fields
+        self.duration = duration
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.signals = self.add_cosines(
-            duration + self.ramp_up_time + self.ramp_down_time,
-            self.fields,
-            step=self.dt,
-            delay=delay,
-        )
         self.base_position = base_position
 
-    def add_cosines(self, total_duration, fields, step, **kw):
+    def add_cosines(self, total_duration, fields, step):
         """Add multiple cosinusoidal signals
         Args:
             total_duration: total duration, in ms, including ramp-up and ramp-down periods
             fields: dict of the stimulus fields parameters
             step: the time step, in ms
-        Returns: a list of sine signal vectors
+        Returns: a list of cosine signal vectors
         """
-        delay = kw.get("delay", 0)
-        self.delay(delay)
-
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
@@ -535,17 +527,19 @@ class ElectrodeSource(SignalSource):
         return res
 
     def attach_to(self, section, x, inject_position):
+        signals = self.add_cosines(
+            self.duration + self.ramp_up_time + self.ramp_down_time, self.fields, step=self.dt
+        )
         amplitudes = self.uniform_potentials(inject_position)
-        # sum all the sinusoid signals
-        stim_vec_sum = sum((v * s for v, s in zip(self.signals, amplitudes, strict=True)))
+        # scale each signal by amplitude, and sum together to get the final stim_vec
+        stim_vec_sum = (np.array(amplitudes)[:, None] * np.array(signals)).sum(axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
-        self.stim_vec.append(stim_vec_sum)
+        self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
         self._add_point(self._base_amp)  # Last point
 
         section.insert("extracellular")
         seg = section(x)
         self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
-        self.signals.clear()  # clear the list to free memory
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
@@ -571,8 +565,7 @@ class ElectrodeSource(SignalSource):
         """Calculates potential amplitude relative to base_point
         Units: Ex,Ey,Ez in V/m, segment position in um
         """
-        base_point = self.base_position
-        displacement = (injection_position - base_point) * 1e-6  # Converts from um to m
+        displacement = (injection_position - self.base_position) * 1e-6  # Converts from um to m
         return [
             np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
             for field in self.fields
