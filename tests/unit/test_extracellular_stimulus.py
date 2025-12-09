@@ -355,18 +355,82 @@ def test_two_fields(create_tmp_simulation_config_file):
     cell = cell_manager.get_cellref(0)
     total_segments = sum(sec.nseg for sec in cell.all)
     assert len(stimulus.stimList) == total_segments
-    signal_source = stimulus.stimList[0]
-    assert isinstance(signal_source, ElectrodeSource)
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_stimvec = np.zeros(len(ref_timevec))
+    soma_signal_source = stimulus.stimList[0]
+    assert isinstance(soma_signal_source, ElectrodeSource)
+    npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
+    npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
+    seg_signal_source = stimulus.stimList[3]
+    npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
+    npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
+    for sec in cell.all:
+        for seg in sec:
+            assert hasattr(seg, "extracellular")
+    n.clear_model()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+                "run": {"dt": 1},
+                "inputs": {
+                    "ex_efields": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 5,
+                        "duration": 10,
+                        "node_set": "RingA_Cell0",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_two_fields_delay(create_tmp_simulation_config_file):
+    """
+    Check the delay is applied correctly into the stimulus stim_vec and time_vec
+    1. check the size of stimList, should be applied to all the segments, n_seg
+    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
+    3. check stim_vec of 1st stimulus should be 0 (soma),
+    and a constant vec for 3rd stimlus the sum of the cosine fields and constant fields
+    4. check an extracellar mechanism is added to each segment
+    """
+
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    n.enable_stimulus()
+    stimulus = n._stim_manager._stimulus[0]
+    cell_manager = n.circuits.get_node_manager("RingA")
+    cell = cell_manager.get_cellref(0)
+    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
+    dt = stimulus.dt
+    delay = stimulus.delay
+    npt.assert_approx_equal(delay, 5)
+    ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
     soma_signal_source = stimulus.stimList[0]
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
     seg_signal_source = stimulus.stimList[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
-    npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
+    npt.assert_allclose(
+        seg_signal_source.stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5
+    )
     for sec in cell.all:
         for seg in sec:
             assert hasattr(seg, "extracellular")
