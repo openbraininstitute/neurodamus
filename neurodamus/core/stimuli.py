@@ -500,7 +500,7 @@ class ElectrodeSource(SignalSource):
     Args:
         fields: list of user-defined electric field components (e.g. cosinuoid fields)
         duration: duration of the signal, not including ramp up and ramp down.
-        ramp_up_time: duration during which the signal amplitude ramps up linearly to 0, in ms
+        ramp_up_time: duration during which the signal amplitude ramps up linearly from 0, in ms
         ramp_down_time: duration during which the signal amplitude ramps down linearly to 0, in ms
         base_position: coordinate [x, y, z] of the ground point where potential is 0
     """
