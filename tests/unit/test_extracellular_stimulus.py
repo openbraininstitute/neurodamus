@@ -460,6 +460,64 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
 
 
 @pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+                "run": {"dt": 1},
+                "inputs": {
+                    "ex_efields": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 5,
+                        "duration": 10,
+                        "node_set": "RingA_Cell0",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                            {"Ex": 200, "Ey": -100, "Ez": 100, "frequency": 0.001},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_three_fields_delay(create_tmp_simulation_config_file):
+    """
+    Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
+    """
+
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    n.enable_stimulus()
+    stimulus = n._stim_manager._stimulus[0]
+    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
+    dt = stimulus.dt
+    delay = stimulus.delay
+    npt.assert_approx_equal(delay, 5)
+    ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
+    ref_stimvec = np.zeros(len(ref_timevec))
+    soma_signal_source = stimulus.stimList[0]
+    npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
+    npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
+    seg_signal_source = stimulus.stimList[3]
+    npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
+    npt.assert_allclose(
+        seg_signal_source.stim_vec,
+        np.append(0, REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT),
+        rtol=1e-6,
+    )
+    n.clear_model()
+
+
+@pytest.mark.parametrize(
     ("create_tmp_simulation_config_file", "ref_peak"),
     [
         (
