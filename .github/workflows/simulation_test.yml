@@ -44,16 +44,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            python-version: '3.10.15'
+            python-version: '3.10'
           - os: ubuntu-22.04
-            python-version: '3.11.10'
+            python-version: '3.11'
           - os: ubuntu-22.04
-            python-version: '3.12.6'
+            python-version: '3.12'
           - os: ubuntu-22.04
-            python-version: '3.13.11'
-          # macOS is only run with Python 3.12.6 due to github action cache size limits
+            python-version: '3.13'
+          # test macOS with one python version due to the cache size limits
           - os: macOS-15
-            python-version: '3.12.6'
+            python-version: '3.12'
       fail-fast: false
 
     steps:
