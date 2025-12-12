@@ -299,19 +299,9 @@ class Cell_V6(METype):  # noqa: N801
             return self.segment_global_coords
 
         for sec_name, local_coords in self.compute_segment_local_coordinates().items():
-            self.segment_global_coords[sec_name] = self.local_to_global(
-                local_coords, self.local_to_global_coord_mapping
-            )
-        return self.segment_global_coords
+            self.segment_global_coords[sec_name] = self.local_to_global_coord_mapping(local_coords)
 
-    @staticmethod
-    def local_to_global(local_seg_extremes, loc2glob):
-        """Get extremes and roto-translate in global coordinates
-        Args:
-            local_seg_extremes: local coordinates of segment points
-            loc2glob: matrix to convert from local to global coordinates
-        """
-        return np.array(loc2glob(local_seg_extremes), dtype=float, order="C")
+        return self.segment_global_coords
 
     @staticmethod
     def get_local_seg_extremes(nseg, pp):
@@ -340,7 +330,7 @@ class Cell_V6(METype):  # noqa: N801
         yp_seg = np.interp(x, x_rel, yp)
         zp_seg = np.interp(x, x_rel, zp)
 
-        return np.transpose([xp_seg, yp_seg, zp_seg])
+        return np.column_stack((xp_seg, yp_seg, zp_seg))
 
     def __getattr__(self, item):
         prop = self.extra_attrs.get(item)

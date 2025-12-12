@@ -845,14 +845,12 @@ class SpatiallyUniformEField(BaseStim):
             all_seg_points = cell.compute_segment_global_coordinates()
             local_seg_points = cell.compute_segment_local_coordinates()
             soma = cell.CellRef.soma[0]
-            # soma position is the average of all its 3d points
+            # soma position is the average of all its segment points
             soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
             soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
 
             def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
-                return cell.local_to_global(
-                    np.vstack([soma_local_position, pos]), cell.local_to_global_coord_mapping
-                )[1]
+                return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
 
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
