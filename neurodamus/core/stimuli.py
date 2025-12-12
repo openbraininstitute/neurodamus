@@ -502,7 +502,8 @@ class ElectrodeSource(SignalSource):
         duration: duration of the signal, not including ramp up and ramp down.
         ramp_up_time: duration during which the signal amplitude ramps up linearly from 0, in ms
         ramp_down_time: duration during which the signal amplitude ramps down linearly to 0, in ms
-        base_position: coordinate [x, y, z] of the ground point where potential is 0
+        base_position: coordinate [x, y, z] of the ground point where potential is 0,
+            usually the soma baricenter
     """
 
     def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position):
@@ -514,14 +515,11 @@ class ElectrodeSource(SignalSource):
         self.ramp_down_time = ramp_down_time
         self.base_position = base_position
 
-    def add_cosines(self, total_duration):
+    def add_cosines(self):
         """Add multiple cosinusoidal signals
-        Args:
-            total_duration: total duration, in ms, including ramp-up and ramp-down periods
-            fields: dict of the stimulus fields parameters
-            step: the time step, in ms
         Returns: a list of cosine signal vectors
         """
+        total_duration = self.duration + self.ramp_up_time + self.ramp_down_time
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, self.dt)
         self.time_vec.append(tvec)
@@ -537,7 +535,7 @@ class ElectrodeSource(SignalSource):
         return res
 
     def attach_to(self, section, x, inject_position):
-        signals = self.add_cosines(self.duration + self.ramp_up_time + self.ramp_down_time)
+        signals = self.add_cosines()
         amplitudes = self.uniform_potentials(inject_position)
         # scale each signal by amplitude, and sum together to get the final stim_vec
         stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(signals), axis=0)
