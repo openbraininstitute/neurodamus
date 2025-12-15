@@ -13,9 +13,6 @@ from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT, StrEnumBase
 
-EXCEPTION_NODE_FILENAME = ".exception_node"
-"""A file which controls which rank shows exception"""
-
 
 class LogLevel:
     ERROR_ONLY = 0

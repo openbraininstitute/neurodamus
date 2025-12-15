@@ -9,10 +9,13 @@ from pathlib import Path
 from docopt import docopt
 
 from .core import MPI, OtherRankError
-from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
+from .core.configuration import ConfigurationError, LogLevel
 from .utils.pyutils import docopt_sanitize
 from neurodamus.node import Neurodamus
 from neurodamus.utils.timeit import TimerManager
+
+# A file which controls which rank shows exception
+EXCEPTION_NODE_FILENAME = ".exception_node"
 
 
 def neurodamus(args=None):

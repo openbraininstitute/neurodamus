@@ -523,6 +523,7 @@ class Linear(BaseStimulus):
 
 class Hyperpolarizing(Linear):
     """Injects a constant step with a cell's hyperpolarizing current."""
+
     @staticmethod
     def parse_check_all_parameters(_stim_info: dict):
         return True
@@ -535,6 +536,7 @@ class Hyperpolarizing(Linear):
 
 class RelativeLinear(Linear):
     """Injects a linear current ramp relative to cell threshold."""
+
     def parse_check_all_parameters(self, stim_info: dict):
         # Amplitude at start as percent of threshold
         self.perc_start = float(stim_info["PercentStart"])
@@ -553,6 +555,7 @@ class RelativeLinear(Linear):
 
 class SubThreshold(Linear):
     """Injects a current step at some percent below a cell's threshold."""
+
     def parse_check_all_parameters(self, stim_info: dict):
         # amplitude as percent below threshold = 100%
         self.perc_less = float(stim_info["PercentLess"])
