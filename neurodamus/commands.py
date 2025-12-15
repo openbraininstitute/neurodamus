@@ -126,6 +126,7 @@ def _pop_log_level(options: dict) -> LogLevel:
 
     if log_level >= LogLevel.VERBOSE:
         from pprint import pprint
+
         pprint(options)  # noqa: T203
 
     return log_level
