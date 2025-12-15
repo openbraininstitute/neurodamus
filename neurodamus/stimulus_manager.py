@@ -134,9 +134,8 @@ class OrnsteinUhlenbeck(BaseNoiseStimulus):
         # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
-            cell = cell_manager.get_cell(gid)
 
-            self.compute_parameters(cell)
+            self.compute_parameters(cell_manager.get_cell(gid))
 
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
@@ -186,9 +185,7 @@ class OrnsteinUhlenbeck(BaseNoiseStimulus):
         if self.tau < 0:
             raise Exception(f"{self.__class__.__name__} relaxation time must be non-negative")
 
-        # parse and check stimulus-specific parameters
-        if not self.parse_check_stim_parameters(stim_info):
-            return False  # nothing to do, stim is a no-op
+        self.parse_check_stim_parameters(stim_info)
 
         self.seed = stim_info.get("Seed")  # random seed override
         if self.seed is not None:
@@ -204,8 +201,6 @@ class OrnsteinUhlenbeck(BaseNoiseStimulus):
         self.mean = float(stim_info["Mean"])  # signal mean [uS]
         if self.mean < 0 and abs(self.mean) > 2 * self.sigma:
             logging.warning("%s signal is mostly zero", self.__class__.__name__)
-
-        return True
 
     def compute_parameters(self, cell):
         # nothing to do
@@ -234,8 +229,6 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
         else:
             self.get_relative = lambda x: 1.0 / x.input_resistance
 
-        return True
-
     def compute_parameters(self, cell):
         # threshold current [nA] or inverse input resistance [uS]
         rel_prop = self.get_relative(cell)
@@ -247,8 +240,6 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
         self.mean = (self.mean_perc / 100) * rel_prop  # signal mean [nA or uS]
         if self.mean < 0 and abs(self.mean) > 2 * self.sigma:
             logging.warning("%s signal is mostly zero", self.__class__.__name__)
-
-        return True
 
 
 class ShotNoise(BaseNoiseStimulus):
@@ -283,13 +274,6 @@ class ShotNoise(BaseNoiseStimulus):
                 if not sc.exists():
                     continue
 
-                rng = random.Random123(
-                    seed1,
-                    seed2,
-                    seed3(
-                        gid + 1
-                    ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
-                )  # setup RNG
                 shotnoise_args = (
                     self.tau_D,
                     self.tau_R,
@@ -301,7 +285,13 @@ class ShotNoise(BaseNoiseStimulus):
                 shotnoise_kwargs = {
                     "dt": self.dt,
                     "delay": self.delay,
-                    "rng": rng,
+                    "rng": random.Random123(
+                        seed1,
+                        seed2,
+                        seed3(
+                            gid + 1
+                        ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
+                    ),
                     "represents_physical_electrode": self.represents_physical_electrode,
                 }
                 # generate shot noise current source
@@ -311,6 +301,7 @@ class ShotNoise(BaseNoiseStimulus):
                     )
                 else:
                     cs = CurrentSource.shot_noise(*shotnoise_args, **shotnoise_kwargs)
+
                 # attach current source to section
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
@@ -371,7 +362,6 @@ class ShotNoise(BaseNoiseStimulus):
         return self.rate > 0  # no-op if rate == 0
 
     def compute_parameters(self, cell):
-        # nothing to do
         pass
 
     def params_from_mean_sd(self, mean, sd):
@@ -418,9 +408,6 @@ class RelativeShotNoise(ShotNoise):
     """RelativeShotNoise stimulus handler, same as ShotNoise
     but parameters relative to cell threshold current or inverse input resistance
     """
-
-    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        super().__init__(target_points, stim_info, cell_manager)
 
     def parse_check_stim_parameters(self, stim_info: dict):
         """Parse parameters for RelativeShotNoise stimulus"""
@@ -536,10 +523,6 @@ class Linear(BaseStimulus):
 
 class Hyperpolarizing(Linear):
     """Injects a constant step with a cell's hyperpolarizing current."""
-
-    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        super().__init__(target_points, stim_info, cell_manager)
-
     @staticmethod
     def parse_check_all_parameters(_stim_info: dict):
         return True
@@ -552,10 +535,6 @@ class Hyperpolarizing(Linear):
 
 class RelativeLinear(Linear):
     """Injects a linear current ramp relative to cell threshold."""
-
-    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        super().__init__(target_points, stim_info, cell_manager)
-
     def parse_check_all_parameters(self, stim_info: dict):
         # Amplitude at start as percent of threshold
         self.perc_start = float(stim_info["PercentStart"])
@@ -574,10 +553,6 @@ class RelativeLinear(Linear):
 
 class SubThreshold(Linear):
     """Injects a current step at some percent below a cell's threshold."""
-
-    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        super().__init__(target_points, stim_info, cell_manager)
-
     def parse_check_all_parameters(self, stim_info: dict):
         # amplitude as percent below threshold = 100%
         self.perc_less = float(stim_info["PercentLess"])
