@@ -43,7 +43,7 @@ class SonataConfig:
         self._circuits = self._extract_circuits_info()
 
     @property
-    def beta_features(self):
+    def beta_features(self) -> dict:
         return self._sim_conf.beta_features
 
     @property
@@ -203,7 +203,7 @@ class SonataConfig:
         return self._circuits
 
     @property
-    def parsedProjections(self):
+    def parsedProjections(self) -> dict:
         projection_type_convert = {
             "chemical": ConnectionTypes.Synaptic,
             "electrical": ConnectionTypes.GapJunction,
@@ -266,7 +266,7 @@ class SonataConfig:
         return projections
 
     @property
-    def parsedConnects(self):
+    def parsedConnects(self) -> dict:
         item_translation = {
             "target": "Destination",
             "modoverride": "ModOverride",
@@ -320,7 +320,7 @@ class SonataConfig:
         return stimuli
 
     @property
-    def parsedReports(self):
+    def parsedReports(self) -> dict:
         item_translation = {
             "type": "Type",
             "cells": "Target",
@@ -348,7 +348,7 @@ class SonataConfig:
         return reports
 
     @property
-    def parsedModifications(self):
+    def parsedModifications(self) -> dict:
         item_translation = {"node_set": "Target"}
         result = {}
         for modification in self._sim_conf.conditions.modifications():

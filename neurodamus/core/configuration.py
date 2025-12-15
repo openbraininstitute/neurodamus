@@ -190,13 +190,13 @@ class _SimConfig:
     cli_options = None
     run_conf = None
     output_root = None
-    sonata_circuits = None
-    projections = None
-    connections = None
-    stimuli = None
-    reports = None
-    modifications = None
-    beta_features = None
+    sonata_circuits: dict = {}
+    projections: dict = {}
+    connections: dict = {}
+    stimuli: list = []
+    reports: dict = {}
+    modifications: dict = {}
+    beta_features: dict = {}
 
     # Hoc objects used
     _config_parser = None
@@ -205,7 +205,7 @@ class _SimConfig:
     _simconf = None
     rng_info = None
 
-    # In principle not all vars need to be required as they'r set by the parameter functions
+    # In principle not all vars need to be required as they're set by the parameter functions
     simulation_config_dir = None
     default_neuron_dt = 0.025
     buffer_time = 25
@@ -261,7 +261,7 @@ class _SimConfig:
         cls.connections = cls._config_parser.parsedConnects
         cls.stimuli = cls._config_parser.parsedStimuli
         cls.reports = cls._config_parser.parsedReports
-        cls.modifications = cls._config_parser.parsedModifications or {}
+        cls.modifications = cls._config_parser.parsedModifications
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
 
