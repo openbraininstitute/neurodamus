@@ -42,11 +42,9 @@ class SonataConfig:
         self._circuit_conf = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuits = self._extract_circuits_info()
 
-    @property
     def beta_features(self) -> dict:
         return self._sim_conf.beta_features
 
-    @property
     def parsedRun(self):
         item_translation = {
             # Mandatory
@@ -80,7 +78,6 @@ class SonataConfig:
         parsed_run["compartment_sets_file"] = self._sim_conf.compartment_sets_file
         return parsed_run
 
-    @property
     def Conditions(self):
         item_translation = {"randomize_gaba_rise_time": "randomize_Gaba_risetime"}
         conditions = {}
@@ -198,11 +195,9 @@ class SonataConfig:
             if pop_info.get("type") != "vasculature"
         }
 
-    @property
     def Circuit(self):
         return self._circuits
 
-    @property
     def parsedProjections(self) -> dict:
         projection_type_convert = {
             "chemical": ConnectionTypes.Synaptic,
@@ -265,7 +260,6 @@ class SonataConfig:
 
         return projections
 
-    @property
     def parsedConnects(self) -> dict:
         item_translation = {
             "target": "Destination",
@@ -280,7 +274,6 @@ class SonataConfig:
         }
         return connects
 
-    @property
     def parsedStimuli(self) -> list:
         """Read the inputs information parsed by libsonata,
         and convert them to the internal parameters used by StimulusManager
@@ -319,7 +312,6 @@ class SonataConfig:
 
         return stimuli
 
-    @property
     def parsedReports(self) -> dict:
         item_translation = {
             "type": "Type",
@@ -347,7 +339,6 @@ class SonataConfig:
 
         return reports
 
-    @property
     def parsedModifications(self) -> dict:
         item_translation = {"node_set": "Target"}
         result = {}
