@@ -857,12 +857,12 @@ class SpatiallyUniformEField(BaseStim):
                 if not sc.exists():
                     continue
                 es = ElectrodeSource(
-                    self.delay,
-                    self.duration,
-                    self.fields,
-                    self.ramp_up_time,
-                    self.ramp_down_time,
-                    self.dt,
+                    delay=self.delay,
+                    duration=self.duration,
+                    fields=self.fields,
+                    ramp_up_time=self.ramp_up_time,
+                    ramp_down_time=self.ramp_down_time,
+                    dt=self.dt,
                     base_position=soma_global_position,
                 )
                 segment_position = (
