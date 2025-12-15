@@ -19,6 +19,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 from __future__ import annotations
 
 import logging
+from math import exp, log
 from typing import TYPE_CHECKING
 
 from .core import NeuronWrapper as Nd, random
@@ -36,28 +37,30 @@ class StimulusManager:
     Old stimulus resort to hoc implementation
     """
 
-    _stim_types = {}  # stimulus handled in Python
-
     def __init__(self, target_manager):
         self._target_manager = target_manager
-        self._stim_seed = SimConfig.run_conf.get("StimulusSeed")
         self._stimulus = []
-        self.reset_helpers()  # reset helpers for multi-cycle builds
+        for cls in BaseStimulus.types.values():
+            cls.reset_multi_cycle_build_helper()
 
     def interpret(self, target_spec, stim_info):
-        stim_t = self._stim_types.get(stim_info["Pattern"])
-        if not stim_t:
+        stim_type = BaseStimulus.types.get(stim_info["Pattern"])
+        if not stim_type:
             msg = f"No implementation for Stimulus {stim_info['Pattern']}"
             raise ConfigurationError(msg)
-        if self._stim_seed is None and getattr(stim_t, "IsNoise", False):
+
+        if SimConfig.run_conf.get("StimulusSeed") is None and isinstance(
+            stim_type, BaseNoiseStimulus
+        ):
             logging.warning(
                 "StimulusSeed unset (default %d), set explicitly to vary noisy stimuli across runs",
                 SimConfig.rng_info.getStimulusSeed(),
             )
+
         cell_manager = self._target_manager._cell_manager
         log_verbose("Interpret stimulus")
         target_points = self.get_point_list(target_spec, stim_info, cell_manager)
-        stim = stim_t(target_points, stim_info, cell_manager)
+        stim = stim_type(target_points, stim_info, cell_manager)
         self._stimulus.append(stim)
 
     def get_point_list(
@@ -82,39 +85,37 @@ class StimulusManager:
             )
         return target.get_point_list(cell_manager=cell_manager)
 
-    @staticmethod
-    def reset_helpers():
-        ShotNoise.stim_count = 0
-        Noise.stim_count = 0
-        OrnsteinUhlenbeck.stim_count = 0
-
-    @classmethod
-    def register_type(cls, stim_class):
-        """Registers a new class as a handler for a new stim type"""
-        cls._stim_types[stim_class.__name__] = stim_class
-        return stim_class
-
     def saveStatePreparation(self, ss_obj):
         for stim in self._stimulus:
             ss_obj.ignore(stim)
 
 
-class BaseStim:
-    """Barebones stimulus class"""
+class BaseStimulus:
+    """Base Stimulus class"""
 
-    IsNoise = False
+    types: dict = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        BaseStimulus.types[cls.__name__] = cls
 
     def __init__(self, _target_points: list[TargetPointList], stim_info: dict, _cell_manager):
         self.duration = float(stim_info["Duration"])  # duration [ms]
         self.delay = float(stim_info["Delay"])  # start time [ms]
         self.represents_physical_electrode = stim_info.get("RepresentsPhysicalElectrode", False)
 
+    @classmethod
+    def reset_multi_cycle_build_helper(cls) -> None:
+        """Reset helpers for multi-cycle builds."""
 
-@StimulusManager.register_type
-class OrnsteinUhlenbeck(BaseStim):
+
+class BaseNoiseStimulus(BaseStimulus):
+    pass
+
+
+class OrnsteinUhlenbeck(BaseNoiseStimulus):
     """Ornstein-Uhlenbeck process, injected as current or conductance"""
 
-    IsNoise = True
     stim_count = 0  # global count for seeding
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -169,7 +170,7 @@ class OrnsteinUhlenbeck(BaseStim):
 
         OrnsteinUhlenbeck.stim_count += 1  # increment global count
 
-    def parse_check_all_parameters(self, stim_info: dict):
+    def parse_check_all_parameters(self, stim_info: dict) -> bool:
         self.dt = float(stim_info.get("Dt", 0.25))  # stimulus timestep [ms]
         if self.dt <= 0:
             raise Exception(f"{self.__class__.__name__} time-step must be positive")
@@ -210,14 +211,16 @@ class OrnsteinUhlenbeck(BaseStim):
         # nothing to do
         pass
 
+    @classmethod
+    def reset_multi_cycle_build_helper(cls):
+        if cls == OrnsteinUhlenbeck:
+            cls.stim_count = 0
 
-@StimulusManager.register_type
+
 class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
     """Ornstein-Uhlenbeck process, injected as current or conductance,
     relative to cell threshold current or inverse input resistance
     """
-
-    IsNoise = True
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         super().__init__(target_points, stim_info, cell_manager)
@@ -248,13 +251,11 @@ class RelativeOrnsteinUhlenbeck(OrnsteinUhlenbeck):
         return True
 
 
-@StimulusManager.register_type
-class ShotNoise(BaseStim):
+class ShotNoise(BaseNoiseStimulus):
     """ShotNoise stimulus handler implementing Poisson shot noise
     with bi-exponential response and gamma-distributed amplitudes
     """
 
-    IsNoise = True
     stim_count = 0  # global count for seeding
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -379,8 +380,6 @@ class ShotNoise(BaseStim):
         Analytical result derived from a generalization of Campbell's theorem present in
         Rice, S.O., "Mathematical Analysis of Random Noise", BSTJ 23, 3 Jul 1944.
         """
-        from math import exp, log
-
         # bi-exponential time to peak [ms]
         t_peak = log(self.tau_D / self.tau_R) / (1 / self.tau_R - 1 / self.tau_D)
         # bi-exponential peak height [1]
@@ -409,14 +408,16 @@ class ShotNoise(BaseStim):
         rate_ms = mean / (self.amp_mean * Xi)  # event rate in 1 / ms
         self.rate = rate_ms * 1000  # event rate in 1 / s [Hz]
 
+    @classmethod
+    def reset_multi_cycle_build_helper(cls) -> None:
+        if cls == ShotNoise:
+            cls.stim_count = 0
 
-@StimulusManager.register_type
+
 class RelativeShotNoise(ShotNoise):
     """RelativeShotNoise stimulus handler, same as ShotNoise
     but parameters relative to cell threshold current or inverse input resistance
     """
-
-    IsNoise = True
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         super().__init__(target_points, stim_info, cell_manager)
@@ -456,13 +457,10 @@ class RelativeShotNoise(ShotNoise):
         super().params_from_mean_sd(mean, sd)
 
 
-@StimulusManager.register_type
 class AbsoluteShotNoise(ShotNoise):
     """AbsoluteShotNoise stimulus handler, same as ShotNoise
     but parameters from given mean and std. dev.
     """
-
-    IsNoise = True
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         super().__init__(target_points, stim_info, cell_manager)
@@ -488,8 +486,7 @@ class AbsoluteShotNoise(ShotNoise):
         super().params_from_mean_sd(self.mean, self.sd)
 
 
-@StimulusManager.register_type
-class Linear(BaseStim):
+class Linear(BaseStimulus):
     """Injects a linear current ramp."""
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -524,7 +521,7 @@ class Linear(BaseStim):
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
-    def parse_check_all_parameters(self, stim_info: dict):
+    def parse_check_all_parameters(self, stim_info: dict) -> bool:
         # Amplitude at start
         self.amp_start = float(stim_info["AmpStart"])
 
@@ -537,7 +534,6 @@ class Linear(BaseStim):
         pass  # nothing to do
 
 
-@StimulusManager.register_type
 class Hyperpolarizing(Linear):
     """Injects a constant step with a cell's hyperpolarizing current."""
 
@@ -554,7 +550,6 @@ class Hyperpolarizing(Linear):
         self.amp_end = hypamp
 
 
-@StimulusManager.register_type
 class RelativeLinear(Linear):
     """Injects a linear current ramp relative to cell threshold."""
 
@@ -577,7 +572,6 @@ class RelativeLinear(Linear):
         self.amp_end = threshold * (self.perc_end / 100)
 
 
-@StimulusManager.register_type
 class SubThreshold(Linear):
     """Injects a current step at some percent below a cell's threshold."""
 
@@ -597,11 +591,9 @@ class SubThreshold(Linear):
         self.amp_end = self.amp_start
 
 
-@StimulusManager.register_type
-class Noise(BaseStim):
+class Noise(BaseNoiseStimulus):
     """Inject a noisy (gaussian) current step, relative to cell threshold or not."""
 
-    IsNoise = True
     stim_count = 0  # global count for seeding
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -697,9 +689,13 @@ class Noise(BaseStim):
 
             prev_t = next_t + dt
 
+    @classmethod
+    def reset_multi_cycle_build_helper(cls):
+        if cls == Noise:
+            cls.stim_count = 0
 
-@StimulusManager.register_type
-class Pulse(BaseStim):
+
+class Pulse(BaseStimulus):
     """Inject a pulse train with given amplitude, frequency and width."""
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -738,8 +734,7 @@ class Pulse(BaseStim):
         return self.freq > 0 and self.width > 0  # no-op if any is 0
 
 
-@StimulusManager.register_type
-class Sinusoidal(BaseStim):
+class Sinusoidal(BaseStimulus):
     """Inject a sinusoidal current with given amplitude and frequency."""
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
@@ -781,8 +776,7 @@ class Sinusoidal(BaseStim):
         return self.freq > 0  # no-op if 0
 
 
-@StimulusManager.register_type
-class SEClamp(BaseStim):
+class SEClamp(BaseStimulus):
     """Apply a single electrode voltage clamp."""
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
