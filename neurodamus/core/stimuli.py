@@ -27,6 +27,12 @@ class SignalSource:
             self._add_point(base_amp)
             self._cur_t = delay
 
+    def _create_default_rng(self):
+        rng = self._rng or RNG()
+        if not self._rng:
+            logging.warning("Using a default RNG for noise generation")
+        return rng
+
     def _add_point(self, amp):
         """Appends a single point to the time-signal source.
         Note: It doesnt advance time, not supposed to be called directly
@@ -109,8 +115,7 @@ class SignalSource:
         else:
             self.add_pulse(amp, remaining_time)
 
-        # Last point
-        self._add_point(self._base_amp)
+        self._add_point(self._base_amp)  # Last point
         return self
 
     def add_sin(self, amp, total_duration, freq, step=0.025):
@@ -136,9 +141,7 @@ class SignalSource:
 
     def add_noise(self, mean, variance, duration, dt=0.5):
         """Adds a noise component to the signal."""
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for noise generation")
+        rng = self._create_default_rng()
 
         rng.normal(mean, variance)
         tvec = Nd.h.Vector()
@@ -176,9 +179,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for shot noise generation")
+        rng = self._create_default_rng()
 
         if isclose(tau_R, tau_D):
             raise NotImplementedError(
@@ -268,9 +269,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for Ornstein-Uhlenbeck process")
+        rng = self._create_default_rng()
 
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
@@ -339,8 +338,7 @@ class CurrentSource(SignalSource):
             stim_vec,
             represents_physical_electrode,
         ):
-            # Checks if source does not represent physical electrode,
-            # otherwise fall back to IClamp.
+            # Checks if source does not represent physical electrode, otherwise fall back to IClamp
             self.clamp = (
                 Nd.h.IClamp(position, sec=cell_section)
                 if represents_physical_electrode
