@@ -52,28 +52,27 @@ class SignalSource:
         self._add_point(amp if amp2 is None else amp2)
         return self
 
-    def add_pulse(self, max_amp, duration, **kw):
+    def add_pulse(self, max_amp, duration):
         """Add a constant-amplitude pulse.
 
         Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
         This is a special case of `add_ramp` with no amplitude change over time.
         """
-        return self.add_ramp(max_amp, max_amp, duration, **kw)
+        return self.add_ramp(max_amp, max_amp, duration)
 
-    def add_ramp(self, amp1, amp2, duration, **kw):
+    def add_ramp(self, amp1, amp2, duration):
         """Add a linear amplitude ramp.
 
         Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
         the given `duration`. All intermediate values between the start and end times
         are linearly interpolated.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
         self.add_segment(amp1, duration, amp2)
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
         return self
 
-    def add_train(self, amp, frequency, pulse_duration, total_duration, **kw):
+    def add_train(self, amp, frequency, pulse_duration, total_duration):
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
@@ -81,12 +80,10 @@ class SignalSource:
             frequency (float): Number of pulses per second (Hz).
             pulse_duration (float): Duration of a single pulse (peak time) in milliseconds.
             total_duration (float): Total duration of the pulse train in milliseconds.
-            base_amp (float, optional): Base amplitude (default is 0.0).
 
         Returns:
             SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
         tau = 1000 / frequency
         delay = tau - pulse_duration
 
@@ -101,21 +98,22 @@ class SignalSource:
 
         number_pulses = int(total_duration / tau)
         for _ in range(number_pulses):
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(delay)
 
         # Add final pulse, possibly partial
         remaining_time = total_duration - number_pulses * tau
         if pulse_duration <= remaining_time:
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(min(delay, remaining_time - pulse_duration))
         else:
-            self.add_pulse(amp, remaining_time, base_amp=base_amp)
+            self.add_pulse(amp, remaining_time)
+
         # Last point
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
         return self
 
-    def add_sin(self, amp, total_duration, freq, step=0.025, **kw):
+    def add_sin(self, amp, total_duration, freq, step=0.025):
         """Builds a sinusoidal signal.
 
         Args:
@@ -124,8 +122,6 @@ class SignalSource:
             freq: The wave frequency, in Hz
             step: The step, in ms (default: 0.025)
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
@@ -135,7 +131,7 @@ class SignalSource:
         stim.sin(freq, 0.0, step)
         stim.mul(amp)
         self.stim_vec.append(stim)
-        self._add_point(base_amp)  # Last point
+        self._add_point(self._base_amp)  # Last point
         return self
 
     def add_noise(self, mean, variance, duration, dt=0.5):
@@ -143,6 +139,7 @@ class SignalSource:
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for noise generation")
+
         rng.normal(mean, variance)
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)
@@ -306,7 +303,6 @@ class SignalSource:
 
         return self
 
-    # PLOTTING
     def plot(self, ylims=None):
         from matplotlib import pyplot as plt
 
