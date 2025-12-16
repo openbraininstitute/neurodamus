@@ -2,17 +2,16 @@
 # Copyright 2005-2021 Blue Brain Project, EPFL. All rights reserved.
 """Implements coupling artificial stimulus into simulation
 
-New Stimulus classes must be registered, using the appropriate decorator.
+New Stimulus classes are registered when subclassing `BaseStimulus`
+
 Also, when instantiated by the framework, __init__ is passed three arguments
 (1) target_points (2) stim_info: dict (3) cell_manager. Example
 
->>> @StimulusManager.register_type
 >>> class ShotNoise:
->>>
->>> def __init__(self, target_points, stim_info: dict, cell_manager):
->>>     for point in target_points:
->>>         gid = point.gid
->>>         cell = cell_manager.get_cell(gid)
+>>>     def __init__(self, target_points, stim_info: dict, cell_manager):
+>>>         for point in target_points:
+>>>             gid = point.gid
+>>>             cell = cell_manager.get_cell(gid)
 
 """
 

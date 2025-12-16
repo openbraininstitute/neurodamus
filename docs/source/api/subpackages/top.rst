@@ -43,7 +43,7 @@ neurodamus.stimulus\_manager
 
    .. autosummary::
       StimulusManager
-      BaseStim
+      BaseStimulus
       OrnsteinUhlenbeck
       RelativeOrnsteinUhlenbeck
       ShotNoise
