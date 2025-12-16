@@ -130,7 +130,6 @@ class OrnsteinUhlenbeck(BaseNoiseStimulus):
         seed2 = SimConfig.rng_info.getStimulusSeed() + 291204  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
 
@@ -141,28 +140,32 @@ class OrnsteinUhlenbeck(BaseNoiseStimulus):
                 if not sc.exists():
                     continue
 
-                rng = random.Random123(
-                    seed1,
-                    seed2,
-                    seed3(
-                        gid + 1
-                    ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
-                )  # setup RNG
-                ou_args = (self.tau, self.sigma, self.mean, self.duration)
-                ou_kwargs = {
-                    "dt": self.dt,
-                    "delay": self.delay,
-                    "rng": rng,
-                    "represents_physical_electrode": self.represents_physical_electrode,
-                }
+                # keep +1 to match legacy 1-based Neurodamus for reproducibility
+                rng = random.Random123(seed1, seed2, seed3(gid + 1))
+
                 # inject Ornstein-Uhlenbeck signal
                 if stim_info["Mode"] == "Conductance":
-                    cs = ConductanceSource.ornstein_uhlenbeck(
-                        *ou_args, **ou_kwargs, base_amp=self.reversal
+                    cs = ConductanceSource(
+                        reversal=self.reversal,
+                        rng=rng,
+                        represents_physical_electrode=self.represents_physical_electrode,
+                        delay=self.delay,
                     )
                 else:
-                    cs = CurrentSource.ornstein_uhlenbeck(*ou_args, **ou_kwargs)
-                # attach source to section
+                    cs = CurrentSource(
+                        rng=rng,
+                        represents_physical_electrode=self.represents_physical_electrode,
+                        delay=self.delay,
+                    )
+
+                cs.add_ornstein_uhlenbeck(
+                    tau=self.tau,
+                    sigma=self.sigma,
+                    mean=self.mean,
+                    duration=self.duration,
+                    dt=self.dt,
+                )
+
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save source
 
@@ -256,12 +259,10 @@ class ShotNoise(BaseNoiseStimulus):
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # setup random seeds
         seed1 = ShotNoise.stim_count + 2997  # stimulus block seed
         seed2 = SimConfig.rng_info.getStimulusSeed() + 19216  # stimulus type seed
         seed3 = (lambda x: x + 123) if self.seed is None else (lambda _x: self.seed)  # GID seed
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
@@ -273,35 +274,33 @@ class ShotNoise(BaseNoiseStimulus):
                 if not sc.exists():
                     continue
 
-                shotnoise_args = (
-                    self.tau_D,
-                    self.tau_R,
-                    self.rate,
-                    self.amp_mean,
-                    self.amp_var,
-                    self.duration,
-                )
-                shotnoise_kwargs = {
-                    "dt": self.dt,
-                    "delay": self.delay,
-                    "rng": random.Random123(
-                        seed1,
-                        seed2,
-                        seed3(
-                            gid + 1
-                        ),  # keep +1 to match legacy 1-based Neurodamus for reproducibility
-                    ),
-                    "represents_physical_electrode": self.represents_physical_electrode,
-                }
-                # generate shot noise current source
+                # keep +1 to match legacy 1-based Neurodamus for reproducibility
+                rng = random.Random123(seed1, seed2, seed3(gid + 1))
+
                 if stim_info["Mode"] == "Conductance":
-                    cs = ConductanceSource.shot_noise(
-                        *shotnoise_args, **shotnoise_kwargs, base_amp=self.reversal
+                    cs = ConductanceSource(
+                        reversal=self.reversal,
+                        rng=rng,
+                        represents_physical_electrode=self.represents_physical_electrode,
+                        delay=self.delay,
                     )
                 else:
-                    cs = CurrentSource.shot_noise(*shotnoise_args, **shotnoise_kwargs)
+                    cs = CurrentSource(
+                        rng=rng,
+                        represents_physical_electrode=self.represents_physical_electrode,
+                        delay=self.delay,
+                    )
 
-                # attach current source to section
+                cs.add_shot_noise(
+                    tau_D=self.tau_D,
+                    tau_R=self.tau_R,
+                    rate=self.rate,
+                    amp_mean=self.amp_mean,
+                    amp_var=self.amp_var,
+                    duration=self.duration,
+                    dt=self.dt,
+                )
+
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
@@ -483,7 +482,6 @@ class Linear(BaseStimulus):
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
@@ -495,23 +493,17 @@ class Linear(BaseStimulus):
                 if not sc.exists():
                     continue
 
-                # generate ramp current source
-                cs = CurrentSource.ramp(
-                    self.amp_start,
-                    self.amp_end,
-                    self.duration,
+                cs = CurrentSource(
                     delay=self.delay,
                     represents_physical_electrode=self.represents_physical_electrode,
-                )
-                # attach current source to section
+                ).add_ramp(self.amp_start, self.amp_end, self.duration)
+
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict) -> bool:
-        # Amplitude at start
         self.amp_start = float(stim_info["AmpStart"])
 
-        # Amplitude at end (optional, else same as start)
         self.amp_end = float(stim_info.get("AmpEnd", self.amp_start))
 
         return self.amp_start != 0 or self.amp_end != 0  # no-op if both 0
@@ -582,7 +574,6 @@ class Noise(BaseNoiseStimulus):
 
         sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
             cell = cell_manager.get_cell(gid)
@@ -604,17 +595,12 @@ class Noise(BaseNoiseStimulus):
                 if not sc.exists():
                     continue
 
-                # generate noise current source
-                cs = CurrentSource.noise(
-                    self.mean,
-                    self.var,
-                    self.duration,
-                    dt=self.dt,
+                cs = CurrentSource(
                     delay=self.delay,
                     rng=rng,
                     represents_physical_electrode=self.represents_physical_electrode,
-                )
-                # attach current source to section
+                ).add_noise(self.mean, self.var, self.duration, dt=self.dt)
+
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
@@ -683,7 +669,6 @@ class Pulse(BaseStimulus):
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
@@ -691,15 +676,16 @@ class Pulse(BaseStimulus):
                     continue
 
                 # generate pulse train current source
-                cs = CurrentSource.train(
+                cs = CurrentSource(
+                    base_amp=0.0,
+                    delay=self.delay,
+                    represents_physical_electrode=self.represents_physical_electrode,
+                ).add_train(
                     self.amp,
                     self.freq,
                     self.width,
                     self.duration,
-                    delay=self.delay,
-                    represents_physical_electrode=self.represents_physical_electrode,
                 )
-                # attach current source to section
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
@@ -722,23 +708,17 @@ class Sinusoidal(BaseStimulus):
         if not self.parse_check_all_parameters(stim_info):
             return  # nothing to do, stim is a no-op
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
 
-                # generate sinusoidal current source
-                cs = CurrentSource.sin(
-                    self.amp,
-                    self.duration,
-                    self.freq,
-                    step=self.dt,
+                cs = CurrentSource(
                     delay=self.delay,
                     represents_physical_electrode=self.represents_physical_electrode,
-                )
-                # attach current source to section
+                ).add_sin(self.amp, self.duration, self.freq, step=self.dt)
+
                 cs.attach_to(sc.sec, target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
@@ -763,7 +743,6 @@ class SEClamp(BaseStimulus):
 
         self.parse_check_all_parameters(stim_info)
 
-        # apply stim to each point in target_points
         for target_point_list in target_points:
             for sec_id, sc in enumerate(target_point_list.sclst):
                 # skip sections not in this split

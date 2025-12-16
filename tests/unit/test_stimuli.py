@@ -276,7 +276,9 @@ class TestSignalSource:
     def test_add_shot_noise_wrong_inputs(self):
         """The edge case where a shot noise has same tau rise and decay is not implemented yet."""
         with pytest.raises(NotImplementedError):
-            st.SignalSource.shot_noise(1.0, 1.0, 1.0, 1.0, 1.0, 100, dt=0.25, base_amp=0.0)
+            self.stim.add_shot_noise(
+                tau_D=1.0, tau_R=1.0, rate=1.0, amp_mean=1.0, amp_var=1.0, duration=100, dt=0.25
+            )
 
     def test_ornstein_uhlenbeck(self):
         """Test the OU process."""
@@ -351,24 +353,6 @@ class TestSignalSource:
         assert stim.stim_vec[STIM1_SAMPLES + 1] == 0.0
         assert stim.time_vec[-1] == 6.0 + self.base_delay
         assert stim.stim_vec[-1] == self.base_amp
-
-    def test_class_methods(self):
-        """Test class methods."""
-        assert isinstance(st.SignalSource.pulse(5.0, 10, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.ramp(1.0, 5.0, 10, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.train(1.0, 50, 10, 100, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.sin(1.0, 100, 50, base_amp=0.0), st.SignalSource)
-        assert isinstance(
-            st.SignalSource.noise(0.0, 1.0, 100, dt=0.5, base_amp=0.0), st.SignalSource
-        )
-        assert isinstance(
-            st.SignalSource.shot_noise(1.0, 2.0, 1.0, 1.0, 1.0, 100, dt=0.25, base_amp=0.0),
-            st.SignalSource,
-        )
-        assert isinstance(
-            st.SignalSource.ornstein_uhlenbeck(1.0, 1.0, 0.0, 100, dt=0.25, base_amp=0.0),
-            st.SignalSource,
-        )
 
 
 def create_ball_and_stick():

@@ -60,7 +60,7 @@ class SignalSource:
         """
         return self.add_ramp(max_amp, max_amp, duration)
 
-    def add_ramp(self, amp1, amp2, duration):
+    def add_ramp(self, start_amplitude, end_amplitude, duration):
         """Add a linear amplitude ramp.
 
         Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
@@ -68,7 +68,7 @@ class SignalSource:
         are linearly interpolated.
         """
         self._add_point(self._base_amp)
-        self.add_segment(amp1, duration, amp2)
+        self.add_segment(start_amplitude, duration, end_amplitude)
         self._add_point(self._base_amp)
         return self
 
@@ -313,37 +313,6 @@ class SignalSource:
         if ylims:
             ax.set_ylim(*ylims)
         fig.show()
-
-    # ==== Helpers =====
-    # Helper methods forward generic kwargs to base class, like rng and delay
-
-    @classmethod
-    def pulse(cls, max_amp, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_pulse(max_amp, duration)
-
-    @classmethod
-    def ramp(cls, amp1, amp2, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ramp(amp1, amp2, duration)
-
-    @classmethod
-    def train(cls, amp, frequency, pulse_duration, total_duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_train(amp, frequency, pulse_duration, total_duration)
-
-    @classmethod
-    def sin(cls, amp, total_duration, freq, step=0.025, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_sin(amp, total_duration, freq, step)
-
-    @classmethod
-    def noise(cls, mean, variance, duration, dt=0.5, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
-
-    @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # noqa: N803
-        return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
-
-    @classmethod
-    def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
 
 
 class CurrentSource(SignalSource):
