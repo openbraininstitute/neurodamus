@@ -14,7 +14,7 @@ from neurodamus.utils.logging import setup_logging
 def test_parse_base():
     raw_conf = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
     assert raw_conf._sim_conf.run.random_seed == 1122
-    assert raw_conf.parsedRun["BaseSeed"] == 1122
+    assert raw_conf.parsedRun()["BaseSeed"] == 1122
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -94,7 +94,7 @@ def test_parse_conditions(create_tmp_simulation_config_file):
         "randomize_Gaba_risetime": "False"
     }
 
-    utils.check_is_subset(next(iter(SimConfig._simulation_config.Conditions.values())),
+    utils.check_is_subset(next(iter(SimConfig._simulation_config.Conditions().values())),
                           expected_conditions)
     assert SimConfig.run_conf["SpikeLocation"] == "AIS"
 

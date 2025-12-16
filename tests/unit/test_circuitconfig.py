@@ -25,7 +25,7 @@ def test_ringtest_circuitconf(create_tmp_simulation_config_file):
     test the usual flow: read a sonata config file and convert it to CircuitConfig
     """
     config_parser = SonataConfig(create_tmp_simulation_config_file)
-    circuit_dict = config_parser.Circuit.get("RingA")
+    circuit_dict = config_parser.Circuit().get("RingA")
     circuit_conf = make_circuit_config(circuit_dict)
     assert circuit_conf.as_dict() == {
         "CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"),
