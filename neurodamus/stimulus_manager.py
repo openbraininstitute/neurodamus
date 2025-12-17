@@ -19,11 +19,15 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
-from .core.stimuli import ConductanceSource, CurrentSource
+from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
+from .report_parameters import CompartmentType, SectionType
 from .utils.logging import log_verbose
 
 if TYPE_CHECKING:
@@ -79,6 +83,12 @@ class StimulusManager:
             compartment_set = self._target_manager.get_compartment_set(compartment_set_name)
             return target.get_point_list_from_compartment_set(
                 cell_manager=cell_manager, compartment_set=compartment_set
+            )
+        if stim_info["Pattern"] == "SpatiallyUniformEField":
+            return target.get_point_list(
+                cell_manager=cell_manager,
+                section_type=SectionType.ALL,
+                compartment_type=CompartmentType.ALL,
             )
         return target.get_point_list(cell_manager=cell_manager)
 
@@ -812,3 +822,156 @@ class SEClamp(BaseStim):
         self.rs = float(stim_info.get("RS", 0.01))  # series resistance [MOhm]
         if self.delay > 0:
             logging.warning("%s ignores delay", self.__class__.__name__)
+
+
+@StimulusManager.register_type
+class SpatiallyUniformEField(BaseStim):
+    """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
+    The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
+    in time, and whose spatial gradient (i.e., E field) is constant.
+    """
+
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
+
+        self.stimList = []  # Extracellular fields go here
+
+        self.parse_check_all_parameters(stim_info)
+
+        # apply stim to each point in target_points
+        for target_point_list in target_points:
+            gid = target_point_list.gid
+            cell = cell_manager.get_cell(gid)
+            all_seg_points = cell.compute_segment_global_coordinates()
+            local_seg_points = cell.compute_segment_local_coordinates()
+            soma = cell.CellRef.soma[0]
+            # soma position is the average of all its segment points
+            soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
+            soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+
+            def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
+                return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
+
+            for sec_id, sc in enumerate(target_point_list.sclst):
+                # skip sections not in this split
+                if not sc.exists():
+                    continue
+                es = ElectrodeSource(
+                    delay=self.delay,
+                    duration=self.duration,
+                    fields=self.fields,
+                    ramp_up_time=self.ramp_up_time,
+                    ramp_down_time=self.ramp_down_time,
+                    dt=self.dt,
+                    base_position=soma_global_position,
+                )
+                segment_position = (
+                    self.get_segment_position(
+                        all_seg_points[sc.sec.name()],
+                        soma_local_position,
+                        sc.sec,
+                        target_point_list.x[sec_id],
+                        local_to_global,
+                    )
+                    if "soma" not in sc.sec.name()
+                    else soma_global_position
+                )
+                es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
+
+                self.stimList.append(es)  # save Extracellular field
+
+    def parse_check_all_parameters(self, stim_info: dict):
+        self.dt = float(SimConfig.run_conf["Dt"])
+        self.fields = stim_info["Fields"]
+        self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
+        self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
+        return True
+
+    @staticmethod
+    def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
+        """Get the global coordinates of the segment.
+        For axon and myelin, intepolate along the y-axis of the local soma coordinates,
+        and then convert to global coordinates.
+
+        Args:
+            sec_seg_points: segment global positions in the current section
+            soma_local_position: soma local position to interpolate axon and myelin position
+            section: hoc section
+            x : x: offset along the section, in [0, 1]
+            func_loc2glob: function to convert local coordinates to global ones for axon and myelin,
+                              return the local coordinates if None
+        Returns:
+            global coordinates [x, y, z], type np.array
+        """
+        if not section.n3d():  # Axonal segments don't have 3d points associated, so we guess
+            if "axon" in section.name():
+                pattern = r"axon\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    axon_index = int(match.group(1))
+                    local_positions = SpatiallyUniformEField.interp_axon_positions(
+                        x, axon_index, soma_local_position
+                    )
+                    return func_loc2glob(local_positions) if func_loc2glob else local_positions
+            elif "myelin" in section.name():
+                pattern = r"myelin\[(\d+)\]$"
+                if match := re.search(pattern, section.name()):
+                    myelin_index = int(match.group(1))
+                    local_positions = SpatiallyUniformEField.interp_myelin_positions(
+                        x, myelin_index, soma_local_position
+                    )
+                    return func_loc2glob(local_positions) if func_loc2glob else local_positions
+            else:
+                raise ValueError(f"section {section.name()} has no 3d points defined")
+        else:
+            seg_index = int(np.floor((len(sec_seg_points) - 1) * x))
+            return sec_seg_points[seg_index]
+        return None
+
+    @staticmethod
+    def interp_axon_positions(x, axon_index, soma_position):
+        """Interpolate the coordinates of the axon segment for the given x,
+        because of no 3d point for the new axons.
+        Assume that the axon is oriented along the y-axis from soma, 30 um displaced for 1st axon,
+        60 um for 2nd axon, the same x- and z-coordinates as soma.
+        x=0 is soma, and x=1 is the end of the axon section.
+        """
+        if axon_index > 1:
+            raise ValueError("More than 2 axon sections exist!")
+        xpos = [soma_position[0], soma_position[0]]
+        ypos = [
+            soma_position[1] - 30 * int(axon_index),
+            soma_position[1] - 30 * int(axon_index + 1),
+        ]
+        zpos = [soma_position[2], soma_position[2]]
+        lens = [0, 1]
+
+        # Interpolate the coordinates for the given location x along the segment
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
+
+        return np.array([seg_x, seg_y, seg_z])
+
+    @staticmethod
+    def interp_myelin_positions(x, myelin_index, soma_position):
+        """Interpolate the coordinates of the myelin segment for the given x,
+        because of no 3d point for the new myelin section.
+        Assume that the myelin is oriented along the y-axis from soma,
+        1000 um displaced after the 2nd axon, i.e. [soma-60, soma-1000]
+        """
+        if myelin_index > 0:
+            raise ValueError("More than 1 myelin section exist!")
+        xpos = [soma_position[0], soma_position[0]]
+        ypos = [
+            (soma_position[1] - 60) - 1000 * int(myelin_index),
+            (soma_position[1] - 60) - 1000 * int(myelin_index + 1),
+        ]
+        zpos = [soma_position[2], soma_position[2]]
+        lens = [0, 1]
+
+        # Interpolate the coordinates for the given location x along the segment
+        seg_x = np.interp(x, lens, xpos)
+        seg_y = np.interp(x, lens, ypos)
+        seg_z = np.interp(x, lens, zpos)
+
+        return np.array([seg_x, seg_y, seg_z])
