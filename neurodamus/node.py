@@ -21,8 +21,11 @@ from pathlib import Path
 
 import libsonata
 
-# Internal Plugins
-from . import ngv as _ngv
+# Internal Engine imports
+from . import (
+    allen_point as _allen_point,  # noqa: F401
+    ngv as _ngv,
+)
 from .cell_distributor import (
     CellDistributor,
     GlobalCellManager,

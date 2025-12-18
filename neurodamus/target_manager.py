@@ -585,7 +585,12 @@ class NodesetTarget:
             secs = getattr(cell.CellRef, section_type_str)
 
             for sec in secs:
-                section_id = cell.get_section_id(sec)
+                try:
+                    section_id = cell.get_section_id(sec)
+                except Exception:  # noqa: BLE001
+                    if "axon" in str(sec):
+                        # Skip the ghost axon added in allen's circuit
+                        continue
                 if compartment_type == CompartmentType.CENTER:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
