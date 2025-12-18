@@ -2,19 +2,17 @@ import json
 import os
 from tempfile import NamedTemporaryFile
 
+import numpy as np
 import numpy.testing as npt
 import pytest
+from scipy.signal import find_peaks
 
-from tests import utils
 from tests.conftest import RINGTEST_DIR
 
 from neurodamus import Neurodamus
 from neurodamus.connection import NetConType
 from neurodamus.core.configuration import ConfigurationError, Feature, SimConfig
-from neurodamus.replay import MissingSpikesPopulationError, SpikeManager
-
-import numpy as np
-from scipy.signal import find_peaks
+from neurodamus.replay import SpikeManager
 
 INPUT_SPIKES_FILE = str(RINGTEST_DIR / "input_spikes.h5")
 
@@ -90,17 +88,6 @@ def ringtest_virtual_pop_config():
     os.unlink(config_file.name)
 
 
-@pytest.mark.forked
-def test_sonata_spikes_reader():
-    timestamps, spike_gids = SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "RingA")
-    npt.assert_allclose(timestamps, [0.1, 0.15, 0.175, 2.275, 3.025, 3.45, 4.35, 5.7, 6.975, 7.725])
-    npt.assert_equal(spike_gids, [0, 2, 1, 0, 1, 2, 0, 1, 2, 0])
-
-    # We do an internal assertion when the population doesnt exist. Verify it works as expected
-    with pytest.raises(MissingSpikesPopulationError, match="Spikes population not found"):
-        SpikeManager._read_spikes_sonata(INPUT_SPIKES_FILE, "wont-exist")
-
-
 def test_sonata_spike_manager_with_delay():
     spike_manager = SpikeManager(INPUT_SPIKES_FILE, delay=10, population="RingA")
     spike_events = spike_manager.get_map()
@@ -108,11 +95,6 @@ def test_sonata_spike_manager_with_delay():
     npt.assert_equal(spike_gids, [0, 1, 2])
     npt.assert_allclose(spike_events.get(0), [10.1, 12.275, 14.35, 17.725])
     npt.assert_allclose(spike_manager.filter_map(pre_gids=[1, 2]).get(1 ), [10.175, 13.025, 15.7])
-
-
-def test_error_replay_format():
-    with pytest.raises(ConfigurationError, match="Spikes input should be a SONATA h5 file"):
-        SpikeManager("out.dat")
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -266,4 +248,4 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
 
 
 
-    
+

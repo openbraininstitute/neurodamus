@@ -4,9 +4,14 @@ from pathlib import Path
 
 import libsonata
 
-from .core.configuration import ConfigurationError
 from .utils.multimap import GroupedMultiMap
 from .utils.timeit import timeit
+
+
+def read_sonata_spikes(path: Path, population):
+    spikes_file = libsonata.SpikeReader(path)
+    spike_dict = spikes_file[population].get_dict()
+    return spike_dict["timestamps"], spike_dict["node_ids"]
 
 
 class SpikeManager:
@@ -18,8 +23,6 @@ class SpikeManager:
 
     Internally the spikes are stored in a :py:class:`neurodamus.utils.multimap.GroupedMultiMap`
     """
-
-    _ascii_spike_dtype = [("time", "double"), ("gid", "uint32")]
 
     @timeit(name="Replay init")
     def __init__(self, spike_filename, delay=0, population=None):
@@ -34,30 +37,19 @@ class SpikeManager:
         # Nd.distributedSpikes = 0  # Wonder the effects of this
         self.open_spike_file(spike_filename, delay, population)
 
-    def open_spike_file(self, filename, delay, population=None):
+    def open_spike_file(self, filename, delay, population):
         """Opens a given spike file.
 
         Args:
-            filename: path to spike out file. Interpret as binary or ascii according to extension
+            filename: path to spike out file.
             delay: delay to apply to spike times
         """
-        if Path(filename).suffix == (".h5"):
-            tvec, gidvec = self._read_spikes_sonata(filename, population)
-        else:
-            raise ConfigurationError("Spikes input should be a SONATA h5 file")
+        tvec, gidvec = read_sonata_spikes(filename, population)
+
         if delay:
             tvec += delay
 
         self._store_events(tvec, gidvec)
-
-    @classmethod
-    def _read_spikes_sonata(cls, filename, population):
-        spikes_file = libsonata.SpikeReader(filename)
-        if population not in spikes_file.get_population_names():
-            raise MissingSpikesPopulationError("Spikes population not found: " + population)
-        spikes = spikes_file[population]
-        spike_dict = spikes.get_dict()
-        return spike_dict["timestamps"], spike_dict["node_ids"]
 
     def _store_events(self, tvec, gidvec):
         """Stores the events in the _gid_fire_events GroupedMultiMap.
@@ -86,7 +78,3 @@ class SpikeManager:
     def filter_map(self, pre_gids):
         """Returns a raw dict of pre_gid->spikes for the given pre gids."""
         return {key: self._gid_fire_events[key] for key in pre_gids}
-
-
-class MissingSpikesPopulationError(Exception):
-    """An exception triggered when a given node population is not found, we may want to handle"""
