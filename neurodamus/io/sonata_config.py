@@ -1,5 +1,6 @@
 """Module to load configuration from a libsonata config"""
 
+import itertools
 import json
 import logging
 import os.path
@@ -21,6 +22,8 @@ class SonataConfig:
         "_circuit_conf",  # libsonata.CircuitConfig
         "_circuits",
         "_sim_conf",  # libsonata.SimulationConfig
+        # libsonata returns a set; it should return a list keeping the order of the population names
+        "_stable_edge_populations",
         # Currently, the `inputs` of a simulation_config is a json object,
         # which is unordered; however, the order of stimuli matter, so try and
         # recover the order defined in the json file: this assumes that `json.load`
@@ -28,6 +31,8 @@ class SonataConfig:
         # https://github.com/openbraininstitute/neurodamus/issues/217#issuecomment-2827930163
         # the SONATA specification should be updated to be a list
         "_stable_inputs_order",
+        # libsonata returns a set; it should return a list keeping the order of the population names
+        "_stable_node_populations",
     )
 
     def __init__(self, config_path):
@@ -38,6 +43,15 @@ class SonataConfig:
                 self._stable_inputs_order = tuple(inputs.keys())
             else:
                 self._stable_inputs_order = ()
+
+        with open(self._sim_conf.network, encoding="utf-8") as fd:
+            config = json.load(fd)
+            self._stable_node_populations = list(
+                itertools.chain.from_iterable(e["populations"] for e in config["networks"]["nodes"])
+            )
+            self._stable_edge_populations = list(
+                itertools.chain.from_iterable(e["populations"] for e in config["networks"]["edges"])
+            )
 
         self._circuit_conf = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuits = self._extract_circuits_info()
@@ -105,7 +119,7 @@ class SonataConfig:
 
         return {"Conditions": conditions}
 
-    def _extract_circuits_info(self) -> dict:  # noqa: C901
+    def _extract_circuits_info(self) -> dict:
         """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
         return a dictionary of circuit info as:
         {
@@ -121,81 +135,61 @@ class SonataConfig:
         }
         It will be used to build the internal circuit structure CircuitConfig in configuration.py
         """
-        node_info_to_circuit = {"nodes_file": "CellLibraryFile", "type": "PopulationType"}
-
         simulation_nodeset_name = self._sim_conf.node_set or ""
         if not simulation_nodeset_name:
             logging.warning("Simulating all populations from all node files...")
 
-        network = json.loads(self._circuit_conf.expanded_json)["networks"]
+        def find_inner_connectivity(node_pop_name):
+            """NOTE: Inner connectivity is a special kind of projection, and represents the circuit
+            default set of connections. Even though nowadays we can potentially consider
+            all connectivity as projections, under certain circuitry, like NGV, order matters and
+            therefore we keep inner connectivity to ensure they are created in the same order,
+            respecting engine precedence
+            For edges to be considered inner connectivity they must be named "default"
+            """
+            for edge_pop_name in self._stable_edge_populations:
+                edge_storage = self._circuit_conf.edge_population(edge_pop_name)
+                edge_properties = self._circuit_conf.edge_population_properties(edge_pop_name)
 
-        def make_circuit(nodes_file, node_pop_name, population_info):
-            if not os.path.isabs(nodes_file):
-                nodes_file = os.path.join(os.path.dirname(self._sim_conf.network), nodes_file)
-            circuit_config = dict(
-                CellLibraryFile=nodes_file,
-                # Use the extended ":" syntax to filter the nodeset by the related population
-                CircuitTarget=node_pop_name + ":" + simulation_nodeset_name,
-                **{
-                    node_info_to_circuit.get(key, key): value
-                    for key, value in population_info.items()
-                },
-            )
-            node_prop = self._circuit_conf.node_population_properties(node_pop_name)
-            circuit_config["MorphologyPath"] = node_prop.morphologies_dir
-            circuit_config["MorphologyType"] = "h5" if node_prop.type == "astrocyte" else "swc"
-            circuit_config["METypePath"] = node_prop.biophysical_neuron_models_dir
+                inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
+                if edge_pop_name == inner_pop_name or (
+                    edge_storage.source == edge_storage.target == node_pop_name
+                    and edge_properties.type == "chemical"
+                    and edge_pop_name == "default"
+                ):
+                    return edge_properties.elements_path + ":" + edge_pop_name
+            return False
+
+        def make_circuit(node_pop_name, node_prop):
+            morphology_path = node_prop.morphologies_dir
+            morphology_type = "h5" if node_prop.type == "astrocyte" else "swc"
             if node_prop.alternate_morphology_formats:
                 if "neurolucida-asc" in node_prop.alternate_morphology_formats:
-                    circuit_config["MorphologyPath"] = node_prop.alternate_morphology_formats[
-                        "neurolucida-asc"
-                    ]
-                    circuit_config["MorphologyType"] = "asc"
+                    morphology_path = node_prop.alternate_morphology_formats["neurolucida-asc"]
+                    morphology_type = "asc"
                 elif "h5v1" in node_prop.alternate_morphology_formats:
-                    circuit_config["MorphologyPath"] = node_prop.alternate_morphology_formats[
-                        "h5v1"
-                    ]
-                    circuit_config["MorphologyType"] = "h5"
-            circuit_config["Engine"] = "NGV" if node_prop.type == "astrocyte" else "METype"
+                    morphology_path = node_prop.alternate_morphology_formats["h5v1"]
+                    morphology_type = "h5"
 
-            # Find inner connectivity
-            # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
-            # default set of connections. Even though nowadays we can potentially consider
-            # all connectivity as projections, under certain circuitry, like NGV, order matters and
-            # therefore we keep inner connectivity to ensure they are created in the same order,
-            # respecting engine precedence
-            # For edges to be considered inner connectivity they must be named "default"
-            for edge_config in network.get("edges") or []:
-                if "nrnPath" in circuit_config:
-                    break  # Already found
+            circuit_config = {
+                "CellLibraryFile": node_prop.elements_path,
+                "CircuitTarget": node_pop_name + ":" + simulation_nodeset_name,
+                "Engine": "NGV" if node_prop.type == "astrocyte" else "METype",
+                "METypePath": node_prop.biophysical_neuron_models_dir,
+                "MorphologyPath": morphology_path,
+                "MorphologyType": morphology_type,
+                "PopulationType": node_prop.type,
+                "nrnPath": find_inner_connectivity(node_pop_name),
+            }
 
-                for edge_pop_name in edge_config["populations"]:
-                    edge_storage = self._circuit_conf.edge_population(edge_pop_name)
-                    edge_type = self._circuit_conf.edge_population_properties(edge_pop_name).type
-                    inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
-                    if edge_pop_name == inner_pop_name or (
-                        edge_storage.source == edge_storage.target == node_pop_name
-                        and edge_type == "chemical"
-                        and edge_pop_name == "default"
-                    ):
-                        edges_file = edge_config["edges_file"]
-                        if not os.path.isabs(edges_file):
-                            edges_file = os.path.join(
-                                os.path.dirname(self._sim_conf.network), edges_file
-                            )
-                        edge_pop_path = edges_file + ":" + edge_pop_name
-                        circuit_config["nrnPath"] = edge_pop_path
-                        break
-
-            circuit_config.setdefault("nrnPath", False)
             logging.debug("Circuit config for node pop '%s': %s", node_pop_name, circuit_config)
             return circuit_config
 
         return {
-            pop_name: make_circuit(node_file_info["nodes_file"], pop_name, pop_info)
-            for node_file_info in network["nodes"]
-            for pop_name, pop_info in node_file_info["populations"].items()
-            if pop_info.get("type") != "vasculature"
+            pop_name: make_circuit(pop_name, node_prop)
+            for pop_name in self._stable_node_populations
+            if (node_prop := self._circuit_conf.node_population_properties(pop_name)).type
+            != "vasculature"
         }
 
     @property
