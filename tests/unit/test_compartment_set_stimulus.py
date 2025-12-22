@@ -25,7 +25,7 @@ from collections import Counter
                         "frequency": 50,
                         "delay": 0,
                         "duration": 50,
-                        "compartment_set":"csA",
+                        "compartment_set": "csA",
                     },
                 },
             },
@@ -57,5 +57,3 @@ def test_compartment_set_input(create_tmp_simulation_config_file):
                     if "IClamp" in pp.hname() and seg.x > 0 and seg.x < 1
                 )
                 assert count == clamps.get((cell.gid, section_id), 0)
-
-

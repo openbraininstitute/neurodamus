@@ -67,6 +67,7 @@ def test_loadbal_subtarget(target_manager, caplog):
         assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
         assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
 
+
 @pytest.fixture
 def circuit_conf_bigcell():
     """Test nodes file contains 1 big cell with 10 dendrites + 2 small cells with 2 dendrites"""
@@ -81,6 +82,7 @@ def circuit_conf_bigcell():
         CircuitTarget="All",
     )
 
+
 @pytest.fixture
 def circuit_conf():
     """Test nodes file contains 3 small cells with 2 dendrites each"""
@@ -94,6 +96,7 @@ def circuit_conf():
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
     )
+
 
 def test_load_balance_integrated(target_manager, circuit_conf):
     """Comprehensive test using real cells and deriving cx for a sub-target"""
@@ -232,6 +235,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 2  0 0 0  2 2 0\n1 1  1 1 0\n"
 
+
 def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     """Ensure given the right files are in the lbal dir, the correct situation is detected"""
     from neurodamus.cell_distributor import CellDistributor, LoadBalance, TargetSpec
@@ -250,8 +254,9 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
 
     # Check the cpu assign file
     cpu_assign_filename = next(Path(".").glob(str(base_dir / pattern / "cx_RingA_All#.2.dat")))
-    content = Path(cpu_assign_filename).open().read()
-    assert content == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
+    with Path(cpu_assign_filename).open(encoding="utf-8") as fd:
+        assert fd.read() == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
+
 
 class MockedTargetManager:
     """
@@ -275,4 +280,3 @@ class MockedTargetManager:
 
     def register_local_nodes(*_):
         pass
-

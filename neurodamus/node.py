@@ -655,15 +655,14 @@ class Node:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
 
-        c_target = TargetSpec(conf.get("CircuitTarget"))
-        if c_target.population is None:
-            c_target.population = self._circuits.alias.get(conf.name)
+        circuit_target = TargetSpec(conf.get("CircuitTarget"))
+        if circuit_target.population is None:
+            circuit_target.population = self._circuits.alias.get(conf.name)
 
-        edge_file, *pop = conf.get("nrnPath").split(":")
-        edge_pop = pop[0] if pop else None
-        src, dst = edge_node_pop_names(edge_file, edge_pop)
+        edge_location = conf["nrnPath"]
+        src, dst = edge_node_pop_names(edge_location.path, edge_location.name)
 
-        logging.info("Processing edge file %s, pop: %s", edge_file, edge_pop)
+        logging.info("Processing edge file %s, pop: %s", edge_location.path, edge_location.name)
 
         if src and dst and src != dst:
             raise ConfigurationError("Inner connectivity with different populations")
@@ -674,7 +673,7 @@ class Node:
             return
 
         manager = self._circuits.get_create_edge_manager(
-            ctype, src, dst, c_target, (conf, *args), **kwargs
+            ctype, src, dst, circuit_target, (conf, *args), **kwargs
         )
         if manager.is_file_open:  # Base connectivity
             manager.create_connections()
@@ -698,7 +697,6 @@ class Node:
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
-        target_manager = self._target_manager
         # None, GapJunctions, NeuroGlial, NeuroModulation...
         ptype = projection.get("Type")
         ptype_cls = EngineBase.connection_types.get(ptype)
@@ -712,14 +710,12 @@ class Node:
         if not ptype_cls:
             raise RuntimeError(f"No Engine to handle connectivity of type '{ptype}'")
 
-        ppath, *pop_name = projection["Path"].split(":")
-        edge_pop_name = pop_name[0] if pop_name else None
-
-        logging.info("Processing Edge file: %s", ppath)
+        edge_location = projection["Path"]
+        logging.info("Processing Edge file: %s", edge_location)
 
         # Update the target spec with the actual populations
         src_pop, dst_pop = edge_node_pop_names(
-            ppath, edge_pop_name, source_t.population, dest_t.population
+            edge_location.path, edge_location.name, source_t.population, dest_t.population
         )
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(src_pop, dst_pop)
         src_target = self.target_manager.get_target(source_t)
@@ -736,12 +732,11 @@ class Node:
                     src_pop,
                     dst_pop,
                     source_t,
-                    (projection, target_manager),
+                    (projection, self.target_manager),
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath, *pop_name])
-                conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
+                conn_manager.open_edge_location(edge_location, projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
     @mpi_no_errors

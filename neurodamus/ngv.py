@@ -21,6 +21,7 @@ from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
 from .utils.pyutils import append_recarray
+from neurodamus.types import QualifiedEdgePopulation
 
 
 class Astrocyte(BaseCell):
@@ -394,15 +395,11 @@ class GlioVascularManager(ConnectionManagerBase):
         self._astro_ids = self._cell_manager.local_nodes.gids(raw_gids=True)
         self._gid_offset = self._cell_manager.local_nodes.offset
 
-    def open_edge_location(self, sonata_source, circuit_conf, **__):
-        logging.info("GlioVascular sonata file %s", sonata_source)
-        # sonata files can have multiple populations. In building we only use one
-        # per file, hence this two lines below to access the first and only pop in
-        # the file
-        edge_file, *pop = sonata_source.split(":")
-        storage = libsonata.EdgeStorage(edge_file)
-        pop_name = pop[0] if pop else next(iter(storage.population_names))
-        self._gliovascular = storage.open_population(pop_name)
+    def open_edge_location(self, edge_location: QualifiedEdgePopulation, circuit_conf, **__):
+        logging.info("GlioVascular sonata file %s", edge_location)
+        self._gliovascular = libsonata.EdgeStorage(edge_location.path).open_population(
+            edge_location.name
+        )
 
         storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"])
         pop_name = next(iter(storage.population_names))

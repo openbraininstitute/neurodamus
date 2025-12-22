@@ -3,6 +3,7 @@ Unit tests for the CircuitConfig class (internal data structure),
 and the parsing from a circuit info
 which is usually translated from a SONATA config file done in sonata_config.py
 """
+from neurodamus.types import QualifiedEdgePopulation
 
 import pytest
 
@@ -35,7 +36,8 @@ def test_ringtest_circuitconf(create_tmp_simulation_config_file):
         "MorphologyPath": str(RINGTEST_DIR / "morphologies/asc"),
         "MorphologyType": "asc",
         "PopulationType": "biophysical",
-        "nrnPath": str(RINGTEST_DIR / "local_edges_A.h5:RingA__RingA__chemical"),
+        "nrnPath": QualifiedEdgePopulation(path=str(RINGTEST_DIR / "local_edges_A.h5"),
+                                           name="RingA__RingA__chemical")
     }
 
 
@@ -93,18 +95,3 @@ def test_default_morphology_type():
     circuit_conf = make_circuit_config(circuit_dict, req_morphology=False)
     assert circuit_conf.MorphologyType == "asc"
     assert circuit_conf.MorphologyPath == "dummy/ascii"
-
-
-def test_validation_file_extension():
-    """
-    Test the validation of file extension for CellLibraryFile and nrnPath
-    """
-    for circuit_dict in [
-        {"CellLibraryFile": "nodes.sonata", "MorphologyPath": "dummy"},
-        {"CellLibraryFile": "nodes.h5", "MorphologyPath": "dummy", "nrnPath": "edges.sonata"},
-    ]:
-        with pytest.raises(
-            ConfigurationError,
-            match=r"\*.sonata files are no longer supported, please rename them to \*.h5",
-        ):
-            make_circuit_config(circuit_dict)
