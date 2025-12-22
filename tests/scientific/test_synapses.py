@@ -66,9 +66,8 @@ def test_synapses_params():
     plast_params = ["volume_CR", "rho0_GB", "Use_d_TM", "Use_p_TM",
                     "gmax_d_AMPA", "gmax_p_AMPA", "theta_d", "theta_p", "gmax_NMDA"]
 
-    edges_file, edge_pop = n._sonata_circuits[pop1].nrnPath.split(":")
-    storage = EdgeStorage(edges_file)
-    edge_pop = storage.open_population(edge_pop)
+    edge_location = n._sonata_circuits[pop1].nrnPath
+    edge_pop = EdgeStorage(edge_location.path).open_population(edge_location.name)
     sel1 = edge_pop.connecting_edges(pre_L5_BC, post_L5_PC)
     sel2 = edge_pop.connecting_edges(pre_L5_PC, post_L5_PC)
     df = get_edge_properties(edge_pop, sel1, properties)

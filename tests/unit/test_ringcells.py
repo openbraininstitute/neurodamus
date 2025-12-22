@@ -1,7 +1,5 @@
-
 from pathlib import Path
 
-import numpy as np
 import pytest
 from libsonata import EdgeStorage
 
@@ -41,9 +39,8 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+    edge_location = SimConfig.sonata_circuits["RingB"].nrnPath
+    edges = EdgeStorage(edge_location.path).open_population(edge_location.name)
     src_gids = [0, 1]
     target_gids = [1, 0]
     for sgid, tgid in zip(src_gids, target_gids, strict=True):
@@ -91,11 +88,11 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         [("RingA", 0), ("RingB", 0)],
     ]
 
-    for (s_pop, s_rawgid), (t_pop, t_rawgid) in connections:
-        tpop_offset = n.circuits.get_node_manager(t_pop).local_nodes.offset
-        tgid = t_rawgid + tpop_offset
-        spop_offset = n.circuits.get_node_manager(s_pop).local_nodes.offset
-        sgid = s_rawgid + spop_offset
+    for (src_pop, src_rawgid), (tgt_pop, tgt_rawgid) in connections:
+        tgt_pop_offset = n.circuits.get_node_manager(tgt_pop).local_nodes.offset
+        tgid = tgt_rawgid + tgt_pop_offset
+        src_pop_offset = n.circuits.get_node_manager(src_pop).local_nodes.offset
+        sgid = src_rawgid + src_pop_offset
 
         # dump cell/synapses/netcons states to a json and compare with ref
         outputfile = "cellstate_" + str(tgid) + ".json"
@@ -106,15 +103,10 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         cell = n._pc.gid2cell(tgid)
         check_cell(cell)
 
-        if s_pop == t_pop:
-            edges_file, edge_pop = \
-                n.circuits.get_edge_managers(t_pop, t_pop)[0].circuit_conf.nrnPath.split(":")
-        else:
-            edges_file, edge_pop = \
-                n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
-        edge_storage = EdgeStorage(edges_file)
-        edges = edge_storage.open_population(edge_pop)
-        selection = edges.afferent_edges(t_rawgid)
+        circuit_conf = n.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf
+        edge_location = circuit_conf.nrnPath if src_pop == tgt_pop else circuit_conf["Path"]
+        edges = EdgeStorage(edge_location.path).open_population(edge_location.name)
+        selection = edges.afferent_edges(tgt_rawgid)
 
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
         utils.check_netcons(sgid, nclist, edges, selection)
@@ -140,7 +132,8 @@ def test_coreneuron(create_tmp_simulation_config_file):
                    coreneuron_direct_mode=True, keep_build=True)
     n.run()
     coreneuron_data = Path(CoreConfig.datadir)
-    assert coreneuron_data.is_dir() and not any(coreneuron_data.iterdir()), (
+    assert coreneuron_data.is_dir()
+    assert not any(coreneuron_data.iterdir()), (
         f"{coreneuron_data} should be empty."
     )
 

@@ -20,9 +20,8 @@ def get_edges_data(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+    edge_location = SimConfig.sonata_circuits["RingB"].nrnPath
+    edges = EdgeStorage(edge_location.path).open_population(edge_location.name)
     sgid, tgid = 0, 1
     cell = n._pc.gid2cell(tgid)
     selection = edges.afferent_edges(tgid)
@@ -85,7 +84,7 @@ def test_check_netcons(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_check_synapse(create_tmp_simulation_config_file):
-    sgid, _, _, edges, selection, nclist = get_edges_data(create_tmp_simulation_config_file)
+    _, _, _, edges, selection, nclist = get_edges_data(create_tmp_simulation_config_file)
 
     # base
     utils.check_synapse(next(iter(nclist)).syn(), edges, selection)

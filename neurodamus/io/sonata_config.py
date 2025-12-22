@@ -8,6 +8,8 @@ from enum import Enum
 
 import libsonata
 
+from neurodamus.types import QualifiedEdgePopulation
+
 
 class ConnectionTypes(str, Enum):
     Synaptic = "Synaptic"
@@ -145,6 +147,7 @@ class SonataConfig:
             all connectivity as projections, under certain circuitry, like NGV, order matters and
             therefore we keep inner connectivity to ensure they are created in the same order,
             respecting engine precedence
+
             For edges to be considered inner connectivity they must be named "default"
             """
             for edge_pop_name in self._stable_edge_populations:
@@ -157,7 +160,9 @@ class SonataConfig:
                     and edge_properties.type == "chemical"
                     and edge_pop_name == "default"
                 ):
-                    return edge_properties.elements_path + ":" + edge_pop_name
+                    return QualifiedEdgePopulation(
+                        path=edge_properties.elements_path, name=edge_pop_name
+                    )
             return False
 
         def make_circuit(node_pop_name, node_prop):
@@ -223,7 +228,7 @@ class SonataConfig:
                     edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
 
                 # skip inner connectivity populations
-                edge_pop_path = edges_file + ":" + edge_pop_name
+                edge_pop_path = QualifiedEdgePopulation(path=edges_file, name=edge_pop_name)
                 if edge_pop_path in internal_edge_pops:
                     continue
 
