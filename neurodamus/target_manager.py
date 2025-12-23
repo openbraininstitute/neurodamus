@@ -132,8 +132,8 @@ class TargetSpec:
     def __eq__(self, other):
         return other.population == self.population and other.name == self.name
 
-    __hash__ = None
-
+    def __hash__(self):
+        return hash((self.name, self.population))
 
 class TargetManager:
     def __init__(self, run_conf):
@@ -243,10 +243,8 @@ class TargetManager:
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
     @lru_cache  # noqa: B019
-    def intersecting(self, target1, target2):
+    def intersecting(self, target1_spec: TargetSpec, target2_spec: TargetSpec):
         """Checks whether two targets intersect"""
-        target1_spec = TargetSpec(target1)
-        target2_spec = TargetSpec(target2)
         if target1_spec.disjoint_populations(target2_spec):
             return False
         if target1_spec.overlap(target2_spec):
@@ -266,8 +264,18 @@ class TargetManager:
     def pathways_overlap(self, conn1, conn2, equal_only=False):
         src1, dst1 = conn1["Source"], conn1["Destination"]
         src2, dst2 = conn2["Source"], conn2["Destination"]
+
+        if isinstance(src1, str):
+            src1 = TargetSpec(src1, None)
+        if isinstance(src2, str):
+            src2 = TargetSpec(src2, None)
+        if isinstance(dst1, str):
+            dst1 = TargetSpec(dst1, None)
+        if isinstance(dst2, str):
+            dst2 = TargetSpec(dst2, None)
+
         if equal_only:
-            return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
+            return src1 == src2 and dst1 == dst2
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
     def gid_to_sections(self, gid):

@@ -385,7 +385,7 @@ class _SimConfig:
             logging.warning("Disabling SynConfigure (restrict_features)")
 
         def update_item(conn, item):
-            src_spec = TargetSpec(conn.get(item))
+            src_spec = TargetSpec(conn.get(item), None)
             src_spec.population = alias.get(src_spec.population, src_spec.population)
             conn[item] = str(src_spec)
 

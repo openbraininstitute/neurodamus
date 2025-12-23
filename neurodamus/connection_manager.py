@@ -386,12 +386,9 @@ class ConnectionManagerBase:
             src_target: Target name to restrict creating connections coming from it
             dst_target: Target name to restrict creating connections going into it
         """
-        conn_src_spec = TargetSpec(src_target, None)  # instantiate all from src
-        conn_src_spec.population = self.current_population.src_pop_name
-
-        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target, None)
-        conn_dst_spec.population = self.current_population.dst_pop_name
-        this_pathway = {"Source": str(conn_src_spec), "Destination": str(conn_dst_spec)}
+        conn_src_spec = TargetSpec(src_target, self.current_population.src_pop_name)  # instantiate all from src
+        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name)
+        this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
         matching_conns = [
             conn
             for conn in SimConfig.connections.values()
