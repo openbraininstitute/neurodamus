@@ -265,7 +265,7 @@ class MockedTargetManager:
         from neurodamus.target_manager import TargetSpec
 
         if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
+            target_spec = TargetSpec(target_spec, None)
         if target_pop:
             target_spec.population = target_pop
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME

@@ -1827,10 +1827,11 @@ class Neurodamus(Node):
                     self._target_manager.register_target(cur_target)
                     pop = next(iter(cur_target.population_names))
                     for circuit in self._sonata_circuits.values():
-                        tmp_target_spec = TargetSpec(circuit.CircuitTarget)
+                        tmp_target_spec = TargetSpec(circuit.NodesetName, circuit.PopulationName)
                         if tmp_target_spec.population == pop:
                             tmp_target_spec.name = cur_target.name
-                            circuit.CircuitTarget = str(tmp_target_spec)
+                            circuit.NodesetName = tmp_target_spec.name
+                            circuit.PopulationName = tmp_target_spec.population
 
             self._cycle_i = cycle_i
             self._build_single_model()

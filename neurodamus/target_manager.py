@@ -208,7 +208,7 @@ class TargetManager:
             )
         return self._compartment_sets[name]
 
-    def get_target(self, target_spec: TargetSpec, target_pop=None):
+    def get_target(self, target_spec: TargetSpec | str, target_pop=None):
         """Retrieves a target from any .target file or Sonata nodeset files.
 
         Targets are generic groups of cells not necessarily restricted to a population.
@@ -217,9 +217,8 @@ class TargetManager:
         node datasets and can be asked for a sub-target of a specific population.
         """
         if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
-        if target_pop:
-            target_spec.population = target_pop
+            target_spec = TargetSpec(target_spec, target_pop)
+
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
         target_pop = target_spec.population
 
