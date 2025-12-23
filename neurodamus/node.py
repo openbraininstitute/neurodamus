@@ -922,7 +922,7 @@ class Node:
         cumulative_error = CumulativeError()
         for rep_name, rep_conf in reports_conf.items():
             cumulative_error.is_error_appended = False
-            target_spec = TargetSpec(rep_conf["Target"])
+            target_spec = TargetSpec(rep_conf["Target"], None)
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
