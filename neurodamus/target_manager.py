@@ -89,7 +89,7 @@ class TargetSpec:
 
         Args:
             target_name: the target name. None means no filtering
-            poplation_name: to filter the target by population name. None means no filtering
+            population_name: to filter the target by population name. None means no filtering
         """
         assert target_name is None or ":" not in target_name, f"{target_name=}"
 
@@ -134,6 +134,7 @@ class TargetSpec:
 
     def __hash__(self):
         return hash((self.name, self.population))
+
 
 class TargetManager:
     def __init__(self, run_conf):

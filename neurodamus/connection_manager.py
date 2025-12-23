@@ -386,8 +386,12 @@ class ConnectionManagerBase:
             src_target: Target name to restrict creating connections coming from it
             dst_target: Target name to restrict creating connections going into it
         """
-        conn_src_spec = TargetSpec(src_target, self.current_population.src_pop_name)  # instantiate all from src
-        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name)
+        conn_src_spec = TargetSpec(
+            src_target, self.current_population.src_pop_name
+        )  # instantiate all from src
+        conn_dst_spec = TargetSpec(
+            dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name
+        )
         this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
         matching_conns = [
             conn
@@ -618,6 +622,9 @@ class ConnectionManagerBase:
         gids = self._raw_gids
 
         if dst_target:
+
+            assert False, f"AAA {dst_target}"
+
             gids = np.intersect1d(gids, dst_target.gids(raw_gids=True))
 
         created_conns_0 = self._cur_population.count()

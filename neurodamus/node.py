@@ -370,7 +370,9 @@ class Node:
 
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
-        self._target_spec = TargetSpec(self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName"))
+        self._target_spec = TargetSpec(
+            self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName")
+        )
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
