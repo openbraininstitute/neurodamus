@@ -219,6 +219,8 @@ class TargetManager:
         """
         if not isinstance(target_spec, TargetSpec):
             target_spec = TargetSpec(target_spec, target_pop)
+        if target_pop:
+            target_spec.population = target_pop
 
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
         target_pop = target_spec.population
