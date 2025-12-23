@@ -312,7 +312,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
 
     for rep_name, rep_conf in reports_conf.items():
-        target_spec = TargetSpec(rep_conf["Target"])
+        target_spec = TargetSpec(rep_conf["Target"], None)
         target = target_manager.get_target(target_spec)
 
         rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)

@@ -84,20 +84,17 @@ class TargetSpec:
 
     GLOBAL_TARGET_NAME = "_ALL_"
 
-    def __init__(self, target_name):
+    def __init__(self, target_name: str | None, population_name: str | None):
         """Initialize a target specification
 
         Args:
-            target_name: the target name. For specifying a population use
-                the format ``population:target_name``
+            target_name: the target name. None means no filtering
+            population_name: to filter the target by population name. None means no filtering
         """
-        if target_name and ":" in target_name:
-            self.population, self.name = target_name.split(":")
-        else:
-            self.name = target_name
-            self.population = None
-        if not self.name:
-            self.name = None
+        assert target_name is None or ":" not in target_name, f"{target_name=}"
+
+        self.name = target_name
+        self.population = population_name
 
     def __str__(self):
         return (
@@ -135,7 +132,8 @@ class TargetSpec:
     def __eq__(self, other):
         return other.population == self.population and other.name == self.name
 
-    __hash__ = None
+    def __hash__(self):
+        return hash((self.name, self.population))
 
 
 class TargetManager:
@@ -211,7 +209,7 @@ class TargetManager:
             )
         return self._compartment_sets[name]
 
-    def get_target(self, target_spec: TargetSpec, target_pop=None):
+    def get_target(self, target_spec: TargetSpec | str, target_pop=None):
         """Retrieves a target from any .target file or Sonata nodeset files.
 
         Targets are generic groups of cells not necessarily restricted to a population.
@@ -220,9 +218,10 @@ class TargetManager:
         node datasets and can be asked for a sub-target of a specific population.
         """
         if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
+            target_spec = TargetSpec(target_spec, target_pop)
         if target_pop:
             target_spec.population = target_pop
+
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
         target_pop = target_spec.population
 
@@ -246,10 +245,8 @@ class TargetManager:
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
     @lru_cache  # noqa: B019
-    def intersecting(self, target1, target2):
+    def intersecting(self, target1_spec: TargetSpec, target2_spec: TargetSpec):
         """Checks whether two targets intersect"""
-        target1_spec = TargetSpec(target1)
-        target2_spec = TargetSpec(target2)
         if target1_spec.disjoint_populations(target2_spec):
             return False
         if target1_spec.overlap(target2_spec):
@@ -269,8 +266,18 @@ class TargetManager:
     def pathways_overlap(self, conn1, conn2, equal_only=False):
         src1, dst1 = conn1["Source"], conn1["Destination"]
         src2, dst2 = conn2["Source"], conn2["Destination"]
+
+        if isinstance(src1, str):
+            src1 = TargetSpec(src1, None)
+        if isinstance(src2, str):
+            src2 = TargetSpec(src2, None)
+        if isinstance(dst1, str):
+            dst1 = TargetSpec(dst1, None)
+        if isinstance(dst2, str):
+            dst2 = TargetSpec(dst2, None)
+
         if equal_only:
-            return TargetSpec(src1) == TargetSpec(src2) and TargetSpec(dst1) == TargetSpec(dst2)
+            return src1 == src2 and dst1 == dst2
         return self.intersecting(src1, src2) and self.intersecting(dst1, dst2)
 
     def gid_to_sections(self, gid):

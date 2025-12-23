@@ -33,7 +33,8 @@ def test_parse_run(create_tmp_simulation_config_file):
     assert SimConfig.rng_info.getGlobalSeed() == 1122
 
     expected_conf = {
-        "CircuitTarget": "Mosaic",
+        "PopulationName": None,
+        "NodesetName": "Mosaic",
         "Simulator": "NEURON",
         "Duration": 50.0,
         "Dt": 0.1,

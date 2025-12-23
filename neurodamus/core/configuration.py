@@ -109,7 +109,8 @@ class CircuitConfig(ConfigT):
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
-    CircuitTarget = None
+    PopulationName = None
+    NodesetName = None
     DetailedAxon = False
     PopulationType = None
 
@@ -384,7 +385,7 @@ class _SimConfig:
             logging.warning("Disabling SynConfigure (restrict_features)")
 
         def update_item(conn, item):
-            src_spec = TargetSpec(conn.get(item))
+            src_spec = TargetSpec(conn.get(item), None)
             src_spec.population = alias.get(src_spec.population, src_spec.population)
             conn[item] = str(src_spec)
 
@@ -959,10 +960,8 @@ def _model_building_steps(config: _SimConfig):
         logging.warning("IGNORING ModelBuildingSteps since simulator is not CORENEURON")
         return
 
-    if "CircuitTarget" not in config.run_conf:
-        raise ConfigurationError(
-            "Multi-iteration coreneuron data generation requires CircuitTarget"
-        )
+    if "NodesetName" not in config.run_conf:
+        raise ConfigurationError("Multi-iteration coreneuron data generation requires NodesetName")
 
     logging.info("Splitting Target for multi-iteration CoreNeuron data generation")
     logging.info(" -> Cycles: %d. [src: %s]", ncycles, "CLI")
