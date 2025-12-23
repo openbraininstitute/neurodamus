@@ -867,7 +867,7 @@ class Node:
 
         mod_manager = ModificationManager(self._target_manager)
         for name, mod_info in SimConfig.modifications.items():
-            target_spec = TargetSpec(mod_info["Target"])
+            target_spec = TargetSpec(mod_info["Target"], None)
             logging.info(" * [MOD] %s: %s -> %s", name, mod_info["Type"], target_spec)
             mod_manager.interpret(target_spec, mod_info)
 
