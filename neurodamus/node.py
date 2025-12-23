@@ -124,7 +124,7 @@ class CircuitManager:
     def _new_virtual_node_manager(self, circuit):
         """Instantiate a new virtual node manager explicitly."""
         storage = libsonata.NodeStorage(circuit.CellLibraryFile)
-        pop_name, _ = circuit.CircuitTarget.split(":")  # Sonata config fills population
+        pop_name = circuit.PopulationName
         node_size = storage.open_population(pop_name).size
         gid_vec = list(range(1, node_size + 1))
         virtual_cell_manager = VirtualCellPopulation(pop_name, gid_vec)
@@ -370,7 +370,7 @@ class Node:
 
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
-        self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
+        self._target_spec = TargetSpec(self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName"))
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
@@ -456,7 +456,7 @@ class Node:
         _ = PopulationNodes.offset_freezer()  # Dont offset while in loadbal
 
         # Info about the cells to be distributed
-        target_spec = TargetSpec(circuit.CircuitTarget)
+        target_spec = TargetSpec(circuit.NodesetName, circuit.PopulationName)
         target = self.target_manager.get_target(target_spec)
 
         # Check / set load balance mode
@@ -655,7 +655,7 @@ class Node:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
 
-        c_target = TargetSpec(conf.get("CircuitTarget"))
+        c_target = TargetSpec(conf.get("NodesetName"), conf.get("PopulationName"))
         if c_target.population is None:
             c_target.population = self._circuits.alias.get(conf.name)
 
@@ -702,8 +702,8 @@ class Node:
         # None, GapJunctions, NeuroGlial, NeuroModulation...
         ptype = projection.get("Type")
         ptype_cls = EngineBase.connection_types.get(ptype)
-        source_t = TargetSpec(projection.get("Source"))
-        dest_t = TargetSpec(projection.get("Destination"))
+        source_t = TargetSpec(None, projection.get("Source"))
+        dest_t = TargetSpec(None, projection.get("Destination"))
 
         if SimConfig.cli_options.restrict_connectivity >= 1:
             logging.warning("Skipped projections %s->%s (restrict_connectivity)", source_t, dest_t)

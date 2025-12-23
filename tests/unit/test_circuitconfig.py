@@ -29,7 +29,8 @@ def test_ringtest_circuitconf(create_tmp_simulation_config_file):
     circuit_conf = make_circuit_config(circuit_dict)
     assert circuit_conf.as_dict() == {
         "CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"),
-        "CircuitTarget": "RingA:Mosaic",
+        "PopulationName": "RingA",
+        "NodesetName": "Mosaic",
         "Engine": "METype",
         "METypePath": str(RINGTEST_DIR / "hoc"),
         "MorphologyPath": str(RINGTEST_DIR / "morphologies/asc"),

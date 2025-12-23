@@ -84,20 +84,17 @@ class TargetSpec:
 
     GLOBAL_TARGET_NAME = "_ALL_"
 
-    def __init__(self, target_name):
+    def __init__(self, target_name: str | None, population_name: str | None):
         """Initialize a target specification
 
         Args:
-            target_name: the target name. For specifying a population use
-                the format ``population:target_name``
+            target_name: the target name. None means no filtering
+            poplation_name: to filter the target by population name. None means no filtering
         """
-        if target_name and ":" in target_name:
-            self.population, self.name = target_name.split(":")
-        else:
-            self.name = target_name
-            self.population = None
-        if not self.name:
-            self.name = None
+        assert target_name is None or ":" not in target_name, f"{target_name=}"
+
+        self.name = target_name
+        self.population = population_name
 
     def __str__(self):
         return (
