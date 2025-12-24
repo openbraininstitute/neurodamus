@@ -343,8 +343,7 @@ class Connection(ConnectionBase):
             self._synapse_params.append(syn_params)
 
     def replay(self, tvec, start_delay=0.0):
-        """The synapses connecting these gids are to be activated using
-        predetermined timings.
+        """The synapses connecting these gids are to be activated using predetermined timings.
 
         Args:
             tvec: time for spike events from the sgid
