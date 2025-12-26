@@ -1,4 +1,4 @@
-{nrnpython( "import shutil, os.path" )}
+{nrnpython( "import os.path" )}
 
 // The function defined below in nrnpython is:
 // import os
@@ -23,12 +23,6 @@
 //
 {nrnpython("import os\ndef check_output_directory(output_dir):\n\tif os.path.exists(output_dir):\n\t\tif not os.path.isdir(output_dir):\n\t\t\tprint(f\"{output_dir} does not name a directory.\")\n\t\t\treturn -1\n\t\telse:\n\t\t\treturn 0\n\telse:\n\t\ttry:\n\t\t\tos.makedirs(output_dir)\n\t\texcept Exception as e:\n\t\t\tprint(f\"Failed to create OutputRoot directory {output_dir} with {e}\")\n\t\t\treturn -1\n\t\tprint(f\"Directory {output_dir} does not exist.  Creating...\")\n\t\treturn 0")}
 
-// Use helper functions from python os.path
-objref _py, ospath, shutil
-_py = new PythonObject()
-ospath = _py.os.path
-shutil = _py.shutil
-
 ///Utility function to nicely show error in rank 0 and call execerror to abort MPI
 proc terminate() { localobj outstr, pc
     pc = new ParallelContext()
@@ -43,5 +37,4 @@ proc terminate() { localobj outstr, pc
     } else {
         execerror()
     }
-
 }
