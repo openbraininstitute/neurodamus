@@ -4,10 +4,8 @@ Reference:
 https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connection-overrides
 """
 
-
-
-import pytest
 import numpy as np
+import pytest
 from scipy.signal import find_peaks
 
 from tests import utils
@@ -126,9 +124,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_synapse_without_weight(create_tmp_simulation_config_file):
-    """
-    Test that 0 weight removes the netcon
-    """
+    """Test that 0 weight removes the netcon"""
     from neurodamus import Neurodamus
     from neurodamus.core import NeuronWrapper as Nd
 

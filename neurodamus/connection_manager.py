@@ -6,14 +6,14 @@ import hashlib
 import logging
 from collections import defaultdict
 from itertools import chain
-from os import path as ospath
 from typing import TYPE_CHECKING
 
+import libsonata
 import numpy as np
 
 from .connection import Connection, ReplayMode
 from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run_only_rank0
-from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
+from .core.configuration import GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
@@ -23,6 +23,7 @@ from .utils.pyutils import bin_search, dict_filter_map, gen_ranges
 from .utils.timeit import timeit
 
 if TYPE_CHECKING:
+    from .types import EdgePopulationQualified
     from .utils.memory import DryRunStats
 
 
@@ -234,25 +235,20 @@ class ConnectionManagerBase:
         name = self.__class__.__name__
         return f"<{name:s} | {self._src_cell_manager!s:s} -> {self._cell_manager!s:s}>"
 
-    def open_edge_location(self, syn_source, _circuit_conf, **kw):
-        edge_file, *pop = syn_source.split(":")
-        pop_name = pop[0] if pop else None
-        return self.open_synapse_file(edge_file, pop_name, **kw)
+    def open_edge_location(self, syn_source: EdgePopulationQualified, _circuit_conf, **kw):
+        return self.open_synapse_file(syn_source, **kw)
 
-    def open_synapse_file(self, synapse_file, edge_population, *, src_pop_name=None, **_kw):
-        """Initializes a reader for Synapses config objects and associated population
+    def open_synapse_file(self, source: EdgePopulationQualified, *, src_pop_name=None, **_kw):
+        """Initializes a reader for Synapses config objects and associated population.
 
         Args:
             synapse_file: The nrn/edge file. For old nrn files it may be a dir.
-            edge_population: The population of the edges
-            src_name: The source pop name, normally matching that of the source cell manager
+            source: locationa and name of synapses
         """
-        if not ospath.exists(synapse_file):
-            raise ConfigurationError(f"Connectivity (Edge) file not found: {synapse_file}")
-        if ospath.isdir(synapse_file):
-            raise ConfigurationError("Edges source is a directory")
-
-        self._synapse_reader = self._open_synapse_file(synapse_file, edge_population)
+        logging.debug("Opening Synapse file %s", source)
+        self._synapse_reader = self.SynapseReader(
+            source.path, source.population, extracellular_calcium=SimConfig.extracellular_calcium
+        )
         if self._load_offsets and not self._synapse_reader.has_property("synapse_index"):
             raise Exception(
                 "Synapse offsets required but not available. "
@@ -261,13 +257,6 @@ class ConnectionManagerBase:
 
         self._init_conn_population(src_pop_name)
         self._unlock_all_connections()  # Allow appending synapses from new sources
-        return synapse_file
-
-    def _open_synapse_file(self, synapse_file, pop_name):
-        logging.debug("Opening Synapse file %s, population: %s", synapse_file, pop_name)
-        return self.SynapseReader(
-            synapse_file, pop_name, extracellular_calcium=SimConfig.extracellular_calcium
-        )
 
     def _init_conn_population(self, src_pop_name):
         if not src_pop_name:
@@ -386,11 +375,13 @@ class ConnectionManagerBase:
             src_target: Target name to restrict creating connections coming from it
             dst_target: Target name to restrict creating connections going into it
         """
-        conn_src_spec = TargetSpec(src_target)  # instantiate all from src
-        conn_src_spec.population = self.current_population.src_pop_name
-        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target)
-        conn_dst_spec.population = self.current_population.dst_pop_name
-        this_pathway = {"Source": str(conn_src_spec), "Destination": str(conn_dst_spec)}
+        conn_src_spec = TargetSpec(
+            src_target, self.current_population.src_pop_name
+        )  # instantiate all from src
+        conn_dst_spec = TargetSpec(
+            dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name
+        )
+        this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
         matching_conns = [
             conn
             for conn in SimConfig.connections.values()
@@ -494,8 +485,8 @@ class ConnectionManagerBase:
         dst_pop_name = self.dst_node_population
         src_pop_name = self.src_node_population
         logging.debug("Connecting group %s -> %s", conn_source, conn_destination)
-        src_tspec = TargetSpec(conn_source)
-        dst_tspec = TargetSpec(conn_destination)
+        src_tspec = TargetSpec(conn_source, None)
+        dst_tspec = TargetSpec(conn_destination, None)
         src_target = src_tspec.name and self._target_manager.get_target(src_tspec, src_pop_name)
         dst_target = dst_tspec.name and self._target_manager.get_target(dst_tspec, dst_pop_name)
 
@@ -803,8 +794,8 @@ class ConnectionManagerBase:
              selected_gids: (optional) post gids to select (original, w/o offsetting)
              conn_population: restrict the set of connections to be returned
         """
-        src_target_spec = TargetSpec(src_target_name)
-        dst_target_spec = TargetSpec(dst_target_name)
+        src_target_spec = TargetSpec(src_target_name, None)
+        dst_target_spec = TargetSpec(dst_target_name, None)
 
         src_target = (
             self._target_manager.get_target(src_target_spec)
@@ -937,46 +928,23 @@ class ConnectionManagerBase:
         logging.warning("Replay is not available in %s", self.__class__.__name__)
 
 
-# ##############
-# Helper methods
-# ##############
-
-
-def edge_node_pop_names(edge_file, edge_pop_name, src_pop_name=None, dst_pop_name=None) -> tuple:
+def edge_node_pop_names(edge_source: EdgePopulationQualified) -> tuple[str, str]:
     """Find the node populations names.
 
     Args:
-        edge_file: The edge file to extract the population names from
-        edge_pop_name: The name of the edge population
+        edge_source: edges path and name
     Returns: tuple of the src-dst population names.
     """
-    src_dst_pop_names = _edge_meta_get_node_populations(edge_file, edge_pop_name)
-    if src_dst_pop_names:
-        if src_pop_name is None:
-            src_pop_name = src_dst_pop_names[0]
-        if dst_pop_name is None:
-            dst_pop_name = src_dst_pop_names[1]
-    return src_pop_name, dst_pop_name
+    return _edge_meta_get_node_populations(edge_source)
 
 
 @run_only_rank0
-def _edge_meta_get_node_populations(edge_file, edge_pop_name) -> tuple:
-    import libsonata
-
-    edge_storage = libsonata.EdgeStorage(edge_file)
-    if not edge_pop_name:
-        assert len(edge_storage.population_names) == 1, (
-            "multi-population edges require manual selection"
-        )
-        edge_pop_name = next(iter(edge_storage.population_names))
-
-    edge_pop = edge_storage.open_population(edge_pop_name)
+def _edge_meta_get_node_populations(source: EdgePopulationQualified) -> tuple:
+    edge_storage = libsonata.EdgeStorage(source.path)
+    edge_pop = edge_storage.open_population(source.population)
     return (edge_pop.source, edge_pop.target)
 
 
-# ######################################################################
-# SynapseRuleManager
-# ######################################################################
 class SynapseRuleManager(ConnectionManagerBase):
     """The SynapseRuleManager is designed to encapsulate the creation of
     synapses for BlueBrain simulations, handling the data coming from

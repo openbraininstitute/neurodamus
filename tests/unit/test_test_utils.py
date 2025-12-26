@@ -20,9 +20,9 @@ def get_edges_data(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+
+    edges_source = SimConfig.sonata_circuits["RingB"].nrnPath
+    edges = EdgeStorage(edges_source.path).open_population(edges_source.population)
     sgid, tgid = 0, 1
     cell = n._pc.gid2cell(tgid)
     selection = edges.afferent_edges(tgid)

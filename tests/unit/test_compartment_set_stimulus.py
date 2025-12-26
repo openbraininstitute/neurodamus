@@ -25,7 +25,7 @@ from collections import Counter
                         "frequency": 50,
                         "delay": 0,
                         "duration": 50,
-                        "compartment_set":"csA",
+                        "compartment_set": "csA",
                     },
                 },
             },
