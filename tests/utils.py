@@ -123,14 +123,13 @@ def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: i
     src_pop_offset = nd.circuits.get_node_manager(src_pop).local_nodes.offset
     src_gid = src_rawgid + src_pop_offset
 
+    manager = nd.circuits.get_edge_managers(src_pop, tgt_pop)[0]
     if src_pop == tgt_pop:
-        edges_file, edge_pop = \
-            nd.circuits.get_edge_managers(tgt_pop, tgt_pop)[0].circuit_conf.nrnPath.split(":")
+        edge_source = manager.circuit_conf.nrnPath
     else:
-        edges_file, edge_pop = \
-            nd.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf["Path"].split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+        edge_source = manager.circuit_conf["Path"]
+
+    edges = EdgeStorage(edge_source.path).open_population(edge_source.population)
     selection = edges.afferent_edges(tgt_rawgid)
     return src_gid, tgt_gid, edges, selection
 

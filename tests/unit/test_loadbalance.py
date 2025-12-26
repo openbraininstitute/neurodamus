@@ -253,10 +253,9 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
 
+
 class MockedTargetManager:
-    """
-    A mock target manager, for the single purpose of returning the provided targets
-    """
+    """A mock target manager, for the single purpose of returning the provided targets"""
 
     def __init__(self, *targets) -> None:
         self.targets = {t.name.split(":")[-1]: t for t in targets}
@@ -275,4 +274,3 @@ class MockedTargetManager:
 
     def register_local_nodes(*_):
         pass
-

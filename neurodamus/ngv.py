@@ -20,6 +20,7 @@ from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import BaseCell
 from .morphio_wrapper import MorphIOWrapper
+from .types import EdgePopulationQualified
 from .utils.pyutils import append_recarray
 
 
@@ -88,7 +89,7 @@ class Astrocyte(BaseCell):
         length: float,
         diameter: float,
         R0pas: float,  # noqa: N803
-    ) -> bool:
+    ):
         """Initialize an endfoot NEURON section with custom geometry and mechanisms.
 
         Parameters:
@@ -394,19 +395,16 @@ class GlioVascularManager(ConnectionManagerBase):
         self._astro_ids = self._cell_manager.local_nodes.gids(raw_gids=True)
         self._gid_offset = self._cell_manager.local_nodes.offset
 
-    def open_edge_location(self, sonata_source, circuit_conf, **__):
+    def open_edge_location(self, sonata_source: EdgePopulationQualified, circuit_conf, **__):
         logging.info("GlioVascular sonata file %s", sonata_source)
         # sonata files can have multiple populations. In building we only use one
         # per file, hence this two lines below to access the first and only pop in
         # the file
-        edge_file, *pop = sonata_source.split(":")
-        storage = libsonata.EdgeStorage(edge_file)
-        pop_name = pop[0] if pop else next(iter(storage.population_names))
-        self._gliovascular = storage.open_population(pop_name)
+        storage = libsonata.EdgeStorage(sonata_source.path)
+        self._gliovascular = storage.open_population(sonata_source.population)
 
-        storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"])
-        pop_name = next(iter(storage.population_names))
-        self._vasculature = storage.open_population(pop_name)
+        storage = libsonata.NodeStorage(circuit_conf["VasculaturePath"].path)
+        self._vasculature = storage.open_population(circuit_conf["VasculaturePath"].population)
 
     def create_connections(self, *_, **__):
         # it also creates endfeet

@@ -661,11 +661,9 @@ class Node:
         if c_target.population is None:
             c_target.population = self._circuits.alias.get(conf.name)
 
-        edge_file, *pop = conf.get("nrnPath").split(":")
-        edge_pop = pop[0] if pop else None
-        src, dst = edge_node_pop_names(edge_file, edge_pop)
+        src, dst = edge_node_pop_names(conf.get("nrnPath"))
 
-        logging.info("Processing edge file %s, pop: %s", edge_file, edge_pop)
+        logging.info("Processing edge file %s", conf.get("nrnPath"))
 
         if src and dst and src != dst:
             raise ConfigurationError("Inner connectivity with different populations")
@@ -714,15 +712,10 @@ class Node:
         if not ptype_cls:
             raise RuntimeError(f"No Engine to handle connectivity of type '{ptype}'")
 
-        ppath, *pop_name = projection["Path"].split(":")
-        edge_pop_name = pop_name[0] if pop_name else None
-
-        logging.info("Processing Edge file: %s", ppath)
+        logging.info("Processing Edge file: %s", projection["Path"])
 
         # Update the target spec with the actual populations
-        src_pop, dst_pop = edge_node_pop_names(
-            ppath, edge_pop_name, source_t.population, dest_t.population
-        )
+        src_pop, dst_pop = edge_node_pop_names(projection["Path"])
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(src_pop, dst_pop)
         src_target = self.target_manager.get_target(source_t)
         dst_target = self.target_manager.get_target(dest_t)
@@ -742,8 +735,7 @@ class Node:
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath, *pop_name])
-                conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
+                conn_manager.open_edge_location(projection["Path"], projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
     @mpi_no_errors

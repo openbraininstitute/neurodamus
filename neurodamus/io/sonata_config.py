@@ -2,10 +2,13 @@
 
 import json
 import logging
-import os.path
+import os
 from enum import Enum
+from pathlib import Path
 
 import libsonata
+
+from neurodamus.types import EdgePopulationQualified
 
 
 class ConnectionTypes(str, Enum):
@@ -185,8 +188,9 @@ class SonataConfig:
                             edges_file = os.path.join(
                                 os.path.dirname(self._sim_conf.network), edges_file
                             )
-                        edge_pop_path = edges_file + ":" + edge_pop_name
-                        circuit_config["nrnPath"] = edge_pop_path
+                        circuit_config["nrnPath"] = EdgePopulationQualified(
+                            path=Path(edges_file), population=edge_pop_name
+                        )
                         break
 
             circuit_config.setdefault("nrnPath", False)
@@ -231,7 +235,9 @@ class SonataConfig:
                     edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
 
                 # skip inner connectivity populations
-                edge_pop_path = edges_file + ":" + edge_pop_name
+                edge_pop_path = EdgePopulationQualified(
+                    path=Path(edges_file), population=edge_pop_name
+                )
                 if edge_pop_path in internal_edge_pops:
                     continue
 
@@ -256,10 +262,14 @@ class SonataConfig:
                     ]
                     if vasculature_popnames:
                         assert len(vasculature_popnames) == 1
-                        projection["VasculaturePath"] = (
-                            self._circuit_conf.node_population_properties(
-                                vasculature_popnames[0]
-                            ).elements_path
+                        population = vasculature_popnames[0]
+                        projection["VasculaturePath"] = EdgePopulationQualified(
+                            population=population,
+                            path=Path(
+                                self._circuit_conf.node_population_properties(
+                                    population
+                                ).elements_path
+                            ),
                         )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
