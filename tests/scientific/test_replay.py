@@ -39,7 +39,6 @@ def test_replay_sim(sonata_config):
         restrict_features=[Feature.Replay],
         restrict_connectivity=1,  # base restriction, no projections
         disable_reports=True,
-        cleanup_atexit=False,
     )
 
     node_managers = nd.circuits.node_managers
@@ -79,7 +78,6 @@ def test_many_replay_sim(sonata_config):
         restrict_features=[Feature.Replay],
         restrict_connectivity=1,  # base restriction, no projections
         disable_reports=True,
-        cleanup_atexit=False,
     )
 
     node_managers = nd.circuits.node_managers
@@ -118,7 +116,6 @@ def test_replay_sonata_spikes(sonata_config):
         config_file.name,
         restrict_features=[Feature.Replay],
         disable_reports=True,
-        cleanup_atexit=False,
         logging_level=2,
     )
 

@@ -348,8 +348,6 @@ class Node:
             raise ConfigurationError(
                 "Legacy format BlueConfig is not supported, please migrate to SONATA config"
             )
-        import libsonata
-
         conf = libsonata.SimulationConfig.from_file(config_file)
         Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
@@ -1573,7 +1571,9 @@ class Node:
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
-    def __init__(self, config_file, auto_init=True, logging_level=None, **user_opts):
+    def __init__(
+        self, config_file, auto_init=True, logging_level=None, disable_reports=False, **user_opts
+    ):
         """Creates and initializes a neurodamus run node
 
         As part of Initiazation it calls:
@@ -1590,15 +1590,15 @@ class Neurodamus(Node):
                 1 - Info messages (default)
                 2 - Verbose
                 3 - Debug messages
+            disable_reports: whether to disable reports
             user_opts: Options to Neurodamus overriding the simulation config file
         """
-        enable_reports = not user_opts.pop("disable_reports", False)
         if logging_level is not None:
             GlobalConfig.verbosity = logging_level
 
         Node.__init__(self, config_file, user_opts)
-        # Use the run_conf dict to avoid passing it around
-        self._run_conf["EnableReports"] = enable_reports
+
+        self._run_conf["EnableReports"] = not disable_reports
         self._run_conf["AutoInit"] = auto_init
 
         if SimConfig.dry_run:

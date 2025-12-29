@@ -1,12 +1,3 @@
-import json
-import numpy
-import os
-import pytest
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-
-USECASE3 = Path(__file__).parent.absolute() / "usecase3"
-
 """
 Test "Projections", which in Sonata are basically Edges where the source population
 is virtual, i.e. cells were not instantiated.
@@ -14,8 +5,17 @@ By applying Replay to it we should see received events
 """
 
 
+import json
+from pathlib import Path
+
+import libsonata
+import numpy as np
+import pytest
+
+USECASE3 = Path(__file__).parent.absolute() / "usecase3"
+
 @pytest.fixture
-def sonata_config_file(sonata_config, request):
+def sonata_config_file(sonata_config, request, tmp_path):
     enable_synapse_delay = request.param['enable_synapse_delay']
     simulator = request.param['simulator']
     sonata_config["node_set"] = "nodesPopA"
@@ -61,23 +61,20 @@ def sonata_config_file(sonata_config, request):
         }
     }
 
-    # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
-        json.dump(sonata_config, config_file)
+    config_file = tmp_path / "simulation_config.json"
+    with config_file.open("w") as fd:
+        json.dump(sonata_config, fd)
 
-    yield config_file, request.param
-
-    os.unlink(config_file.name)
+    return str(config_file), request.param
 
 
 # Read the soma report and return a list with the voltages
 def _read_sonata_soma_report(report_name):
-    import libsonata
     report = libsonata.SomaReportReader(report_name)
     pop_name = report.get_population_names()[0]
     ids = report[pop_name].get_node_ids()
     data = report[pop_name].get(node_ids=[ids[0]])
-    return numpy.array(data.data).flatten().tolist()
+    return np.array(data.data).flatten().tolist()
 
 
 @pytest.mark.parametrize(
@@ -104,11 +101,10 @@ def test_synapse_delay_override(sonata_config_file):
 
     # Initialize Neurodamus with the given configuration
     nd = Neurodamus(
-        config_file.name,
+        config_file,
         simulator=target_simulator,
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
-        disable_reports=False if target_simulator == "CORENEURON" else True,
-        cleanup_atexit=False,
+        disable_reports=target_simulator != "CORENEURON",
         logging_level=3,
         build_model=True,  # Needed to run CoreNEURON twice
     )
@@ -155,9 +151,9 @@ def test_synapse_delay_override(sonata_config_file):
         voltage_vec = _read_sonata_soma_report(soma_report_path)
 
     # Find impact on voltage. See test_spont_minis for an explanation
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = np.nonzero(window_sum < -0.03)[0]
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))
-    expected_positions = numpy.array([119, 120]) if enable_synapse_delay else numpy.array([96, 97])
-    assert numpy.array_equal(strong_reduction_pos, expected_positions)
+    expected_positions = np.array([119, 120]) if enable_synapse_delay else np.array([96, 97])
+    assert np.array_equal(strong_reduction_pos, expected_positions)
