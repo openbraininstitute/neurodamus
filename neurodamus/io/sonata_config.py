@@ -247,13 +247,7 @@ class SonataConfig:
                     "Destination": edge_pop.target,
                     "Type": projection_type_convert.get(pop_type),
                 }
-                # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
-                if projection["Type"] == ConnectionTypes.NeuroGlial:
-                    projection["Source"], projection["Destination"] = (
-                        projection["Destination"],
-                        projection["Source"],
-                    )
-                elif projection["Type"] == ConnectionTypes.GlioVascular:
+                if projection["Type"] == ConnectionTypes.GlioVascular:
                     vasculature_popnames = [
                         name
                         for node_info in networks["nodes"]

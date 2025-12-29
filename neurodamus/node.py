@@ -663,7 +663,7 @@ class Node:
 
         src, dst = edge_node_pop_names(conf.get("nrnPath"))
 
-        logging.info("Processing edge file %s", conf.get("nrnPath"))
+        logging.info("Processing main edge file %s (%s -> %s)", conf.get("nrnPath"), src, dst)
 
         if src and dst and src != dst:
             raise ConfigurationError("Inner connectivity with different populations")
@@ -698,9 +698,7 @@ class Node:
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
-        target_manager = self._target_manager
-        # None, GapJunctions, NeuroGlial, NeuroModulation...
-        ptype = projection.get("Type")
+        ptype = projection.get("Type")  # None, GapJunctions, NeuroGlial, NeuroModulation...
         ptype_cls = EngineBase.connection_types.get(ptype)
         source_t = TargetSpec(None, projection.get("Source"))
         dest_t = TargetSpec(None, projection.get("Destination"))
@@ -712,10 +710,17 @@ class Node:
         if not ptype_cls:
             raise RuntimeError(f"No Engine to handle connectivity of type '{ptype}'")
 
-        logging.info("Processing Edge file: %s", projection["Path"])
-
         # Update the target spec with the actual populations
         src_pop, dst_pop = edge_node_pop_names(projection["Path"])
+
+        # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
+        if ptype == ConnectionTypes.NeuroGlial:
+            src_pop, dst_pop = dst_pop, src_pop
+
+        logging.info(
+            "Processing projection edge file: %s (%s -> %s)", projection["Path"], src_pop, dst_pop
+        )
+
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(src_pop, dst_pop)
         src_target = self.target_manager.get_target(source_t)
         dst_target = self.target_manager.get_target(dest_t)
@@ -731,7 +736,7 @@ class Node:
                     src_pop,
                     dst_pop,
                     source_t,
-                    (projection, target_manager),
+                    (projection, self.target_manager),
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
