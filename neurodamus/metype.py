@@ -262,7 +262,7 @@ class Cell_V6(METype):  # noqa: N801
         self.extra_attrs = meinfos_v6.extra_attrs
 
     def local_to_global_coord_mapping(self, points):
-        if self.local_to_global_matrix is False:
+        if not self.local_to_global_matrix:
             raise ConfigurationError(
                 "To use local_to_global_coord_mapping please "
                 "run neurodamus with `enable_coord_mapping=True`"
@@ -328,10 +328,6 @@ class PointCell:
         pass
 
 
-# Metadata
-# --------
-
-
 class METypeItem:
     """Metadata about an METype, each possibly used by several cells."""
 
@@ -374,10 +370,9 @@ class METypeItem:
         self.inh_mini_frequency = float(inh_mini_frequency)
         self.add_params = add_params
         self.extra_attrs = {}
-        cli_opts = SimConfig.cli_options
         self.local_to_global_matrix = (
             self._make_coord_map_matrix(position, rotation, scale)
-            if cli_opts is None or cli_opts.enable_coord_mapping
+            if position is not None or SimConfig.enable_coord_mapping
             else False
         )
 

@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import pytest
 from pathlib import Path
 
@@ -125,7 +125,6 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
-        restrict_connectivity=False,
         disable_reports=True,
         cleanup_atexit=False,
         logging_level=3,
@@ -196,7 +195,7 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     nd.run()
 
     # Find impact on voltage. See test_spont_minis for an explanation
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], "valid")
+    strong_reduction_pos = np.nonzero(window_sum < -0.03)[0]
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))

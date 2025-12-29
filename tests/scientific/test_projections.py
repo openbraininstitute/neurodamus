@@ -107,7 +107,6 @@ def test_synapse_delay_override(sonata_config_file):
         config_file.name,
         simulator=target_simulator,
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
-        restrict_connectivity=False,
         disable_reports=False if target_simulator == "CORENEURON" else True,
         cleanup_atexit=False,
         logging_level=3,

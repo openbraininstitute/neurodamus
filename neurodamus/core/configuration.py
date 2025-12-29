@@ -2,7 +2,6 @@
 
 import logging
 import os
-import os.path
 import re
 from collections import defaultdict
 from enum import Enum
@@ -87,7 +86,6 @@ class CliOptions(ConfigT):
     crash_test = False
 
     # Restricted Functionality support, mostly for testing
-
     class NoRestriction:
         """Provide container API, where `in` checks are always True"""
 
@@ -188,7 +186,9 @@ class _SimConfig:
 
     config_file = None
     cli_options = None
+
     run_conf = None
+
     output_root = None
     sonata_circuits = None
     projections = None
@@ -227,6 +227,12 @@ class _SimConfig:
     num_target_ranks = None
     coreneuron_direct_mode = False
     crash_test_mode = False
+    enable_coord_mapping = False
+    restrict_node_populations = None
+    restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
+    restrict_features = None
+    enable_shm = False
+    model_stats = False
 
     _validators = []
     _cell_requirements = {}
@@ -265,14 +271,20 @@ class _SimConfig:
         cls.modifications = config_parser.parsedModifications or {}
         cls.beta_features = config_parser.beta_features
 
-        cls.cli_options = CliOptions(**(cli_options or {}))
+        cls.cli_options = cli_options = CliOptions(**(cli_options or {}))
+        cls.dry_run = cli_options.dry_run
+        cls.crash_test_mode = cli_options.crash_test
+        cls.num_target_ranks = cli_options.num_target_ranks
+        cls.enable_coord_mapping = cli_options.enable_coord_mapping
+        cls.restrict_node_populations = cli_options.restrict_node_populations
+        cls.restrict_connectivity = cli_options.restrict_connectivity
+        cls.restrict_features = cli_options.restrict_features
+        cls.enable_shm = cli_options.enable_shm
+        cls.model_stats = bool(cli_options.model_stats)
 
-        cls.dry_run = cls.cli_options.dry_run
-        cls.crash_test_mode = cls.cli_options.crash_test
-        cls.num_target_ranks = cls.cli_options.num_target_ranks
         # change simulator by request before validator and init hoc config
-        if cls.cli_options.simulator:
-            cls._parsed_run["Simulator"] = cls.cli_options.simulator
+        if cli_options.simulator:
+            cls._parsed_run["Simulator"] = cli_options.simulator
 
         cls.run_conf = cls._parsed_run
         for validator in cls._validators:
@@ -379,7 +391,8 @@ class _SimConfig:
         """
         from neurodamus.target_manager import TargetSpec  # avoid cyclic deps
 
-        restrict_features = SimConfig.cli_options.restrict_features
+        restrict_features = SimConfig.restrict_features
+
         if Feature.SpontMinis not in restrict_features:
             logging.warning("Disabling SpontMinis (restrict_features)")
         if Feature.SynConfigure not in restrict_features:
