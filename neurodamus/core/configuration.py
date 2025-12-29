@@ -199,7 +199,6 @@ class _SimConfig:
     beta_features = None
 
     # Hoc objects used
-    _config_parser = None
     _parsed_run = None
     _simulation_config = None
     _simconf = None
@@ -247,22 +246,25 @@ class _SimConfig:
 
         log_verbose("ConfigFile: %s", config_file)
         log_verbose("CLI Options: %s", cli_options)
+
         cls.config_file = config_file
-        cls._config_parser = cls._init_config_parser(config_file)
-        cls._parsed_run = cls._config_parser.parsedRun
-        cls._simulation_config = cls._config_parser  # Please refactor me
+
+        config_parser = cls._init_config_parser(config_file)
+        cls._parsed_run = config_parser.parsedRun
+        cls._simulation_config = config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
             "SimulationConfigDir using directory of simulation config file: %s",
             cls.simulation_config_dir,
         )
 
-        cls.projections = cls._config_parser.parsedProjections
-        cls.connections = cls._config_parser.parsedConnects
-        cls.stimuli = cls._config_parser.parsedStimuli
-        cls.reports = cls._config_parser.parsedReports
-        cls.modifications = cls._config_parser.parsedModifications or {}
-        cls.beta_features = cls._config_parser.beta_features
+        cls.projections = config_parser.parsedProjections
+        cls.connections = config_parser.parsedConnects
+        cls.stimuli = config_parser.parsedStimuli
+        cls.reports = config_parser.parsedReports
+        cls.modifications = config_parser.parsedModifications or {}
+        cls.beta_features = config_parser.beta_features
+
         cls.cli_options = CliOptions(**(cli_options or {}))
 
         cls.dry_run = cls.cli_options.dry_run
