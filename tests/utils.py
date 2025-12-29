@@ -123,14 +123,13 @@ def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: i
     src_pop_offset = nd.circuits.get_node_manager(src_pop).local_nodes.offset
     src_gid = src_rawgid + src_pop_offset
 
+    manager = nd.circuits.get_edge_managers(src_pop, tgt_pop)[0]
     if src_pop == tgt_pop:
-        edges_file, edge_pop = \
-            nd.circuits.get_edge_managers(tgt_pop, tgt_pop)[0].circuit_conf.nrnPath.split(":")
+        edge_source = manager.circuit_conf.nrnPath
     else:
-        edges_file, edge_pop = \
-            nd.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf["Path"].split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+        edge_source = manager.circuit_conf["Path"]
+
+    edges = EdgeStorage(edge_source.path).open_population(edge_source.population)
     selection = edges.afferent_edges(tgt_rawgid)
     return src_gid, tgt_gid, edges, selection
 
@@ -312,7 +311,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
 
     for rep_name, rep_conf in reports_conf.items():
-        target_spec = TargetSpec(rep_conf["Target"])
+        target_spec = TargetSpec(rep_conf["Target"], None)
         target = target_manager.get_target(target_spec)
 
         rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)

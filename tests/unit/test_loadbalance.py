@@ -41,7 +41,7 @@ def test_loadbal_no_cx(target_manager, caplog):
     assert not lbal._cx_targets
     assert not lbal._valid_loadbalance
     with caplog.at_level(logging.INFO):
-        assert not lbal._cx_valid(TargetSpec("random_target"))
+        assert not lbal._cx_valid(TargetSpec("random_target", None))
         assert " => No complexity files for current circuit yet" in caplog.records[-1].message
 
 def test_loadbal_subtarget(target_manager, caplog):
@@ -56,13 +56,13 @@ def test_loadbal_subtarget(target_manager, caplog):
     assert "RingA_All" in lbal._cx_targets
     assert not lbal._valid_loadbalance
     with caplog.at_level(logging.INFO):
-        assert not lbal._cx_valid(TargetSpec("random_target"))
+        assert not lbal._cx_valid(TargetSpec("random_target", None))
         assert " => No Cx files available for requested target" in caplog.records[-1].message
-    assert lbal._cx_valid(TargetSpec("RingA:All"))  # yes!
-    assert not lbal._cx_valid(TargetSpec("VerySmall"))  # not yet, need to derive subtarget
+    assert lbal._cx_valid(TargetSpec("All","RingA"))  # yes!
+    assert not lbal._cx_valid(TargetSpec("VerySmall", None))  # not yet, need to derive subtarget
 
     with caplog.at_level(logging.INFO):
-        assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
+        assert lbal._reuse_cell_complexity(TargetSpec("VerySmall", "RingA"))
         assert len(caplog.records) >= 2
         assert "Attempt reusing cx files from other targets..." in caplog.records[-2].message
         assert "Target VerySmall is a subset of the target RingA_All." in caplog.records[-1].message
@@ -103,7 +103,7 @@ def test_load_balance_integrated(target_manager, circuit_conf):
     cell_manager.load_nodes()
 
     lbal = LoadBalance(1, circuit_conf.CellLibraryFile, "RingA", target_manager, 3)
-    t1 = TargetSpec("RingA:All")
+    t1 = TargetSpec("All", "RingA")
     assert not lbal._cx_valid(t1)
 
     with lbal.generate_load_balance(t1, cell_manager):
@@ -116,10 +116,10 @@ def test_load_balance_integrated(target_manager, circuit_conf):
     # Check subtarget
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
-    assert lbal._reuse_cell_complexity(TargetSpec("RingA:VerySmall"))
+    assert lbal._reuse_cell_complexity(TargetSpec("VerySmall", "RingA"))
 
     # Check not super-targets
-    assert not lbal._reuse_cell_complexity(TargetSpec(None))
+    assert not lbal._reuse_cell_complexity(TargetSpec(None, None))
 
 
 def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
@@ -133,7 +133,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     lbal = LoadBalance(
         LoadBalanceMode.MultiSplit, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
     )
-    t1 = TargetSpec("RingA:All")
+    t1 = TargetSpec("All", "RingA")
     assert not lbal._cx_valid(t1)
 
     with lbal.generate_load_balance(t1, cell_manager):
@@ -167,7 +167,7 @@ def test_MultiSplit_bigcell(target_manager, circuit_conf_bigcell, capsys):
     # Ensure load-bal is reused for smaller targets in multisplit
     assert "RingA_VerySmall" not in lbal._cx_targets
     assert "RingA_VerySmall" not in lbal._valid_loadbalance
-    assert lbal.valid_load_distribution(TargetSpec("RingA:VerySmall"))
+    assert lbal.valid_load_distribution(TargetSpec("VerySmall", "RingA"))
     assert "RingA_VerySmall" in lbal._cx_targets
     assert "RingA_VerySmall" in lbal._valid_loadbalance
     captured = capsys.readouterr()
@@ -183,7 +183,7 @@ def test_MultiSplit(target_manager, circuit_conf, capsys):
     lbal = LoadBalance(
         LoadBalanceMode.MultiSplit, circuit_conf.CellLibraryFile, "RingA", target_manager, 2
     )
-    t1 = TargetSpec("RingA:All")
+    t1 = TargetSpec("All", "RingA")
     assert not lbal._cx_valid(t1)
 
     with lbal.generate_load_balance(t1, cell_manager):
@@ -218,7 +218,7 @@ def test_WholeCell(target_manager, circuit_conf, capsys):
     lbal = LoadBalance(
         LoadBalanceMode.WholeCell, circuit_conf.CellLibraryFile, "RingA", target_manager, 2
     )
-    t1 = TargetSpec("RingA:All")
+    t1 = TargetSpec("All", "RingA")
     assert not lbal._cx_valid(t1)
 
     with lbal.generate_load_balance(t1, cell_manager):
@@ -241,7 +241,7 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     lbal = LoadBalance(
         LoadBalanceMode.WholeCell, circuit_conf_bigcell.CellLibraryFile, "RingA", target_manager, 2
     )
-    t1 = TargetSpec("RingA:All")
+    t1 = TargetSpec("All", "RingA")
     with lbal.generate_load_balance(t1, cell_manager):
         cell_manager.finalize()
 
@@ -253,10 +253,9 @@ def test_WholeCell_bigcell(target_manager, circuit_conf_bigcell, capsys):
     content = Path(cpu_assign_filename).open().read()
     assert content == "msgid 10000000\nnhost 2\n0 1  0 0 0\n1 2  1 1 0  2 2 0\n"
 
+
 class MockedTargetManager:
-    """
-    A mock target manager, for the single purpose of returning the provided targets
-    """
+    """A mock target manager, for the single purpose of returning the provided targets"""
 
     def __init__(self, *targets) -> None:
         self.targets = {t.name.split(":")[-1]: t for t in targets}
@@ -265,7 +264,7 @@ class MockedTargetManager:
         from neurodamus.target_manager import TargetSpec
 
         if not isinstance(target_spec, TargetSpec):
-            target_spec = TargetSpec(target_spec)
+            target_spec = TargetSpec(target_spec, None)
         if target_pop:
             target_spec.population = target_pop
         target_name = target_spec.name or TargetSpec.GLOBAL_TARGET_NAME
@@ -275,4 +274,3 @@ class MockedTargetManager:
 
     def register_local_nodes(*_):
         pass
-

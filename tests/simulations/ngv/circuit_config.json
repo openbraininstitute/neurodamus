@@ -29,7 +29,7 @@
             {
                 "nodes_file": "vasculature.h5",
                 "populations": {
-                    "vasculature": {
+                    "VasculatureA": {
                         "type": "vasculature",
                         "vasculature_file": "PLACEHOLDER",
                         "vasculature_mesh": "PLACEHOLDER"

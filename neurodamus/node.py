@@ -124,7 +124,7 @@ class CircuitManager:
     def _new_virtual_node_manager(self, circuit):
         """Instantiate a new virtual node manager explicitly."""
         storage = libsonata.NodeStorage(circuit.CellLibraryFile)
-        pop_name, _ = circuit.CircuitTarget.split(":")  # Sonata config fills population
+        pop_name = circuit.PopulationName
         node_size = storage.open_population(pop_name).size
         gid_vec = list(range(1, node_size + 1))
         virtual_cell_manager = VirtualCellPopulation(pop_name, gid_vec)
@@ -370,7 +370,9 @@ class Node:
 
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
-        self._target_spec = TargetSpec(self._run_conf.get("CircuitTarget"))
+        self._target_spec = TargetSpec(
+            self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName")
+        )
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
@@ -456,7 +458,7 @@ class Node:
         _ = PopulationNodes.offset_freezer()  # Dont offset while in loadbal
 
         # Info about the cells to be distributed
-        target_spec = TargetSpec(circuit.CircuitTarget)
+        target_spec = TargetSpec(circuit.NodesetName, circuit.PopulationName)
         target = self.target_manager.get_target(target_spec)
 
         # Check / set load balance mode
@@ -655,15 +657,13 @@ class Node:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
 
-        c_target = TargetSpec(conf.get("CircuitTarget"))
+        c_target = TargetSpec(conf.get("NodesetName"), conf.get("PopulationName"))
         if c_target.population is None:
             c_target.population = self._circuits.alias.get(conf.name)
 
-        edge_file, *pop = conf.get("nrnPath").split(":")
-        edge_pop = pop[0] if pop else None
-        src, dst = edge_node_pop_names(edge_file, edge_pop)
+        src, dst = edge_node_pop_names(conf.get("nrnPath"))
 
-        logging.info("Processing edge file %s, pop: %s", edge_file, edge_pop)
+        logging.info("Processing main edge file %s (%s -> %s)", conf.get("nrnPath"), src, dst)
 
         if src and dst and src != dst:
             raise ConfigurationError("Inner connectivity with different populations")
@@ -680,8 +680,8 @@ class Node:
             manager.create_connections()
 
     def _process_connection_configure(self, conn_conf):
-        source_t = TargetSpec(conn_conf["Source"])
-        dest_t = TargetSpec(conn_conf["Destination"])
+        source_t = TargetSpec(conn_conf["Source"], None)
+        dest_t = TargetSpec(conn_conf["Destination"], None)
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(
             source_t.population, dest_t.population
         )
@@ -698,12 +698,10 @@ class Node:
     @mpi_no_errors
     def _load_projections(self, pname, projection, **kw):
         """Check for Projection blocks"""
-        target_manager = self._target_manager
-        # None, GapJunctions, NeuroGlial, NeuroModulation...
-        ptype = projection.get("Type")
+        ptype = projection.get("Type")  # None, GapJunctions, NeuroGlial, NeuroModulation...
         ptype_cls = EngineBase.connection_types.get(ptype)
-        source_t = TargetSpec(projection.get("Source"))
-        dest_t = TargetSpec(projection.get("Destination"))
+        source_t = TargetSpec(None, projection.get("Source"))
+        dest_t = TargetSpec(None, projection.get("Destination"))
 
         if SimConfig.cli_options.restrict_connectivity >= 1:
             logging.warning("Skipped projections %s->%s (restrict_connectivity)", source_t, dest_t)
@@ -712,15 +710,17 @@ class Node:
         if not ptype_cls:
             raise RuntimeError(f"No Engine to handle connectivity of type '{ptype}'")
 
-        ppath, *pop_name = projection["Path"].split(":")
-        edge_pop_name = pop_name[0] if pop_name else None
-
-        logging.info("Processing Edge file: %s", ppath)
-
         # Update the target spec with the actual populations
-        src_pop, dst_pop = edge_node_pop_names(
-            ppath, edge_pop_name, source_t.population, dest_t.population
+        src_pop, dst_pop = edge_node_pop_names(projection["Path"])
+
+        # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
+        if ptype == ConnectionTypes.NeuroGlial:
+            src_pop, dst_pop = dst_pop, src_pop
+
+        logging.info(
+            "Processing projection edge file: %s (%s -> %s)", projection["Path"], src_pop, dst_pop
         )
+
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(src_pop, dst_pop)
         src_target = self.target_manager.get_target(source_t)
         dst_target = self.target_manager.get_target(dest_t)
@@ -736,12 +736,11 @@ class Node:
                     src_pop,
                     dst_pop,
                     source_t,
-                    (projection, target_manager),
+                    (projection, self.target_manager),
                     **kw,  # args to ptype_cls if creating
                 )
                 logging.debug("Using connection manager: %s", conn_manager)
-                proj_source = ":".join([ppath, *pop_name])
-                conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
+                conn_manager.open_edge_location(projection["Path"], projection, src_name=src_pop)
                 conn_manager.create_connections(source_t.name, dest_t.name)
 
     @mpi_no_errors
@@ -765,7 +764,7 @@ class Node:
         for stim in SimConfig.stimuli:
             if stim.get("Mode") == "Extracellular":
                 raise ConfigurationError("input_type extracellular_stimulation is not supported")
-            target_spec = TargetSpec(stim.get("Target"))
+            target_spec = TargetSpec(stim.get("Target"), None)
 
             stim_name = stim["Name"]
             stim_pattern = stim["Pattern"]
@@ -867,7 +866,7 @@ class Node:
 
         mod_manager = ModificationManager(self._target_manager)
         for name, mod_info in SimConfig.modifications.items():
-            target_spec = TargetSpec(mod_info["Target"])
+            target_spec = TargetSpec(mod_info["Target"], None)
             logging.info(" * [MOD] %s: %s -> %s", name, mod_info["Type"], target_spec)
             mod_manager.interpret(target_spec, mod_info)
 
@@ -922,7 +921,7 @@ class Node:
         cumulative_error = CumulativeError()
         for rep_name, rep_conf in reports_conf.items():
             cumulative_error.is_error_appended = False
-            target_spec = TargetSpec(rep_conf["Target"])
+            target_spec = TargetSpec(rep_conf["Target"], None)
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
@@ -1827,10 +1826,11 @@ class Neurodamus(Node):
                     self._target_manager.register_target(cur_target)
                     pop = next(iter(cur_target.population_names))
                     for circuit in self._sonata_circuits.values():
-                        tmp_target_spec = TargetSpec(circuit.CircuitTarget)
+                        tmp_target_spec = TargetSpec(circuit.NodesetName, circuit.PopulationName)
                         if tmp_target_spec.population == pop:
                             tmp_target_spec.name = cur_target.name
-                            circuit.CircuitTarget = str(tmp_target_spec)
+                            circuit.NodesetName = tmp_target_spec.name
+                            circuit.PopulationName = tmp_target_spec.population
 
             self._cycle_i = cycle_i
             self._build_single_model()

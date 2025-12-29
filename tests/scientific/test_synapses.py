@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import numpy.testing as npt
 import pytest
+from libsonata import EdgeStorage
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
 SSCX_V7 = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
@@ -15,11 +16,10 @@ def test_synapses_params():
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
     from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.node import Node
-    from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
+    from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
     from neurodamus.io.synapse_reader import SynapseParameters
+    from neurodamus.node import Node
     from neurodamus.utils.logging import log_verbose
-    from libsonata import EdgeStorage
 
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE
@@ -66,18 +66,17 @@ def test_synapses_params():
     plast_params = ["volume_CR", "rho0_GB", "Use_d_TM", "Use_p_TM",
                     "gmax_d_AMPA", "gmax_p_AMPA", "theta_d", "theta_p", "gmax_NMDA"]
 
-    edges_file, edge_pop = n._sonata_circuits[pop1].nrnPath.split(":")
-    storage = EdgeStorage(edges_file)
-    edge_pop = storage.open_population(edge_pop)
+    edges_source = n._sonata_circuits[pop1].nrnPath
+    edge_pop = EdgeStorage(edges_source.path).open_population(edges_source.population)
     sel1 = edge_pop.connecting_edges(pre_L5_BC, post_L5_PC)
     sel2 = edge_pop.connecting_edges(pre_L5_PC, post_L5_PC)
     df = get_edge_properties(edge_pop, sel1, properties)
     df["weight"] = df["conductance"] * conn_weight  # compute weight column
-    dfs['ProbGABAAB_EMS'] = df
-    df = get_edge_properties(edge_pop, sel2, properties+plast_params)
+    dfs["ProbGABAAB_EMS"] = df
+    df = get_edge_properties(edge_pop, sel2, properties + plast_params)
     df["gmax_NMDA"] = df["conductance"] * df["conductance_scale_factor"]  # compute gmax_NMDA column
     df["weight"] = 1.0  # compute weight column (not set in Connection block for GluSynapse)
-    dfs['GluSynapse'] = df
+    dfs["GluSynapse"] = df
 
     # scale Use with calcium
     # wrapper class for calling SonataReader._scale_U_param
@@ -100,16 +99,16 @@ def test_synapses_params():
     # here we collect all synapses for the post cell
     match_index = re.compile(r"\[[0-9]+\]$")
     synlist = {}
-    for nc in Nd.h.cvode.netconlist('', post_cell, ''):
+    for nc in Nd.h.cvode.netconlist("", post_cell, ""):
         if nc.precell() is not None:  # minis netcons only
             continue
         syn = nc.syn()
-        syntype = match_index.sub('', syn.hname())
-        d = {'weight': nc.weight[0]}
+        syntype = match_index.sub("", syn.hname())
+        d = {"weight": nc.weight[0]}
         for v in vars(syn):
             try:
                 attr = getattr(syn, v)
-                if attr.__class__.__name__ in ['int', 'float', 'str']:
+                if attr.__class__.__name__ in ["int", "float", "str"]:
                     d[v] = attr
             except Exception:
                 continue
@@ -117,55 +116,55 @@ def test_synapses_params():
 
     # sort lists by synapseID
     for _, x in synlist.items():
-        x.sort(key=lambda d: d['synapseID'])
+        x.sort(key=lambda d: d["synapseID"])
 
     # 3) compare values: Neurodamus vs libsonata
     # mapping between Nd and libsonata properties
     properties = {
-        'ProbAMPANMDA_EMS':
+        "ProbAMPANMDA_EMS":
         {
-            'conductance': 'conductance',
-            'Dep': 'depression_time',
-            'Fac': 'facilitation_time',
-            'NMDA_ratio': 'conductance_scale_factor',
-            'Nrrp': 'n_rrp_vesicles',
-            'tau_d_AMPA': 'decay_time',
-            'Use': 'u_syn',
-            'weight': "weight"
+            "conductance": "conductance",
+            "Dep": "depression_time",
+            "Fac": "facilitation_time",
+            "NMDA_ratio": "conductance_scale_factor",
+            "Nrrp": "n_rrp_vesicles",
+            "tau_d_AMPA": "decay_time",
+            "Use": "u_syn",
+            "weight": "weight"
         },
-        'ProbGABAAB_EMS':
+        "ProbGABAAB_EMS":
         {
-            'conductance': 'conductance',
-            'Dep': 'depression_time',
-            'Fac': 'facilitation_time',
-            'GABAB_ratio': 'conductance_scale_factor',
-            'Nrrp': 'n_rrp_vesicles',
-            'tau_d_GABAA': 'decay_time',
-            'Use': 'u_syn',
-            'weight': "weight"
+            "conductance": "conductance",
+            "Dep": "depression_time",
+            "Fac": "facilitation_time",
+            "GABAB_ratio": "conductance_scale_factor",
+            "Nrrp": "n_rrp_vesicles",
+            "tau_d_GABAA": "decay_time",
+            "Use": "u_syn",
+            "weight": "weight"
         },
-        'GluSynapse':
+        "GluSynapse":
         {
-            'Dep': 'depression_time',
-            'Fac': 'facilitation_time',
-            'gmax0_AMPA': 'conductance',
-            'gmax_d_AMPA': "gmax_d_AMPA",
-            'gmax_NMDA': "gmax_NMDA",
-            'gmax_p_AMPA': "gmax_p_AMPA",
-            'Nrrp': 'n_rrp_vesicles',
-            'rho0_GB': "rho0_GB",
-            'tau_d_AMPA': 'decay_time',
-            'theta_d_GB': "theta_d",
-            'theta_p_GB': "theta_p",
-            'Use': 'u_syn',
-            'volume_CR': "volume_CR",
-            'weight': "weight"
+            "Dep": "depression_time",
+            "Fac": "facilitation_time",
+            "gmax0_AMPA": "conductance",
+            "gmax_d_AMPA": "gmax_d_AMPA",
+            "gmax_NMDA": "gmax_NMDA",
+            "gmax_p_AMPA": "gmax_p_AMPA",
+            "Nrrp": "n_rrp_vesicles",
+            "rho0_GB": "rho0_GB",
+            "tau_d_AMPA": "decay_time",
+            "theta_d_GB": "theta_d",
+            "theta_p_GB": "theta_p",
+            "Use": "u_syn",
+            "volume_CR": "volume_CR",
+            "weight": "weight"
         }
     }
 
     for stype, syns in synlist.items():
         for i, info in enumerate(syns):
-            log_verbose("%s[%d] (ID %d)" % (stype, i, info['synapseID']))
+            log_verbose("%s[%d] (ID %d)" % (stype, i, info["synapseID"]))
             for prop, dfcol in properties[stype].items():
                 log_verbose("    %12s %12.6f ~= %-12.6f %s" %
                             (prop, info[prop], dfs[stype][dfcol][i], dfcol))
@@ -193,7 +192,7 @@ def test__constrained_hill():
 
     # original functions
     def hill(ca_conc, y, K_half):
-        return y*ca_conc**4/(K_half**4 + ca_conc**4)
+        return y * ca_conc**4 / (K_half**4 + ca_conc**4)
 
     def constrained_hill(K_half):
         y_max = (K_half**4 + 16) / 16

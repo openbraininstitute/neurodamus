@@ -1,15 +1,14 @@
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 from libsonata import EdgeStorage
 
-from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.core.configuration import SimConfig
 from tests import utils
 
 from ..conftest import RINGTEST_DIR
+from neurodamus.core.configuration import SimConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig
 
 
 def check_cell(cell):
@@ -41,12 +40,13 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
-    edge_storage = EdgeStorage(edges_file)
-    edges = edge_storage.open_population(edge_pop)
+
+    nrnPath = SimConfig.sonata_circuits["RingB"].nrnPath
+    edges = EdgeStorage(nrnPath.path).open_population(nrnPath.population)
+
     src_gids = [0, 1]
-    target_gids = [1, 0]
-    for sgid, tgid in zip(src_gids, target_gids, strict=True):
+    tgt_gids = [1, 0]
+    for sgid, tgid in zip(src_gids, tgt_gids, strict=True):
         cell = n._pc.gid2cell(tgid)
         check_cell(cell)
         selection = edges.afferent_edges(tgid)
@@ -106,14 +106,13 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
         cell = n._pc.gid2cell(tgid)
         check_cell(cell)
 
+        manager = n.circuits.get_edge_managers(s_pop, t_pop)[0]
         if s_pop == t_pop:
-            edges_file, edge_pop = \
-                n.circuits.get_edge_managers(t_pop, t_pop)[0].circuit_conf.nrnPath.split(":")
+            edge_source = manager.circuit_conf.nrnPath
         else:
-            edges_file, edge_pop = \
-                n.circuits.get_edge_managers(s_pop, t_pop)[0].circuit_conf["Path"].split(":")
-        edge_storage = EdgeStorage(edges_file)
-        edges = edge_storage.open_population(edge_pop)
+            edge_source = manager.circuit_conf["Path"]
+
+        edges = EdgeStorage(edge_source.path).open_population(edge_source.population)
         selection = edges.afferent_edges(t_rawgid)
 
         nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")

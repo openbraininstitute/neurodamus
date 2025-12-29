@@ -2,10 +2,13 @@
 
 import json
 import logging
-import os.path
+import os
 from enum import Enum
+from pathlib import Path
 
 import libsonata
+
+from neurodamus.types import EdgePopulationQualified
 
 
 class ConnectionTypes(str, Enum):
@@ -72,7 +75,8 @@ class SonataConfig:
         parsed_run["SpikesSortOrder"] = self._sim_conf.output.spikes_sort_order.name
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
-        parsed_run["CircuitTarget"] = self._sim_conf.node_set
+        parsed_run["PopulationName"] = None
+        parsed_run["NodesetName"] = self._sim_conf.node_set
         parsed_run["Celsius"] = self._sim_conf.conditions.celsius
         parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
@@ -135,7 +139,8 @@ class SonataConfig:
             circuit_config = dict(
                 CellLibraryFile=nodes_file,
                 # Use the extended ":" syntax to filter the nodeset by the related population
-                CircuitTarget=node_pop_name + ":" + simulation_nodeset_name,
+                PopulationName=node_pop_name,
+                NodesetName=simulation_nodeset_name,
                 **{
                     node_info_to_circuit.get(key, key): value
                     for key, value in population_info.items()
@@ -183,8 +188,9 @@ class SonataConfig:
                             edges_file = os.path.join(
                                 os.path.dirname(self._sim_conf.network), edges_file
                             )
-                        edge_pop_path = edges_file + ":" + edge_pop_name
-                        circuit_config["nrnPath"] = edge_pop_path
+                        circuit_config["nrnPath"] = EdgePopulationQualified(
+                            path=Path(edges_file), population=edge_pop_name
+                        )
                         break
 
             circuit_config.setdefault("nrnPath", False)
@@ -229,23 +235,19 @@ class SonataConfig:
                     edges_file = os.path.join(os.path.dirname(self._sim_conf.network), edges_file)
 
                 # skip inner connectivity populations
-                edge_pop_path = edges_file + ":" + edge_pop_name
+                edge_pop_path = EdgePopulationQualified(
+                    path=Path(edges_file), population=edge_pop_name
+                )
                 if edge_pop_path in internal_edge_pops:
                     continue
 
                 projection = {
                     "Path": edge_pop_path,
-                    "Source": edge_pop.source + ":",
-                    "Destination": edge_pop.target + ":",
+                    "Source": edge_pop.source,
+                    "Destination": edge_pop.target,
                     "Type": projection_type_convert.get(pop_type),
                 }
-                # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
-                if projection["Type"] == ConnectionTypes.NeuroGlial:
-                    projection["Source"], projection["Destination"] = (
-                        projection["Destination"],
-                        projection["Source"],
-                    )
-                elif projection["Type"] == ConnectionTypes.GlioVascular:
+                if projection["Type"] == ConnectionTypes.GlioVascular:
                     vasculature_popnames = [
                         name
                         for node_info in networks["nodes"]
@@ -254,10 +256,14 @@ class SonataConfig:
                     ]
                     if vasculature_popnames:
                         assert len(vasculature_popnames) == 1
-                        projection["VasculaturePath"] = (
-                            self._circuit_conf.node_population_properties(
-                                vasculature_popnames[0]
-                            ).elements_path
+                        population = vasculature_popnames[0]
+                        projection["VasculaturePath"] = EdgePopulationQualified(
+                            population=population,
+                            path=Path(
+                                self._circuit_conf.node_population_properties(
+                                    population
+                                ).elements_path
+                            ),
                         )
 
                 proj_name = f"{edge_pop_name}__{edge_pop.source}-{edge_pop.target}"
