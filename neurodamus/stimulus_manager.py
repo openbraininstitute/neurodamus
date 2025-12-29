@@ -7,7 +7,7 @@ New Stimulus classes are registered when subclassing `BaseStimulus`
 Also, when instantiated by the framework, __init__ is passed three arguments
 (1) target_points (2) stim_info: dict (3) cell_manager. Example
 
->>> class ShotNoise:
+>>> class ShotNoise(BaseNoiseStimulus):
 >>>     def __init__(self, target_points, stim_info: dict, cell_manager):
 >>>         for point in target_points:
 >>>             gid = point.gid
