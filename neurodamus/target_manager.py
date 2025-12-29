@@ -91,7 +91,6 @@ class TargetSpec:
             target_name: the target name. None means no filtering
             population_name: to filter the target by population name. None means no filtering
         """
-
         self.name = target_name
         self.population = population_name
 
