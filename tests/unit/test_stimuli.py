@@ -1,9 +1,12 @@
 """A collection of tests for advanced stimulus generated with the help of Neuron."""
 
+from functools import partial
+
+import numpy as np
 import pytest
+
 import neurodamus.core.stimuli as st
 from neurodamus.core.random import Random123
-import numpy as np
 
 
 class TestSignalSource:
@@ -37,10 +40,10 @@ class TestSignalSource:
 
     def test_add_pulse_and_ramp(self):
         """Add a pulse/ramp segment and verify correct amplitude and timing."""
-        A1, A2, A3, new_base_amp = 3.0, 4.0, 2.5, 5.0
+        A1, A2, A3 = 3.0, 4.0, 2.5
         D1, D2 = 0.5, 0.8
         self.stim.add_pulse(A1, D1)
-        self.stim.add_ramp(A2, A3, D2, base_amp=new_base_amp)
+        self.stim.add_ramp(A2, A3, D2)
 
         expected = (
             np.array([-self.base_delay, 0.0, 0.0, D1, D1, D1, D1, D1 + D2, D1 + D2])
@@ -53,75 +56,46 @@ class TestSignalSource:
             A1,
             A1,
             self.base_amp,
-            new_base_amp,
+            self.base_amp,
             A2,
             A3,
-            new_base_amp,
+            self.base_amp,
         ]
         assert np.allclose(list(self.stim.stim_vec), expected)
-
-    @pytest.mark.parametrize("base_amp", [-1, 0, 1.5])
-    def test_pulse_diff_base(self, base_amp):
-        """Sweep test of `add_pulse` with varying `base_amp` values, verifying expected time and
-        stimulus vectors."""
-        self.stim.add_pulse(1.2, 10, base_amp=base_amp)
-        expected = np.array([-self.base_delay, 0, 0, 10, 10]) + self.base_delay
-        assert np.allclose(list(self.stim.time_vec), expected)
-        assert np.allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
 
     def test_add_train(self):
         """Add train of pulses.
 
         Check for negative delays.
         """
-        amp, frequency, pulse_duration, total_duration, base_amp = (
-            0.3,
-            5000,
-            3,
-            4.5,
-            0.22,
-        )
+        amp = 0.3
+        total_duration = 4.5
 
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match=("Invalid configuration: The pulse duration "
+                   r"\(3 ms\) is longer than the pulse interval \(0.2 ms\)"),
+        ):
             self.stim.add_train(
                 amp=amp,
-                frequency=frequency,
-                pulse_duration=pulse_duration,
+                frequency=5000,
+                pulse_duration=3,
                 total_duration=total_duration,
-                base_amp=base_amp,
             )
 
-        frequency, pulse_duration = 500, 0.6
         self.stim.add_train(
             amp=amp,
-            frequency=frequency,
-            pulse_duration=pulse_duration,
+            frequency=500,
+            pulse_duration=0.6,
             total_duration=total_duration,
-            base_amp=base_amp,
         )
         assert np.allclose(
             self.stim.time_vec,
             [0.0, 1.0, 1.0, 1.6, 1.6, 3.0, 3.0, 3.6, 3.6, 5.0, 5.0, 5.5, 5.5, 5.5],
         )
-        assert np.allclose(
-            self.stim.stim_vec,
-            [
-                2.0,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-            ],
-        )
+        assert list(self.stim.stim_vec) == [
+            2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0
+            ]
 
     def test_long_add_train(self):
         """Test `add_train` with long duration, verifying correct time and stimulus vectors."""
@@ -302,7 +276,9 @@ class TestSignalSource:
     def test_add_shot_noise_wrong_inputs(self):
         """The edge case where a shot noise has same tau rise and decay is not implemented yet."""
         with pytest.raises(NotImplementedError):
-            st.SignalSource.shot_noise(1.0, 1.0, 1.0, 1.0, 1.0, 100, dt=0.25, base_amp=0.0)
+            self.stim.add_shot_noise(
+                tau_D=1.0, tau_R=1.0, rate=1.0, amp_mean=1.0, amp_var=1.0, duration=100, dt=0.25
+            )
 
     def test_ornstein_uhlenbeck(self):
         """Test the OU process."""
@@ -378,24 +354,6 @@ class TestSignalSource:
         assert stim.time_vec[-1] == 6.0 + self.base_delay
         assert stim.stim_vec[-1] == self.base_amp
 
-    def test_class_methods(self):
-        """Test class methods."""
-        assert isinstance(st.SignalSource.pulse(5.0, 10, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.ramp(1.0, 5.0, 10, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.train(1.0, 50, 10, 100, base_amp=0.0), st.SignalSource)
-        assert isinstance(st.SignalSource.sin(1.0, 100, 50, base_amp=0.0), st.SignalSource)
-        assert isinstance(
-            st.SignalSource.noise(0.0, 1.0, 100, dt=0.5, base_amp=0.0), st.SignalSource
-        )
-        assert isinstance(
-            st.SignalSource.shot_noise(1.0, 2.0, 1.0, 1.0, 1.0, 100, dt=0.25, base_amp=0.0),
-            st.SignalSource,
-        )
-        assert isinstance(
-            st.SignalSource.ornstein_uhlenbeck(1.0, 1.0, 0.0, 100, dt=0.25, base_amp=0.0),
-            st.SignalSource,
-        )
-
 
 def create_ball_and_stick():
     from neurodamus.core import Neuron
@@ -408,8 +366,23 @@ def create_ball_and_stick():
     return sec1, soma
 
 
-def clamp_attach_detach(stim, clamp_type):
-    """Attach and detach a Clamp."""
+@pytest.mark.parametrize(
+    "typ,clamp_type,represents_physical_electrode",
+    [
+        (partial(st.CurrentSource, base_amp=1.0), "IClamp", True),
+        (partial(st.CurrentSource, base_amp=1.0), "MembraneCurrentSource", False),
+        (partial(st.ConductanceSource, reversal=0.5), "SEClamp", True),
+        (partial(st.ConductanceSource, reversal=0.5), "ConductanceSource", False),
+    ],
+)
+def test_clamp_attach_detach(typ, clamp_type, represents_physical_electrode):
+    stim = typ(
+        rng=Random123(1, 2, 3),
+        delay=2.0,
+        represents_physical_electrode=represents_physical_electrode,
+    )
+    stim.add_segment(3, 4)
+
     sec1, soma = create_ball_and_stick()
     assert clamp_type not in soma.psection()["point_processes"]
     assert clamp_type not in sec1.psection()["point_processes"]
@@ -427,65 +400,3 @@ def clamp_attach_detach(stim, clamp_type):
     assert clamp_type not in sec1.psection()["point_processes"]
     assert len(stim._all_sources) == 1
     assert len(stim._clamps) == 0
-
-
-class TestIClampSource:
-    def setup_method(self):
-        self.rng = Random123(1, 2, 3)
-        self.base_delay = 1.0
-        self.base_amp = 2.0
-        self.stim = st.CurrentSource(
-            rng=self.rng,
-            base_amp=self.base_amp,
-            delay=self.base_delay,
-            represents_physical_electrode=True,
-        )
-        self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "IClamp")
-
-
-class TestMembraneCurrentSource:
-    def setup_method(self):
-        self.rng = Random123(1, 2, 3)
-        self.base_delay = 1.0
-        self.base_amp = 2.0
-        self.stim = st.CurrentSource(
-            rng=self.rng,
-            base_amp=self.base_amp,
-            delay=self.base_delay,
-            represents_physical_electrode=False,
-        )
-        self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "MembraneCurrentSource")
-
-
-class TestSEClampSource:
-    def setup_method(self):
-        self.rng = Random123(1, 2, 3)
-        self.base_delay = 1.0
-        self.base_amp = 2.0
-        self.stim = st.ConductanceSource(
-            reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
-        )
-        self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "SEClamp")
-
-
-class TestConductanceSource:
-    def setup_method(self):
-        self.rng = Random123(1, 2, 3)
-        self.base_delay = 1.0
-        self.base_amp = 2.0
-        self.stim = st.ConductanceSource(
-            reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=False
-        )
-        self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "ConductanceSource")

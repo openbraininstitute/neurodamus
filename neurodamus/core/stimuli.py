@@ -1,6 +1,7 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
+from math import exp, isclose, log, sqrt
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -25,6 +26,12 @@ class SignalSource:
         if delay > 0.0:
             self._add_point(base_amp)
             self._cur_t = delay
+
+    def _create_default_rng(self):
+        rng = self._rng or RNG()
+        if not self._rng:
+            logging.warning("Using a default RNG for noise generation")
+        return rng
 
     def _add_point(self, amp):
         """Appends a single point to the time-signal source.
@@ -51,28 +58,27 @@ class SignalSource:
         self._add_point(amp if amp2 is None else amp2)
         return self
 
-    def add_pulse(self, max_amp, duration, **kw):
+    def add_pulse(self, max_amp, duration):
         """Add a constant-amplitude pulse.
 
         Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
         This is a special case of `add_ramp` with no amplitude change over time.
         """
-        return self.add_ramp(max_amp, max_amp, duration, **kw)
+        return self.add_ramp(max_amp, max_amp, duration)
 
-    def add_ramp(self, amp1, amp2, duration, **kw):
+    def add_ramp(self, start_amplitude, end_amplitude, duration):
         """Add a linear amplitude ramp.
 
         Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
         the given `duration`. All intermediate values between the start and end times
         are linearly interpolated.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-        self._add_point(base_amp)
-        self.add_segment(amp1, duration, amp2)
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
+        self.add_segment(start_amplitude, duration, end_amplitude)
+        self._add_point(self._base_amp)
         return self
 
-    def add_train(self, amp, frequency, pulse_duration, total_duration, **kw):
+    def add_train(self, amp, frequency, pulse_duration, total_duration):
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
@@ -80,12 +86,10 @@ class SignalSource:
             frequency (float): Number of pulses per second (Hz).
             pulse_duration (float): Duration of a single pulse (peak time) in milliseconds.
             total_duration (float): Total duration of the pulse train in milliseconds.
-            base_amp (float, optional): Base amplitude (default is 0.0).
 
         Returns:
             SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
         tau = 1000 / frequency
         delay = tau - pulse_duration
 
@@ -100,21 +104,21 @@ class SignalSource:
 
         number_pulses = int(total_duration / tau)
         for _ in range(number_pulses):
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(delay)
 
         # Add final pulse, possibly partial
         remaining_time = total_duration - number_pulses * tau
         if pulse_duration <= remaining_time:
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(min(delay, remaining_time - pulse_duration))
         else:
-            self.add_pulse(amp, remaining_time, base_amp=base_amp)
-        # Last point
-        self._add_point(base_amp)
+            self.add_pulse(amp, remaining_time)
+
+        self._add_point(self._base_amp)  # Last point
         return self
 
-    def add_sin(self, amp, total_duration, freq, step=0.025, **kw):
+    def add_sin(self, amp, total_duration, freq, step=0.025):
         """Builds a sinusoidal signal.
 
         Args:
@@ -123,8 +127,6 @@ class SignalSource:
             freq: The wave frequency, in Hz
             step: The step, in ms (default: 0.025)
         """
-        base_amp = kw.get("base_amp", self._base_amp)
-
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
@@ -134,14 +136,13 @@ class SignalSource:
         stim.sin(freq, 0.0, step)
         stim.mul(amp)
         self.stim_vec.append(stim)
-        self._add_point(base_amp)  # Last point
+        self._add_point(self._base_amp)  # Last point
         return self
 
     def add_noise(self, mean, variance, duration, dt=0.5):
         """Adds a noise component to the signal."""
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for noise generation")
+        rng = self._create_default_rng()
+
         rng.normal(mean, variance)
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)
@@ -178,11 +179,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, isclose, log, sqrt
-
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for shot noise generation")
+        rng = self._create_default_rng()
 
         if isclose(tau_R, tau_D):
             raise NotImplementedError(
@@ -272,11 +269,7 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, sqrt
-
-        rng = self._rng or RNG()  # Creates a default RNG
-        if not self._rng:
-            logging.warning("Using a default RNG for Ornstein-Uhlenbeck process")
+        rng = self._create_default_rng()
 
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + duration, dt)  # time vector
@@ -309,7 +302,6 @@ class SignalSource:
 
         return self
 
-    # PLOTTING
     def plot(self, ylims=None):
         from matplotlib import pyplot as plt
 
@@ -320,37 +312,6 @@ class SignalSource:
         if ylims:
             ax.set_ylim(*ylims)
         fig.show()
-
-    # ==== Helpers =====
-    # Helper methods forward generic kwargs to base class, like rng and delay
-
-    @classmethod
-    def pulse(cls, max_amp, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_pulse(max_amp, duration)
-
-    @classmethod
-    def ramp(cls, amp1, amp2, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ramp(amp1, amp2, duration)
-
-    @classmethod
-    def train(cls, amp, frequency, pulse_duration, total_duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_train(amp, frequency, pulse_duration, total_duration)
-
-    @classmethod
-    def sin(cls, amp, total_duration, freq, step=0.025, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_sin(amp, total_duration, freq, step)
-
-    @classmethod
-    def noise(cls, mean, variance, duration, dt=0.5, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
-
-    @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # noqa: N803
-        return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
-
-    @classmethod
-    def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
 
 
 class CurrentSource(SignalSource):
@@ -371,31 +332,21 @@ class CurrentSource(SignalSource):
         def __init__(
             self,
             cell_section,
-            position=0.5,
-            clamp_container=None,
-            stim_vec_mode=True,
-            time_vec=None,
-            stim_vec=None,
-            represents_physical_electrode=False,
-            **clamp_params,
+            position,
+            clamp_container,
+            time_vec,
+            stim_vec,
+            represents_physical_electrode,
         ):
-            # Checks if source does not represent physical electrode,
-            # otherwise fall back to IClamp.
+            # Checks if source does not represent physical electrode, otherwise fall back to IClamp
             self.clamp = (
                 Nd.h.IClamp(position, sec=cell_section)
                 if represents_physical_electrode
                 else Nd.h.MembraneCurrentSource(position, sec=cell_section)
             )
 
-            if stim_vec_mode:
-                assert time_vec is not None
-                assert stim_vec is not None
-                self.clamp.dur = time_vec[-1]
-                stim_vec.play(self.clamp._ref_amp, time_vec, 1)
-            else:
-                # this is probably unused
-                for param, val in clamp_params.items():
-                    setattr(self.clamp, param, val)
+            self.clamp.dur = time_vec[-1]
+            stim_vec.play(self.clamp._ref_amp, time_vec, 1)
 
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
@@ -408,10 +359,9 @@ class CurrentSource(SignalSource):
 
     def attach_to(self, section, position=0.5):
         return CurrentSource._Clamp(
-            section,
-            position,
-            self._clamps,
-            stim_vec_mode=True,
+            cell_section=section,
+            position=position,
+            clamp_container=self._clamps,
             time_vec=self.time_vec,
             stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
@@ -442,23 +392,20 @@ class ConductanceSource(SignalSource):
         def __init__(
             self,
             cell_section,
-            position=0.5,
-            clamp_container=None,
-            time_vec=None,
-            stim_vec=None,
-            reversal=0.0,
-            represents_physical_electrode=False,
+            position,
+            clamp_container,
+            time_vec,
+            stim_vec,
+            reversal,
+            represents_physical_electrode,
         ):
-            # source does not represent physical electrode,
-            # otherwise fall back to SEClamp.
+            # source does not represent physical electrode, otherwise fall back to SEClamp.
             self.clamp = (
                 Nd.h.SEClamp(position, sec=cell_section)
                 if represents_physical_electrode
                 else Nd.h.ConductanceSource(position, sec=cell_section)
             )
 
-            assert time_vec is not None
-            assert stim_vec is not None
             self.clamp.dur1 = time_vec[-1]
             self.clamp.amp1 = reversal
             # support delay with initial zero
@@ -481,27 +428,11 @@ class ConductanceSource(SignalSource):
 
     def attach_to(self, section, position=0.5):
         return ConductanceSource._DynamicClamp(
-            section,
-            position,
-            self._clamps,
-            self.time_vec,
-            self.stim_vec,
-            self._reversal,
+            cell_section=section,
+            position=position,
+            clamp_container=self._clamps,
+            time_vec=self.time_vec,
+            stim_vec=self.stim_vec,
+            reversal=self._reversal,
             represents_physical_electrode=self._represents_physical_electrode,
         )
-
-
-# EStim class is a derivative of TStim for stimuli with an extracelular electrode. The main
-# difference is that it collects all elementary stimuli pulses and converts them using a
-# VirtualElectrode object before it injects anything
-#
-# The stimulus is defined on the hoc level by using the addpoint function for every (step) change
-# in extracellular electrode voltage. At this stage only step changes can be used. Gradual,
-# i.e. sinusoidal changes will be implemented in the future
-# After every step has been defined, you have to call initElec() to perform the frequency dependent
-# transformation. This transformation turns e_electrode into e_extracellular at distance d=1 micron
-# from the electrode. After the transformation is complete, NO MORE STEPS CAN BE ADDED!
-# You can then use inject() to first scale e_extracellular down by a distance dependent factor
-# and then vector.play() it into the currently accessed compartment
-#
-# TODO: 1. more stimulus primitives than step. 2. a dt of 0.1 ms is hardcoded. make this flexible!
