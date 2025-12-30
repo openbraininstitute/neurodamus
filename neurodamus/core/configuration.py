@@ -199,7 +199,6 @@ class _SimConfig:
     beta_features = None
 
     # Hoc objects used
-    _parsed_run = None
     _simulation_config = None
     _simconf = None
     rng_info = None
@@ -256,7 +255,7 @@ class _SimConfig:
         cls.config_file = config_file
 
         config_parser = cls._init_config_parser(config_file)
-        cls._parsed_run = config_parser.parsedRun
+        cls.run_conf = config_parser.parsedRun
         cls._simulation_config = config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
@@ -284,9 +283,8 @@ class _SimConfig:
 
         # change simulator by request before validator and init hoc config
         if cli_options.simulator:
-            cls._parsed_run["Simulator"] = cli_options.simulator
+            cls.run_conf["Simulator"] = cli_options.simulator
 
-        cls.run_conf = cls._parsed_run
         for validator in cls._validators:
             validator(cls)
 
@@ -370,12 +368,10 @@ class _SimConfig:
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
 
-        parsed_run = cls._parsed_run
-
         cls.rng_info = h.RNGSettings()
-        cls.rng_info.interpret(parsed_run, cls.use_coreneuron)
-        if "BaseSeed" in parsed_run:
-            logging.info("User-defined RNG base seed %s", parsed_run["BaseSeed"])
+        cls.rng_info.interpret(cls.run_conf, cls.use_coreneuron)
+        if "BaseSeed" in cls.run_conf:
+            logging.info("User-defined RNG base seed %s", cls.run_conf["BaseSeed"])
 
     @classmethod
     def validator(cls, f):
