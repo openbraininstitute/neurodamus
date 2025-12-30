@@ -2,7 +2,6 @@
 
 import logging
 import os
-import os.path
 import re
 from collections import defaultdict
 from enum import Enum
@@ -87,7 +86,6 @@ class CliOptions(ConfigT):
     crash_test = False
 
     # Restricted Functionality support, mostly for testing
-
     class NoRestriction:
         """Provide container API, where `in` checks are always True"""
 
@@ -188,7 +186,9 @@ class _SimConfig:
 
     config_file = None
     cli_options = None
+
     run_conf = None
+
     output_root = None
     sonata_circuits = None
     projections = None
@@ -199,8 +199,6 @@ class _SimConfig:
     beta_features = None
 
     # Hoc objects used
-    _config_parser = None
-    _parsed_run = None
     _simulation_config = None
     _simconf = None
     rng_info = None
@@ -228,6 +226,12 @@ class _SimConfig:
     num_target_ranks = None
     coreneuron_direct_mode = False
     crash_test_mode = False
+    enable_coord_mapping = False
+    restrict_node_populations = None
+    restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
+    restrict_features = None
+    enable_shm = False
+    model_stats = False
 
     _validators = []
     _cell_requirements = {}
@@ -247,32 +251,40 @@ class _SimConfig:
 
         log_verbose("ConfigFile: %s", config_file)
         log_verbose("CLI Options: %s", cli_options)
+
         cls.config_file = config_file
-        cls._config_parser = cls._init_config_parser(config_file)
-        cls._parsed_run = cls._config_parser.parsedRun
-        cls._simulation_config = cls._config_parser  # Please refactor me
+
+        config_parser = cls._init_config_parser(config_file)
+        cls.run_conf = config_parser.parsedRun
+        cls._simulation_config = config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
             "SimulationConfigDir using directory of simulation config file: %s",
             cls.simulation_config_dir,
         )
 
-        cls.projections = cls._config_parser.parsedProjections
-        cls.connections = cls._config_parser.parsedConnects
-        cls.stimuli = cls._config_parser.parsedStimuli
-        cls.reports = cls._config_parser.parsedReports
-        cls.modifications = cls._config_parser.parsedModifications or {}
-        cls.beta_features = cls._config_parser.beta_features
-        cls.cli_options = CliOptions(**(cli_options or {}))
+        cls.projections = config_parser.parsedProjections
+        cls.connections = config_parser.parsedConnects
+        cls.stimuli = config_parser.parsedStimuli
+        cls.reports = config_parser.parsedReports
+        cls.modifications = config_parser.parsedModifications or {}
+        cls.beta_features = config_parser.beta_features
 
-        cls.dry_run = cls.cli_options.dry_run
-        cls.crash_test_mode = cls.cli_options.crash_test
-        cls.num_target_ranks = cls.cli_options.num_target_ranks
+        cls.cli_options = cli_options = CliOptions(**(cli_options or {}))
+        cls.dry_run = cli_options.dry_run
+        cls.crash_test_mode = cli_options.crash_test
+        cls.num_target_ranks = cli_options.num_target_ranks
+        cls.enable_coord_mapping = cli_options.enable_coord_mapping
+        cls.restrict_node_populations = cli_options.restrict_node_populations
+        cls.restrict_connectivity = cli_options.restrict_connectivity
+        cls.restrict_features = cli_options.restrict_features
+        cls.enable_shm = cli_options.enable_shm
+        cls.model_stats = bool(cli_options.model_stats)
+
         # change simulator by request before validator and init hoc config
-        if cls.cli_options.simulator:
-            cls._parsed_run["Simulator"] = cls.cli_options.simulator
+        if cli_options.simulator:
+            cls.run_conf["Simulator"] = cli_options.simulator
 
-        cls.run_conf = cls._parsed_run
         for validator in cls._validators:
             validator(cls)
 
@@ -356,12 +368,10 @@ class _SimConfig:
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
 
-        parsed_run = cls._parsed_run
-
         cls.rng_info = h.RNGSettings()
-        cls.rng_info.interpret(parsed_run, cls.use_coreneuron)
-        if "BaseSeed" in parsed_run:
-            logging.info("User-defined RNG base seed %s", parsed_run["BaseSeed"])
+        cls.rng_info.interpret(cls.run_conf, cls.use_coreneuron)
+        if "BaseSeed" in cls.run_conf:
+            logging.info("User-defined RNG base seed %s", cls.run_conf["BaseSeed"])
 
     @classmethod
     def validator(cls, f):
@@ -377,7 +387,8 @@ class _SimConfig:
         """
         from neurodamus.target_manager import TargetSpec  # avoid cyclic deps
 
-        restrict_features = SimConfig.cli_options.restrict_features
+        restrict_features = SimConfig.restrict_features
+
         if Feature.SpontMinis not in restrict_features:
             logging.warning("Disabling SpontMinis (restrict_features)")
         if Feature.SynConfigure not in restrict_features:

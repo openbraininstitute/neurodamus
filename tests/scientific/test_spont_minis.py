@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import pytest
 
 SPONT_RATE = 100
@@ -37,8 +37,6 @@ def test_spont_minis(create_tmp_simulation_config_file):
         restrict_features=[Feature.SpontMinis],  # Enable Feature.SynConfigure to see events
         restrict_connectivity=1,  # base restriction, no projections
         disable_reports=True,
-        cleanup_atexit=False,
-        # logging_level=3,
     )
 
     edges_a: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
@@ -57,9 +55,9 @@ def test_spont_minis(create_tmp_simulation_config_file):
     # When we get an event the voltage drops
     # We find that looking at the acceleration of the voltage drop
     # We do a convolution to weight in neighbor points and have a smoother line
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    # print(numpy.array_str(window_sum, suppress_small=True))
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.01)[0]
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    # print(np.array_str(window_sum, suppress_small=True))
+    strong_reduction_pos = np.nonzero(window_sum < -0.01)[0]
     # At least one such point, at most 2% of all points
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))

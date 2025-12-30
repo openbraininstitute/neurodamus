@@ -1,15 +1,17 @@
 import json
-import numpy
-import os
-import pytest
-from tempfile import NamedTemporaryFile
+import subprocess
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+import libsonata
+import numpy as np
+import numpy.testing as npt
+import pytest
 
 
 @pytest.fixture
 def sonata_config_files(sonata_config, input_type, tmp_path):
-    config_files = []
-    for represents_physical_electrode in [True, False]:
+    def create_config(represents_physical_electrode):
         # Create a deep copy of sonata_config for each configuration to avoid conflicts
         config_copy = json.loads(json.dumps(sonata_config))
 
@@ -56,29 +58,28 @@ def sonata_config_files(sonata_config, input_type, tmp_path):
                 "end_time": 50.0
             }
         }
+        return config_copy
 
-        with NamedTemporaryFile("w", suffix='.json', dir=tmp_path, delete=False) as config_file:
-            json.dump(config_copy, config_file)
-            config_files.append(config_file.name)
+    true_path = (tmp_path / "true_config.json")
+    with true_path.open("w") as fd:
+        json.dump(create_config(represents_physical_electrode=True), fd)
 
-    yield tuple(config_files)
+    false_path = (tmp_path / "false_config.json")
+    with false_path.open("w") as fd:
+        json.dump(create_config(represents_physical_electrode=False), fd)
 
-    # Cleanup
-    for config_file in config_files:
-        os.unlink(config_file)
+    return false_path, true_path
 
 
 def _read_sonata_soma_report(report_name):
-    import libsonata
     report = libsonata.SomaReportReader(report_name)
     pop_name = report.get_population_names()[0]
     ids = report[pop_name].get_node_ids()
     data = report[pop_name].get(node_ids=[ids[0]])
-    return numpy.array(data.data).flatten()
+    return np.array(data.data).flatten()
 
 
 def _run_simulation(config_file):
-    import subprocess
     output_dir = "output_current_conductance"
     command = [
         "neurodamus",
@@ -101,10 +102,9 @@ def test_current_conductance_injection(sonata_config_files):
     (set by 'represents_physical_electrode': true/false)
     under different types of input (current clamp and conductance).
     """
-    import numpy.testing as npt
     config_file_original, config_file_new = sonata_config_files
 
-    voltage_vec_original = _run_simulation(config_file_original)
-    voltage_vec_new = _run_simulation(config_file_new)
+    voltage_vec_original = _run_simulation(str(config_file_original))
+    voltage_vec_new = _run_simulation(str(config_file_new))
 
     npt.assert_equal(voltage_vec_original, voltage_vec_new)
