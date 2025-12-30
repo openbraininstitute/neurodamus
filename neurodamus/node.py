@@ -21,7 +21,6 @@ from pathlib import Path
 
 import libsonata
 
-# Internal Plugins
 from . import ngv as _ngv
 from .cell_distributor import (
     CellDistributor,
@@ -123,12 +122,9 @@ class CircuitManager:
 
     def _new_virtual_node_manager(self, circuit):
         """Instantiate a new virtual node manager explicitly."""
-        storage = libsonata.NodeStorage(circuit.CellLibraryFile)
-        pop_name = circuit.PopulationName
-        node_size = storage.open_population(pop_name).size
-        gid_vec = list(range(1, node_size + 1))
-        virtual_cell_manager = VirtualCellPopulation(pop_name, gid_vec)
-        self.virtual_node_managers[pop_name] = virtual_cell_manager
+        pop = libsonata.NodeStorage(circuit.CellLibraryFile).open_population(circuit.PopulationName)
+        virtual_cell_manager = VirtualCellPopulation(circuit.PopulationName, list(range(pop.size)))
+        self.virtual_node_managers[circuit.PopulationName] = virtual_cell_manager
         self.global_target.append_nodeset(virtual_cell_manager.local_nodes)
         return virtual_cell_manager
 
