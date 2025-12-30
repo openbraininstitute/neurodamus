@@ -492,8 +492,7 @@ def _loadbal_mode(config: _SimConfig):
         logging.warning("Disabled Load Balance (restrict_features)")
         config.loadbal_mode = LoadBalanceMode.RoundRobin
         return
-    lb_mode_str = cli_args.lb_mode or config.run_conf.get("RunMode")
-    config.loadbal_mode = LoadBalanceMode.parse(lb_mode_str)
+    config.loadbal_mode = LoadBalanceMode.parse(cli_args.lb_mode)
 
 
 @SimConfig.validator

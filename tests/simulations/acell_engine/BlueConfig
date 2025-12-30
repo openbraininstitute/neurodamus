@@ -10,7 +10,6 @@ Run Default
     OutputRoot output
     TargetFile user.target
 
-    RunMode RR
     Duration 100
     Dt 0.025
 }
