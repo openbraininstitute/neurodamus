@@ -2,10 +2,10 @@
   "RingA": {"population": "RingA"},
   "RingB": {"population": "RingB"},
   "Mosaic": {"population": ["RingA", "RingB"]},
-  "RingC": {"population": "RingC"},
+  "Ring:C": {"population": "RingC"},
   "ABC" : {"population": ["RingA", "RingB", "RingC"]},
   "virtual_neurons": {"population": "virtual_neurons"},
-  "RingA_oneCell": {
+  "RingA:oneCell": {
     "population": "RingA",
     "node_id": [
         1

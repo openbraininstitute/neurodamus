@@ -124,7 +124,7 @@ def test_neurodamus_with_neuron_and_coreneuron(create_tmp_simulation_config_file
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "node_set": "RingA_oneCell",
+            "node_set": "RingA:oneCell",
         }
     }
 ], indirect=True)

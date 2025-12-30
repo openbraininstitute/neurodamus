@@ -386,11 +386,13 @@ class ConnectionManagerBase:
             src_target: Target name to restrict creating connections coming from it
             dst_target: Target name to restrict creating connections going into it
         """
-        conn_src_spec = TargetSpec(src_target)  # instantiate all from src
-        conn_src_spec.population = self.current_population.src_pop_name
-        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target)
-        conn_dst_spec.population = self.current_population.dst_pop_name
-        this_pathway = {"Source": str(conn_src_spec), "Destination": str(conn_dst_spec)}
+        conn_src_spec = TargetSpec(
+            src_target, self.current_population.src_pop_name
+        )  # instantiate all from src
+        conn_dst_spec = TargetSpec(
+            dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name
+        )
+        this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
         matching_conns = [
             conn
             for conn in SimConfig.connections.values()
@@ -494,8 +496,8 @@ class ConnectionManagerBase:
         dst_pop_name = self.dst_node_population
         src_pop_name = self.src_node_population
         logging.debug("Connecting group %s -> %s", conn_source, conn_destination)
-        src_tspec = TargetSpec(conn_source)
-        dst_tspec = TargetSpec(conn_destination)
+        src_tspec = TargetSpec(conn_source, None)
+        dst_tspec = TargetSpec(conn_destination, None)
         src_target = src_tspec.name and self._target_manager.get_target(src_tspec, src_pop_name)
         dst_target = dst_tspec.name and self._target_manager.get_target(dst_tspec, dst_pop_name)
 
@@ -803,8 +805,8 @@ class ConnectionManagerBase:
              selected_gids: (optional) post gids to select (original, w/o offsetting)
              conn_population: restrict the set of connections to be returned
         """
-        src_target_spec = TargetSpec(src_target_name)
-        dst_target_spec = TargetSpec(dst_target_name)
+        src_target_spec = TargetSpec(src_target_name, None)
+        dst_target_spec = TargetSpec(dst_target_name, None)
 
         src_target = (
             self._target_manager.get_target(src_target_spec)
