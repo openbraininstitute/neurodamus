@@ -15,15 +15,9 @@ globalSeed = 0
 
 begintemplate RNGSettings
 
-public init, interpret, getIonChannelSeed, getSynapseSeed, getStimulusSeed, getMinisSeed, getGlobalSeed
-public RANDOM123
+public interpret, getIonChannelSeed, getSynapseSeed, getStimulusSeed, getMinisSeed, getGlobalSeed
 
 external ionchannelSeed, synapseSeed, stimulusSeed, minisSeed, globalSeed, terminate
-
-proc init() {
-    // consts for random number handling
-    RANDOM123 = 1
-}
 
 /**
  * Given the Run block from Sonata, check if there are special flags governing rng behavior
