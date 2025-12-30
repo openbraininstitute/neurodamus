@@ -86,7 +86,8 @@ class SonataConfig:
         parsed_run["SpikesSortOrder"] = self._sim_conf.output.spikes_sort_order.name
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
-        parsed_run["CircuitTarget"] = self._sim_conf.node_set
+        parsed_run["PopulationName"] = None
+        parsed_run["NodesetName"] = self._sim_conf.node_set
         parsed_run["Celsius"] = self._sim_conf.conditions.celsius
         parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
@@ -150,7 +151,6 @@ class SonataConfig:
             for edge_pop_name in self._stable_edge_populations:
                 edge_storage = self._circuit_conf.edge_population(edge_pop_name)
                 edge_properties = self._circuit_conf.edge_population_properties(edge_pop_name)
-
                 inner_pop_name = f"{node_pop_name}__{node_pop_name}__chemical"
                 if edge_pop_name == inner_pop_name or (
                     edge_storage.source == edge_storage.target == node_pop_name
@@ -163,6 +163,7 @@ class SonataConfig:
         def make_circuit(node_pop_name, node_prop):
             morphology_path = node_prop.morphologies_dir
             morphology_type = "h5" if node_prop.type == "astrocyte" else "swc"
+
             if node_prop.alternate_morphology_formats:
                 if "neurolucida-asc" in node_prop.alternate_morphology_formats:
                     morphology_path = node_prop.alternate_morphology_formats["neurolucida-asc"]
@@ -173,7 +174,8 @@ class SonataConfig:
 
             circuit_config = {
                 "CellLibraryFile": node_prop.elements_path,
-                "CircuitTarget": node_pop_name + ":" + simulation_nodeset_name,
+                "PopulationName": node_pop_name,
+                "NodesetName": simulation_nodeset_name,
                 "Engine": "NGV" if node_prop.type == "astrocyte" else "METype",
                 "METypePath": node_prop.biophysical_neuron_models_dir,
                 "MorphologyPath": morphology_path,
@@ -229,8 +231,8 @@ class SonataConfig:
 
                 projection = {
                     "Path": edge_pop_path,
-                    "Source": edge_pop.source + ":",
-                    "Destination": edge_pop.target + ":",
+                    "Source": edge_pop.source,
+                    "Destination": edge_pop.target,
                     "Type": projection_type_convert.get(pop_type),
                 }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes
