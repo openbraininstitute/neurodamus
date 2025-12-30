@@ -32,18 +32,13 @@ proc init() {
  * $o1 ParsedRun from Sonata (type is TODO)
  * $2  coreNeuronUsed: When simulating with CoreNeuron (default: false)
  */
-proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
+proc interpret() { local coreNeuronUsed localobj runInfo, rng
     strdef rngModeField
     runInfo = $o1
     rngMode = RANDOM123
     coreNeuronUsed = $2
     if (numarg() < 2) {
         coreNeuronUsed = 0
-    }
-
-    pc = new ParallelContext()
-    if( pc.id() == 0 ) {
-        print "As of Oct 2020 Neurodamus uses Random123 as default"
     }
 
     if( runInfo.__contains__( "RNGMode" ) ) {
