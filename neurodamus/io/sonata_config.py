@@ -72,7 +72,8 @@ class SonataConfig:
         parsed_run["SpikesSortOrder"] = self._sim_conf.output.spikes_sort_order.name
         parsed_run["Simulator"] = self._sim_conf.target_simulator.name
         parsed_run["TargetFile"] = self._sim_conf.node_sets_file
-        parsed_run["CircuitTarget"] = self._sim_conf.node_set
+        parsed_run["PopulationName"] = None
+        parsed_run["NodesetName"] = self._sim_conf.node_set
         parsed_run["Celsius"] = self._sim_conf.conditions.celsius
         parsed_run["V_Init"] = self._sim_conf.conditions.v_init
         parsed_run["ExtracellularCalcium"] = self._sim_conf.conditions.extracellular_calcium
@@ -135,7 +136,8 @@ class SonataConfig:
             circuit_config = dict(
                 CellLibraryFile=nodes_file,
                 # Use the extended ":" syntax to filter the nodeset by the related population
-                CircuitTarget=node_pop_name + ":" + simulation_nodeset_name,
+                PopulationName=node_pop_name,
+                NodesetName=simulation_nodeset_name,
                 **{
                     node_info_to_circuit.get(key, key): value
                     for key, value in population_info.items()
@@ -235,8 +237,8 @@ class SonataConfig:
 
                 projection = {
                     "Path": edge_pop_path,
-                    "Source": edge_pop.source + ":",
-                    "Destination": edge_pop.target + ":",
+                    "Source": edge_pop.source,
+                    "Destination": edge_pop.target,
                     "Type": projection_type_convert.get(pop_type),
                 }
                 # Reverse projection direction for Astrocyte projection: from neurons to astrocytes

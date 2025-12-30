@@ -113,7 +113,7 @@ class CellManagerBase(_CellManager):
         """
         self._circuit_conf = circuit_conf
         self._target_manager = target_manager
-        self._target_spec = TargetSpec(circuit_conf.CircuitTarget)
+        self._target_spec = TargetSpec(circuit_conf.NodesetName, circuit_conf.PopulationName)
         self._population_name = None
         self._local_nodes = None
         self._total_cells = 0  # total cells in target, being simulated
