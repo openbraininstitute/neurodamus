@@ -6,6 +6,8 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
+from neurodamus.replay import read_sonata_spikes
+
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
@@ -55,7 +57,6 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     """
     from neurodamus import Neurodamus
     from neurodamus.core.configuration import GlobalConfig
-    from neurodamus.replay import SpikeManager
     GlobalConfig.verbosity = 2
 
     # Add connection_overrides for the virtual population so the offsets are calculated before LB
@@ -75,9 +76,9 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     assert int(lines[3].split()[0]) == 1, "gid 1 not found."
 
     # check the spikes
-    spike_dat = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
+    spike_path = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
 
-    timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
+    timestamps_A, gids_A = read_sonata_spikes(spike_path, "NodeA")
     assert len(timestamps_A) == 21
     ref_times = np.array([0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7.0, 7.4, 8.6, 13.8, 19.6, 25.7, 32.,
                           36.4, 38.5, 40.8, 42.6, 45.2, 48.3, 49.9])

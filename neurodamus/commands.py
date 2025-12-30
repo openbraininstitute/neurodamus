@@ -100,7 +100,7 @@ def neurodamus(args=None):
         os.remove(EXCEPTION_NODE_FILENAME)
 
     try:
-        Neurodamus(config_file, auto_init=True, logging_level=log_level, **options).run()
+        Neurodamus(config_file, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
     except ConfigurationError:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init
