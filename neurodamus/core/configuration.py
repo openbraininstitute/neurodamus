@@ -243,9 +243,6 @@ class _SimConfig:
     @classmethod
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
-        from . import NeuronWrapper as Nd
-
-        Nd.init()
         if not os.path.isfile(config_file):
             raise ConfigurationError("Config file not found: " + config_file)
         logging.info("Initializing Simulation Configuration and Validation")
@@ -281,6 +278,7 @@ class _SimConfig:
         cls.restrict_features = cli_options.restrict_features
         cls.enable_shm = cli_options.enable_shm
         cls.model_stats = bool(cli_options.model_stats)
+        cls.loadbal_mode = LoadBalanceMode.parse(cli_options.lb_mode)
 
         # change simulator by request before validator and init hoc config
         if cli_options.simulator:
@@ -290,7 +288,9 @@ class _SimConfig:
         for validator in cls._validators:
             validator(cls)
 
-        logging.info("Initializing hoc config objects")
+        from . import NeuronWrapper as Nd
+        Nd.init()
+
         cls._init_hoc_config_objs()
 
     @classmethod
@@ -329,27 +329,17 @@ class _SimConfig:
         return str(ans)
 
     @classmethod
-    def populations_offset_output_path(cls, create=False):
-        """Get polulations_offset path for the output folder.
-
-        Used for visualization.
-
-        Optional: create pathing folders if necessary
-        """
+    def populations_offset_output_path(cls):
+        """Get polulations_offset path for the output folder."""
         ans = Path(cls.output_root) / "populations_offset.dat"
-        if create:
-            ans.parent.mkdir(parents=True, exist_ok=True)
+        ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
 
     @classmethod
-    def output_root_path(cls, create=False):
-        """Get the output_root path
-
-        Create the folder path if required and needed
-        """
+    def output_root_path(cls):
+        """Get the output_root path."""
         outdir = Path(SimConfig.output_root)
-        if create:
-            outdir.mkdir(parents=True, exist_ok=True)
+        outdir.mkdir(parents=True, exist_ok=True)
         return str(outdir)
 
     @classmethod
@@ -369,6 +359,7 @@ class _SimConfig:
     def _init_hoc_config_objs(cls):
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
+        logging.info("Initializing hoc config objects")
 
         parsed_run = cls._parsed_run
 
@@ -487,12 +478,9 @@ def _run_params(config: _SimConfig):
 
 @SimConfig.validator
 def _loadbal_mode(config: _SimConfig):
-    cli_args = config.cli_options
-    if Feature.LoadBalance not in cli_args.restrict_features:
+    if Feature.LoadBalance not in config.restrict_features:
         logging.warning("Disabled Load Balance (restrict_features)")
         config.loadbal_mode = LoadBalanceMode.RoundRobin
-        return
-    config.loadbal_mode = LoadBalanceMode.parse(cli_args.lb_mode)
 
 
 @SimConfig.validator
