@@ -58,6 +58,10 @@ class SonataConfig:
             "spike_threshold": "SpikeThreshold",
             "integration_method": "SecondOrder",
             "electrodes_file": "LFPWeightsPath",
+            "stimulus_seed": "StimulusSeed",
+            "ionchannel_seed": "IonChannelSeed",
+            "minis_seed": "MinisSeed",
+            "synapse_seed": "SynapseSeed",
         }
         parsed_run = self._translate_dict(item_translation, self._sim_conf.run)
 
