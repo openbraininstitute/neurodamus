@@ -115,14 +115,6 @@ class CircuitConfig(ConfigT):
     PopulationType = None
 
 
-class RNGConfig(ConfigT):
-    global_seed = None
-    IonChannelSeed = None
-    StimulusSeed = None
-    MinisSeed = None
-    SynapseSeed = None
-
-
 class LoadBalanceMode(Enum):
     """An enumeration, inc parser, of the load balance modes."""
 
