@@ -64,7 +64,7 @@ def dict_filter_map(dic, mapp):
     return {mapp[key]: val for key, val in dic.items() if key in mapp}
 
 
-def docopt_sanitize(docopt_opts):
+def docopt_sanitize(docopt_opts) -> dict:
     """Sanitizes docopt parsed key names"""
     opts = {}
     for key, val in docopt_opts.items():

@@ -9,10 +9,13 @@ from pathlib import Path
 from docopt import docopt
 
 from .core import MPI, OtherRankError
-from .core.configuration import EXCEPTION_NODE_FILENAME, ConfigurationError, LogLevel
+from .core.configuration import ConfigurationError, LogLevel
 from .utils.pyutils import docopt_sanitize
 from neurodamus.node import Neurodamus
 from neurodamus.utils.timeit import TimerManager
+
+# A file which controls which rank shows exception
+EXCEPTION_NODE_FILENAME = ".exception_node"
 
 
 def neurodamus(args=None):
@@ -100,7 +103,7 @@ def neurodamus(args=None):
         os.remove(EXCEPTION_NODE_FILENAME)
 
     try:
-        Neurodamus(config_file, auto_init=True, logging_level=log_level, **options).run()
+        Neurodamus(config_file, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
     except ConfigurationError:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init
@@ -114,7 +117,7 @@ def neurodamus(args=None):
     return 0
 
 
-def _pop_log_level(options):
+def _pop_log_level(options: dict) -> LogLevel:
     log_level = LogLevel.DEFAULT
     if options.pop("debug", False):
         log_level = LogLevel.DEBUG

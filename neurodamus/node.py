@@ -1575,7 +1575,7 @@ class Node:
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
-    def __init__(self, config_file, auto_init=True, logging_level=None, **user_opts):
+    def __init__(self, config_file, logging_level=None, **user_opts):
         """Creates and initializes a neurodamus run node
 
         As part of Initiazation it calls:
@@ -1601,7 +1601,6 @@ class Neurodamus(Node):
         Node.__init__(self, config_file, user_opts)
         # Use the run_conf dict to avoid passing it around
         self._run_conf["EnableReports"] = enable_reports
-        self._run_conf["AutoInit"] = auto_init
 
         if SimConfig.dry_run:
             if self._is_ngv_run:
@@ -1629,7 +1628,6 @@ class Neurodamus(Node):
         - Building the circuit by creating cells and applying configurations.
         - Establishing synaptic connections.
         - Enabling replay mechanisms if applicable.
-        - Initializing the simulation if 'AutoInit' is enabled.
         """
         log_stage("================ CALCULATING LOAD BALANCE ================")
         load_bal = self.compute_load_balance()
@@ -1648,8 +1646,7 @@ class Neurodamus(Node):
         self.enable_replay()
         print_mem_usage()
 
-        if self._run_conf["AutoInit"]:
-            self.init()
+        self.init()
 
     # -
     def init(self):

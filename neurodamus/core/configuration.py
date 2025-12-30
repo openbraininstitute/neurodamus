@@ -5,7 +5,7 @@ import os
 import os.path
 import re
 from collections import defaultdict
-from enum import Enum
+from enum import Enum, IntEnum
 from pathlib import Path
 
 from ._shmutils import SHMUtil
@@ -13,11 +13,8 @@ from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT, StrEnumBase
 
-EXCEPTION_NODE_FILENAME = ".exception_node"
-"""A file which controls which rank shows exception"""
 
-
-class LogLevel:
+class LogLevel(IntEnum):
     ERROR_ONLY = 0
     DEFAULT = 1
     VERBOSE = 2
@@ -191,13 +188,13 @@ class _SimConfig:
     cli_options = None
     run_conf = None
     output_root = None
-    sonata_circuits = None
-    projections = None
-    connections = None
-    stimuli = None
-    reports = None
-    modifications = None
-    beta_features = None
+    sonata_circuits: dict = {}
+    projections: dict = {}
+    connections: dict = {}
+    stimuli: list = []
+    reports: dict = {}
+    modifications: dict = {}
+    beta_features: dict = {}
 
     # Hoc objects used
     _config_parser = None
@@ -206,7 +203,7 @@ class _SimConfig:
     _simconf = None
     rng_info = None
 
-    # In principle not all vars need to be required as they'r set by the parameter functions
+    # In principle not all vars need to be required as they're set by the parameter functions
     simulation_config_dir = None
     default_neuron_dt = 0.025
     buffer_time = 25
@@ -250,7 +247,7 @@ class _SimConfig:
         log_verbose("CLI Options: %s", cli_options)
         cls.config_file = config_file
         cls._config_parser = cls._init_config_parser(config_file)
-        cls._parsed_run = cls._config_parser.parsedRun
+        cls._parsed_run = cls._config_parser.parsedRun()
         cls._simulation_config = cls._config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
@@ -258,12 +255,12 @@ class _SimConfig:
             cls.simulation_config_dir,
         )
 
-        cls.projections = cls._config_parser.parsedProjections
-        cls.connections = cls._config_parser.parsedConnects
-        cls.stimuli = cls._config_parser.parsedStimuli
-        cls.reports = cls._config_parser.parsedReports
-        cls.modifications = cls._config_parser.parsedModifications or {}
-        cls.beta_features = cls._config_parser.beta_features
+        cls.projections = cls._config_parser.parsedProjections()
+        cls.connections = cls._config_parser.parsedConnects()
+        cls.stimuli = cls._config_parser.parsedStimuli()
+        cls.reports = cls._config_parser.parsedReports()
+        cls.modifications = cls._config_parser.parsedModifications()
+        cls.beta_features = cls._config_parser.beta_features()
         cls.cli_options = CliOptions(**(cli_options or {}))
 
         cls.dry_run = cls.cli_options.dry_run
@@ -621,7 +618,7 @@ def _circuits(config: _SimConfig):
 
     circuit_configs = {}
 
-    for name, circuit_info in config._simulation_config.Circuit.items():
+    for name, circuit_info in config._simulation_config.Circuit().items():
         log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
         # Replace name by actual engine class
         circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
@@ -726,7 +723,7 @@ def _simulator_globals(config: _SimConfig):
     # Hackish but some constants only live in the helper
     h.load_file("GABAABHelper.hoc")
 
-    for group in config._simulation_config.Conditions.values():
+    for group in config._simulation_config.Conditions().values():
         for key, value in group.items():
             validator = _condition_checks.get(key)
             if validator:
