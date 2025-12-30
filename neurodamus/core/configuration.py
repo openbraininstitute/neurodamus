@@ -67,7 +67,7 @@ class CellPermute(StrEnumBase):
 class CliOptions(ConfigT):
     cell_permute = None
     report_buffer_size = None
-    build_model = None
+    build_model = "AUTO"
     simulate_model = True
     output_path = None
     keep_build = False
@@ -233,6 +233,7 @@ class _SimConfig:
     restrict_features = None
     enable_shm = False
     model_stats = False
+    keep_axon = False
 
     _validators = []
     _cell_requirements = {}
@@ -243,6 +244,10 @@ class _SimConfig:
     @classmethod
     def init(cls, config_file, cli_options):
         # Import these objects scope-level to avoid cross module dependency
+        from . import NeuronWrapper as Nd
+
+        Nd.init()
+
         if not os.path.isfile(config_file):
             raise ConfigurationError("Config file not found: " + config_file)
         logging.info("Initializing Simulation Configuration and Validation")
@@ -269,6 +274,14 @@ class _SimConfig:
         cls.beta_features = config_parser.beta_features
 
         cls.cli_options = cli_options = CliOptions(**(cli_options or {}))
+
+        cls.build_model = cli_options.build_model
+        cls.simulate_model = cli_options.simulate_model
+        cls.output_root = cli_options.get("output_path") or cls._parsed_run.get("OutputRoot")
+        cls.save = cli_options.save
+        cls.restore = cli_options.restore
+
+        cls.keep_axon = cli_options.keep_axon
         cls.dry_run = cli_options.dry_run
         cls.crash_test_mode = cli_options.crash_test
         cls.num_target_ranks = cli_options.num_target_ranks
@@ -287,9 +300,6 @@ class _SimConfig:
         cls.run_conf = cls._parsed_run
         for validator in cls._validators:
             validator(cls)
-
-        from . import NeuronWrapper as Nd
-        Nd.init()
 
         cls._init_hoc_config_objs()
 
@@ -335,7 +345,7 @@ class _SimConfig:
     @classmethod
     def output_root_path(cls):
         """Get the output_root path."""
-        outdir = Path(SimConfig.output_root)
+        outdir = Path(cls.output_root)
         outdir.mkdir(parents=True, exist_ok=True)
         return str(outdir)
 
@@ -356,6 +366,7 @@ class _SimConfig:
     def _init_hoc_config_objs(cls):
         """Init objects which parse/check configs in the hoc world"""
         from neuron import h
+
         logging.info("Initializing hoc config objects")
 
         parsed_run = cls._parsed_run
@@ -379,7 +390,7 @@ class _SimConfig:
         """
         from neurodamus.target_manager import TargetSpec  # avoid cyclic deps
 
-        restrict_features = SimConfig.restrict_features
+        restrict_features = cls.restrict_features
 
         if Feature.SpontMinis not in restrict_features:
             logging.warning("Disabling SpontMinis (restrict_features)")
@@ -625,7 +636,7 @@ def _circuits(config: _SimConfig):
         circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
 
         circuit_info.setdefault("nrnPath", False)
-        if config.cli_options.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
+        if config.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
             log_verbose("Keeping axons ENABLED")
             circuit_info.setdefault("DetailedAxon", True)
 
@@ -669,16 +680,13 @@ def _global_parameters(config: _SimConfig):
 
 @SimConfig.validator
 def _set_simulator(config: _SimConfig):
-    user_config = config.cli_options
     simulator = config.run_conf.get("Simulator")
 
     if simulator is None:
         config.run_conf["Simulator"] = simulator = "NEURON"
     if simulator not in {"NEURON", "CORENEURON"}:
         raise ConfigurationError("'Simulator' value must be either NEURON or CORENEURON")
-    if simulator == "NEURON" and (
-        user_config.build_model is False or user_config.simulate_model is False
-    ):
+    if simulator == "NEURON" and (not config.build_model or not config.simulate_model):
         raise ConfigurationError(
             "Disabling model building or simulation is only compatible with CoreNEURON"
         )
@@ -802,12 +810,11 @@ def _randomize_gaba_risetime(config: _SimConfig):
 @SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
-    output_path = config.run_conf.get("OutputRoot")
+    output_path = config.output_root
 
-    if config.cli_options.output_path not in {None, output_path}:
-        output_path = config.cli_options.output_path
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
+
     if not Path(output_path).is_absolute():
         output_path = Path(config.simulation_config_dir) / output_path
 
@@ -818,18 +825,14 @@ def _output_root(config: _SimConfig):
 
 @SimConfig.validator
 def _check_save(config: _SimConfig):
-    cli_args = config.cli_options
-    save_path = cli_args.save
-
-    if not save_path:
+    if not config.save:
         return
 
     if not config.use_coreneuron:
         raise ConfigurationError("Save-restore only available with CoreNeuron")
 
-    # Handle save
-    assert isinstance(save_path, str), "Save must be a string path"
-    path_obj = Path(save_path)
+    assert isinstance(config.save, str), "Save must be a string path"
+    path_obj = Path(config.save)
     if not path_obj.is_absolute():
         path_obj = Path(config.simulation_config_dir) / path_obj
 
@@ -838,7 +841,7 @@ def _check_save(config: _SimConfig):
 
 @SimConfig.validator
 def _check_restore(config: _SimConfig):
-    restore = config.cli_options.restore
+    restore = config.restore
     if not restore:
         return
 
@@ -855,12 +858,9 @@ def _check_restore(config: _SimConfig):
 
 @SimConfig.validator
 def _check_model_build_mode(config: _SimConfig):
-    user_config = config.cli_options
-    config.build_model = user_config.build_model
-    config.simulate_model = user_config.simulate_model
-
     if config.build_model is True:  # just create the data
         return
+
     if config.use_coreneuron is False:
         if config.build_model is False:
             raise ConfigurationError("Skipping model build is only available with CoreNeuron")
@@ -894,7 +894,7 @@ def _check_model_build_mode(config: _SimConfig):
             core_data_location_shm = SHMUtil.get_datadir_shm(core_data_location)
             data_location = (
                 core_data_location_shm
-                if (user_config.enable_shm and core_data_location_shm is not None)
+                if (config.enable_shm and core_data_location_shm is not None)
                 else core_data_location
             )
             logging.info(
@@ -917,13 +917,13 @@ def _check_model_build_mode(config: _SimConfig):
 def _keep_coreneuron_data(config: _SimConfig):
     if config.use_coreneuron:
         keep_core_data = False
-        if config.cli_options.keep_build or config.run_conf.get("KeepModelData", False) == "True":
+        if config.cli_options.keep_build:
             keep_core_data = True
         elif not config.cli_options.simulate_model or config.save:
             logging.warning("Keeping coreneuron data for CoreNeuron following run")
             keep_core_data = True
         config.delete_corenrn_data = not keep_core_data
-    log_verbose("delete_corenrn_data = %s", config.delete_corenrn_data)
+        log_verbose("delete_corenrn_data = %s", config.delete_corenrn_data)
 
 
 @SimConfig.validator
