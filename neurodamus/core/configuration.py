@@ -822,7 +822,7 @@ def _output_root(config: _SimConfig):
 @SimConfig.validator
 def _check_save(config: _SimConfig):
     cli_args = config.cli_options
-    save_path = cli_args.save or config.run_conf.get("Save")
+    save_path = cli_args.save
 
     if not save_path:
         return
