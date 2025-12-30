@@ -131,7 +131,7 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
                     "modifications": [
                         {
                             "name": "no_SK_E2",
-                            "node_set": "RingA_oneCell",
+                            "node_set": "RingA:oneCell",
                             "type": "ConfigureAllSections",
                             "section_configure": "%s.gnabar_hh *= 11; %s.e_pas *= 0.1",
                         }

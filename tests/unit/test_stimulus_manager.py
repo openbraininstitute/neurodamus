@@ -14,7 +14,7 @@ from neurodamus.core.configuration import ConfigurationError
 from neurodamus.node import Node
 
 target_name = "RingA"
-target_onecell = "RingA_oneCell"
+target_onecell = "RingA:oneCell"
 
 
 @pytest.fixture

@@ -24,7 +24,7 @@ from scipy.signal import find_peaks
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "target_simulator": "NEURON",
                 "inputs": {
                     "Stimulus": {
@@ -32,7 +32,7 @@ from scipy.signal import find_peaks
                         "input_type": "current_clamp",
                         "delay": 5,
                         "duration": 50,
-                        "node_set": "RingC",
+                        "node_set": "Ring:C",
                         "amp_start": 10,
                         "width": 1,
                         "frequency": 50,
@@ -95,7 +95,7 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "deterministic_stoch": True,
@@ -165,7 +165,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "remove_channels": "all",
