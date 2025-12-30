@@ -40,6 +40,7 @@ def test_cli_prcellgid(create_tmp_simulation_config_file):
     subprocess.run(
         ["neurodamus", create_tmp_simulation_config_file, "--dump-cell-state=1", "--keep-build"],
         check=True,
+        capture_output=True,
     )
     assert (tmp_path / "output" / "1_py_Neuron_t0.0.nrndat").is_file()
     assert (tmp_path / "output" / "1_py_Neuron_t50.0.nrndat").is_file()
@@ -190,7 +191,7 @@ def test_cli_report_buff_size(create_tmp_simulation_config_file):
     "create_tmp_simulation_config_file",
     [{"simconfig_fixture": "ringtest_baseconfig"}],
     indirect=True,
-)              
+)
 def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
     for value in [-64, 0]:
         command = ["neurodamus", create_tmp_simulation_config_file, f"--report-buffer-size={value}"]
@@ -236,7 +237,7 @@ def test_cli_cell_permute_default(create_tmp_simulation_config_file):
         }
       }],
     indirect=True,
-)            
+)
 def test_cli_cell_permute_invalid(create_tmp_simulation_config_file):
     command = ["neurodamus", create_tmp_simulation_config_file, "--cell-permute=2"]
     result = subprocess.run(command, check=False, capture_output=True, text=True)

@@ -172,7 +172,6 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
         disable_reports=True,
-        cleanup_atexit=False,
     )
 
     edges_a_b = nd.circuits.get_edge_manager("RingA", "RingB")
@@ -236,7 +235,6 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
         disable_reports=True,
-        cleanup_atexit=False,
     )
 
     edges_a_b = nd.circuits.get_edge_manager("RingA", "RingB")
@@ -266,4 +264,4 @@ def test_replay_virtual_population(create_tmp_simulation_config_file):
 
 
 
-    
+

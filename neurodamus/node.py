@@ -213,7 +213,7 @@ class CircuitManager:
         in a restore scenario.
         """
         # populations_offset is necessary in output_path
-        output_path = SimConfig.populations_offset_output_path(create=True)
+        output_path = SimConfig.populations_offset_output_path()
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.writelines(
@@ -227,7 +227,7 @@ class CircuitManager:
 
         # Add a file in save_path too if required
         if SimConfig.save:
-            save_path = SimConfig.populations_offset_save_path(create=True)
+            save_path = SimConfig.populations_offset_save_path()
             shutil.copy(output_path, save_path)
 
     def get_population_offsets(self):
@@ -348,8 +348,6 @@ class Node:
             raise ConfigurationError(
                 "Legacy format BlueConfig is not supported, please migrate to SONATA config"
             )
-        import libsonata
-
         conf = libsonata.SimulationConfig.from_file(config_file)
         Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
@@ -562,15 +560,15 @@ class Node:
         SimConfig.check_cell_requirements(self.target_manager)
 
         log_stage("LOADING NODES")
-        config = SimConfig.cli_options
         if not load_balance:
             logging.info("Load-balance object not present. Continuing Round-Robin...")
 
         for name, circuit in self._sonata_circuits.items():
             log_stage("Circuit %s", name)
-            if config.restrict_node_populations and name not in config.restrict_node_populations:
+            if name not in SimConfig.restrict_node_populations:
                 logging.warning("Skipped node population (restrict_node_populations)")
                 continue
+
             self._circuits.new_node_manager(
                 circuit,
                 self._target_manager,
@@ -653,7 +651,7 @@ class Node:
             logging.info(" => No connectivity set as internal. See projections")
             return
 
-        if SimConfig.cli_options.restrict_connectivity >= 2:
+        if SimConfig.restrict_connectivity >= 2:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
 
@@ -671,7 +669,7 @@ class Node:
             raise ConfigurationError("Inner connectivity with different populations")
 
         dst = self.circuits.alias.get(dst, dst)
-        if dst not in SimConfig.cli_options.restrict_node_populations:
+        if dst not in SimConfig.restrict_node_populations:
             logging.warning("Skipped connectivity (restrict_node_populations)")
             return
 
@@ -707,7 +705,7 @@ class Node:
         source_t = TargetSpec(None, projection.get("Source"))
         dest_t = TargetSpec(None, projection.get("Destination"))
 
-        if SimConfig.cli_options.restrict_connectivity >= 1:
+        if SimConfig.restrict_connectivity >= 1:
             logging.warning("Skipped projections %s->%s (restrict_connectivity)", source_t, dest_t)
             return
 
@@ -754,7 +752,7 @@ class Node:
         This passes the raw text in field/value pairs to a StimulusManager object to interpret the
         text and instantiate an actual stimulus object.
         """
-        if Feature.Stimulus not in SimConfig.cli_options.restrict_features:
+        if Feature.Stimulus not in SimConfig.restrict_features:
             logging.warning("Skipped Stimulus (restrict_features)")
             return
 
@@ -785,7 +783,7 @@ class Node:
     @mpi_no_errors
     def enable_replay(self):
         """Activate replay according to config file. Call before connManager.finalize"""
-        if Feature.Replay not in SimConfig.cli_options.restrict_features:
+        if Feature.Replay not in SimConfig.restrict_features:
             logging.warning("Skipped Replay (restrict_features)")
             return
 
@@ -842,7 +840,7 @@ class Node:
                     )
                 else:
                     conn_manager = self._circuits.get_edge_manager(src_pop, dst_pop, ptype_cls)
-                    if not conn_manager and SimConfig.cli_options.restrict_connectivity >= 1:
+                    if not conn_manager and SimConfig.restrict_connectivity >= 1:
                         continue
                     assert conn_manager, f"Missing edge manager for {src_pop_str} -> {dst_pop_str}"
                     src_pop_offset = conn_manager.src_pop_offset
@@ -1207,13 +1205,13 @@ class Node:
             rmtree(corenrn_datadir_shm)
 
         # Ensure that we have a folder in /dev/shm (i.e., 'SHMDIR' ENV variable)
-        if SimConfig.cli_options.enable_shm and not corenrn_datadir_shm:
+        if SimConfig.enable_shm and not corenrn_datadir_shm:
             logging.warning("Unknown SHM directory for model file transfer in CoreNEURON.")
         # Try to configure the /dev/shm folder as the output directory for the files
         elif (
             self._cycle_i == 0
             and not corenrn_restore
-            and (SimConfig.cli_options.enable_shm and SimConfig.delete_corenrn_data)
+            and (SimConfig.enable_shm and SimConfig.delete_corenrn_data)
         ):
             # Check for the available memory in /dev/shm and estimate the RSS by multiplying
             # the number of cycles in the multi-step model build with an approximate
@@ -1296,7 +1294,7 @@ class Node:
             cell_permute=int(SimConfig.cell_permute),
             pattern=self._core_replay_file or None,
             seed=SimConfig.rng_info.getGlobalSeed(),
-            model_stats=int(SimConfig.cli_options.model_stats),
+            model_stats=SimConfig.model_stats,
             report_conf=CoreConfig.report_config_file_save
             if self._run_conf["EnableReports"]
             else None,
@@ -1467,7 +1465,7 @@ class Node:
 
     def sonata_spikes(self):
         """Write the spike events that occured on each node into a single output SONATA file."""
-        output_root = SimConfig.output_root_path(create=True)
+        output_root = SimConfig.output_root_path()
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
             spike_path = self._run_conf.get("SpikesFile")
@@ -1560,10 +1558,10 @@ class Node:
     @run_only_rank0
     def move_dumpcellstates_to_output_root():
         """Check for .corenrn or .nrn files in the current directory
-        and move them to CoreConfig.output_root_path(create=True).
+        and move them to CoreConfig.output_root_path().
         """
         current_dir = Path.cwd()
-        output_root = Path(SimConfig.output_root_path(create=True))
+        output_root = Path(SimConfig.output_root_path())
 
         # Iterate through files in the current directory
         for file in current_dir.iterdir():
@@ -1575,7 +1573,9 @@ class Node:
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
-    def __init__(self, config_file, auto_init=True, logging_level=None, **user_opts):
+    def __init__(
+        self, config_file, auto_init=True, logging_level=None, disable_reports=False, **user_opts
+    ):
         """Creates and initializes a neurodamus run node
 
         As part of Initiazation it calls:
@@ -1592,15 +1592,15 @@ class Neurodamus(Node):
                 1 - Info messages (default)
                 2 - Verbose
                 3 - Debug messages
+            disable_reports: whether to disable reports
             user_opts: Options to Neurodamus overriding the simulation config file
         """
-        enable_reports = not user_opts.pop("disable_reports", False)
         if logging_level is not None:
             GlobalConfig.verbosity = logging_level
 
         Node.__init__(self, config_file, user_opts)
-        # Use the run_conf dict to avoid passing it around
-        self._run_conf["EnableReports"] = enable_reports
+
+        self._run_conf["EnableReports"] = not disable_reports
         self._run_conf["AutoInit"] = auto_init
 
         if SimConfig.dry_run:

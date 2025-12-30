@@ -6,7 +6,7 @@ from neurodamus import metype
 
 def test_coord_mapping1():
     ty = metype.METypeItem(
-        morph_name='ABCD',
+        morph_name="ABCD",
         position=[1.0, 1.0, 1.0],
         rotation=[0.0, 0.0, 0.0, 1.0],
         scale=1.0
@@ -19,7 +19,7 @@ def test_coord_mapping1():
 
 def test_coord_mapping2():
     ty = metype.METypeItem(
-        morph_name='ABCD',
+        morph_name="ABCD",
         position=[1, .5, .25],
         rotation=[0.8728715609439696, 0.4364357804719848, 0.2182178902359924, 0.0],
         scale=1.0

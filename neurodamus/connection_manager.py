@@ -629,7 +629,7 @@ class ConnectionManagerBase:
         tgid_offset = self.target_pop_offset
 
         self._synapse_reader.configure_override(mod_override)
-        self._synapse_reader.preload_data(gids, minimal_mode=SimConfig.cli_options.crash_test)
+        self._synapse_reader.preload_data(gids, minimal_mode=SimConfig.crash_test_mode)
 
         # NOTE: This routine is quite critical, sitting at the core of synapse processing
         # so it has been carefully optimized with numpy vectorized operations, even if

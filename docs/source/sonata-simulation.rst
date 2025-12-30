@@ -53,7 +53,7 @@ Fundamental simulation parameters
 |   "output": {                             |     OutputRoot output                         |
 |     "output_dir": "output_sonata",        |                                               |
 |     "spikes_file": "out.h5",              |     RNGMode Random123  # deprecated           |
-|     "spikes_sort_order": "by_time"        |     RunMode RR         # deprecated. use CLI  |
+|     "spikes_sort_order": "by_time"        |                                               |
 |   },                                      |   }                                           |
 |                                           |                                               |
 +-------------------------------------------+-----------------------------------------------+
