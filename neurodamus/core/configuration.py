@@ -316,16 +316,13 @@ class _SimConfig:
         return str(Path(cls.restore) / "populations_offset.dat")
 
     @classmethod
-    def populations_offset_save_path(cls, create=False):
+    def populations_offset_save_path(cls):
         """Get polulations_offset path for the save folder.
 
         Used internally for a save/restore cycle.
-
-        Optional: create pathing folders if necessary
         """
         ans = Path(cls.build_path()) / "populations_offset.dat"
-        if create:
-            ans.parent.mkdir(parents=True, exist_ok=True)
+        ans.parent.mkdir(parents=True, exist_ok=True)
         return str(ans)
 
     @classmethod
@@ -841,15 +838,12 @@ def _check_save(config: _SimConfig):
 
 @SimConfig.validator
 def _check_restore(config: _SimConfig):
-    restore = config.cli_options.restore or config.run_conf.get("Restore")
+    restore = config.cli_options.restore
     if not restore:
         return
 
     if not config.use_coreneuron:
         raise ConfigurationError("Save-restore only available with CoreNeuron")
-
-    # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
-    config.run_conf["Restore"] = restore
 
     assert isinstance(restore, str), "Restore must be a string path"
     path_obj = Path(restore)

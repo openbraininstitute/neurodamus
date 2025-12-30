@@ -213,7 +213,7 @@ class CircuitManager:
         in a restore scenario.
         """
         # populations_offset is necessary in output_path
-        output_path = SimConfig.populations_offset_output_path(create=True)
+        output_path = SimConfig.populations_offset_output_path()
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.writelines(
@@ -227,7 +227,7 @@ class CircuitManager:
 
         # Add a file in save_path too if required
         if SimConfig.save:
-            save_path = SimConfig.populations_offset_save_path(create=True)
+            save_path = SimConfig.populations_offset_save_path()
             shutil.copy(output_path, save_path)
 
     def get_population_offsets(self):
@@ -1463,7 +1463,7 @@ class Node:
 
     def sonata_spikes(self):
         """Write the spike events that occured on each node into a single output SONATA file."""
-        output_root = SimConfig.output_root_path(create=True)
+        output_root = SimConfig.output_root_path()
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
             spike_path = self._run_conf.get("SpikesFile")
@@ -1556,10 +1556,10 @@ class Node:
     @run_only_rank0
     def move_dumpcellstates_to_output_root():
         """Check for .corenrn or .nrn files in the current directory
-        and move them to CoreConfig.output_root_path(create=True).
+        and move them to CoreConfig.output_root_path().
         """
         current_dir = Path.cwd()
-        output_root = Path(SimConfig.output_root_path(create=True))
+        output_root = Path(SimConfig.output_root_path())
 
         # Iterate through files in the current directory
         for file in current_dir.iterdir():
