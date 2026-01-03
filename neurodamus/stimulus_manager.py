@@ -108,6 +108,40 @@ class StimulusManager:
         for stim in self._stimulus:
             ss_obj.ignore(stim)
 
+    def consolidate_efield_stimuli(self):
+        """Consolidate multiple ElectrodeSource objects on same segments"""
+        from collections import defaultdict
+        
+        segment_electrodes = defaultdict(list) # segname: [time_vec, stim_vec]
+        # 
+        for stim in self._stimulus:
+            if not isinstance(stim, SpatiallyUniformEField):
+                continue
+            for seg_name, es in stim.stimList.items():
+                if seg_name not in segment_electrodes:
+                    segment_electrodes[seg_name] = [es.time_vec.as_numpy(), es.stim_vec.as_numpy()]
+                else:
+                    time_vec, stim_vec = segment_electrodes[seg_name]
+                    all_times = set(time_vec)
+                    all_times.update(es.time_vec.as_numpy())
+                    lookup = dict(zip(time_vec, stim_vec))
+                    combined_time_vec = np.array(sorted(all_times))
+                    combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+                    lookup = dict(zip(es.time_vec.as_numpy(), es.stim_vec.as_numpy()))
+                    combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+                    segment_electrodes[seg_name] = [combined_time_vec, combined_stim_vec]
+
+        # apply the stimulus to seg.extracellular_e
+        for seg_name, (time_vec, stim_vec) in segment_electrodes.items():
+            h = Nd.h
+            segment = eval(f"h.{seg_name}")
+            section = segment.sec
+            h_tvec = h.Vector(time_vec)
+            h_stimvec = h.Vector(stim_vec)
+            # don't forget to add last point
+            section.insert("extracellular")
+            h_stimvec.play(segment.extracellular._ref_e, h_tvec, 1)
+            print(f"{segment}, {h_stimvec.as_numpy()} {h_tvec.as_numpy()}")
 
 class BaseStim:
     """Barebones stimulus class"""
@@ -834,7 +868,7 @@ class SpatiallyUniformEField(BaseStim):
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         super().__init__(target_points, stim_info, cell_manager)
 
-        self.stimList = []  # Extracellular fields go here
+        self.stimList = {}  # Extracellular fields go here
 
         self.parse_check_all_parameters(stim_info)
 
@@ -877,8 +911,10 @@ class SpatiallyUniformEField(BaseStim):
                     else soma_global_position
                 )
                 es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
-
-                self.stimList.append(es)  # save Extracellular field
+                segment = sc.sec(target_point_list.x[sec_id])
+                segment_key = str(segment)
+                print(f"key {segment_key}")
+                self.stimList[segment_key]=es # save Extracellular field
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.dt = float(SimConfig.run_conf["Dt"])

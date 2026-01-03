@@ -543,9 +543,9 @@ class ElectrodeSource(SignalSource):
         self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
         self._add_point(self._base_amp)  # Last point
 
-        section.insert("extracellular")
-        seg = section(x)
-        self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
+        # section.insert("extracellular")
+        # seg = section(x)
+        # self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down

@@ -391,11 +391,11 @@ def test_two_fields(create_tmp_simulation_config_file):
     dt = stimulus.dt
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
-    soma_signal_source = stimulus.stimList[0]
+    soma_signal_source = list(stimulus.stimList.values())[0]
     assert isinstance(soma_signal_source, ElectrodeSource)
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    seg_signal_source = list(stimulus.stimList.values())[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
 
