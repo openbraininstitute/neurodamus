@@ -136,9 +136,11 @@ class StimulusManager:
             h = Nd.h
             segment = eval(f"h.{seg_name}")
             section = segment.sec
+            # add last point with amplitude 0
+            time_vec = np.append(time_vec, time_vec[-1])
+            stim_vec = np.append(stim_vec, 0)
             h_tvec = h.Vector(time_vec)
             h_stimvec = h.Vector(stim_vec)
-            # don't forget to add last point
             section.insert("extracellular")
             h_stimvec.play(segment.extracellular._ref_e, h_tvec, 1)
             print(f"{segment}, {h_stimvec.as_numpy()} {h_tvec.as_numpy()}")

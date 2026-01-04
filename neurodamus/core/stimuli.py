@@ -541,7 +541,7 @@ class ElectrodeSource(SignalSource):
         stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
-        self._add_point(self._base_amp)  # Last point
+        # self._add_point(self._base_amp)  # Last point
 
         # section.insert("extracellular")
         # seg = section(x)
