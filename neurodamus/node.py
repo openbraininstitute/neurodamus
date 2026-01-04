@@ -73,6 +73,7 @@ from .utils.pyutils import cache_errors
 from .utils.timeit import TimerManager, timeit
 from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
+from neurodamus.stimulus_manager import SpatiallyUniformEField
 from neurodamus.utils.pyutils import CumulativeError, rmtree
 
 
@@ -773,7 +774,7 @@ class Node:
             self._stim_manager.interpret(target_spec, stim)
         if SimConfig.has_extracellular_stimulus:
             logging.info(" Consolidate all extracelluar stimuli")
-            self._stim_manager.consolidate_efield_stimuli()
+            SpatiallyUniformEField.apply_all_stimuli()
 
     # -
     @mpi_no_errors
