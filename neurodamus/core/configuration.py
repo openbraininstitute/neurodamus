@@ -1062,8 +1062,8 @@ class _ConnCtx:
     """
 
     conf: dict[str, str]
-    overrides: "_ConnCtx | None" = None
-    full_override: bool = None
+    override: "_ConnCtx | None" = None
+    full_override: bool = False
     visited: bool = False
 
 
@@ -1080,71 +1080,75 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
     zero_weight_conns = []
     conn_configure_global_vars = defaultdict(list)
 
-    def get_overlapping_connection_pathway(base_conns, conn):
+    def get_overlapping_connection_pathway(base_conns, conn_ctx):
         for base_conn in reversed(base_conns):
-            if target_manager.pathways_overlap(base_conn, conn):
+            if target_manager.pathways_overlap(base_conn.conf, conn_ctx.conf):
                 yield base_conn
 
-    def process_t0_parameter_override(conn):
-        if float(conn.get("Weight", 1)) == 0:
-            zero_weight_conns.append(conn)
-        for overridden_conn in get_overlapping_connection_pathway(processed_conn_blocks, conn):
-            conn["_overrides"] = overridden_conn
-            if target_manager.pathways_overlap(conn, overridden_conn, equal_only=True):
-                overridden_conn["_full_overridden"] = True
+    def process_t0_parameter_override(conn_ctx):
+        if float(conn_ctx.conf.get("Weight", 1)) == 0:
+            zero_weight_conns.append(conn_ctx)
+        for overridden_conn in get_overlapping_connection_pathway(processed_conn_blocks, conn_ctx):
+            conn_ctx.override = overridden_conn
+            if target_manager.pathways_overlap(
+                conn_ctx.conf, overridden_conn.conf, equal_only=True
+            ):
+                overridden_conn.full_override = True
             break  # We always compute only against the first overridden block
-        processed_conn_blocks.append(conn)
+        processed_conn_blocks.append(conn_ctx)
 
-    def process_weight0_override(conn):
+    def process_weight0_override(conn_ctx):
         is_overriding = False
-        for conn2 in get_overlapping_connection_pathway(zero_weight_conns, conn):
+        for conn2 in get_overlapping_connection_pathway(zero_weight_conns, conn_ctx):
             is_overriding = True
             # If there isn't a full override for zero weights, we must raise exception (later)
-            if not conn2.get("_full_overridden"):
-                conn2["_full_overridden"] = target_manager.pathways_overlap(
-                    conn, conn2, equal_only=True
-                )
+            if not conn2.full_override:
+                conn2.full_override = target_manager.pathways_overlap(conn, conn2, equal_only=True)
         if not is_overriding:
             logging.warning(
-                "Delayed connection %s is not overriding any weight=0 Connection", conn["Name"]
+                "Delayed connection %s is not overriding any weight=0 Connection",
+                conn_ctx.conf["Name"],
             )
 
-    def get_syn_config_vars(conn):
-        return [var for var, _ in config_assignment.findall(conn.get("SynapseConfigure", ""))]
+    def get_syn_config_vars(conn_ctx):
+        return [
+            var for var, _ in config_assignment.findall(conn_ctx.conf.get("SynapseConfigure", ""))
+        ]
 
-    def display_overriding_chain(conn):
-        logging.warning("Connection %s takes part in overriding chain:", conn["Name"])
-        while conn is not None:
+    def display_overriding_chain(conn_ctx):
+        logging.warning("Connection %s takes part in overriding chain:", conn_ctx.conf["Name"])
+        while conn_ctx is not None:
             logging.info(
                 " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
-                "(base)" if not conn.get("_overrides") else " ^",
-                f"{conn['Name']}  {conn['Source']} -> {conn['Destination']}",
-                conn.get("Weight", "-"),
-                conn.get("SpontMinis", "-"),
-                ", ".join(get_syn_config_vars(conn)),
+                "(base)" if not conn_ctx.override else " ^",
+                f"{conn_ctx.conf['Name']}  ",
+                f"{conn_ctx.conf['Source']} -> {conn_ctx.conf['Destination']}",
+                conn_ctx.conf.get("Weight", "-"),
+                conn_ctx.conf.get("SpontMinis", "-"),
+                ", ".join(get_syn_config_vars(conn_ctx)),
             )
-            if conn.get("_visited"):
+            if conn_ctx.visited:
                 break
-            conn["_visited"] = True
-            conn = conn.get("_overrides")
+            conn_ctx.visited = True
+            conn_ctx = conn_ctx.override
 
     logging.info("Checking Connection Configurations")
-    all_conn_blocks = config.connections.values()
+    all_conn_blocks = [_ConnCtx(conn) for conn in config.connections.values()]
 
     # On a first phase process only for t=0
-    for conn_conf in all_conn_blocks:
-        if float(conn_conf.get("Delay", 0)) > 0.0:
+    for conn_ctx in all_conn_blocks:
+        if float(conn_ctx.conf.get("Delay", 0)) > 0.0:
             continue
-        for var in get_syn_config_vars(conn_conf):
+        for var in get_syn_config_vars(conn_ctx):
             if not var.startswith("%s"):
-                conn_configure_global_vars[conn_conf["Name"]].append(var)
+                conn_configure_global_vars[conn_ctx.conf["Name"]].append(var)
         # Process all conns to show full override chains to help debug
-        process_t0_parameter_override(conn_conf)
+        process_t0_parameter_override(conn_ctx)
 
     # Second phase: find overridden zero_weights at t > 0
-    for conn_conf in all_conn_blocks:
-        if float(conn_conf.get("Delay", 0)) > 0:
-            process_weight0_override(conn_conf)
+    for conn_ctx in all_conn_blocks:
+        if float(conn_ctx.conf.get("Delay", 0)) > 0:
+            process_weight0_override(conn_ctx)
 
     # CHECK 1: Global vars
     if conn_configure_global_vars:
@@ -1159,28 +1163,28 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
 
     # CHECK 2: Block override chains
     if not [
-        display_overriding_chain(conn_conf)
-        for conn_conf in reversed(processed_conn_blocks)
-        if conn_conf.get("_overrides") and not conn_conf.get("_visited")
+        display_overriding_chain(conn_ctx)
+        for conn_ctx in reversed(processed_conn_blocks)
+        if conn_ctx.override and not conn_ctx.visited
     ]:
         logging.info(" => CHECK No Block Overrides!")
 
     # CHECK 3: Weight 0 not/badly overridden
     not_overridden_weight_0 = []
-    for conn in zero_weight_conns:
-        full_overriden = conn.get("_full_overridden")
-        if full_overriden is None:
-            not_overridden_weight_0.append(conn)
-        elif full_overriden is False:  # incomplete override
-            msg = f"Partial Weight=0 override is not supported: Conn {conn['Name']}"
-            raise ConfigurationError(msg)
+    for conn_ctx in zero_weight_conns:
+        if conn_ctx.override is None:
+            not_overridden_weight_0.append(conn_ctx)
+        elif not conn_ctx.full_override:  # incomplete override
+            raise ConfigurationError(
+                f"Partial Weight=0 override is not supported: Conn {conn_ctx.conf['Name']}"
+            )
     if not_overridden_weight_0:
         logging.warning(
             "The following connections with Weight=0 are not overridden, "
             "thus won't be instantiated:"
         )
         for conn in not_overridden_weight_0:
-            logging.warning(" -> %s", conn["Name"])
+            logging.warning(" -> %s", conn.conf["Name"])
     else:
         logging.info(" => CHECK No single Weight=0 blocks!")
 
