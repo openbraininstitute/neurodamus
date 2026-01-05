@@ -1193,7 +1193,7 @@ def _check_weight0_overrides(zero_weight_conns: list[_ConnCtx]) -> None:
         logging.info(" => CHECK No single Weight=0 blocks!")
 
 
-def check_connections_configure(config, target_manager) -> None:
+def check_connections_configure(config: _SimConfig, target_manager: "TargetManager") -> None:
     """Check connection block configuration and raise warnings for:
     1. Global variables should be set in the Conditions block
     2. Connection overriding chains (t=0)
