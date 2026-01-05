@@ -5,6 +5,7 @@ import os
 import os.path
 import re
 from collections import defaultdict
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -1054,6 +1055,18 @@ def get_debug_cell_gids(cli_options):
         return gids
 
 
+@dataclass
+class _ConnCtx:
+    """Ephemeral analysis state for check_connections_configure().
+    Tracks transient override/visit state only.
+    """
+
+    conf: dict[str, str]
+    overrides: "_ConnCtx | None" = None
+    full_override: bool = None
+    visited: bool = False
+
+
 def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C901, PLR0912, PLR0915
     """Check connection block configuration and raise warnings for:
     1. Global variable should be set in the Conditions block,
@@ -1093,19 +1106,19 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
                 )
         if not is_overriding:
             logging.warning(
-                "Delayed connection %s is not overriding any weight=0 Connection", conn["_name"]
+                "Delayed connection %s is not overriding any weight=0 Connection", conn["Name"]
             )
 
     def get_syn_config_vars(conn):
         return [var for var, _ in config_assignment.findall(conn.get("SynapseConfigure", ""))]
 
     def display_overriding_chain(conn):
-        logging.warning("Connection %s takes part in overriding chain:", conn["_name"])
+        logging.warning("Connection %s takes part in overriding chain:", conn["Name"])
         while conn is not None:
             logging.info(
                 " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
                 "(base)" if not conn.get("_overrides") else " ^",
-                f"{conn['_name']}  {conn['Source']} -> {conn['Destination']}",
+                f"{conn['Name']}  {conn['Source']} -> {conn['Destination']}",
                 conn.get("Weight", "-"),
                 conn.get("SpontMinis", "-"),
                 ", ".join(get_syn_config_vars(conn)),
@@ -1119,13 +1132,12 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
     all_conn_blocks = config.connections.values()
 
     # On a first phase process only for t=0
-    for name, conn_conf in zip(config.connections, all_conn_blocks, strict=True):
-        conn_conf["_name"] = name
+    for conn_conf in all_conn_blocks:
         if float(conn_conf.get("Delay", 0)) > 0.0:
             continue
         for var in get_syn_config_vars(conn_conf):
             if not var.startswith("%s"):
-                conn_configure_global_vars[name].append(var)
+                conn_configure_global_vars[conn_conf["Name"]].append(var)
         # Process all conns to show full override chains to help debug
         process_t0_parameter_override(conn_conf)
 
@@ -1160,7 +1172,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
         if full_overriden is None:
             not_overridden_weight_0.append(conn)
         elif full_overriden is False:  # incomplete override
-            msg = f"Partial Weight=0 override is not supported: Conn {conn['_name']}"
+            msg = f"Partial Weight=0 override is not supported: Conn {conn['Name']}"
             raise ConfigurationError(msg)
     if not_overridden_weight_0:
         logging.warning(
@@ -1168,7 +1180,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
             "thus won't be instantiated:"
         )
         for conn in not_overridden_weight_0:
-            logging.warning(" -> %s", conn["_name"])
+            logging.warning(" -> %s", conn["Name"])
     else:
         logging.info(" => CHECK No single Weight=0 blocks!")
 
