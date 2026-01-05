@@ -138,23 +138,24 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     n.enable_stimulus()
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
-    cell_manager = n.circuits.get_node_manager("RingA")
-    cell = cellref = cell_manager.get_cell(0)
+    cell = cellref = n.circuits.get_node_manager("RingA").get_cell(0)
     cellref = cell.CellRef
     total_segments = sum(sec.nseg for sec in cellref.all)
     assert len(stimulus.stimList) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_signal_source = stimulus.stimList[0]
     soma_obj = cellref.soma[0]
+    soma_seg_obj = next(iter(soma_obj))
     soma_seg_points = cell.segment_global_coords[soma_obj.name()]
+    soma_signal_source = stimulus.stimList[soma_seg_obj]
     assert isinstance(soma_signal_source, ElectrodeSource)
     npt.assert_allclose(soma_signal_source.base_position, np.array(soma_seg_points).mean(axis=0))
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    dend_seg_obj = next(iter(cellref.dend[0]))
+    seg_signal_source = stimulus.stimList[dend_seg_obj]
     ref_stimvec = [
         -0.505702,
         -0.409122,
@@ -245,13 +246,15 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     assert len(stimulus.stimList) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_signal_source = stimulus.stimList[0]
+    soma_seg_obj = next(iter(cell.soma[0]))
+    soma_signal_source = stimulus.stimList[soma_seg_obj]
     assert isinstance(soma_signal_source, ElectrodeSource)
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    dend_seg_obj = next(iter(cell.dend[0]))
+    seg_signal_source = stimulus.stimList[dend_seg_obj]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE, rtol=1e-5)
     n.clear_model()
@@ -327,13 +330,15 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     assert len(stimulus.stimList) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_signal_source = stimulus.stimList[0]
+    soma_seg_obj = next(iter(cell.soma[0]))
+    soma_signal_source = stimulus.stimList[soma_seg_obj]
     assert isinstance(soma_signal_source, ElectrodeSource)
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    dend_seg_obj = next(iter(cell.dend[0]))
+    seg_signal_source = stimulus.stimList[dend_seg_obj]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, REF_CONSTANT, rtol=1e-6)
     n.clear_model()
@@ -391,11 +396,12 @@ def test_two_fields(create_tmp_simulation_config_file):
     dt = stimulus.dt
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
-    soma_signal_source = list(stimulus.stimList.values())[0]
+    seg_stimuli = list(stimulus.stimList.values())
+    soma_signal_source = seg_stimuli[0]
     assert isinstance(soma_signal_source, ElectrodeSource)
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = list(stimulus.stimList.values())[3]
+    seg_signal_source = seg_stimuli[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(seg_signal_source.stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
 
@@ -448,10 +454,11 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     npt.assert_approx_equal(delay, 5)
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
-    soma_signal_source = stimulus.stimList[0]
+    seg_stimuli = list(stimulus.stimList.values())
+    soma_signal_source = seg_stimuli[0]
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    seg_signal_source = seg_stimuli[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(
         seg_signal_source.stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5
@@ -504,10 +511,11 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     npt.assert_approx_equal(delay, 5)
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
-    soma_signal_source = stimulus.stimList[0]
+    seg_stimuli = list(stimulus.stimList.values())
+    soma_signal_source = seg_stimuli[0]
     npt.assert_allclose(soma_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(soma_signal_source.stim_vec, ref_stimvec)
-    seg_signal_source = stimulus.stimList[3]
+    seg_signal_source = seg_stimuli[3]
     npt.assert_allclose(seg_signal_source.time_vec, ref_timevec)
     npt.assert_allclose(
         seg_signal_source.stim_vec,

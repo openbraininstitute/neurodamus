@@ -904,6 +904,8 @@ class SpatiallyUniformEField(BaseStim):
                     combined_time, combined_stim = self._combine_stimuli(existing_es, es)
                     existing_es.time_vec = Nd.h.Vector(combined_time)
                     existing_es.stim_vec = Nd.h.Vector(combined_stim)
+                    # update _cur_t for adding the last point
+                    existing_es._cur_t = combined_time[-1]
                 else:
                     # Add new stimulus
                     self.stimList[segment] = es
@@ -929,7 +931,6 @@ class SpatiallyUniformEField(BaseStim):
                 section = segment.sec
                 section.insert("extracellular")
                 # add last point with amp = 0
-                es._cur_t = es.time_vec[-1]
                 es._add_point(0.0)
                 es.stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
                 # print(f"{segment}, {es.stim_vec.as_numpy()} {es.time_vec.as_numpy()}")
