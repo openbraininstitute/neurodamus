@@ -1,3 +1,5 @@
+import numpy as np
+
 from .cell_distributor import CellDistributor
 from .connection import Connection
 from .connection_manager import SynapseRuleManager
@@ -7,6 +9,7 @@ from .core import (
 )
 from .core.configuration import SimConfig
 from .io.sonata_config import ConnectionTypes
+from .io.synapse_reader import SonataReader, SynapseParameters
 from .metype import Cell_V6
 
 
@@ -24,6 +27,37 @@ class AllenPointCell(Cell_V6):
 
 class AllenPointNeuronManager(CellDistributor):
     CellType = AllenPointCell
+
+
+class PointProcessConnParameters(SynapseParameters):
+    """Allen's point process connection parameters.
+
+    This class defines parameters for allen's chemical connections by overriding
+    `_fields` from `SynapseParameters`.
+
+    Notes:
+        - The field names are consistent with standard synapses for compatibility.
+        - `location` is computed using the HOC function `TargetManager.locationToPoint`
+          with `isec`, `offset`, and `ipt`.
+        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
+          `location = offset`.
+          and is later overwritten by the actual connection weight.
+
+    The `_optional` and `_reserved` dictionaries are inherited from the base class.
+    """
+
+    _fields = {
+        "sgid": np.int64,
+        "delay": np.float64,
+        "isec": np.int32,
+        "ipt": np.int32,
+        "offset": np.float64,
+        "weight": np.float64,
+    }
+
+
+class PointProcessSynSynapseReader(SonataReader):
+    Parameters = PointProcessConnParameters
 
 
 class PointConnection(Connection):
@@ -74,12 +108,56 @@ class PointConnection(Connection):
 
 class AllenPointConnectionManager(SynapseRuleManager):
     conn_factory = PointConnection
+    SynapseReader = PointProcessSynSynapseReader
 
 
 class AllenPointEngine(EngineBase):
     CellManagerCls = AllenPointNeuronManager
     InnerConnectivityCls = AllenPointConnectionManager
     ConnectionTypes = {
-        ConnectionTypes.PointNeuron: AllenPointConnectionManager,
+        ConnectionTypes.PointProcess: AllenPointConnectionManager,
     }
-    CircuitPrecedence = 0
+    CircuitPrecedence = 2
+
+
+class Exp2SynConnParameters(SynapseParameters):
+    """Exp2Syn connection parameters.
+
+    This class defines parameters for allen's chemical connections by overriding
+    `_fields` from `SynapseParameters`.
+
+    Notes:
+        - The field names are consistent with standard synapses for compatibility.
+        - `location` is computed using the HOC function `TargetManager.locationToPoint`
+          with `isec`, `offset`, and `ipt`.
+        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
+          `location = offset`.
+
+    The `_reserved` dictionaries are inherited from the base class.
+    """
+
+    _fields = {
+        "sgid": np.int64,
+        "delay": np.float64,
+        "isec": np.int32,
+        "ipt": np.int32,
+        "offset": np.float64,
+        "weight": np.float64,
+        "synType": np.int32,
+        "conductance_ratio": np.float64,
+        "location": np.float64,  # needed by connection class
+        "tau1": np.float64,
+        "tau2": np.float64,
+        "erev": np.float64,
+    }
+
+    _optional = {"conductance_ratio": -1.0, "synType": -1}  # dummy value needed by connection class
+
+
+class Exp2SynSynapseReader(SonataReader):
+    Parameters = Exp2SynConnParameters
+
+
+class Exp2SynSynapseRuleManager(SynapseRuleManager):
+    CONNECTIONS_TYPE = ConnectionTypes.Exp2Syn
+    SynapseReader = Exp2SynSynapseReader
