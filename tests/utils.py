@@ -106,10 +106,7 @@ def defaultdict_to_standard_types(obj):
 
 def check_is_subset(dic, subset):
     """Checks if subset is a subset of the original dict"""
-    try:
-        merged = merge_dicts(dic, subset)
-    except TypeError:
-        assert False
+    merged = merge_dicts(dic, subset)
     assert dic == merged
 
 
