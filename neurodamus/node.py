@@ -26,6 +26,7 @@ from . import (
     allen_point as _allen_point,  # noqa: F401
     ngv as _ngv,
 )
+from .allen_point import Exp2SynSynapseRuleManager
 from .cell_distributor import (
     CellDistributor,
     GlobalCellManager,
@@ -91,6 +92,7 @@ class METypeEngine(EngineBase):
         ConnectionTypes.Synaptic: SynapseRuleManager,
         ConnectionTypes.GapJunction: GapJunctionManager,
         ConnectionTypes.NeuroModulation: NeuroModulationManager,
+        ConnectionTypes.Exp2Syn: Exp2SynSynapseRuleManager,
     }
     CircuitPrecedence = 0
 
