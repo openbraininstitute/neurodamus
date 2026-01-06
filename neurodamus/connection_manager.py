@@ -19,7 +19,7 @@ from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
 from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
-from .utils.pyutils import bin_search, dict_filter_map, gen_ranges
+from .utils.pyutils import bin_search, gen_ranges
 from .utils.timeit import timeit
 
 if TYPE_CHECKING:
@@ -428,20 +428,20 @@ class ConnectionManagerBase:
         Args:
             conn_conf: The configuration block (dict)
         """
-        log_msg = " * Pathway {:s} -> {:s}".format(conn_conf.source, conn_conf.destination)
+        log_msg = f" * Pathway {conn_conf.source:s} -> {conn_conf.destination:s}"
 
         if conn_conf.delay > 0:
             log_msg += f":\t[DELAYED] t={conn_conf.delay:g}, weight={conn_conf.weight:g}"
             configured_conns = self.setup_delayed_connection(conn_conf)
         else:
             if conn_conf.synapse_configure is not None:
-                log_msg += ":\tconfigure with '{:s}'".format(conn_conf.synapse_configure)
+                log_msg += f":\tconfigure with '{conn_conf.synapse_configure:s}'"
             if conn_conf.neuromodulation_strength is not None:
-                log_msg += "\toverwrite neuromodulation_strength = {:g}".format(
-                    conn_conf.neuromodulation_strength
+                log_msg += (
+                    f"\toverwrite neuromodulation_strength = {conn_conf.neuromodulation_strength:g}"
                 )
             if conn_conf.neuromodulation_dtc is not None:
-                log_msg += "\toverwrite neuromodulation_dtc = {:g}".format(conn_conf.neuromodulation_dtc)
+                log_msg += f"\toverwrite neuromodulation_dtc = {conn_conf.neuromodulation_dtc:g}"
             configured_conns = self.configure_group(conn_conf)
 
         all_ranks_total = MPI.allreduce(configured_conns, MPI.SUM)

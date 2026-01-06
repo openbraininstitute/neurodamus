@@ -15,6 +15,7 @@ class ConnectionTypes(str, Enum):
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
 
+
 class ConnectionOverride:
     """Python-side mutable version of SimulationConfig.ConnectionOverride."""
 
@@ -30,6 +31,7 @@ class ConnectionOverride:
         self.delay = conn.delay
         self.neuromodulation_dtc = conn.neuromodulation_dtc
         self.neuromodulation_strength = conn.neuromodulation_strength
+
 
 class SonataConfig:
     __slots__ = (
