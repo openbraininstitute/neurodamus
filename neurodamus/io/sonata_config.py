@@ -108,6 +108,14 @@ class SonataConfig:
 
         conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
 
+        print("AAA")
+        bb = self._translate_dict(item_translation, self._sim_conf.conditions)
+        print(bb)
+        print()
+        print(conditions)
+        # if 'Mechanisms' in bb:
+        #     if len(bb['Mechanisms']):
+
         return {"Conditions": conditions}
 
     def _extract_circuits_info(self) -> dict:  # noqa: C901
@@ -331,6 +339,8 @@ class SonataConfig:
 
     @property
     def parsedModifications(self):
+        print(self._sim_conf.conditions.modifications())
+
         item_translation = {"node_set": "Target"}
         result = {}
         for modification in self._sim_conf.conditions.modifications():
