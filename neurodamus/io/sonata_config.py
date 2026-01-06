@@ -86,37 +86,8 @@ class SonataConfig:
         return parsed_run
 
     @property
-    def Conditions(self):
-        item_translation = {"randomize_gaba_rise_time": "randomize_Gaba_risetime"}
-        conditions = {}
-        blacklist = (
-            "Celsius",
-            "VInit",
-            "ExtracellularCalcium",
-            "ListModificationNames",
-            "SpikeLocation",
-        )
-        for key, value in self._translate_dict(item_translation, self._sim_conf.conditions).items():
-            if key in blacklist:
-                continue
-            if key == "Mechanisms":
-                for suffix, dict_var in value.items():
-                    for name, val in dict_var.items():
-                        conditions[name + "_" + suffix] = val
-            else:
-                conditions[key] = value
-
-        conditions["randomize_Gaba_risetime"] = str(conditions["randomize_Gaba_risetime"])
-
-        print("AAA")
-        bb = self._translate_dict(item_translation, self._sim_conf.conditions)
-        print(bb)
-        print()
-        print(conditions)
-        # if 'Mechanisms' in bb:
-        #     if len(bb['Mechanisms']):
-
-        return {"Conditions": conditions}
+    def parsedConditions(self):
+        return self._sim_conf.conditions
 
     def _extract_circuits_info(self) -> dict:  # noqa: C901
         """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
@@ -339,8 +310,6 @@ class SonataConfig:
 
     @property
     def parsedModifications(self):
-        print(self._sim_conf.conditions.modifications())
-
         item_translation = {"node_set": "Target"}
         result = {}
         for modification in self._sim_conf.conditions.modifications():

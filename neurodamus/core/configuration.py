@@ -694,23 +694,6 @@ def _spike_parameters(config: _SimConfig):
     config.spike_threshold = spike_threshold
 
 
-# _condition_checks = {
-#     "secondorder": (
-#         (0, 1, 2),
-#         ConfigurationError(
-#             "Time integration method (SecondOrder value) {} is invalid. Valid options are:"
-#             " '0' (implicitly backward euler),"
-#             " '1' (Crank-Nicolson) and"
-#             " '2' (Crank-Nicolson with fixed ion currents)"
-#         ),
-#     ),
-#     "randomize_Gaba_risetime": (
-#         ("True", "False", "0", "false"),
-#         ConfigurationError("randomize_Gaba_risetime must be True or False"),
-#     ),
-# }
-
-
 @SimConfig.validator
 def _simulator_globals(config: _SimConfig):
     from neuron import h
@@ -718,12 +701,17 @@ def _simulator_globals(config: _SimConfig):
     # Hackish but some constants only live in the helper
     h.load_file("GABAABHelper.hoc")
 
-    for group in config._simulation_config.Conditions.values():
-        for key, value in group.items():
+    # in h this is a string
+    h.randomize_Gaba_risetime = str(
+        config._simulation_config.parsedConditions.randomize_gaba_rise_time
+    )
 
+    # set the mechanism values
+    for suffix, dict_var in config._simulation_config.parsedConditions.mechanisms.items():
+        for name, value in dict_var.items():
+            key = name + "_" + suffix
             log_verbose("GLOBAL %s = %s", key, value)
-
-            setattr(h, key, value)
+            setattr(h, name + "_" + suffix, value)
 
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(
@@ -747,7 +735,12 @@ def _second_order(config: _SimConfig):
         config.second_order = second_order
         h.secondorder = second_order
     else:
-        raise _condition_checks["secondorder"][1]
+        raise ConfigurationError(
+            "Time integration method (SecondOrder value) {} is invalid. Valid options are:"
+            " '0' (implicitly backward euler),"
+            " '1' (Crank-Nicolson) and"
+            " '2' (Crank-Nicolson with fixed ion currents)"
+        )
 
 
 @SimConfig.validator
