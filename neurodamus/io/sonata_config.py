@@ -310,18 +310,6 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        # item_translation = {
-        #     "target": "Destination",
-        #     "modoverride": "ModOverride",
-        #     "synapse_delay_override": "SynDelayOverride",
-        #     "neuromodulation_dtc": "NeuromodDtc",
-        #     "neuromodulation_strength": "NeuromodStrength",
-        # }
-        # connects = {
-        #     libsonata_conn.name: self._translate_dict(item_translation, libsonata_conn)
-        #     for libsonata_conn in self._sim_conf.connection_overrides()
-        # }
-        # return connects
         return {
             libsonata_conn.name: ConnectionOverride.from_libsonata(libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
