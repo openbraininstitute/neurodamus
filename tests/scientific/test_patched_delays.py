@@ -2,6 +2,7 @@ import pytest
 
 from neurodamus.node import Node
 from neurodamus.core.configuration import GlobalConfig, SimConfig, LogLevel
+from neurodamus.io.sonata_config import ConnectionOverride
 from pathlib import Path
 
 
@@ -22,17 +23,13 @@ def test_eager_caching():
 
     # append Connection blocks programmatically
     # plasticity
-    CONN_plast = {"Source": "pre_L5_PCs",
-                  "Destination": "post_L5_PC",
-                  "ModOverride": "GluSynapse",
-                  "Weight": 1.0}
-    SimConfig.connections["plasticity"] = CONN_plast
+    CONN_plast = ConnectionOverride(name="plasticity",
+                                    source="pre_L5_PCs",destination="post_L5_PC", weight=1.0, modoverride="GluSynapse")
+    SimConfig.connections[CONN_plast.name] = CONN_plast
     # init_I_E
-    CONN_i2e = {"Source": "pre_L5_BCs",
-                "Destination": "post_L5_PC",
-                "Weight": 1.0
-                }
-    SimConfig.connections["init_I_E"] = CONN_i2e
+    CONN_i2e = ConnectionOverride(name="init_I_E",
+                                    source="pre_L5_BCs",destination="post_L5_PC", weight=1.0)
+    SimConfig.connections[CONN_i2e.name] = CONN_i2e
     assert len(SimConfig.connections) == 2
 
     # setup sim

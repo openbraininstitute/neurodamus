@@ -412,7 +412,7 @@ class ConnectionManagerBase:
 
         logging.info("Creating group connections (%d groups match)", len(matching_conns))
         for conn_conf in matching_conns:
-            if conn_conf.delay > 0:
+            if conn_conf.delay is not None and conn_conf.delay > 0:
                 # Delayed connections are for configuration only, not creation
                 continue
 
@@ -430,7 +430,7 @@ class ConnectionManagerBase:
         """
         log_msg = f" * Pathway {conn_conf.source:s} -> {conn_conf.destination:s}"
 
-        if conn_conf.delay > 0:
+        if conn_conf.delay is not None and conn_conf.delay > 0:
             log_msg += f":\t[DELAYED] t={conn_conf.delay:g}, weight={conn_conf.weight:g}"
             configured_conns = self.setup_delayed_connection(conn_conf)
         else:

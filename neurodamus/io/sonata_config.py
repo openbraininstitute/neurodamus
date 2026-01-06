@@ -4,6 +4,7 @@ import json
 import logging
 import os.path
 from enum import Enum
+from dataclasses import dataclass
 
 import libsonata
 
@@ -16,22 +17,40 @@ class ConnectionTypes(str, Enum):
     GlioVascular = "GlioVascular"
 
 
+@dataclass
 class ConnectionOverride:
     """Python-side mutable version of SimulationConfig.ConnectionOverride."""
 
-    def __init__(self, conn: libsonata._libsonata.SimulationConfig.ConnectionOverride):
-        self.name = conn.name
-        self.source = conn.source
-        self.destination = conn.target
-        self.weight = conn.weight
-        self.spont_minis = conn.spont_minis
-        self.synapse_configure = conn.synapse_configure
-        self.modoverride = conn.modoverride
-        self.synapse_delay_override = conn.synapse_delay_override
-        self.delay = conn.delay
-        self.neuromodulation_dtc = conn.neuromodulation_dtc
-        self.neuromodulation_strength = conn.neuromodulation_strength
+    name: str
+    source: str
+    destination: str
+    weight: float
+    spont_minis: bool | None = None
+    synapse_configure: dict | None = None
+    modoverride: dict | None = None
+    synapse_delay_override: float | None = None
+    delay: float | None = None
+    neuromodulation_dtc: float | None = None
+    neuromodulation_strength: float | None = None
 
+    @classmethod
+    def from_libsonata(
+        cls,
+        conn: libsonata._libsonata.SimulationConfig.ConnectionOverride,
+    ) -> "ConnectionOverride":
+        return cls(
+            name=conn.name,
+            source=conn.source,
+            destination=conn.target,
+            weight=conn.weight,
+            spont_minis=conn.spont_minis,
+            synapse_configure=conn.synapse_configure,
+            modoverride=conn.modoverride,
+            synapse_delay_override=conn.synapse_delay_override,
+            delay=conn.delay,
+            neuromodulation_dtc=conn.neuromodulation_dtc,
+            neuromodulation_strength=conn.neuromodulation_strength,
+        )
 
 class SonataConfig:
     __slots__ = (
