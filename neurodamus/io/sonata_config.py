@@ -15,6 +15,21 @@ class ConnectionTypes(str, Enum):
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
 
+class ConnectionOverride:
+    """Python-side mutable version of SimulationConfig.ConnectionOverride."""
+
+    def __init__(self, conn: libsonata._libsonata.SimulationConfig.ConnectionOverride):
+        self.name = conn.name
+        self.source = conn.source
+        self.destination = conn.target
+        self.weight = conn.weight
+        self.spont_minis = conn.spont_minis
+        self.synapse_configure = conn.synapse_configure
+        self.modoverride = conn.modoverride
+        self.synapse_delay_override = conn.synapse_delay_override
+        self.delay = conn.delay
+        self.neuromodulation_dtc = conn.neuromodulation_dtc
+        self.neuromodulation_strength = conn.neuromodulation_strength
 
 class SonataConfig:
     __slots__ = (
@@ -273,18 +288,22 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        item_translation = {
-            "target": "Destination",
-            "modoverride": "ModOverride",
-            "synapse_delay_override": "SynDelayOverride",
-            "neuromodulation_dtc": "NeuromodDtc",
-            "neuromodulation_strength": "NeuromodStrength",
-        }
-        connects = {
-            libsonata_conn.name: self._translate_dict(item_translation, libsonata_conn)
+        # item_translation = {
+        #     "target": "Destination",
+        #     "modoverride": "ModOverride",
+        #     "synapse_delay_override": "SynDelayOverride",
+        #     "neuromodulation_dtc": "NeuromodDtc",
+        #     "neuromodulation_strength": "NeuromodStrength",
+        # }
+        # connects = {
+        #     libsonata_conn.name: self._translate_dict(item_translation, libsonata_conn)
+        #     for libsonata_conn in self._sim_conf.connection_overrides()
+        # }
+        # return connects
+        return {
+            libsonata_conn.name: ConnectionOverride(libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
-        return connects
 
     @property
     def parsedStimuli(self) -> list:

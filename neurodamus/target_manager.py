@@ -267,8 +267,13 @@ class TargetManager:
         return t1.intersects(t2)  # Otherwise go with full gid intersection
 
     def pathways_overlap(self, conn1, conn2, equal_only=False):
-        src1, dst1 = conn1["Source"], conn1["Destination"]
-        src2, dst2 = conn2["Source"], conn2["Destination"]
+        src1, dst1 = conn1.source, conn1.destination
+
+        # for simplicity, conn2 can also be a dict
+        if isinstance(conn2, dict):
+            src2, dst2 = conn2["source"], conn2["destination"]
+        else:
+            src2, dst2 = conn2.source, conn2.destination
 
         if isinstance(src1, str):
             src1 = TargetSpec(src1, None)

@@ -379,18 +379,18 @@ class _SimConfig:
             logging.warning("Disabling SynConfigure (restrict_features)")
 
         def update_item(conn, item):
-            src_spec = TargetSpec(conn.get(item), None)
+            src_spec = TargetSpec(getattr(conn, item), None)
             src_spec.population = alias.get(src_spec.population, src_spec.population)
-            conn[item] = str(src_spec)
+            setattr(conn, item, str(src_spec))
 
         new_connections = {}
         for name, conn in cls.connections.items():
-            update_item(conn, "Source")
-            update_item(conn, "Destination")
+            update_item(conn, "source")
+            update_item(conn, "destination")
             if Feature.SpontMinis not in restrict_features:
-                conn.pop("SpontMinis", None)
+                conn.spont_minis = None
             if Feature.SynConfigure not in restrict_features:
-                conn.pop("SynapseConfigure", None)
+                conn.synapse_configure = None
 
             new_connections[name] = conn
 
@@ -1066,7 +1066,9 @@ class _ConnCtx:
 
 def _get_syn_config_vars(conn_ctx: _ConnCtx, config_assignment: re.Pattern[str]) -> list[str]:
     """Return the list of synapse configuration variables from SynapseConfigure field."""
-    return [var for var, _ in config_assignment.findall(conn_ctx.conf.get("SynapseConfigure", ""))]
+    if conn_ctx.conf.synapse_configure is not None:
+        return [var for var, _ in config_assignment.findall(conn_ctx.conf.synapse_configure)]
+    return []
 
 
 def _get_overlapping_connection_pathway(
@@ -1088,14 +1090,14 @@ def _build_override_chains(
 ) -> None:
     """Phase 1: Process t=0 connections, build override chains and collect global variables."""
     for conn_ctx in all_conn_blocks:
-        if float(conn_ctx.conf.get("Delay", 0)) > 0:
+        if conn_ctx.conf.delay > 0:
             continue
 
         for var in _get_syn_config_vars(conn_ctx, config_assignment):
             if not var.startswith("%s"):
-                conn_configure_global_vars[conn_ctx.conf["Name"]].append(var)
+                conn_configure_global_vars[conn_ctx.conf.name].append(var)
 
-        if float(conn_ctx.conf.get("Weight", 1)) == 0:
+        if conn_ctx.conf.weight == 0:
             zero_weight_conns.append(conn_ctx)
 
         for overridden_conn in _get_overlapping_connection_pathway(
@@ -1116,7 +1118,7 @@ def _process_delayed_connections(
 ) -> None:
     """Phase 2: Process delayed connections (Delay>0) overriding t=0 weight=0 blocks."""
     for conn_ctx in all_conn_blocks:
-        if float(conn_ctx.conf.get("Delay", 0)) == 0:
+        if conn_ctx.conf.delay == 0:
             continue
         is_overriding = False
         for base_conn in _get_overlapping_connection_pathway(
@@ -1130,7 +1132,7 @@ def _process_delayed_connections(
         if not is_overriding:
             logging.warning(
                 "Delayed connection %s is not overriding any weight=0 Connection",
-                conn_ctx.conf["Name"],
+                conn_ctx.conf.name,
             )
 
 
@@ -1140,16 +1142,16 @@ def _display_override_chains(
     """Phase 3a: Display override chains for debugging purposes."""
     for conn_ctx in reversed(processed_conn_blocks):
         if conn_ctx.override and not conn_ctx.visited:
-            logging.warning("Connection %s takes part in overriding chain:", conn_ctx.conf["Name"])
+            logging.warning("Connection %s takes part in overriding chain:", conn_ctx.conf.name)
             current = conn_ctx
             while current:
                 logging.info(
                     " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
                     "(base)" if not current.override else " ^",
-                    f"{current.conf['Name']}  ",
-                    f"{current.conf['Source']} -> {current.conf['Destination']}",
-                    current.conf.get("Weight", "-"),
-                    current.conf.get("SpontMinis", "-"),
+                    f"{current.conf.name}  ",
+                    f"{current.conf.source} -> {current.conf.destination}",
+                    current.conf.weight if not None else "-",
+                    current.conf.spont_minis if not None else "-",
                     ", ".join(_get_syn_config_vars(current, config_assignment)),
                 )
                 if current.visited:
@@ -1188,7 +1190,7 @@ def _check_weight0_overrides(zero_weight_conns: list[_ConnCtx]) -> None:
             "thus won't be instantiated:"
         )
         for conn in not_overridden_weight_0:
-            logging.warning(" -> %s", conn.conf["Name"])
+            logging.warning(" -> %s", conn.conf.name)
     else:
         logging.info(" => CHECK No single Weight=0 blocks!")
 

@@ -675,8 +675,8 @@ class Node:
             manager.create_connections()
 
     def _process_connection_configure(self, conn_conf):
-        source_t = TargetSpec(conn_conf["Source"], None)
-        dest_t = TargetSpec(conn_conf["Destination"], None)
+        source_t = TargetSpec(conn_conf.source, None)
+        dest_t = TargetSpec(conn_conf.destination, None)
         source_t.population, dest_t.population = self._circuits.unalias_pop_keys(
             source_t.population, dest_t.population
         )
