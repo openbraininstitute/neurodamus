@@ -842,18 +842,18 @@ class SpatiallyUniformEField(BaseStim):
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
         # Skip if already initialized
         if self._initialized:
-            self._add_new_stimuli(target_points, stim_info, cell_manager)
+            self.add_new_stimuli(target_points, stim_info, cell_manager)
             return
 
         super().__init__(target_points, stim_info, cell_manager)
 
         self.stimList = {}  # Extracellular fields go here
 
-        self._add_new_stimuli(target_points, stim_info, cell_manager)
+        self.add_new_stimuli(target_points, stim_info, cell_manager)
 
         self._initialized = True
 
-    def _add_new_stimuli(self, target_points, stim_info, cell_manager):
+    def add_new_stimuli(self, target_points, stim_info, cell_manager):
         self.parse_check_all_parameters(stim_info)
 
         # apply stim to each point in target_points
@@ -894,33 +894,59 @@ class SpatiallyUniformEField(BaseStim):
                     if "soma" not in sc.sec.name()
                     else soma_global_position
                 )
-                es.attach_to(sc.sec, target_point_list.x[sec_id], inject_position=segment_position)
+                es.compute_signals(inject_position=segment_position)
                 segment = sc.sec(target_point_list.x[sec_id])
 
                 # Consolidate with existing stimuli
                 if segment in self.stimList:
                     # Combine with existing
                     existing_es = self.stimList[segment]
-                    combined_time, combined_stim = self._combine_stimuli(existing_es, es)
+                    combined_time, combined_stim = self.combine_stimuli(
+                        existing_es.time_vec, existing_es.stim_vec, es.time_vec, es.stim_vec
+                    )
                     existing_es.time_vec = Nd.h.Vector(combined_time)
                     existing_es.stim_vec = Nd.h.Vector(combined_stim)
-                    # update _cur_t for adding the last point
-                    existing_es._cur_t = combined_time[-1]
                 else:
                     # Add new stimulus
                     self.stimList[segment] = es
 
     @staticmethod
-    def _combine_stimuli(es1, es2):
-        t1_vec = es1.time_vec.as_numpy()
-        stim1_vec = es1.stim_vec.as_numpy()
-        t2_vec = es2.time_vec.as_numpy()
-        stim2_vec = es2.stim_vec.as_numpy()
-        combined_time_vec = np.array(sorted(set(t1_vec) | set(t2_vec)))
-        lookup = dict(zip(t1_vec, stim1_vec, strict=True))
-        combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-        lookup = dict(zip(t2_vec, stim2_vec, strict=True))
-        combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+    def combine_stimuli(time1_vec, stim1_vec, time2_vec, stim2_vec):
+        t1_vec = time1_vec.as_numpy()
+        stim1_vec = stim1_vec.as_numpy()
+        t2_vec = time2_vec.as_numpy()
+        stim2_vec = stim2_vec.as_numpy()
+
+        def ranges_overlap(t1, t2):
+            """Check if two time ranges overlap."""
+            t1_min, t1_max = t1[0], t1[-1]
+            t2_min, t2_max = t2[0], t2[-1]
+            return not (t1_max < t2_min or t2_max < t1_min)
+
+        if ranges_overlap(t1_vec, t2_vec):
+            last_t1, t1_vec = t1_vec[-1], t1_vec[:-1]
+            last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
+
+            last_t2, t2_vec = t2_vec[-1], t2_vec[:-1]
+            last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
+
+            combined_time_vec = np.union1d(t1_vec, t2_vec)
+            lookup = dict(zip(t1_vec, stim1_vec, strict=True))
+            combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+            lookup = dict(zip(t2_vec, stim2_vec, strict=True))
+            combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+
+            last_t = max(last_t1, last_t2)
+            last_amp = last_s1 if last_t1 > last_t2 else last_s2
+            combined_time_vec = np.append(combined_time_vec, last_t)
+            combined_stim_vec = np.append(combined_stim_vec, last_amp)
+        elif t1_vec[-1] < t2_vec[0]:
+            combined_time_vec = np.append(t1_vec, t2_vec)
+            combined_stim_vec = np.append(stim1_vec, stim2_vec)
+        else:
+            combined_time_vec = np.append(t2_vec, t1_vec)
+            combined_stim_vec = np.append(stim2_vec, stim1_vec)
+
         return combined_time_vec, combined_stim_vec
 
     @classmethod
@@ -930,8 +956,6 @@ class SpatiallyUniformEField(BaseStim):
             for segment, es in cls._instance.stimList.items():
                 section = segment.sec
                 section.insert("extracellular")
-                # add last point with amp = 0
-                es._add_point(0.0)
                 es.stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
                 # print(f"{segment}, {es.stim_vec.as_numpy()} {es.time_vec.as_numpy()}")
 

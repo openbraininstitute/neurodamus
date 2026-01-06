@@ -773,7 +773,7 @@ class Node:
             )
             self._stim_manager.interpret(target_spec, stim)
         if SimConfig.has_extracellular_stimulus:
-            logging.info(" Consolidate all extracelluar stimuli")
+            logging.info(" Apply extracelluar stimuli")
             SpatiallyUniformEField.apply_all_stimuli()
 
     # -

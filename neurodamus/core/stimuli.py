@@ -534,18 +534,14 @@ class ElectrodeSource(SignalSource):
 
         return res
 
-    def attach_to(self, section, x, inject_position):
+    def compute_signals(self, inject_position):
         signals = self.add_cosines()
         amplitudes = self.uniform_potentials(inject_position)
         # scale each signal by amplitude, and sum together to get the final stim_vec
         stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
         self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
-        # self._add_point(self._base_amp)  # Last point
-
-        # section.insert("extracellular")
-        # seg = section(x)
-        # self.stim_vec.play(seg.extracellular._ref_e, self.time_vec, 1)
+        self._add_point(self._base_amp)  # Last point
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
