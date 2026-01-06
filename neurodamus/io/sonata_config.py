@@ -3,8 +3,8 @@
 import json
 import logging
 import os.path
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 import libsonata
 
@@ -51,6 +51,7 @@ class ConnectionOverride:
             neuromodulation_dtc=conn.neuromodulation_dtc,
             neuromodulation_strength=conn.neuromodulation_strength,
         )
+
 
 class SonataConfig:
     __slots__ = (
