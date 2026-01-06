@@ -322,7 +322,7 @@ class SonataConfig:
         # }
         # return connects
         return {
-            libsonata_conn.name: ConnectionOverride(libsonata_conn)
+            libsonata_conn.name: ConnectionOverride.from_libsonata(libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
 
