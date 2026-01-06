@@ -21,6 +21,12 @@ def test_parse_base():
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
+            "run": {
+                "stimulus_seed": 42,
+                "ionchannel_seed": 43,
+                "minis_seed": 44,
+                "synapse_seed": 45,
+            },
             "conditions": {
                 "extracellular_calcium": 1.2,
             }
@@ -31,6 +37,10 @@ def test_parse_run(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
     # RNGSettings in hoc correctly initialized from Sonata
     assert SimConfig.rng_info.getGlobalSeed() == 1122
+    assert SimConfig.rng_info.getStimulusSeed() == 42
+    assert SimConfig.rng_info.getIonChannelSeed() == 43
+    assert SimConfig.rng_info.getMinisSeed() == 44
+    assert SimConfig.rng_info.getSynapseSeed() == 45
 
     expected_conf = {
         "PopulationName": None,
