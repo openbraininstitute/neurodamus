@@ -26,7 +26,6 @@ external ionchannelSeed, synapseSeed, stimulusSeed, minisSeed, globalSeed, termi
  * $2  coreNeuronUsed: When simulating with CoreNeuron (default: false)
  */
 proc interpret() { local coreNeuronUsed localobj runInfo, rng
-    strdef rngModeField
     runInfo = $o1
     coreNeuronUsed = $2
     if (numarg() < 2) {
@@ -38,7 +37,7 @@ proc interpret() { local coreNeuronUsed localobj runInfo, rng
         rng = new Random()
         rng.Random123_globalindex( globalSeed )
     }
-    
+
     if( runInfo.__contains__("IonChannelSeed") ) {
         ionchannelSeed = runInfo.get("IonChannelSeed")
     }
