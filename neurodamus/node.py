@@ -59,7 +59,7 @@ from .gap_junction import GapJunctionManager
 from .io.sonata_config import ConnectionTypes
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
-from .replay import MissingSpikesPopulationError, SpikeManager
+from .replay import SpikeManager
 from .report import create_report
 from .report_parameters import (
     CompartmentType,
@@ -795,7 +795,6 @@ class Node:
             if stim.get("Pattern") != "SynapseReplay":
                 continue
             target = stim["Target"]
-            source = stim.get("Source")
             stim_name = stim["Name"]
 
             #  - delay: Spike replays are suppressed until a certain time
@@ -806,29 +805,20 @@ class Node:
                 target,
                 delay,
             )
-            self._enable_replay(source, target, stim, delay=delay)
+            self._enable_replay(target, stim, delay=delay)
 
-    # -
-    def _enable_replay(
-        self, source, target, stim_conf, tshift=0.0, delay=0.0, connectivity_type=None
-    ):
+    def _enable_replay(self, target, stim_conf, tshift=0.0, delay=0.0, connectivity_type=None):
         ptype_cls = EngineBase.connection_types.get(connectivity_type)
-        src_target = self.target_manager.get_target(source)
         dst_target = self.target_manager.get_target(target)
 
         if SimConfig.restore_coreneuron:
             pop_offsets, alias_pop, _virtual_pop_offsets = CircuitManager.read_population_offsets()
 
-        for src_pop in src_target.population_names:
-            try:
-                log_verbose("Loading replay spikes for population '%s'", src_pop)
-                spike_manager = SpikeManager(stim_conf["SpikeFile"], tshift, src_pop)  # Disposable
-            except MissingSpikesPopulationError:
-                logging.info("  > No replay for src population: '%s'", src_pop)
-                continue
+        for src_pop in libsonata.SpikeReader(stim_conf["SpikeFile"]).get_population_names():
+            spike_manager = SpikeManager(stim_conf["SpikeFile"], tshift, src_pop)  # Disposable
 
             for dst_pop in dst_target.population_names:
-                src_pop_str, dst_pop_str = src_pop or "(base)", dst_pop or "(base)"
+                dst_pop_str = dst_pop or "(base)"
 
                 if SimConfig.restore_coreneuron:  # Node and Edges managers not initialized
                     src_pop_offset = (
@@ -840,18 +830,17 @@ class Node:
                     conn_manager = self._circuits.get_edge_manager(src_pop, dst_pop, ptype_cls)
                     if not conn_manager and SimConfig.cli_options.restrict_connectivity >= 1:
                         continue
-                    assert conn_manager, f"Missing edge manager for {src_pop_str} -> {dst_pop_str}"
+                    assert conn_manager, f"Missing edge manager for {src_pop} -> {dst_pop_str}"
                     src_pop_offset = conn_manager.src_pop_offset
 
                 logging.info(
                     "=> Population pathway %s -> %s. Source offset: %d",
-                    src_pop_str,
+                    src_pop,
                     dst_pop_str,
                     src_pop_offset,
                 )
-                conn_manager.replay(spike_manager, source, target, delay)
+                conn_manager.replay(spike_manager, None, target, delay)
 
-    # -
     @mpi_no_errors
     @timeit(name="Enable Modifications")
     def enable_modifications(self):
