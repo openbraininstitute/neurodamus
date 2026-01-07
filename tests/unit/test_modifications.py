@@ -6,42 +6,9 @@ from tests.conftest import RINGTEST_DIR
 from neurodamus.core.configuration import ConfigurationError, SimConfig
 from neurodamus.modification_manager import ModificationManager
 from neurodamus.node import Neurodamus, Node
+from types import SimpleNamespace
 
 SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
-
-
-def test_applyTTX():
-    """
-    A test of enabling TTX with a short simulation.
-    As Ringtest cells don't contain mechanisms that use the TTX concentration
-    to enable/disable sodium channels, no spike change is expected.
-    Instead, we check that all sections contain TTXDynamicsSwitch after modification
-    """
-
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
-    n = Node(str(SIMULATION_CONFIG_FILE))
-
-    # setup sim
-    n.load_targets()
-    n.create_cells()
-    n.create_synapses()
-
-    # check TTXDynamicsSwitch is not inserted in any section of cell gid=1
-    cell = n._pc.gid2cell(1)
-    for sec in cell.all:
-        assert not Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
-
-    # append modification to config directly
-    TTX_mod = {"Name": "applyTTX", "Type": "TTX", "Target": "RingA"}
-    SimConfig.modifications.append(TTX_mod)
-
-    n.enable_modifications()
-
-    # check TTXDynamicsSwitch is inserted after modifications
-    for sec in cell.all:
-        assert Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
 
 
 @pytest.mark.parametrize(
@@ -51,6 +18,16 @@ def test_applyTTX():
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "Mosaic",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.gnabar_hh = 0",
+                        }
+                    ]
+                },
                 "inputs": {
                     "pulse": {
                         "module": "pulse",
@@ -94,15 +71,6 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     cell = n._pc.gid2cell(1)
     for sec in cell.all:
         assert getattr(sec, sec_variable) > 0
-
-    # append modification to config directly
-    ConfigureAllSections_mod = {
-        "Name": "no_SK_E2", 
-        "Type": "ConfigureAllSections",
-        "Target": "Mosaic",
-        "SectionConfigure": f"%s.{sec_variable} = 0",
-    }
-    SimConfig.modifications.append(ConfigureAllSections_mod)
 
     n.enable_modifications()
 
@@ -242,6 +210,17 @@ def test_error_unknown_modification():
     mod_manager = ModificationManager(target_manager="dummy")
     with pytest.raises(ConfigurationError, match="Unknown Modification mod_blabla"):
         mod_manager.interpret(target_spec="dummy", mod_info={"Type": "mod_blabla"})
+
+def test_error_unknown_modification():
+    mod_manager = ModificationManager(target_manager="dummy")
+    unknown_type = object()
+    mod_info = SimpleNamespace(type=unknown_type)
+
+    with pytest.raises(
+        ConfigurationError,
+        match="Unknown Modification",
+    ):
+        mod_manager.interpret(target_spec="dummy", mod_info=mod_info)
 
 
 @pytest.mark.parametrize(

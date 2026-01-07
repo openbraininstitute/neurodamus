@@ -22,6 +22,8 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 import ast
 import logging
 
+import libsonata
+
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .utils.logging import log_verbose
@@ -40,10 +42,10 @@ class ModificationManager:
         self._modifications = []
 
     def interpret(self, target_spec, mod_info):
-        mod_t_name = mod_info["Type"]
-        mod_t = self._mod_types.get(mod_t_name)
+        mod_t = self._mod_types.get(mod_info.type)
+
         if not mod_t:
-            raise ConfigurationError(f"Unknown Modification {mod_t_name}")
+            raise ConfigurationError(f"Unknown Modification {mod_info.type}")
         target = self._target_manager.get_target(target_spec)
         cell_manager = self._target_manager._cell_manager
         mod = mod_t(target, mod_info, cell_manager)
@@ -51,8 +53,11 @@ class ModificationManager:
 
     @classmethod
     def register_type(cls, mod_class):
-        """Registers a new class as a handler for a new modification type"""
-        cls._mod_types[mod_class.__name__] = mod_class
+        if not hasattr(mod_class, "MOD_TYPE"):
+            raise TypeError(
+                f"{mod_class.__name__} must define MOD_TYPE (ModificationType)"
+            )
+        cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
 
@@ -63,9 +68,15 @@ class TTX:
     Uses TTXDynamicsSwitch as in BGLibPy. Overrides HOC version, which is outdated
     """
 
-    def __init__(self, target, mod_info: dict, cell_manager):
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.TTX
+
+    def __init__(
+        self, target, mod_info: libsonata.SimulationConfig.ModificationTTX, cell_manager
+    ):
         tpoints = target.get_point_list(
-            cell_manager, section_type=SectionType.ALL, compartment_type=CompartmentType.ALL
+            cell_manager,
+            section_type=SectionType.ALL,
+            compartment_type=CompartmentType.ALL,
         )
 
         # insert and activate TTX mechanism in all sections of each cell in target
@@ -87,10 +98,21 @@ class ConfigureAllSections:
     Use case is modifying mechanism variables from config.
     """
 
-    def __init__(self, target, mod_info: dict, cell_manager):
-        config, config_attrs = self.parse_section_config(mod_info["SectionConfigure"])
+    MOD_TYPE = (
+        libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
+    )
+
+    def __init__(
+        self,
+        target,
+        mod_info: libsonata.SimulationConfig.ModificationConfigureAllSections,
+        cell_manager,
+    ):
+        config, config_attrs = self.parse_section_config(mod_info.section_configure)
         tpoints = target.get_point_list(
-            cell_manager, section_type=SectionType.ALL, compartment_type=CompartmentType.ALL
+            cell_manager,
+            section_type=SectionType.ALL,
+            compartment_type=CompartmentType.ALL,
         )
 
         napply = 0  # number of sections where config applies
@@ -121,13 +143,18 @@ class ConfigureAllSections:
             # check assignment targets
             for tgt in self.assignment_targets(elem):
                 # must be single assignment of a __sec_wildcard__ attribute
-                if not isinstance(tgt, ast.Attribute) or tgt.value.id != "__sec_wildcard__":
+                if (
+                    not isinstance(tgt, ast.Attribute)
+                    or tgt.value.id != "__sec_wildcard__"
+                ):
                     raise ConfigurationError(
                         "SectionConfigure only supports single assignments "
                         "of attributes of the section wildcard %s"
                     )
             all_attrs.visit(elem)  # collect attributes in assignment
-        config = config.replace("__sec_wildcard__.", "sec.")  # placeholder to section variable
+        config = config.replace(
+            "__sec_wildcard__.", "sec."
+        )  # placeholder to section variable
 
         return config, all_attrs.attrs
 
