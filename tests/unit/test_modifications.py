@@ -1,15 +1,10 @@
 import numpy as np
 import pytest
 
-from tests.conftest import RINGTEST_DIR
-
-from neurodamus.core.configuration import ConfigurationError, SimConfig
+from neurodamus.core.configuration import ConfigurationError
 from neurodamus.modification_manager import ModificationManager
 from neurodamus.node import Neurodamus, Node
 from types import SimpleNamespace
-
-SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
-
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",

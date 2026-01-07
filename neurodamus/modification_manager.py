@@ -54,9 +54,7 @@ class ModificationManager:
     @classmethod
     def register_type(cls, mod_class):
         if not hasattr(mod_class, "MOD_TYPE"):
-            raise TypeError(
-                f"{mod_class.__name__} must define MOD_TYPE (ModificationType)"
-            )
+            raise TypeError(f"{mod_class.__name__} must define MOD_TYPE (ModificationType)")
         cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
@@ -70,9 +68,7 @@ class TTX:
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.TTX
 
-    def __init__(
-        self, target, mod_info: libsonata.SimulationConfig.ModificationTTX, cell_manager
-    ):
+    def __init__(self, target, mod_info: libsonata.SimulationConfig.ModificationTTX, cell_manager):
         tpoints = target.get_point_list(
             cell_manager,
             section_type=SectionType.ALL,
@@ -98,9 +94,7 @@ class ConfigureAllSections:
     Use case is modifying mechanism variables from config.
     """
 
-    MOD_TYPE = (
-        libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
-    )
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
 
     def __init__(
         self,
@@ -143,18 +137,13 @@ class ConfigureAllSections:
             # check assignment targets
             for tgt in self.assignment_targets(elem):
                 # must be single assignment of a __sec_wildcard__ attribute
-                if (
-                    not isinstance(tgt, ast.Attribute)
-                    or tgt.value.id != "__sec_wildcard__"
-                ):
+                if not isinstance(tgt, ast.Attribute) or tgt.value.id != "__sec_wildcard__":
                     raise ConfigurationError(
                         "SectionConfigure only supports single assignments "
                         "of attributes of the section wildcard %s"
                     )
             all_attrs.visit(elem)  # collect attributes in assignment
-        config = config.replace(
-            "__sec_wildcard__.", "sec."
-        )  # placeholder to section variable
+        config = config.replace("__sec_wildcard__.", "sec.")  # placeholder to section variable
 
         return config, all_attrs.attrs
 
