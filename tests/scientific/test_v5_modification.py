@@ -31,8 +31,8 @@ def test_TTX_modification():
     nspike_noTTX = sum(len(spikes) for spikes, _ in n._spike_vecs)
 
     # append modification to config directly
-    TTX_mod = {"Type": "TTX", "Target": "Mini5"}
-    SimConfig.modifications["applyTTX"] = TTX_mod
+    TTX_mod = {"Name": "applyTTX", "Type": "TTX", "Target": "Mini5"}
+    SimConfig.modifications.append(TTX_mod)
 
     # setup sim again
     Nd.t = 0.0
@@ -71,10 +71,10 @@ def test_ConfigureAllSections_modification():
     nspike_noConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
 
     # append modification to config directly
-    ConfigureAllSections_mod = {"Type": "ConfigureAllSections",
+    ConfigureAllSections_mod = {"Name": "no_SK_E2", "Type": "ConfigureAllSections",
                                 "Target": "Mini5",
                                 "SectionConfigure": "%s.gSK_E2bar_SK_E2 = 0"}
-    SimConfig.modifications["no_SK_E2"] = ConfigureAllSections_mod
+    SimConfig.modifications.append(ConfigureAllSections_mod)
 
     # setup sim again
     Nd.t = 0.0

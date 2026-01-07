@@ -154,11 +154,11 @@ def test_parse_seeds(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_parse_modifications(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
-    assert list(SimConfig.modifications.keys()) == ["no_SK_E2", "applyTTX"]  # order preserved
-    TTX_mod = SimConfig.modifications["applyTTX"]
+    assert list(mod["Name"] for mod in SimConfig.modifications) == ["no_SK_E2", "applyTTX"]  # order preserved
+    TTX_mod = SimConfig.modifications[1]
     assert TTX_mod["Type"] == "TTX"
     assert TTX_mod["Target"] == "single"
-    ConfigureAllSections_mod = SimConfig.modifications["no_SK_E2"]
+    ConfigureAllSections_mod = SimConfig.modifications[0]
     ConfigureAllSections_mod["Type"] = "ConfigureAllSections"
     ConfigureAllSections_mod["Target"] = "single"
     ConfigureAllSections_mod["SectionConfigure"] = "%s.gSK_E2bar_SK_E2 = 0"

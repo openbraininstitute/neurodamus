@@ -356,11 +356,11 @@ class SonataConfig:
     @property
     def parsedModifications(self):
         item_translation = {"node_set": "Target"}
-        result = {}
+        result = []
         for modification in self._sim_conf.conditions.modifications():
             setting = self._translate_dict(item_translation, modification)
             self._adapt_libsonata_fields(setting)
-            result[modification.name] = setting
+            result.append(setting)
 
         return result
 

@@ -864,9 +864,9 @@ class Node:
         log_stage("Enabling modifications...")
 
         mod_manager = ModificationManager(self._target_manager)
-        for name, mod_info in SimConfig.modifications.items():
+        for mod_info in SimConfig.modifications:
             target_spec = TargetSpec(mod_info["Target"], None)
-            logging.info(" * [MOD] %s: %s -> %s", name, mod_info["Type"], target_spec)
+            logging.info(" * [MOD] %s: %s -> %s", mod_info["Name"], mod_info["Type"], target_spec)
             mod_manager.interpret(target_spec, mod_info)
 
     def write_and_get_population_offsets(self) -> tuple[dict, dict, dict]:
