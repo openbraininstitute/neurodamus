@@ -317,7 +317,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
 
         rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
 
-        if rep_params.type != SimulationConfig.Report.Type.COMPARTMENT:
+        if rep_params.type != SimulationConfig.Report.Type.compartment:
             continue
 
         tvec = Nd.Vector()
@@ -325,7 +325,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
 
         sections, compartments = rep_params.sections, rep_params.compartments
         if rep_params.type == SimulationConfig.Report.Type.summation and sections == SimulationConfig.Report.Sections.soma:
-            sections, compartments = SimulationConfig.Report.Sections.ALL, SimulationConfig.Report.Compartments.ALL
+            sections, compartments = SimulationConfig.Report.Sections.all, SimulationConfig.Report.Compartments.all
         points = rep_params.target.get_point_list(
             cell_manager=target_manager._cell_manager, section_type=sections, compartment_type=compartments
         )

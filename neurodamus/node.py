@@ -1029,7 +1029,7 @@ class Node:
         else:
             sections, compartments = rep_params.sections, rep_params.compartments
             if rep_params.type == libsonata.SimulationConfig.Report.Type.summation and sections == libsonata.SimulationConfig.Report.Sections.soma:
-                sections, compartments = libsonata.SimulationConfig.Report.Sections.ALL, libsonata.SimulationConfig.Report.Compartments.ALL
+                sections, compartments = libsonata.SimulationConfig.Report.Sections.all, libsonata.SimulationConfig.Report.Compartments.all
             rep_params.points = rep_params.target.get_point_list(
                 cell_manager=self._target_manager._cell_manager,
                 section_type=sections,

@@ -33,11 +33,6 @@ class Report:
 
 
         self.variables = self.parse_variable_names(params.report_on)
-
-        print(self.variables)
-        print(params.report_on)
-        assert False
-
         self.report_dt = params.dt
         self.scaling = params.scaling
         self.use_coreneuron = use_coreneuron
@@ -122,7 +117,7 @@ class Report:
         :return: List of (mechanism, variable) tuples.
         """
         tokens_with_vars = []
-        tokens = report_on.split()  # Splitting by whitespace
+        tokens = (t.strip() for t in report_on.split(","))  # Splitting by ,
 
         for val in tokens:
             if "." in val:
