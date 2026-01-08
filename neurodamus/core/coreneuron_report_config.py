@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Union, get_args, get_origin, get_type_hints
 
 from ._utils import run_only_rank0
-from neurodamus.report_parameters import ReportType
+import libsonata
 
 
 @dataclass
@@ -144,19 +144,19 @@ class CoreReportConfigEntry:
         entry = cls(
             report_name=rep_params.name,
             target_name=rep_params.target.name,
-            report_type=rep_params.type.to_string(),
+            report_type=rep_params.type.name,
             report_variable=",".join(rep_params.report_on.split()),
             unit=rep_params.unit,
             report_format=rep_params.format,
-            sections=rep_params.sections.to_string(),
-            compartments=rep_params.compartments.to_string(),
+            sections=rep_params.sections.name,
+            compartments=rep_params.compartments.name,
             dt=rep_params.dt,
             start_time=rep_params.start,
             end_time=rep_params.end,
             buffer_size=rep_params.buffer_size,
-            scaling=rep_params.scaling.to_string(),
+            scaling=rep_params.scaling.name,
         )
-        if rep_params.type == ReportType.COMPARTMENT_SET:
+        if rep_params.type == libsonata.SimulationConfig.Report.Type.compartment_set:
             gids = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
             section_ids = [section_id for i in rep_params.points for section_id, _sec, _x in i]
             compartment_ids = [

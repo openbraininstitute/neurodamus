@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from libsonata import EdgeStorage, SpikeReader, ElementReportReader
+from libsonata import EdgeStorage, SpikeReader, ElementReportReader, SimulationConfig
 from scipy.signal import find_peaks
 from collections import defaultdict
 from collections.abc import Iterable
@@ -11,7 +11,7 @@ from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
-from neurodamus.report_parameters import create_report_parameters, CompartmentType, ReportType, SectionType
+from neurodamus.report_parameters import create_report_parameters
 
 from typing import List, Dict, Tuple
 import pandas as pd
@@ -309,23 +309,23 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     ascii_recorders = {}
 
 
-    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
+    reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
 
     for rep_name, rep_conf in reports_conf.items():
-        target_spec = TargetSpec(rep_conf["Target"], None)
+        target_spec = TargetSpec(rep_conf.cells, None)
         target = target_manager.get_target(target_spec)
 
         rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
 
-        if rep_params.type != ReportType.COMPARTMENT:
+        if rep_params.type != SimulationConfig.Report.Type.COMPARTMENT:
             continue
 
         tvec = Nd.Vector()
         tvec.indgen(rep_params.start, rep_params.end, rep_params.dt)
 
         sections, compartments = rep_params.sections, rep_params.compartments
-        if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
-            sections, compartments = SectionType.ALL, CompartmentType.ALL
+        if rep_params.type == SimulationConfig.Report.Type.summation and sections == SimulationConfig.Report.Sections.soma:
+            sections, compartments = SimulationConfig.Report.Sections.ALL, SimulationConfig.Report.Compartments.ALL
         points = rep_params.target.get_point_list(
             cell_manager=target_manager._cell_manager, section_type=sections, compartment_type=compartments
         )

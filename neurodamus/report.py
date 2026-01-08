@@ -1,8 +1,9 @@
 import logging
 
 from .core import NeuronWrapper as Nd
-from .report_parameters import ReportParameters, ReportType, Scaling, SectionType
+from .report_parameters import ReportParameters
 from .utils.pyutils import cache_errors
+import libsonata
 
 
 class Report:
@@ -48,7 +49,7 @@ class Report:
         Nd.BBSaveState().ignore(self.report)
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
     ):
         """Abstract method to be implemented by subclasses to add section-level report data.
 
@@ -177,7 +178,7 @@ class Report:
         if mechanism in self.CURRENT_INJECTING_PROCESSES:
             return -1.0  # Negative for current injecting processes
 
-        if mechanism != "i_membrane_" and self.scaling == Scaling.AREA:
+        if mechanism != "i_membrane_" and self.scaling == libsonata.SimulationConfig.Report.Scaling.area:
             return section(x).area() / 100.0
 
         return 1.0
@@ -202,7 +203,7 @@ class CompartmentReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sections: SectionType
+        self, cell_obj, point, vgid, pop_name, pop_offset, _sections: libsonata.SimulationConfig.Report.Sections
     ):
         """Append section-based report data for a single cell and its compartments.
 
@@ -249,7 +250,7 @@ class SummationReport(Report):
     """
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
     ):
         """Append summed variable data for a given cell across sections.
 
@@ -260,7 +261,7 @@ class SummationReport(Report):
         :param pop_offset: Population GID offset.
         :param sections: Sum into soma if section is soma
 
-        Note: sections == SectionType.SOMA effectively means that we need
+        Note: sections == libsonata.SimulationConfig.Report.Sections.soma effectively means that we need
         to sum the values into the soma
         """
         if self.use_coreneuron:
@@ -270,21 +271,21 @@ class SummationReport(Report):
 
         self.report.AddNode(gid, pop_name, pop_offset)
 
-        if sections == SectionType.SOMA:
+        if sections == libsonata.SimulationConfig.Report.Sections.soma:
             alu_helper = self.setup_alu_for_summation(0.5)
 
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            if sections == SectionType.ALL:
+            if sections == libsonata.SimulationConfig.Report.Sections.all:
                 alu_helper = self.setup_alu_for_summation(x)
 
             self.process_mechanisms(section, x, alu_helper)
 
-            if sections == SectionType.ALL:
+            if sections == libsonata.SimulationConfig.Report.Sections.all:
                 section_index = cell_obj.get_section_id(section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
-        if sections == SectionType.SOMA:
+        if sections == libsonata.SimulationConfig.Report.Sections.soma:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
@@ -334,7 +335,7 @@ class SynapseReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
     ):
         """Append synapse variables for a given cell to the report grouped by gid."""
         gid = cell_obj.gid
@@ -374,11 +375,11 @@ class SynapseReport(Report):
 
 NOT_SUPPORTED = object()
 _report_classes = {
-    ReportType.COMPARTMENT: CompartmentReport,
-    ReportType.COMPARTMENT_SET: CompartmentReport,
-    ReportType.SUMMATION: SummationReport,
-    ReportType.SYNAPSE: SynapseReport,
-    ReportType.LFP: NOT_SUPPORTED,
+    libsonata.SimulationConfig.Report.Type.compartment: CompartmentReport,
+    libsonata.SimulationConfig.Report.Type.compartment_set: CompartmentReport,
+    libsonata.SimulationConfig.Report.Type.summation: SummationReport,
+    libsonata.SimulationConfig.Report.Type.synapse: SynapseReport,
+    libsonata.SimulationConfig.Report.Type.lfp: NOT_SUPPORTED,
 }
 
 
@@ -387,7 +388,7 @@ def create_report(params: ReportParameters, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
     cls = _report_classes.get(params.type)
     if cls is None:
-        raise ValueError(f"Unknown report type: {params.type.to_string()}")
+        raise ValueError(f"Unknown report type: {params.type.name}")
     if cls is NOT_SUPPORTED:
         return None
     return cls(params, use_coreneuron)

@@ -1,7 +1,6 @@
 from logging import config
 import pytest
 from neurodamus.core.coreneuron_report_config import CoreReportConfigEntry, CoreReportConfig
-from neurodamus.report_parameters import ReportParameters, ReportType, Scaling, SectionType, CompartmentType
 
 def test_init_positional_and_kwargs():
     # positional only

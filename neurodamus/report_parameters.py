@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .utils.pyutils import StrEnumBase, cache_errors
+import libsonata
+
+from .utils.pyutils import cache_errors
 
 if TYPE_CHECKING:
     from neurodamus.target_manager import TargetPointList
@@ -15,70 +17,9 @@ class ReportSetupError(Exception):
     pass
 
 
-class SectionType(StrEnumBase):
-    ALL = 0
-    SOMA = 1
-    AXON = 2
-    DEND = 3
-    APIC = 4
-    INVALID = 5
-
-    __mapping__ = [
-        ("all", ALL),
-        ("soma", SOMA),
-        ("axon", AXON),
-        ("dend", DEND),
-        ("apic", APIC),
-        ("invalid", INVALID),
-    ]
-    __default__ = SOMA
-    __invalid__ = INVALID
-
-
-class CompartmentType(StrEnumBase):
-    ALL = 0
-    CENTER = 1
-    INVALID = 2
-
-    __mapping__ = [
-        ("all", ALL),
-        ("center", CENTER),
-        ("invalid", INVALID),
-    ]
-    __default__ = CENTER
-    __invalid__ = INVALID
-
-
-class Scaling(StrEnumBase):
-    NONE = 0
-    AREA = 1
-
-    __mapping__ = [
-        ("none", NONE),
-        ("area", AREA),
-    ]
-    __default__ = AREA
-
-
-class ReportType(StrEnumBase):
-    COMPARTMENT = 0
-    COMPARTMENT_SET = 1
-    SUMMATION = 2
-    SYNAPSE = 3
-    LFP = 4
-
-    __mapping__ = [
-        ("compartment", COMPARTMENT),
-        ("compartment_set", COMPARTMENT_SET),
-        ("summation", SUMMATION),
-        ("synapse", SYNAPSE),
-        ("lfp", LFP),
-    ]
-
-
 @dataclass
 class ReportParameters:
-    type: ReportType
+    type: libsonata.SimulationConfig.Report.Type
     name: str
     report_on: str
     unit: str
@@ -88,12 +29,14 @@ class ReportParameters:
     end: float
     output_dir: str
     buffer_size: int
-    scaling: Scaling
+    scaling: libsonata.SimulationConfig.Report.Scaling
     target: object
-    sections: SectionType
-    compartments: CompartmentType
+    sections: libsonata.SimulationConfig.Report.Sections
+    compartments: libsonata.SimulationConfig.Report.Compartments
     compartment_set: str
-    points: list[TargetPointList] | None = None  # this is filled later with get_point_list
+    points: list[TargetPointList] | None = (
+        None  # this is filled later with get_point_list
+    )
 
 
 @cache_errors
@@ -114,7 +57,7 @@ def check_report_parameters(
             f"than simulation dt ({nd_dt})."
         )
 
-    if rep_params.type == ReportType.LFP and not lfp_active:
+    if rep_params.type == libsonata.SimulationConfig.Report.Type.lfp and not lfp_active:
         errors.append(
             "LFP report setup failed: electrodes file may be missing or "
             "simulator is not set to CoreNEURON."
@@ -125,42 +68,35 @@ def check_report_parameters(
 
 
 @cache_errors
-def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
-    """Create report parameters from configuration."""
-    start_time = rep_conf["StartTime"]
-    end_time = rep_conf.get("EndTime", sim_end)
-    rep_dt = rep_conf["Dt"]
-    rep_type = ReportType.from_string(rep_conf["Type"])
-    if nd_t > 0:
-        start_time += nd_t
-        end_time += nd_t
-    end_time = min(end_time, sim_end)
-
-    sections = SectionType.from_string(rep_conf.get("Sections"))
-    compartments = CompartmentType.from_string(rep_conf.get("Compartments"))
+def create_report_parameters(
+    sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size
+):
+    """Create report parameters from configuration and CLI"""
+    start_time = rep_conf.start_time + max(0, nd_t)
+    end_time = min(rep_conf.end_time + max(0, nd_t), sim_end)
 
     logging.info(
         " * %s (Type: %s, Target: %s, Dt: %f)",
         rep_name,
-        rep_type,
-        rep_conf["Target"],
-        rep_dt,
+        rep_conf.type,
+        rep_conf.cells,
+        rep_conf.dt,
     )
 
     return ReportParameters(
-        type=rep_type,
-        name=Path(rep_conf.get("FileName", rep_name)).name,
-        report_on=rep_conf["ReportOn"],
-        unit=rep_conf["Unit"],
-        format=rep_conf["Format"],
-        dt=rep_dt,
+        type=rep_conf.type,
+        name=Path(rep_conf.file_name).name,
+        report_on=rep_conf.variable_name,
+        unit=rep_conf.unit,
+        format="SONATA",
+        dt=rep_conf.dt,
         start=start_time,
         end=end_time,
         output_dir=output_root,
         buffer_size=buffer_size,
-        scaling=Scaling.from_string(rep_conf.get("Scaling")),
+        scaling=rep_conf.scaling,
         target=target,
-        sections=sections,
-        compartments=compartments,
-        compartment_set=rep_conf.get("CompartmentSet"),
+        sections=rep_conf.sections,
+        compartments=rep_conf.compartments,
+        compartment_set=rep_conf.compartment_set,
     )

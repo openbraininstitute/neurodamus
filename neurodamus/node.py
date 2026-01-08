@@ -62,12 +62,10 @@ from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
 from .report import create_report
 from .report_parameters import (
-    CompartmentType,
-    ReportType,
-    SectionType,
     check_report_parameters,
     create_report_parameters,
 )
+import libsonata
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
@@ -897,7 +895,7 @@ class Node:
         log_stage("Reports Enabling")
 
         # filter: only the enabled ones
-        reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf["Enabled"]}
+        reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
         self._report_list = []
 
         pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
@@ -920,7 +918,7 @@ class Node:
         cumulative_error = CumulativeError()
         for rep_name, rep_conf in reports_conf.items():
             cumulative_error.is_error_appended = False
-            target_spec = TargetSpec(rep_conf["Target"], None)
+            target_spec = TargetSpec(rep_conf.cells, None)
             target = self._target_manager.get_target(target_spec)
 
             # Build final config. On errors log, stop only after all reports processed
@@ -953,7 +951,7 @@ class Node:
             # for i_membrane
             if (
                 SimConfig.coreneuron_direct_mode and "i_membrane" in rep_params.report_on
-            ) or rep_params.type == ReportType.LFP:
+            ) or rep_params.type == libsonata.SimulationConfig.Report.Type.lfp:
                 Nd.cvode.use_fast_imem(1)
 
             has_gids = len(self._circuits.global_manager.get_final_gids()) > 0
@@ -968,7 +966,9 @@ class Node:
             )
             if cumulative_error.is_error_appended:
                 continue
-            self._set_point_list_in_rep_params(rep_params, cumulative_error=cumulative_error)
+            self._set_point_list_in_rep_params(rep_params, 
+                                               cumulative_error=cumulative_error
+                                               )
             if cumulative_error.is_error_appended:
                 continue
 
@@ -977,7 +977,7 @@ class Node:
                     CoreReportConfigEntry.from_report_params(rep_params=rep_params)
                 )
 
-            if not SimConfig.use_coreneuron or rep_params.type == ReportType.SYNAPSE:
+            if not SimConfig.use_coreneuron or rep_params.type == libsonata.SimulationConfig.Report.Type.synapse:
                 report.setup(
                     rep_params=rep_params,
                     global_manager=self._circuits.global_manager,
@@ -1019,7 +1019,7 @@ class Node:
 
         Returns: The target list of points
         """
-        if rep_params.type == ReportType.COMPARTMENT_SET:
+        if rep_params.type == libsonata.SimulationConfig.Report.Type.compartment_set:
             rep_params.points = rep_params.target.get_point_list_from_compartment_set(
                 cell_manager=self._target_manager._cell_manager,
                 compartment_set=self._target_manager.get_compartment_set(
@@ -1028,8 +1028,8 @@ class Node:
             )
         else:
             sections, compartments = rep_params.sections, rep_params.compartments
-            if rep_params.type == ReportType.SUMMATION and sections == SectionType.SOMA:
-                sections, compartments = SectionType.ALL, CompartmentType.ALL
+            if rep_params.type == libsonata.SimulationConfig.Report.Type.summation and sections == libsonata.SimulationConfig.Report.Sections.soma:
+                sections, compartments = libsonata.SimulationConfig.Report.Sections.ALL, libsonata.SimulationConfig.Report.Compartments.ALL
             rep_params.points = rep_params.target.get_point_list(
                 cell_manager=self._target_manager._cell_manager,
                 section_type=sections,
