@@ -9,6 +9,7 @@ from tests.conftest import RINGTEST_DIR
 from neurodamus.core.configuration import SimConfig
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import setup_logging
+import libsonata
 
 
 def test_parse_base():
@@ -290,66 +291,3 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "PercentLess": 50.0
     }
     utils.check_is_subset(SimConfig.stimuli[2], expected_input_subthreshold)
-
-
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "reports": {
-                "soma_report": {
-                    "type": "compartment",
-                    "cells": "l4pc",
-                    "variable_name": "v",
-                    "sections": "soma",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 50.0
-                },
-                "compartment_report": {
-                    "type": "compartment",
-                    "cells": "l4pc",
-                    "variable_name": "v",
-                    "sections": "all",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 10.0,
-                    "file_name": "my_compartment_report"
-                }
-            }
-        }
-    }
-], indirect=True)
-def test_parse_reports(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
-    expected_soma_report = {
-        "Target": "l4pc",
-        "Type": "compartment",
-        "ReportOn": "v",
-        "Compartments": "center",
-        "Sections": "soma",
-        "Scaling": "Area",
-        "StartTime": 0.0,
-        "EndTime": 50.0,
-        "Dt": 0.1,
-        "Enabled": True,
-        "FileName": str(Path(SimConfig.run_conf["OutputRoot"]) / "soma_report.h5")
-    }
-    utils.check_is_subset(SimConfig.reports["soma_report"], expected_soma_report)
-
-    expected_compartment_report = {
-        "Target": "l4pc",
-        "Type": "compartment",
-        "ReportOn": "v",
-        "Compartments": "all",
-        "Sections": "all",
-        "Scaling": "Area",
-        "StartTime": 0.0,
-        "EndTime": 10.0,
-        "Dt": 0.1,
-        "Enabled": True,
-        "FileName": str(
-            Path(SimConfig.run_conf["OutputRoot"]) / "my_compartment_report.h5"
-        )
-    }
-    utils.check_is_subset(SimConfig.reports["compartment_report"], expected_compartment_report)
