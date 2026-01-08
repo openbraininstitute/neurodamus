@@ -9,15 +9,17 @@ from .utils.pyutils import cache_errors
 
 class ReportManager:
     """Registry and factory for Report subclasses based on libsonata report types."""
-    
+
     _report_types = {}
 
     @classmethod
     def register_type(cls, report_type):
         """Decorator to register a Report subclass for a given report type."""
+
         def decorator(report_cls):
             cls._report_types[report_type] = report_cls
             return report_cls
+
         return decorator
 
     @classmethod
@@ -42,6 +44,7 @@ class ReportManager:
             raise ValueError(f"Unknown report type: {params.type.name}")
 
         return report_cls(params, use_coreneuron)
+
 
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
