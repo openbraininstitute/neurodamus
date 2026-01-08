@@ -79,6 +79,7 @@ def circuit_conf_bigcell():
         MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
+        PopulationName="RingA",
     )
 
 @pytest.fixture
@@ -93,6 +94,7 @@ def circuit_conf():
         MorphologyPath=circuit_base + "/morphologies/asc",
         nrnPath=False,  # no connectivity
         CircuitTarget="All",
+        PopulationName="RingA",
     )
 
 def test_load_balance_integrated(target_manager, circuit_conf):
