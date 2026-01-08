@@ -4,6 +4,8 @@ from pathlib import Path
 import libsonata
 import pytest
 
+from neurodamus.core.coreneuron_report_config import CoreReportConfig
+from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -39,8 +41,8 @@ def test_cli_prcellgid(create_tmp_simulation_config_file):
         ["neurodamus", create_tmp_simulation_config_file, "--dump-cell-state=1", "--keep-build"],
         check=True,
     )
-    assert (tmp_path / "output" / "2_py_Neuron_t0.0.nrndat").is_file()
-    assert (tmp_path / "output" / "2_py_Neuron_t50.0.nrndat").is_file()
+    assert (tmp_path / "output" / "1_py_Neuron_t0.0.nrndat").is_file()
+    assert (tmp_path / "output" / "1_py_Neuron_t50.0.nrndat").is_file()
 
 
 @pytest.mark.parametrize(
@@ -155,3 +157,87 @@ def test_cli_output_path(create_tmp_simulation_config_file):
         f"Directory '{simconfig_output_path}' should NOT exist."
     )
     assert (tmp_path / new_output).is_dir(), f"Directory '{new_output}' not found."
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "reports": {
+                "soma_v": {
+                    "type": "compartment",
+                    "variable_name": "v",
+                    "sections": "soma",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 40.0
+                }
+           },
+       }
+    }
+], indirect=True)
+def test_cli_report_buff_size(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64", "--keep-build"]
+    subprocess.run(command, check=True, capture_output=True)
+
+    report_confs = CoreReportConfig.load("build/report.conf")
+    assert report_confs.reports["soma_v.h5"].buffer_size == 64
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)              
+def test_cli_report_buff_invalid(create_tmp_simulation_config_file):
+    for value in [-64, 0]:
+        command = ["neurodamus", create_tmp_simulation_config_file, f"--report-buffer-size={value}"]
+        result = subprocess.run(command, check=False, capture_output=True, text=True)
+
+        assert "Report buffer size must be > 0" in result.stdout
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_simple_setting(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--cell-permute=node-adjacency", "--keep-build"]
+    subprocess.run(command, check=False, capture_output=True, text=True)
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 1
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)
+def test_cli_cell_permute_default(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--keep-build"]
+    subprocess.run(command, check=False, capture_output=True, text=True)
+    sim_conf = CoreSimulationConfig.load("build/sim.conf")
+    assert sim_conf.cell_permute == 0
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig",
+              "extra_config": {
+            "target_simulator": "CORENEURON",
+        }
+      }],
+    indirect=True,
+)            
+def test_cli_cell_permute_invalid(create_tmp_simulation_config_file):
+    command = ["neurodamus", create_tmp_simulation_config_file, "--cell-permute=2"]
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert "'2' is not a valid CellPermute" in result.stdout

@@ -11,7 +11,7 @@ from pathlib import Path
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
-from neurodamus.utils.pyutils import ConfigT
+from neurodamus.utils.pyutils import ConfigT, StrEnumBase
 
 EXCEPTION_NODE_FILENAME = ".exception_node"
 """A file which controls which rank shows exception"""
@@ -54,7 +54,20 @@ class Feature(Enum):
     LoadBalance = 5
 
 
+class CellPermute(StrEnumBase):
+    UNPERMUTED = 0  # cpu
+    NODE_ADJACENCY = 1  # cpu/gpu
+
+    __mapping__ = [
+        ("unpermuted", UNPERMUTED),
+        ("node-adjacency", NODE_ADJACENCY),
+    ]
+    __default__ = UNPERMUTED
+
+
 class CliOptions(ConfigT):
+    cell_permute = None
+    report_buffer_size = None
     build_model = None
     simulate_model = True
     output_path = None
@@ -96,17 +109,10 @@ class CircuitConfig(ConfigT):
     METypePath = None
     MorphologyType = None
     MorphologyPath = None
-    CircuitTarget = None
+    PopulationName = None
+    NodesetName = None
     DetailedAxon = False
     PopulationType = None
-
-
-class RNGConfig(ConfigT):
-    global_seed = None
-    IonChannelSeed = None
-    StimulusSeed = None
-    MinisSeed = None
-    SynapseSeed = None
 
 
 class LoadBalanceMode(Enum):
@@ -194,7 +200,6 @@ class _SimConfig:
 
     # In principle not all vars need to be required as they'r set by the parameter functions
     simulation_config_dir = None
-    current_dir = None
     default_neuron_dt = 0.025
     buffer_time = 25
     save = None
@@ -203,7 +208,8 @@ class _SimConfig:
     extracellular_calcium = None
     use_coreneuron = False
     use_neuron = True
-    corenrn_buff_size = 8
+    report_buffer_size = 8  # in MB
+    cell_permute = CellPermute.default()
     delete_corenrn_data = False
     modelbuilding_steps = 1
     build_model = True
@@ -239,6 +245,10 @@ class _SimConfig:
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
         cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
+        log_verbose(
+            "SimulationConfigDir using directory of simulation config file: %s",
+            cls.simulation_config_dir,
+        )
 
         cls.projections = cls._config_parser.parsedProjections
         cls.connections = cls._config_parser.parsedConnects
@@ -263,15 +273,9 @@ class _SimConfig:
         cls._init_hoc_config_objs()
 
     @classmethod
-    def current_dir_path(cls):
-        if cls.current_dir:
-            return cls.current_dir
-        return str(Path.cwd())
-
-    @classmethod
     def build_path(cls):
         """Default to <currend_dir>/build if save is None"""
-        return cls.save or str(Path(cls.current_dir_path()) / "build")
+        return cls.save or str(Path(cls.simulation_config_dir) / "build")
 
     @classmethod
     def coreneuron_datadir_path(cls, create=False):
@@ -373,7 +377,7 @@ class _SimConfig:
             logging.warning("Disabling SynConfigure (restrict_features)")
 
         def update_item(conn, item):
-            src_spec = TargetSpec(conn.get(item))
+            src_spec = TargetSpec(conn.get(item), None)
             src_spec.population = alias.get(src_spec.population, src_spec.population)
             conn[item] = str(src_spec)
 
@@ -790,31 +794,6 @@ def _randomize_gaba_risetime(config: _SimConfig):
 
 
 @SimConfig.validator
-def _current_dir(config: _SimConfig):
-    curdir = config.run_conf.get("CurrentDir")
-
-    if curdir is None:
-        log_verbose("CurrentDir using simulation config path [default]")
-        curdir = config.simulation_config_dir
-    else:
-        if not os.path.isabs(curdir):
-            if curdir == ".":
-                logging.warning(
-                    "Setting CurrentDir to '.' is discouraged and "
-                    "shall never be used in production jobs."
-                )
-            else:
-                raise ConfigurationError("CurrentDir: Relative paths not allowed")
-            curdir = os.path.abspath(curdir)
-        if not os.path.isdir(curdir):
-            raise ConfigurationError("CurrentDir doesnt exist: " + curdir)
-
-    log_verbose("CurrentDir = %s", curdir)
-    config.run_conf["CurrentDir"] = curdir
-    config.current_dir = curdir
-
-
-@SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
     output_path = config.run_conf.get("OutputRoot")
@@ -824,7 +803,7 @@ def _output_root(config: _SimConfig):
     if output_path is None:
         raise ConfigurationError("'OutputRoot' configuration not set")
     if not Path(output_path).is_absolute():
-        output_path = Path(config.current_dir_path()) / output_path
+        output_path = Path(config.simulation_config_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
     config.run_conf["OutputRoot"] = str(output_path)
@@ -846,7 +825,7 @@ def _check_save(config: _SimConfig):
     assert isinstance(save_path, str), "Save must be a string path"
     path_obj = Path(save_path)
     if not path_obj.is_absolute():
-        path_obj = Path(config.current_dir) / path_obj
+        path_obj = Path(config.simulation_config_dir) / path_obj
 
     config.save = str(path_obj)
 
@@ -866,7 +845,7 @@ def _check_restore(config: _SimConfig):
     assert isinstance(restore, str), "Restore must be a string path"
     path_obj = Path(restore)
     if not path_obj.is_absolute():
-        path_obj = Path(config.current_dir) / path_obj
+        path_obj = Path(config.simulation_config_dir) / path_obj
 
     config.restore = str(path_obj)
 
@@ -945,6 +924,21 @@ def _keep_coreneuron_data(config: _SimConfig):
 
 
 @SimConfig.validator
+def _report_buffer_size(config: _SimConfig):
+    user_config = config.cli_options
+    if user_config.report_buffer_size is not None:
+        report_buffer_size = int(user_config.report_buffer_size)
+    else:
+        return
+
+    if config.restore is not None:
+        raise ConfigurationError("--report-buffer-size cannot be used with --restore")
+
+    assert report_buffer_size > 0, "Report buffer size must be > 0"
+    config.report_buffer_size = report_buffer_size
+
+
+@SimConfig.validator
 def _model_building_steps(config: _SimConfig):
     user_config = config.cli_options
     if user_config.modelbuilding_steps is not None:
@@ -958,10 +952,8 @@ def _model_building_steps(config: _SimConfig):
         logging.warning("IGNORING ModelBuildingSteps since simulator is not CORENEURON")
         return
 
-    if "CircuitTarget" not in config.run_conf:
-        raise ConfigurationError(
-            "Multi-iteration coreneuron data generation requires CircuitTarget"
-        )
+    if "NodesetName" not in config.run_conf:
+        raise ConfigurationError("Multi-iteration coreneuron data generation requires NodesetName")
 
     logging.info("Splitting Target for multi-iteration CoreNeuron data generation")
     logging.info(" -> Cycles: %d. [src: %s]", ncycles, "CLI")
@@ -1036,6 +1028,18 @@ def _coreneuron_direct_mode(config: _SimConfig):
     config.coreneuron_direct_mode = direct_mode
 
 
+@SimConfig.validator
+def _cell_permute(config: _SimConfig):
+    user_config = config.cli_options
+    if user_config.cell_permute is not None:
+        config.cell_permute = CellPermute.from_string(str(user_config.cell_permute))
+    if config.use_neuron and config.cell_permute != CellPermute.UNPERMUTED:
+        raise ConfigurationError(
+            f"Cell permutation is only available with CoreNEURON. "
+            f"--cell-permute={config.cell_permute.to_string()} is invalid with NEURON."
+        )
+
+
 def get_debug_cell_gids(cli_options):
     """Parse the --dump-cell-state option from CLI.
 
@@ -1045,7 +1049,7 @@ def get_debug_cell_gids(cli_options):
     - A file path containing one GID per line
 
     Returns:
-        List of 1-based GIDs as integers, or None if not provided.
+        List of GIDs as integers, or None if not provided.
 
     Raises:
         ConfigurationError: if the format is invalid or file doesn't exist.
@@ -1078,7 +1082,6 @@ def get_debug_cell_gids(cli_options):
         gids = []
         for token in tokens:
             gids.extend(parse_gid_token(token))
-        gids = [gid + 1 for gid in gids]
         gids = list(dict.fromkeys(gids))  # Remove duplicates while preserving order
     except ValueError as e:
         raise ConfigurationError("Cannot parse dump-cell-state: " + value) from e
@@ -1151,7 +1154,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
     all_conn_blocks = config.connections.values()
 
     # On a first phase process only for t=0
-    for name, conn_conf in zip(config.connections, all_conn_blocks):
+    for name, conn_conf in zip(config.connections, all_conn_blocks, strict=True):
         conn_conf["_name"] = name
         if float(conn_conf.get("Delay", 0)) > 0.0:
             continue
@@ -1208,13 +1211,17 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
 def _input_resistance(config: _SimConfig, target_manager):
     prop = "@dynamics:input_resistance"
     for stim in config.stimuli:
-        target_name = stim["Target"]
+        target_or_cs_name = stim["Target"] if "Target" in stim else stim["CompartmentSet"]
         if stim["Mode"] == "Conductance" and stim["Pattern"] in {
             "RelativeShotNoise",
             "RelativeOrnsteinUhlenbeck",
         }:
             # NOTE: use target_manager to read the population names of hoc or NodeSet targets
-            target = target_manager.get_target(target_name)
-            for population in target.population_names:
+            population_names = (
+                target_manager.get_target(target_or_cs_name).population_names
+                if "Target" in stim
+                else [target_manager.get_compartment_set(target_or_cs_name).population]
+            )
+            for population in population_names:
                 config._cell_requirements.setdefault(population, set()).add(prop)
-                log_verbose(f"[cell] {prop} ({population}:{target.name})")
+                log_verbose(f"[cell] {prop} ({population}:{target_or_cs_name})")

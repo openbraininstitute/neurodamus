@@ -100,13 +100,18 @@ def dump_netcons(nclist, remove_prefix) -> list:
 def _read_object_attrs(obj, filter_keys=None):
     res = {}
     for x in dir(obj):
-        if (
-            (not filter_keys or x not in filter_keys)
-            and not x.startswith("__")
-            and not callable(getattr(obj, x))
-        ):
+        if (filter_keys and x in filter_keys) or x.startswith("__"):
+            continue
+        try:
             attr = getattr(obj, x)
-            if isinstance(attr, float):
-                attr = round(attr, 14)
-            res[x] = attr
+        except AttributeError:
+            # Skip attributes that cannot be fetched. Nullptrs
+            continue
+        if callable(attr):
+            continue
+        if isinstance(attr, float):
+            attr = round(attr, 14)
+        if type(attr).__name__ == "RangeVar":
+            attr = attr.name()
+        res[x] = attr
     return res

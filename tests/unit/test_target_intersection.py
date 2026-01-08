@@ -1,21 +1,21 @@
 import numpy.testing as npt
 
-from neurodamus.core.nodeset import NodeSet
+from neurodamus.core.nodeset import SelectionNodeSet
 from neurodamus.target_manager import TargetSpec
 
-null_target_spec = TargetSpec("")
+null_target_spec = TargetSpec(None, None)
 
 
 def test_targetspec_overlap_name():
     assert null_target_spec.overlap_byname(null_target_spec)
-    t1_spec = TargetSpec("t1")
+    t1_spec = TargetSpec("t1", None)
     assert t1_spec.overlap_byname(null_target_spec)
     assert null_target_spec.overlap_byname(t1_spec)
-    assert not t1_spec.overlap_byname(TargetSpec("t2"))
-    assert not t1_spec.overlap_byname(TargetSpec("another:t2"))
+    assert not t1_spec.overlap_byname(TargetSpec("t2", None))
+    assert not t1_spec.overlap_byname(TargetSpec("t2", "another"))
     # With populations, should ignore
-    assert TargetSpec("popx:t1").overlap_byname(TargetSpec("popy:t1"))
-    assert not TargetSpec("popx:t1").overlap_byname(TargetSpec("popy:t2"))
+    assert TargetSpec("t1", "popx").overlap_byname(TargetSpec("t1", "popy"))
+    assert not TargetSpec("t1", "popx").overlap_byname(TargetSpec("t2", "popy"))
 
 
 def test_populations_disjoint():
@@ -23,25 +23,25 @@ def test_populations_disjoint():
     it can simply help identifying when they are disjoint for sure
     """
     assert not null_target_spec.disjoint_populations(null_target_spec)
-    assert TargetSpec("pop1:").disjoint_populations(TargetSpec("pop2:"))
-    assert not TargetSpec("pop1:").disjoint_populations(TargetSpec("pop1:"))
+    assert TargetSpec(None, "pop1").disjoint_populations(TargetSpec(None, "pop2"))
+    assert not TargetSpec(None, "pop1").disjoint_populations(TargetSpec(None, "pop1"))
 
 
 def test_targetspec_overlap():
     assert null_target_spec.overlap(null_target_spec)
-    assert not TargetSpec("pop1:x").overlap(null_target_spec)  # we cant be sure -> false
-    assert not TargetSpec("pop1:target1").overlap(TargetSpec("target2"))
-    assert not TargetSpec("pop1:").overlap(TargetSpec("pop2:"))  # disjoint pop
-    assert TargetSpec("pop1:").overlap(TargetSpec("pop1:ahh"))
-    assert not TargetSpec("pop1:t1").overlap(TargetSpec("pop1:t2"))
+    assert not TargetSpec("x", "pop1").overlap(null_target_spec)  # we cant be sure -> false
+    assert not TargetSpec("target1", "pop1").overlap(TargetSpec("target2", None))
+    assert not TargetSpec(None, "pop1").overlap(TargetSpec(None, "pop2"))  # disjoint pop
+    assert TargetSpec(None, "pop1").overlap(TargetSpec("ahh", "pop1"))
+    assert not TargetSpec("t1", "pop1").overlap(TargetSpec("t2", "pop1"))
 
 
 def test_nodeset_target_intersect():
     from neurodamus.target_manager import NodesetTarget
-    nodes_popA = NodeSet([1, 2]).register_global("pop_A")
-    nodes2_popA = NodeSet([2, 3]).register_global("pop_A")
-    nodes3_popA = NodeSet([11, 12]).register_global("pop_A")
-    nodes_popB = NodeSet([1, 2]).register_global("pop_B")
+    nodes_popA = SelectionNodeSet([1, 2]).register_global("pop_A")
+    nodes2_popA = SelectionNodeSet([2, 3]).register_global("pop_A")
+    nodes3_popA = SelectionNodeSet([11, 12]).register_global("pop_A")
+    nodes_popB = SelectionNodeSet([1, 2]).register_global("pop_B")
 
     t1 = NodesetTarget("t1", [nodes_popA])
     t2 = NodesetTarget("t2", [nodes_popB])
@@ -58,10 +58,10 @@ def test_nodeset_target_intersect():
 
 def test_nodeset_gids():
     from neurodamus.target_manager import NodesetTarget
-    local_nodes_popA = NodeSet(range(5, 10)).register_global("pop_A")
-    local_nodes_popB = NodeSet(range(6)).register_global("pop_B")
-    nodes_popA = NodeSet(range(7)).register_global("pop_A")
-    nodes_popB = NodeSet([3, 4, 5]).register_global("pop_B")
+    local_nodes_popA = SelectionNodeSet(range(5, 10)).register_global("pop_A")
+    local_nodes_popB = SelectionNodeSet(range(6)).register_global("pop_B")
+    nodes_popA = SelectionNodeSet(range(7)).register_global("pop_A")
+    nodes_popB = SelectionNodeSet([3, 4, 5]).register_global("pop_B")
     t = NodesetTarget(
         "target-a",
         [nodes_popA, nodes_popB],

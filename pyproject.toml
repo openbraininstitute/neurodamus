@@ -8,9 +8,12 @@ build-backend = "hatchling.build"
 [project]
 name="neurodamus"
 authors = [
-    {name = "Blue Brain Project, EPFL"},
+    {name = "Blue Brain Project, EPFL"}
 ]
-description = "A BBP Simulation Control application for NEURON"
+maintainers = [
+  { name = "Open Brain Institute" }
+]
+description = "An OBI Simulation Control application for NEURON"
 license = {file = "LICENSE.txt"}
 readme = "README.rst"
 dynamic = ["version"]
@@ -18,9 +21,10 @@ dependencies = [
     "h5py",
     "docopt-ng",
     "libsonata",
-    "psutil"
+    "psutil",
+    "packaging"
 ]
-requires-python=">=3.9"
+requires-python=">=3.10"
 
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API
@@ -56,8 +60,8 @@ addopts = [
 markers = ["slow: marks tests as slow"]
 
 [tool.coverage.run]
+patch = ["subprocess", "_exit"]
 branch = false
-parallel = false
 relative_files = true
 source_pkgs = [
     "neurodamus",

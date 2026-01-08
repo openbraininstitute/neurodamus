@@ -39,12 +39,12 @@ def test_input_resistance():
     # Ensure we have our targets and loaded cells ok
     target_small = n.target_manager.get_target("L5_5cells")
     cell_manager = n.circuits.get_node_manager("All")
-    gids = cell_manager.local_nodes.final_gids()
+    gids = cell_manager.local_nodes.gids(raw_gids=False)
     assert target_small.nodesets[0].offset == 0
     assert target_small.gid_count() == 5
     assert cell_manager.total_cells == 5
     assert len(cell_manager.local_nodes) == 5
-    for gid in (1, 2, 3, 4, 5):
+    for gid in range(5):
         assert gid in target_small
         assert gid in gids
 

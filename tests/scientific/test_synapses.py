@@ -96,7 +96,7 @@ def test_synapses_params():
         df["u_syn"] = tmp.U
 
     # 2) get values from NEURON
-    post_cell = n.circuits.global_manager.get_cellref(post_L5_PC + 1)  # 1-based in neurodamus
+    post_cell = n.circuits.global_manager.get_cellref(post_L5_PC)
     # here we collect all synapses for the post cell
     match_index = re.compile(r"\[[0-9]+\]$")
     synlist = {}
@@ -213,7 +213,7 @@ def test__constrained_hill():
 
 def get_target_raw_gids(target_manager, target_name):
     tgt = target_manager.get_target(target_name)
-    return tuple(zip(tgt.population_names, tgt.get_raw_gids() - 1))  # 0-based
+    return tuple(zip(tgt.population_names, tgt.gids(raw_gids=True), strict=True))
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

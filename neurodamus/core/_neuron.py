@@ -7,6 +7,7 @@ import os
 from contextlib import contextmanager
 
 from .configuration import GlobalConfig, SimConfig
+from neurodamus.utils.version import GitVersion
 
 
 # Singleton, instantiated right below
@@ -33,16 +34,24 @@ class _Neuron:
         if mpi:
             GlobalConfig.set_mpi()
 
-        from neuron import h, nrn
+        import neuron
+
+        # check version
+        # Neurodamus requires NEURON >= 9.0a-1485-g0d990513b because
+        # the layout of `report.conf` changed in this commit.
+        req_version = GitVersion("9.0a-1485-g0d990513b")
+        curr_neuron_version = GitVersion(neuron.__version__)
+        if curr_neuron_version < req_version:
+            raise RuntimeError(f"NEURON >= {req_version} required, found {curr_neuron_version}")
 
         cls.__cache = {}
-        cls._h = h
-        cls.Section = nrn.Section
-        cls.Segment = nrn.Segment
-        h.load_file("stdrun.hoc")
-        h("objref nil")
-        h.init()
-        return h
+        cls._h = neuron.h
+        cls.Section = neuron.nrn.Section
+        cls.Segment = neuron.nrn.Segment
+        neuron.h.load_file("stdrun.hoc")
+        neuron.h("objref nil")
+        neuron.h.init()
+        return neuron.h
 
     @classmethod
     def load_hoc(cls, mod_name):

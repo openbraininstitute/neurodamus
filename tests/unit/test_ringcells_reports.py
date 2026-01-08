@@ -5,9 +5,14 @@ from libsonata import SonataError
 
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.node import ReportsCumulativeError, Node
-from tests.utils import (check_signal_peaks, read_ascii_report,
+from neurodamus.utils.pyutils import CumulativeError
+from neurodamus.node import Node
+from tests.utils import (read_ascii_report,
                          record_compartment_reports, write_ascii_reports)
+
+import numpy as np
+from scipy.signal import find_peaks
+
 
 
 @pytest.mark.parametrize(
@@ -64,7 +69,7 @@ from tests.utils import (check_signal_peaks, read_ascii_report,
     ],
     indirect=True,
 )
-def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
+def test_config_CumulativeError(create_tmp_simulation_config_file):
     """Test error handling in enable_reports:
     1. wrong variable name
     2. dt < simulation dt
@@ -73,7 +78,7 @@ def test_config_ReportsCumulativeError(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match="is before start time|is smaller than simulation dt|one reference for variable 'i' of mechanism 'wrong'|reports requires exactly one variable, but received"):
+    with pytest.raises(CumulativeError, match="is before start time|is smaller than simulation dt|reference found for variable 'i' of mechanism 'wrong'|reports requires exactly one variable, but received"):
         n.enable_reports()
 
 @pytest.mark.parametrize(
@@ -110,7 +115,7 @@ def test_config_addional_errors(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ValueError, match="reports requires exactly one variable, but received"):
+    with pytest.raises(CumulativeError, match="reports requires exactly one variable, but received"):
         n.enable_reports()
 
 @pytest.mark.parametrize(
@@ -203,7 +208,7 @@ def test_enable_synapse_report_errorhandling(create_tmp_simulation_config_file):
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
-    with pytest.raises(ReportsCumulativeError, match=r"Mechanism 'ProbAMPANMDA_EMS' not found"):
+    with pytest.raises(CumulativeError, match=r"'ProbAMPANMDA_EMS' not found"):
         n.enable_reports()
 
 
@@ -303,7 +308,6 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 3
-
     ascii_recorders = record_compartment_reports(n._target_manager)
 
     Nd.finitialize()  # reinit for the recordings to be registered
@@ -318,23 +322,24 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     data = read_ascii_report(soma_report)
     assert len(data) == 2500  # 500 time steps * 5 soma sections
     # check soma signal peak for cell 1001 as in test_current_injection.py
-    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1001]
-    check_signal_peaks(cell_voltage_vec, [92, 291])
+    cell_voltage_vec = [vec[3] for vec in data if vec[0] == 1000]
+    peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
+    np.testing.assert_allclose(peaks_pos, [92, 291])
 
     compartment_i_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
     assert compartment_i_report.exists()
     data = read_ascii_report(compartment_i_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
-    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1000]
 
-    check_signal_peaks(cell_current_vec, [9,  29,  50,  70, 110, 132, 152, 173, 193],
-                       threshold=0.05)
+    peaks_pos = find_peaks(cell_current_vec, prominence=0.05)[0]
+    np.testing.assert_allclose(peaks_pos, [9,  29,  50,  70, 110, 132, 152, 173, 193])
     
     compartment_pas_report = Path(n._run_conf["OutputRoot"]) / ("compartment_pas.txt")
     assert compartment_pas_report.exists()
     data = read_ascii_report(compartment_pas_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
-    cell_current_vec = [vec[3] for vec in data if vec[0] == 1001]
+    cell_current_vec = [vec[3] for vec in data if vec[0] == 1000]
     assert any(cell_current_vec), "The pas current is always 0. This is very suspicious"
 
 @pytest.mark.parametrize(

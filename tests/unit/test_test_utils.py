@@ -23,9 +23,9 @@ def get_edges_data(create_tmp_simulation_config_file):
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
-    sgid, tgid = 1, 2
+    sgid, tgid = 0, 1
     cell = n._pc.gid2cell(tgid)
-    selection = edges.afferent_edges(tgid - 1)
+    selection = edges.afferent_edges(tgid)
     nclist = Nd.cvode.netconlist(n._pc.gid2cell(sgid), cell, "")
     return sgid, tgid, cell, edges, selection, nclist
 
@@ -167,9 +167,7 @@ def test_merge_dicts_deeply_nested():
     expected = {"A": {"B": {"C": 1, "D": 2}}}
     assert utils.merge_dicts(parent, child) == expected
 
-
 def test_defaultdict_to_standard_types():
-
     class CustomList:
         def __init__(self, items):
             self._items = items
@@ -220,6 +218,41 @@ def test_check_is_subset_fail():
     with pytest.raises(AssertionError):
         utils.check_is_subset(dic, subset)
 
+def test_merge_dicts_delete_field_simple():
+    parent = {"A": 1, "B": 2}
+    child = {"A": 2., "B": "delete_field"}
+    expected = {"A": 2}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_delete_field_nested():
+    parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
+    child = {"A": {"q": {"x": 2, "z": "delete_field"}}, "C": 4}
+    expected = {"A": {"q": {"x": 2, "y": 2}}, "B": 3, "C": 4}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_delete_field_heavily_nested():
+    parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
+    child = {"A": {"q": "delete_field"}, "C": 4}
+    expected = {"A": {}, "B": 3, "C": 4}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_simple():
+    parent = {"A": 1, "B": {"x": 1}}
+    child = {"override_field": 1, "x": 10}
+    expected = {"x": 10}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_nested():
+    parent = {"A": 1, "B": {"x": 1}}
+    child = {"A": 2, "B": {"override_field": 1, "y": 2}}
+    expected = {"A": 2, "B": {"y": 2}}
+    assert utils.merge_dicts(parent, child) == expected
+
+def test_merge_dicts_override_field_heavily_nested():
+    parent = {"A": {"e": 1, "q": {"x": 1., "y": {"p": 1}}}, "B": 3}
+    child = {"A": {"w": 1, "q": {"x": 2, "y": {"override_field": 1, "q": 1}}}, "C": 4}
+    expected = {"A": {"w": 1, "e": 1, "q": {"x": 2, "y": {"q": 1}}}, "C": 4, "B": 3}
+    assert utils.merge_dicts(parent, child) == expected
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -241,18 +274,6 @@ def test_merge_simulation_configs(create_tmp_simulation_config_file):
         assert np.isclose(config_data["run"]["dt"], 0.1)
         assert config_data["run"]["random_seed"] == 1122
         assert len(config_data["run"]) == 3
-
-
-def test_check_signal_peaks():
-    x = np.array([-60., -59., -20., -30., -50., -40., -55., -59., -10., -15., -30., -49., -60.])
-    ref_pos = [2, 5, 8]
-    utils.check_signal_peaks(x, ref_pos)
-
-    x_ramp = x + np.arange(len(x)) * 2
-    utils.check_signal_peaks(x_ramp, ref_pos)
-
-    x_ramp = x + np.arange(len(x)) * -2
-    utils.check_signal_peaks(x_ramp, ref_pos)
 
 
 def test_compare_outdat_files_identical(tmp_path):

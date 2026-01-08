@@ -97,7 +97,8 @@ autosummary_generate = []
 autodoc_mock_imports = [
     "neuron", "mapping", "docopt", "h5py", "numpy"
 ]
-
+# work around changes to `sphinx` 9 that are incompatible with `sphinx-bluebrain-theme`
+autodoc_use_legacy_class_based = True
 
 # -- Options for HTML output ----------------------------------------------
 

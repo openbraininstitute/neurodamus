@@ -219,7 +219,7 @@ class ConnectionManagerBase:
         self._cur_population = None
 
         self._synapse_reader = None
-        self._raw_gids = cell_manager.local_nodes.raw_gids()
+        self._raw_gids = cell_manager.local_nodes.gids(raw_gids=True)
         self._total_connections = 0
         self.circuit_conf = circuit_conf
         self._src_target_filter = None  # filter by src target in all_connect (E.g: GapJ)
@@ -386,11 +386,13 @@ class ConnectionManagerBase:
             src_target: Target name to restrict creating connections coming from it
             dst_target: Target name to restrict creating connections going into it
         """
-        conn_src_spec = TargetSpec(src_target)  # instantiate all from src
-        conn_src_spec.population = self.current_population.src_pop_name
-        conn_dst_spec = TargetSpec(dst_target or self.cell_manager.circuit_target)
-        conn_dst_spec.population = self.current_population.dst_pop_name
-        this_pathway = {"Source": str(conn_src_spec), "Destination": str(conn_dst_spec)}
+        conn_src_spec = TargetSpec(
+            src_target, self.current_population.src_pop_name
+        )  # instantiate all from src
+        conn_dst_spec = TargetSpec(
+            dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name
+        )
+        this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
         matching_conns = [
             conn
             for conn in SimConfig.connections.values()
@@ -459,7 +461,6 @@ class ConnectionManagerBase:
 
         Args:
             weight_factor: Factor to scale all netcon weights (default: 1)
-            only_gids: Create connections only for these tgids (default: Off)
         """
         if SimConfig.dry_run:
             syn_count = self._get_conn_stats(None)
@@ -495,8 +496,8 @@ class ConnectionManagerBase:
         dst_pop_name = self.dst_node_population
         src_pop_name = self.src_node_population
         logging.debug("Connecting group %s -> %s", conn_source, conn_destination)
-        src_tspec = TargetSpec(conn_source)
-        dst_tspec = TargetSpec(conn_destination)
+        src_tspec = TargetSpec(conn_source, None)
+        dst_tspec = TargetSpec(conn_destination, None)
         src_target = src_tspec.name and self._target_manager.get_target(src_tspec, src_pop_name)
         dst_target = dst_tspec.name and self._target_manager.get_target(dst_tspec, dst_pop_name)
 
@@ -558,6 +559,48 @@ class ConnectionManagerBase:
             if self.yielded_src_gids:
                 log_all(logging.DEBUG, "Source GIDs for debug cell: %s", self.yielded_src_gids)
 
+    @staticmethod
+    def _get_allowed_ranges(src_target, sgids, sgids_ranges, conn_count):
+        """Return n_yielded_conns and allowed_ranges, handling src_target=None.
+
+        Helper function for _iterate_conn_params
+        """
+        if src_target:
+            unique_sgids = sgids[sgids_ranges[:-1]]
+            allowed_sgids = set(unique_sgids[src_target.contains(unique_sgids, raw_gids=True)])
+            allowed_ranges = [
+                (sgids_ranges[i], sgids_ranges[i + 1])
+                for i in range(conn_count)
+                if sgids[sgids_ranges[i]] in allowed_sgids
+            ]
+            n_yielded_conns = len(allowed_sgids)
+        else:
+            n_yielded_conns = conn_count
+            allowed_ranges = [(sgids_ranges[i], sgids_ranges[i + 1]) for i in range(conn_count)]
+
+        return n_yielded_conns, allowed_ranges
+
+    @staticmethod
+    def _compute_sgids_ranges(syns_params):
+        """Compute source GIDs, their change points, and total connections count.
+
+        Helper function for _iterate_conn_params
+        """
+        sgids = syns_params[syns_params.dtype.names[0]].astype("int64")
+        sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
+        conn_count = len(sgids_ranges) - 1
+        return sgids, sgids_ranges, conn_count
+
+    def _get_extra_fields(self, base_tgid):
+        """Get extra fields for the synapse parameters, e.g. synapse_index.
+
+        Helper function for _iterate_conn_params
+        """
+        if self._load_offsets:
+            syn_index = self._synapse_reader.get_property(base_tgid, "synapse_index")
+            return {"synapse_index": syn_index}
+        return {}
+
     def _iterate_conn_params(  # noqa: PLR0914
         self,
         src_target,
@@ -579,7 +622,7 @@ class ConnectionManagerBase:
         gids = self._raw_gids
 
         if dst_target:
-            gids = np.intersect1d(gids, dst_target.get_raw_gids())
+            gids = np.intersect1d(gids, dst_target.gids(raw_gids=True))
 
         created_conns_0 = self._cur_population.count()
         sgid_offset = self.src_pop_offset
@@ -587,14 +630,12 @@ class ConnectionManagerBase:
 
         self._synapse_reader.configure_override(mod_override)
         self._synapse_reader.preload_data(gids, minimal_mode=SimConfig.cli_options.crash_test)
-        extra_fields = {}  # Without extra fields, reuse this object
 
         # NOTE: This routine is quite critical, sitting at the core of synapse processing
         # so it has been carefully optimized with numpy vectorized operations, even if
         # it might lose some readability.
         # For each tgid we obtain the synapse parameters as a record array. We then split it,
         # without copying, yielding ranges (views) of it.
-
         if show_progress is None:
             show_progress = len(gids) >= AUTO_PROGRESS_THRESHOLD
 
@@ -605,32 +646,21 @@ class ConnectionManagerBase:
             syns_params = self._synapse_reader.get_synapse_parameters(base_tgid)
             logging.debug("GID %d Syn count: %d", tgid, len(syns_params))
 
-            if self._load_offsets:
-                syn_index = self._synapse_reader.get_property(base_tgid, "synapse_index")
-                extra_fields = {"synapse_index": syn_index}
+            sgids, sgids_ranges, conn_count = self._compute_sgids_ranges(syns_params)
+            conn_debugger = self.ConnDebugger()
+            if conn_count == 0:
+                logging.debug("No synapses for GID %d. Nothing to do.", tgid)
+                continue
+
+            extra_fields = self._get_extra_fields(base_tgid)
 
             # We yield ranges of contiguous parameters belonging to the same connection,
             # and given we have data for a single tgid, enough to group by sgid.
             # The first row of a range is found by numpy.diff
 
-            sgids = syns_params[syns_params.dtype.names[0]].astype("int64")  # src gid in field 0
-            sgids_ranges = np.diff(sgids, prepend=np.nan, append=np.nan).nonzero()[0]
-            conn_count = len(sgids_ranges) - 1
-            conn_debugger = self.ConnDebugger()
-
-            if src_target:
-                # create a set with the gids that belong both to the synapses and the target
-                unique_sgids = sgids[sgids_ranges[:-1]]
-                allowed_sgids = set(unique_sgids[src_target.contains(unique_sgids, raw_gids=True)])
-                n_yielded_conns = len(allowed_sgids)
-                allowed_ranges = [
-                    (sgids_ranges[i], sgids_ranges[i + 1])
-                    for i in range(conn_count)
-                    if sgids[sgids_ranges[i]] in allowed_sgids
-                ]
-            else:
-                n_yielded_conns = conn_count
-                allowed_ranges = [(sgids_ranges[i], sgids_ranges[i + 1]) for i in range(conn_count)]
+            n_yielded_conns, allowed_ranges = self._get_allowed_ranges(
+                src_target, sgids, sgids_ranges, conn_count
+            )
 
             for range_start, range_end in allowed_ranges:
                 sgid = int(sgids[range_start])
@@ -666,8 +696,8 @@ class ConnectionManagerBase:
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:
-            dst_nodeset: The target to estimate synapses for
-            src_nodeset: The source nodes allowed for the given synapses
+            dst_target: The target to estimate synapses for
+            src_target: The source nodes allowed for the given synapses
 
         Returns:
             The estimated number of synapses which would be created
@@ -775,8 +805,8 @@ class ConnectionManagerBase:
              selected_gids: (optional) post gids to select (original, w/o offsetting)
              conn_population: restrict the set of connections to be returned
         """
-        src_target_spec = TargetSpec(src_target_name)
-        dst_target_spec = TargetSpec(dst_target_name)
+        src_target_spec = TargetSpec(src_target_name, None)
+        dst_target_spec = TargetSpec(dst_target_name, None)
 
         src_target = (
             self._target_manager.get_target(src_target_spec)
@@ -794,12 +824,12 @@ class ConnectionManagerBase:
         )
 
         # temporary set for faster lookup
-        src_gids = src_target and set(src_target.get_gids())
+        src_gids = src_target and set(src_target.gids(raw_gids=False))
 
         for population in conn_populations:
             logging.debug("Connections from population %s", population)
             tgids = np.fromiter(population.target_gids(), "uint32")
-            tgids = np.intersect1d(tgids, dst_target.get_gids())
+            tgids = np.intersect1d(tgids, dst_target.gids(raw_gids=False))
             if selected_gids:
                 tgids = np.intersect1d(tgids, selected_gids + tgid_offset)
             for conn in population.get_connections(tgids):
@@ -870,7 +900,7 @@ class ConnectionManagerBase:
 
         """
         self._synapse_reader = None  # Destroy to release memory (all cached params)
-        logging.info("Instantiating %s... Params: %s", _conn_type, str(conn_params))
+        logging.info("Instantiating %s... Params: %s", _conn_type, conn_params)
         n_created_conns = 0
 
         for popid, pop in self._populations.items():

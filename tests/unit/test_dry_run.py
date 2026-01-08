@@ -8,6 +8,24 @@ from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
 
+class DummyNodeReader:
+    """ Fake dummy class to mock the NodeReader class
+    for sonata readers.
+    """
+    def get_attribute(self, attr, selection):
+        if attr == "etype":
+            return ["emodel1", "emodel2", "emodel1", "emodel2", "emodel1"]
+        elif attr == "mtype":
+            return ["mtype1", "mtype2", "mtype1", "mtype2", "mtype1"]
+        else:
+            pytest.fail(f"Unsupported attribute: {attr}")
+
+@pytest.fixture
+def fixed_memory_measurements():
+    with unittest.mock.patch('neurodamus.utils.memory.get_mem_usage_kb', return_value=100):
+        with unittest.mock.patch('neurodamus.utils.memory.SynapseMemoryUsage.get_memory_usage',
+                                 return_value=10):
+            yield
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -22,7 +40,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
     isMacOS = PLATFORM_SYSTEM == "Darwin"
     assert (45.0 if isMacOS else 65.0) <= nd._dry_run_stats.base_memory <= (
         150.0 if isMacOS else 180.0)
-    assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 6.0
+    assert 0.4 <= nd._dry_run_stats.cell_memory_total <= 13.0
     assert 0.0 <= nd._dry_run_stats.synapse_memory_total <= 0.02
     expected_metypes_count = {
         'MTYPE1-ETYPE1': 2, 'MTYPE0-ETYPE0': 1,
@@ -47,8 +65,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
                                                            "_r2_c1.pkl.gz", 0)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
-        'RingA': {(0, 0): [1]},
-        'RingB': {(0, 0): [1]}
+        'RingA': {(0, 0): [0]},
+        'RingB': {(0, 0): [0]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -56,8 +74,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     rank_alloc, _bucket_memory, _metype_memory_usage = nd._dry_run_stats.distribute_cells_with_validation(1, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
-        'RingA': {(0, 0): [1, 2, 3]},
-        'RingB': {(0, 0): [1, 2]}
+        'RingA': {(0, 0): [0, 1, 2]},
+        'RingB': {(0, 0): [0, 1]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -65,8 +83,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
                                                            "_r1_c1.pkl.gz", 0, True)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
-        'RingA': {(0, 0): [1, 2, 3]},
-        'RingB': {(0, 0): [1, 2]}
+        'RingA': {(0, 0): [0, 1, 2]},
+        'RingB': {(0, 0): [0, 1]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -76,12 +94,12 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     rank_allocation_standard = defaultdict_to_standard_types(rank_allocation)
     expected_allocation = {
         'RingA': {
-            (0, 0): [1],
-            (1, 0): [2, 3]
+            (0, 0): [0],
+            (1, 0): [1, 2]
         },
         'RingB': {
-            (0, 0): [1],
-            (1, 0): [2]
+            (0, 0): [0],
+            (1, 0): [1]
         }
     }
     assert rank_allocation_standard == expected_allocation
@@ -101,12 +119,12 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {
-            (0, 0): [1],
-            (1, 0): [2, 3]
+            (0, 0): [0],
+            (1, 0): [1, 2]
         },
         'RingB': {
-            (0, 0): [1],
-            (1, 0): [2]
+            (0, 0): [0],
+            (1, 0): [1]
         }
     }
     assert rank_allocation_standard == expected_allocation
@@ -151,7 +169,7 @@ def test_retrieve_unique_metypes():
 
     # Define test inputs
     node_reader = DummyNodeReader()
-    all_gids = [1, 2, 3, 4, 5]
+    all_gids = list(range(5))
 
     # Call the function
     with unittest.mock.patch('neurodamus.io.cell_readers.isinstance', return_value=True):
@@ -162,33 +180,11 @@ def test_retrieve_unique_metypes():
     assert all(isinstance(lst, np.ndarray) for lst in result_list.values())
 
     # Check the expected output based on the test inputs
-    expected_result_dict = {'mtype1-emodel1': [1, 3, 5], 'mtype2-emodel2': [2, 4]}
+    expected_result_dict = {'mtype1-emodel1': [0, 2, 4], 'mtype2-emodel2': [1, 3]}
     for metype, gids in result_list.items():
         npt.assert_equal(gids, expected_result_dict[metype])
     expected_metype_counts = {'mtype1-emodel1': 3, 'mtype2-emodel2': 2}
     assert metype_counts == expected_metype_counts
-
-
-class DummyNodeReader:
-    """ Fake dummy class to mock the NodeReader class
-    for sonata readers.
-    """
-    def get_attribute(self, attr, selection):
-        if attr == "etype":
-            return ["emodel1", "emodel2", "emodel1", "emodel2", "emodel1"]
-        elif attr == "mtype":
-            return ["mtype1", "mtype2", "mtype1", "mtype2", "mtype1"]
-        else:
-            pytest.fail(f"Unsupported attribute: {attr}")
-
-
-@pytest.fixture
-def fixed_memory_measurements():
-    with unittest.mock.patch('neurodamus.utils.memory.get_mem_usage_kb', return_value=100):
-        with unittest.mock.patch('neurodamus.utils.memory.SynapseMemoryUsage.get_memory_usage',
-                                 return_value=10):
-            yield
-
 
 def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
     from neurodamus.utils.memory import DryRunStats

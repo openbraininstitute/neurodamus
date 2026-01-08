@@ -7,7 +7,6 @@
  */
 {load_file("fileUtils.hoc")}
 
-rngMode = 1  // corresponds to RANDOM123 defined below
 ionchannelSeed = 0
 synapseSeed = 0
 stimulusSeed = 0
@@ -16,15 +15,9 @@ globalSeed = 0
 
 begintemplate RNGSettings
 
-public init, interpret, getRNGMode, getIonChannelSeed, getSynapseSeed, getStimulusSeed, getMinisSeed, getGlobalSeed
-public RANDOM123
+public interpret, getIonChannelSeed, getSynapseSeed, getStimulusSeed, getMinisSeed, getGlobalSeed
 
-external rngMode, ionchannelSeed, synapseSeed, stimulusSeed, minisSeed, globalSeed, terminate
-
-proc init() {
-    // consts for random number handling
-    RANDOM123 = 1
-}
+external ionchannelSeed, synapseSeed, stimulusSeed, minisSeed, globalSeed, terminate
 
 /**
  * Given the Run block from Sonata, check if there are special flags governing rng behavior
@@ -32,37 +25,19 @@ proc init() {
  * $o1 ParsedRun from Sonata (type is TODO)
  * $2  coreNeuronUsed: When simulating with CoreNeuron (default: false)
  */
-proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
-    strdef rngModeField
+proc interpret() { local coreNeuronUsed localobj runInfo, rng
     runInfo = $o1
-    rngMode = RANDOM123
     coreNeuronUsed = $2
     if (numarg() < 2) {
         coreNeuronUsed = 0
     }
 
-    pc = new ParallelContext()
-    if( pc.id() == 0 ) {
-        print "As of Oct 2020 Neurodamus uses Random123 as default"
-    }
-
-    if( runInfo.__contains__( "RNGMode" ) ) {
-        rngModeField = runInfo.get( "RNGMode" )
-        if( strcmp( rngModeField, "Random123" ) == 0 ) {
-            rngMode = RANDOM123
-        } else {
-            terminate( "Invalid RNGMode (only Random123 is currently supported) ", rngModeField )
-        }
-    }
-
     if( runInfo.__contains__("BaseSeed") ) {
         globalSeed = runInfo.get("BaseSeed")
-
-        // random123 can set the global index now
         rng = new Random()
         rng.Random123_globalindex( globalSeed )
     }
-    
+
     if( runInfo.__contains__("IonChannelSeed") ) {
         ionchannelSeed = runInfo.get("IonChannelSeed")
     }
@@ -75,10 +50,6 @@ proc interpret() { local coreNeuronUsed localobj runInfo, pc, rng
     if( runInfo.__contains__("SynapseSeed") ) {
         synapseSeed = runInfo.get("SynapseSeed")
     }
-}
-
-func getRNGMode() {
-    return rngMode
 }
 
 func getIonChannelSeed() {

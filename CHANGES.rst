@@ -2,6 +2,61 @@
 Change Log
 ==========
 
+Version 4.0.0
+==============
+**2 December 2025**
+
+*New Features*
+  * No longer support python 3.9 (#423)
+  * Make neurodamus gids 0-based, still requires the env var LIBSONATA_ZERO_BASED_GIDS=1 for libsonata-report <=1.2.7(#391)
+
+*Improvements*
+  * Add OBI ticket templates
+  * check environment (#415)
+  * remove current_dir since it is unused after swtich to sonata (#416)
+  * add test to check that direct mode produces the same files as file mode (#413)
+  * remove `check_signal_peaks` as it is superfluous (#407)
+  * `dump_cellstate` for astrocytes (#406)
+
+*Bug Fixes*
+  * fix new ruff complaining about docstrings and h5py unpinning (#411)
+  * block h5py version since the last wheel fails with mac (#401)
+
+
+Version 3.11.0
+==============
+**8 October 2025**
+
+*New Features*
+  * `compartment sets`: stimulus (#378)
+  * enable `cell_permute` for coreneuron (#375)
+
+*Improvements*
+  * rework `node_sets` (#381)
+  * `pytest-cov 7.0.0`: improve coverage (#389)
+  * `compartment sets`: additional test (#379)
+  * coreneuron: test reports (mostly compartment and summation) (#337)
+
+*Bug Fixes*
+  * fix for `pytest-cov: 7.0.0` (#385)
+
+
+Version 3.10.0
+==============
+**27 August 2025**
+
+*Improvements*
+  * teach command line to have `--no-color` (#356)
+  * move e2e cli tests into unit tests where posible (#357)
+  * real `report.conf` loader (#361)
+  * Updates to add command line argument for changing in memory buffer size for reports (#349)
+
+*Bug Fixes*
+  * ngv: disconnected cells (#327)
+  * disable affected corenrn tests (probably all of them) (#366)
+  * Fix when retrieving points in a section when using default values (#369)
+
+
 Version 3.9.0
 =============
 **23 July 2025**

@@ -154,7 +154,7 @@ class Astrocyte(BaseCell):
             ]
         )
         for sec, parent_id, length, diameter, R0pas in zip(
-            self.endfeet, parent_ids, lengths, diameters, R0passes
+            self.endfeet, parent_ids, lengths, diameters, R0passes, strict=True
         ):
             self._init_endfoot_section(sec, parent_id, length, diameter, R0pas)
 
@@ -391,7 +391,7 @@ class GlioVascularManager(ConnectionManagerBase):
             )
 
         super().__init__(circuit_conf, target_manager, cell_manager, src_cell_manager, **kw)
-        self._astro_ids = self._cell_manager.local_nodes.raw_gids()
+        self._astro_ids = self._cell_manager.local_nodes.gids(raw_gids=True)
         self._gid_offset = self._cell_manager.local_nodes.offset
 
     def open_edge_location(self, sonata_source, circuit_conf, **__):
@@ -417,7 +417,7 @@ class GlioVascularManager(ConnectionManagerBase):
             self._connect_endfeet(astro_id)
 
     def _connect_endfeet(self, astro_id):
-        endfeet = self._gliovascular.afferent_edges(astro_id - 1)  # 0-based for libsonata API
+        endfeet = self._gliovascular.afferent_edges(astro_id)
         if endfeet.flat_size > 0:
             # Get endfeet input
 

@@ -2,21 +2,23 @@
 global overlapping
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 
+import libsonata
 import numpy as np
 
 from . import MPI
-from neurodamus.utils import compat
 from neurodamus.utils.pyutils import WeakList
 
 
 class PopulationNodes:
-    """Handle NodeSets belonging to a population. Given that Neuron doesnt
+    """Handle SelectionNodeSets belonging to a population. Given that Neuron doesnt
     inherently handle populations, we will have to apply gid offsetting.
-    The class stores `NodeSet`s, and makes the required offsetting on-the-fly.
+    The class stores `SelectionNodeSet`s, and makes the required offsetting on-the-fly.
 
-    This class is intended to be internal, since NodeSet instances can be
+    This class is intended to be internal, since SelectionNodeSet instances can be
     freely created but only "apply" for offsetting when registered globally,
     in which case it delegates the processing to PopulationNodes.
 
@@ -34,7 +36,7 @@ class PopulationNodes:
         It wont probably be used publicly given `get()` is also a factory.
         """
         self.name = name
-        self.nodesets = WeakList()  # each population might contain several NodeSet's
+        self.nodesets = WeakList()  # each population might contain several SelectionNodeSet's
         self.max_gid = 0  # maximum raw gid (without offset)
         self.offset = 0
 
@@ -128,19 +130,71 @@ class PopulationNodes:
         cls._do_offsetting = True
 
 
-class _NodeSetBase:
-    """Common bits between nodesets, so they can be registered globally and get offsets"""
+class SelectionNodeSet:
+    """Set of nodes with optional global registration and offset handling.
 
-    def __init__(self, *_, **_kw):
+    A shim over libsonata.Selection with optional populations, offsets and MEtype metadata per gid
+    """
+
+    def __init__(self, gids=None, gid_info=None):
+        """Init.
+
+        Args:
+            gids: The gids to handle
+            gid_info: a map containing METype information about each cell.
+                In v5 and v6 values are METypeItem's
+        """
         self._offset = 0
         self._max_gid = 0  # maximum raw gid (without offset)
         self._population_group = None  # register in a population so gids can be unique
+        self._selection = libsonata.Selection([])  # raw
+        self._gid_info = {}
+        if isinstance(gids, libsonata.Selection):
+            self.add_selection(gids, gid_info)
+        else:
+            self.add_gids(gids, gid_info)
 
     offset = property(lambda self: self._offset)
     max_gid = property(lambda self: self._max_gid)
 
+    def __repr__(self):
+        gids = self.gids(raw_gids=True)
+        n = len(gids)
+        return (
+            f"SelectionNodeSet(n={n}, "
+            f"offset={self.offset}, "
+            f"population={self.population_name}, "
+            f"raw gids={gids})"
+        )
+
+    def __len__(self):
+        return self._selection.flat_size
+
+    def __iter__(self):
+        for start, stop in self._selection.ranges:
+            yield from range(start, stop)
+
+    def iter_cell_info(self, raw_gids=True):
+        """Iterate over GIDs with optional offset and metadata"""
+        offset_add = 0 if raw_gids else self._offset
+
+        for gid in self:
+            yield gid + offset_add, self._gid_info.get(gid)
+
+    def selection(self, raw_gids):
+        """Return the internal Selection, optionally offset by the population"""
+        if raw_gids:
+            return self._selection
+        return libsonata.Selection(
+            [(start + self._offset, stop + self._offset) for start, stop in self._selection.ranges]
+        )
+
+    def gids(self, raw_gids):
+        """Return all GIDs as a flat array, optionally offset by the population"""
+        return np.asarray(self.selection(raw_gids=raw_gids).flatten(), dtype="uint32")
+
     def register_global(self, population_name):
-        """Registers a node set as being part of a population, potentially implying an offsett
+        """Register this nodeset in a global population group
 
         Args:
             population_name: The name of the population these ids belong to
@@ -153,20 +207,56 @@ class _NodeSetBase:
         return self._population_group.name if self._population_group else None
 
     def _check_update_offsets(self):
+        """Check/reset offsets based on the other populations"""
         if self._population_group:
             self._population_group._update(self)  # Note: triggers a reduce.
 
-    def __len__(self):
-        raise NotImplementedError("__len__ not implemented")
+    def add_selection(self, selection: libsonata.Selection, gid_info=None):
+        """Add libsonata.Selection GIDs and optional metadata, updating offsets and max_gid
 
-    def raw_gids(self):
-        raise NotImplementedError("raw_gids not implemented")
+        Args:
+            selection: libsonata.Selection of GIDs
+            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem)
+        """
+        if selection is None:
+            return
+        self._selection |= selection
+        if self:
+            # libsonata.Selection.ranges may be unsorted
+            # Probably not needed since add_gids sorts
+            self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection.ranges]))
+        if gid_info:
+            self._gid_info.update(gid_info)
+        self._check_update_offsets()  # check offsets (uses reduce)
 
-    def final_gids(self):
-        return np.add(self.raw_gids(), self._offset, dtype="uint32")
+    def add_gids(self, gids: list[int], gid_info=None):
+        """Add GIDs and optional metadata, updating offsets and max_gid
 
-    def intersection(self, _other, _raw_gids=False):
-        raise NotImplementedError("intersection not implemented")
+        Args:
+            gids: GIDs to add (list)
+            gid_info: Optional map of GID to METype info (v5/v6 values are METypeItem)
+        """
+        if gids is None:
+            return
+        self.add_selection(selection=libsonata.Selection(gids), gid_info=gid_info)
+
+    def intersection(self, other: SelectionNodeSet, raw_gids=False) -> libsonata.Selection:
+        """Return libsonata.Selection in common with another nodeset
+
+        For nodesets to intersect they must belong to the same population and
+        have common gids
+        """
+        if not isinstance(other, SelectionNodeSet):
+            raise TypeError(f"Expected SelectionNodeSet, got {type(other).__name__}")
+        if self.population_name != other.population_name:
+            return libsonata.Selection([])
+
+        ans = self._selection & other._selection
+        if raw_gids:
+            return ans
+        return libsonata.Selection(
+            [(start + self.offset, stop + self.offset) for start, stop in ans.ranges]
+        )
 
     def intersects(self, other):
         """Check if the current nodeset intersects another
@@ -174,200 +264,8 @@ class _NodeSetBase:
         For nodesets to intersect they must belong to the same population and
         have common gids
         """
-        return len(self.intersection(other)) > 0
-
-
-class NodeSet(_NodeSetBase):
-    """A set of nodes. When registered globally offset computation happens
-    so that different population's gids dont overlap
-    """
-
-    def __init__(self, gids=None, gid_info=None):
-        """Create a NodeSet.
-
-        Args:
-            gids: The gids to handle
-            gid_info: a map containing METype information about each cell.
-                In v5 and v6 values are METypeItem's
-
-        """
-        super().__init__()
-        self._gidvec = compat.Vector()  # raw gids
-        self._gid_info = {}
-        if gids is not None:
-            self.add_gids(gids, gid_info)
-
-    def add_gids(self, gids, gid_info=None):
-        """Add raw gids, recomputing gid offsets as needed"""
-        self._gidvec.extend(gids)
-        if len(gids) > 0:
-            self._max_gid = max(self.max_gid, np.max(gids))
-        if gid_info:
-            self._gid_info.update(gid_info)
-        self._check_update_offsets()  # check offsets (uses reduce)
-        return self
-
-    def extend(self, other):
-        return self.add_gids(other._gidvec, other._gid_info)
-
-    def __len__(self):
-        return len(self._gidvec)
-
-    def raw_gids(self):
-        return np.asarray(self._gidvec, dtype="uint32")
-
-    def items(self, final_gid=False):
-        offset_add = self._offset if final_gid else 0
-        for gid in self._gidvec:
-            yield gid + offset_add, self._gid_info.get(gid)
-
-    def intersection(self, other, raw_gids=False):
-        """Computes the intersection of two NodeSet's
-
-        For nodesets to intersect they must belong to the same population and
-        have common gids. Otherwise an empty list is returned.
-        """
-        if self.population_name != other.population_name:
-            return []
-        intersect = np.intersect1d(self.raw_gids(), other.raw_gids(), assume_unique=True)
-        if raw_gids:
-            return intersect
-        return np.add(intersect, self._offset, dtype="uint32")
+        return bool(self.intersection(other))
 
     def clear_cell_info(self):
+        """Clear all stored GID metadata"""
         self._gid_info = None
-
-
-class SelectionNodeSet(_NodeSetBase):
-    """A lightweight shim over a `libsonata.Selection` so that gids get offset"""
-
-    def __init__(self, sonata_selection):
-        super().__init__()
-        self._selection = sonata_selection
-        # Max gid is the end of the last range since we need +1 (1 based)
-        self._max_gid = sonata_selection.ranges[-1][1] if sonata_selection.ranges else 0
-        self._size = sonata_selection.flat_size
-
-    def __len__(self):
-        return self._size
-
-    def raw_gids(self):
-        return np.add(self._selection.flatten(), 1, dtype="uint32")
-
-    def selection_gid_2_final_gid(self, gid):
-        """Convenience function that translates a 0-based gid
-        (for example from a libsonata.Selection) to the final
-        1-based gid (used in Neuron._pc for example).
-        """
-        return gid + self.offset + 1
-
-    def intersection(self, other: _NodeSetBase, raw_gids=False, _quick_check=False):
-        """Computes intersection of two nodesets.
-
-        A _quick_check param can be set to True so that we effectively only check for
-        intersection (True/False) instead of computing the actual intersection (internal).
-        """
-        if self.population_name != other.population_name:
-            return []
-
-        sel2 = getattr(other, "_selection", None)
-        if sel2:
-            intersect = _ranges_overlap(
-                self._selection.ranges, sel2.ranges, quick_check=_quick_check
-            )
-        else:
-            # Selection ranges are 0-based. We must bring gids to 0-based
-            base_gids = np.subtract(other.raw_gids(), 1, dtype="uint32")
-            intersect = _ranges_vec_overlap(self._selection.ranges, base_gids, _quick_check)
-
-        if _quick_check:
-            return intersect
-        if len(intersect):
-            if raw_gids:
-                # TODO: We should change the return type to be another `SelectionNodeSet`
-                # Like that we could still keep ranges internally and have PROPER API to get raw ids
-                return np.add(intersect, 1, dtype=intersect.dtype)
-            return np.add(intersect, self.offset + 1, dtype=intersect.dtype)
-        return np.array([], dtype="uint32")
-
-    def intersects(self, other):
-        return self.intersection(other, _quick_check=True)
-
-
-def _ranges_overlap(ranges1, ranges2, quick_check=False):
-    """Detect overlaps between two lists of ranges.
-    This is especially important for nodesets since we can access the ranges in no time
-    without the need to flatten and consume GBs of memory
-
-    Args:
-        ranges1: The first list of ranges
-        ranges2: The second list of ranges
-        quick_check: Whether to short-circuit and return True if any overlap exists
-    """
-    if not ranges1 or not ranges2:
-        return []
-
-    all_ranges = []
-    r1_iter = iter(ranges1)
-    r2_iter = iter(ranges2)
-    r1, r2 = next(r1_iter), next(r2_iter)
-
-    while r1 and r2:
-        if r2[0] >= r1[1]:  # r2 past over end r1. Move r1
-            r1 = next(r1_iter, None)
-            continue
-        if r2[1] <= r1[0]:  # r2 before whole range r1. Move r2
-            r2 = next(r2_iter, None)
-            continue
-
-        # Phew, finally some intersection
-        low, high = max(r1[0], r2[0]), min(r1[1], r2[1])
-        if low < high:
-            if quick_check:
-                return True
-            all_ranges.append((low, high))
-
-        # Now move the one that still has potential for more overlap without moving the other
-        if r2[1] > r1[1]:
-            r1 = next(r1_iter, None)
-        else:
-            r2 = next(r2_iter, None)
-
-    if quick_check:
-        return False  # We know it's False as quick_check returns True in the loop
-    if not all_ranges:
-        return []
-    return np.concatenate([np.arange(*r, dtype="uint32") for r in all_ranges])
-
-
-def _ranges_vec_overlap(ranges1, vector, quick_check=False):
-    """Detect overlaps between a list of ranges and a vector of ints
-    This is particularly used to know the overlap between a SelectionNodeSet and a list
-    of gids, e.g. the list of local gids.
-
-    Args:
-        ranges1: The list of ranges
-        vector: The array of values to intersect with
-        quick_check: Whether to short-circuit and return True if any overlap exists
-    """
-    if not ranges1 or len(vector) == 0:
-        return []
-    vector = np.asarray(vector)
-    all_ranges = []
-
-    for r1 in ranges1:
-        if vector[-1] < r1[0]:  # gids before whole range r1
-            break
-        if vector[0] >= r1[1]:  # r2 past over end r1
-            continue
-        mask = (r1[0] <= vector) & (vector < r1[1])
-        if np.any(mask):
-            if quick_check:
-                return True
-            all_ranges.append(vector[mask])
-
-    if quick_check:
-        return False
-    if not all_ranges:
-        return []
-    return np.concatenate(all_ranges)

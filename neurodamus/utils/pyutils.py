@@ -1,11 +1,62 @@
 """Collection of generic Python utilities."""
 
+from __future__ import annotations
+
 import subprocess  # noqa: S404
 import weakref
 from bisect import bisect_left
-from enum import EnumMeta
+from enum import EnumMeta, IntEnum
 
 import numpy as np
+
+
+class StrEnumBase(IntEnum):
+    __mapping__: list[tuple[str, int]] = []
+    # default for when there is value. Leaving None throws an error
+    __default__ = None
+    # default when the string is not found in the mapping
+    __invalid__ = None
+
+    @classmethod
+    def from_string(cls, s: str):
+        if not s:
+            return cls(cls.__default__)
+        mapping = dict(cls.__mapping__)
+        return cls(mapping.get(s.lower(), cls.__invalid__ if cls.__invalid__ is not None else s))
+
+    def to_string(self) -> str:
+        reverse__mapping__ = {v: k for k, v in self.__mapping__}
+        return reverse__mapping__[self]
+
+    def __str__(self):
+        return f"{self.__class__.__name__}.{self.name}"
+
+    @classmethod
+    def default(cls):
+        return cls(cls.__default__)
+
+
+class CumulativeError(Exception):
+    def __init__(self, errors=None):
+        self.errors = errors or []
+        self.is_error_appended = False
+
+    def append(self, func_name, err):
+        self.errors.append((func_name, err))
+        self.is_error_appended = True
+
+    def __bool__(self):
+        return bool(self.errors)
+
+    def __str__(self):
+        if not self.errors:
+            return "No errors."
+        messages = [f"{func_name}: {type(err).__name__} -> {err}" for func_name, err in self.errors]
+        return "Operation failed with multiple errors:\n" + "\n".join(messages)
+
+    def raise_if_any(self):
+        if self:
+            raise self
 
 
 def dict_filter_map(dic, mapp):
@@ -182,3 +233,21 @@ def rmtree(path):
     https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
     """  # noqa: E501
     subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603
+
+
+def cache_errors(func):
+    """Decorator that catches exceptions and appends
+    (func name, exception) to `cumulative_error` if provided.
+    """
+
+    def wrapper(*args, cumulative_error: CumulativeError | None = None, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if cumulative_error is not None:
+                cumulative_error.append(func.__name__, e)
+            else:
+                raise
+            return None
+
+    return wrapper

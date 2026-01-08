@@ -68,6 +68,14 @@ def neurodamus(args=None):
         --coreneuron-direct-mode     Run CoreNeuron in direct memory mode transfered from Neuron,
                                      without writing model data to disk.
         --use-color=[ON, OFF]  If OFF, forces no color to be used in logs; [default: ON]
+        --report-buffer-size=<number> Override the size in MB each rank will allocate for each
+                                      report buffer to hold data. When the buffer is full, the
+                                      ranks will aggregate data for writing to disk. Default: 8 MB
+        --cell-permute=[unpermuted, node-adjacency]   Cell permutation [default: unpermuted].
+                                Only available for CoreNEURON.
+                                Currently incompatible with NEURON. Options:
+                                - unpermuted: No permutation
+                                - node-adjacency: Optimise for node adjacency
     """
     from . import __version__
 
@@ -92,7 +100,7 @@ def neurodamus(args=None):
         os.remove(EXCEPTION_NODE_FILENAME)
 
     try:
-        Neurodamus(config_file, auto_init=True, logging_level=log_level, **options).run()
+        Neurodamus(config_file, logging_level=log_level, **options).run()
         TimerManager.timeit_show_stats()
     except ConfigurationError:  # Common, only show error in Rank 0
         if MPI._rank == 0:  # Use _rank so that we avoid init

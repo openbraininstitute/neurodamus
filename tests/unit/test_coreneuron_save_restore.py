@@ -10,16 +10,19 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from tests import utils
 
-checkpoint_content = {"time.dat", "1_2.dat", "populations_offset.dat"}
+from neurodamus.core.coreneuron_report_config import CoreReportConfig
+class UnexpectedFileError(Exception):
+    pass
+
+checkpoint_content = {"time.dat", "0_2.dat", "populations_offset.dat"}
 removable_checkpoint_content = {"report.conf", "sim.conf", "coreneuron_input"}
 output_content = {"out.dat", "populations_offset.dat"}
 coreneuron_input_content = {
-    "1_1.dat",
-    "1_2.dat",
-    "1_3.dat",
+    "0_1.dat",
+    "0_2.dat",
+    "0_3.dat",
     "bbcore_mech.dat",
     "files.dat",
     "globals.dat"}
@@ -44,46 +47,18 @@ def check_dir_content(dir, files):
     """
     dir = Path(dir)
     if not dir.exists():
-        raise FileNotFoundError(f"Directory {dir} does not exist.")
+        raise FileNotFoundError(f"Directory {dir.resolve()} does not exist.")
     if not dir.is_dir():
-        raise FileNotFoundError(f"{dir} is not a directory.")
+        raise FileNotFoundError(f"{dir.resolve()} is not a directory.")
     for f in files:
         if not (dir / f).exists():
-            raise FileNotFoundError(f"File {f} does not exist in {dir}")
+            raise FileNotFoundError(f"File {f} does not exist in {dir.resolve()}")
     for f in dir.iterdir():
         if f.name not in files:
-            raise FileNotFoundError(f"File {f.name} exists in {dir} but is not expected.")
-
-
-def check_report_conf(checkpoint_dir, substitutions):
-    """
-    Check that the report.conf file in the checkpoint directory
-    has the expected end times.
-    """
-    found_keys = set()
-    file_path = Path(checkpoint_dir) / "report.conf"
-    with open(file_path, "rb") as f:
-        lines = f.readlines()
-        for line in lines:
-            try:
-
-                parts = line.decode().split()
-                key = tuple(parts[0:2])  # Report name and target name
-
-                if key in substitutions:
-                    assert float(parts[9]) == pytest.approx(float(substitutions[key])), (
-                        f"End time for {key} is not {substitutions[key]} in report.conf. "
-                        f"It is {parts[9]} instead."
-                    )
-                    found_keys.add(key)
-            except (UnicodeDecodeError, IndexError):
-                # Ignore lines that cannot be decoded (binary data)
-                continue
-    # Check that all expected keys were found
-    if len(substitutions) != len(found_keys):
-        missing_keys = set(substitutions.keys()) - found_keys
-        raise KeyError(f"The following keys were not found in {file_path}: {missing_keys}")
-
+            raise UnexpectedFileError(
+            f"Unexpected file '{f.name}' found in {dir.resolve()}.\n"
+            f"Expected only: {list(files)}"
+        )
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -107,7 +82,6 @@ def check_report_conf(checkpoint_dir, substitutions):
     }
 ], indirect=True)
 def test_file_placement_base(create_tmp_simulation_config_file):
-
     command = ["neurodamus", "simulation_config.json"]
     subprocess.run(command, check=True, capture_output=True)
 
@@ -212,7 +186,6 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
     assert not Path("build").exists()
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -290,8 +263,9 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # check result.conf end times
-    report_times = {("soma_v.h5", "Mosaic"): t[1], ("compartment_i.h5", "Mosaic"): t[1]}
-    check_report_conf(f"checkpoint_{t[1]}", report_times)
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[1]}/report.conf")
+    assert report_confs.reports["soma_v.h5"].end_time == t[1]
+    assert report_confs.reports["compartment_i.h5"].end_time == t[1]
 
     update_sim_conf(t[2], f"output_{t[1]}_{t[2]}")
 
@@ -311,15 +285,16 @@ def test_full_run_vs_save_restore(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True, text=True)
 
     # check result.conf end times
-    report_times = {("soma_v.h5", "Mosaic"): 18, ("compartment_i.h5", "Mosaic"): t[2]}
-    check_report_conf(f"checkpoint_{t[2]}", report_times)
+    report_confs = CoreReportConfig.load(f"checkpoint_{t[2]}/report.conf")
+    assert report_confs.reports["soma_v.h5"].end_time == 18
+    assert report_confs.reports["compartment_i.h5"].end_time == t[2]
 
     # compare celldump states
     full_run_dir = Path(f"output_{t[0]}_{t[2]}")
     save_restore_dir2 = Path(f"output_{t[1]}_{t[2]}")
     # Compare the files of the form 1_cpu_t<t>.corenrn
     for i in gids:
-        file_name = f"{i+1}_cpu_t{t[2]:.6f}.corenrn"
+        file_name = f"{i}_cpu_t{t[2]:.6f}.corenrn"
         file1 = full_run_dir / file_name
         file2 = save_restore_dir2 / file_name
         if not file1.exists() or not file2.exists():

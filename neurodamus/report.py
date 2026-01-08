@@ -1,7 +1,8 @@
 import logging
-from enum import IntEnum
 
 from .core import NeuronWrapper as Nd
+from .report_parameters import ReportParameters, ReportType, Scaling, SectionType
+from .utils.pyutils import cache_errors
 
 
 class Report:
@@ -12,32 +13,6 @@ class Report:
     """
 
     CURRENT_INJECTING_PROCESSES = {"SEClamp", "IClamp"}
-
-    class ScalingMode(IntEnum):
-        """Enum to define scaling modes used in report generation.
-
-        SCALING_NONE: No scaling.
-        SCALING_AREA: Scale by membrane area.
-        SCALING_ELECTRODE: Custom/electrode-based scaling (fallback/default).
-        """
-
-        SCALING_NONE = 0
-        SCALING_AREA = 1
-        SCALING_ELECTRODE = 2
-
-        @classmethod
-        def from_option(cls, option):
-            """Map user-provided scaling option to a ScalingMode enum.
-
-            :param option: User-specified string or None.
-            :return: Corresponding ScalingMode.
-            """
-            mapping = {
-                None: cls.SCALING_AREA,
-                "Area": cls.SCALING_AREA,
-                "None": cls.SCALING_NONE,
-            }
-            return mapping.get(option, cls.SCALING_ELECTRODE)
 
     def __init__(
         self,
@@ -52,11 +27,11 @@ class Report:
         if type(self) is Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
-        self.type = params.rep_type.lower()
+        self.type = params.type
         self.variables = self.parse_variable_names(params.report_on)
 
         self.report_dt = params.dt
-        self.scaling_mode = self.ScalingMode.from_option(params.scaling)
+        self.scaling = params.scaling
         self.use_coreneuron = use_coreneuron
 
         self.alu_list = []
@@ -73,13 +48,23 @@ class Report:
         Nd.BBSaveState().ignore(self.report)
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Abstract method to be implemented by subclasses to add section-level report data.
 
         :raises NotImplementedError: Always, unless overridden in subclass.
         """
         raise NotImplementedError("Subclasses must implement register_gid_section()")
+
+    @cache_errors
+    def setup(self, rep_params: ReportParameters, global_manager):
+        for point in rep_params.points:
+            gid = point.gid
+            pop_name, pop_offset = global_manager.getPopulationInfo(gid)
+            cell = global_manager.get_cell(gid)
+            spgid = global_manager.getSpGid(gid)
+
+            self.register_gid_section(cell, point, spgid, pop_name, pop_offset, rep_params.sections)
 
     @staticmethod
     def is_point_process_at_location(point_process, section, x):
@@ -101,20 +86,22 @@ class Report:
         return compartment_id == int(x * section.nseg)
 
     @staticmethod
-    def get_point_processes(section, mechanism):
+    def get_point_processes(section, mechanism=None):
         """Retrieve all synapse objects attached to a given section.
 
         :param section: The NEURON section object to search for synapses.
         :param mechanism: The mechanism requested
         :return: A list of synapse objects attached to the section.
         """
-        synapses = [
+        if mechanism is None:
+            return [syn for seg in section for syn in seg.point_processes()]
+
+        return [
             syn
             for seg in section
             for syn in seg.point_processes()
             if syn.hname().startswith(mechanism)
         ]
-        return synapses
 
     @staticmethod
     def parse_variable_names(report_on):
@@ -190,7 +177,7 @@ class Report:
         if mechanism in self.CURRENT_INJECTING_PROCESSES:
             return -1.0  # Negative for current injecting processes
 
-        if mechanism != "i_membrane_" and self.scaling_mode == Report.ScalingMode.SCALING_AREA:
+        if mechanism != "i_membrane_" and self.scaling == Scaling.AREA:
             return section(x).area() / 100.0
 
         return 1.0
@@ -215,7 +202,7 @@ class CompartmentReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, _sections: SectionType
     ):
         """Append section-based report data for a single cell and its compartments.
 
@@ -237,10 +224,19 @@ class CompartmentReport(Report):
             section = sc.sec
             x = point.x[i]
             var_refs = self.get_var_refs(section, x, mechanism, variable_name)
-            if len(var_refs) != 1:
+            if len(var_refs) == 0:
                 raise AttributeError(
-                    f"Expected exactly one reference for variable '{variable_name}' "
-                    f"of mechanism '{mechanism}' at location {x}, but found {len(var_refs)}."
+                    f"No reference found for variable '{variable_name}' of mechanism '{mechanism}' "
+                    f"at location {x}."
+                )
+
+            if len(var_refs) > 1:
+                raise AttributeError(
+                    f"Expected one reference for variable '{variable_name}' "
+                    f"of mechanism '{mechanism}' at location "
+                    f"{x}, but found {len(var_refs)}. "
+                    "Probably many synapses attached to the soma. "
+                    "Compartment reports require only one variable per segment."
                 )
             section_id = cell_obj.get_section_id(section)
             self.report.AddVar(var_refs[0], section_id, gid, pop_name)
@@ -253,7 +249,7 @@ class SummationReport(Report):
     """
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Append summed variable data for a given cell across sections.
 
@@ -262,7 +258,10 @@ class SummationReport(Report):
         :param vgid: Optional virtual GID.
         :param pop_name: Population name.
         :param pop_offset: Population GID offset.
-        :param sum_currents_into_soma: If True, collapses sum into soma.
+        :param sections: Sum into soma if section is soma
+
+        Note: sections == SectionType.SOMA effectively means that we need
+        to sum the values into the soma
         """
         if self.use_coreneuron:
             return
@@ -271,21 +270,21 @@ class SummationReport(Report):
 
         self.report.AddNode(gid, pop_name, pop_offset)
 
-        if sum_currents_into_soma:
+        if sections == SectionType.SOMA:
             alu_helper = self.setup_alu_for_summation(0.5)
 
         for i, sc in enumerate(point.sclst):
             section = sc.sec
             x = point.x[i]
-            if not sum_currents_into_soma:
+            if sections == SectionType.ALL:
                 alu_helper = self.setup_alu_for_summation(x)
 
             self.process_mechanisms(section, x, alu_helper)
 
-            if not sum_currents_into_soma:
+            if sections == SectionType.ALL:
                 section_index = cell_obj.get_section_id(section)
                 self.add_summation_var_and_commit_alu(alu_helper, section_index, gid, pop_name)
-        if sum_currents_into_soma:
+        if sections == SectionType.SOMA:
             # soma
             self.add_summation_var_and_commit_alu(alu_helper, 0, gid, pop_name)
 
@@ -296,16 +295,16 @@ class SummationReport(Report):
         Note: compartments without the variable are silently skipped.
         """
         for mechanism, variable in self.variables:
+            scaling_factor = self.get_scaling_factor(section, x, mechanism)
+            if scaling_factor == 0:
+                logging.warning(
+                    "Skipping intrinsic current '%s' at a location with area = 0", mechanism
+                )
+                # simply skip if not valid. No logging or error is necessary
+                continue
             var_refs = Report.get_var_refs(section, x, mechanism, variable)
             for var_ref in var_refs:
-                scaling_factor = self.get_scaling_factor(section, x, mechanism)
-                if scaling_factor == 0:
-                    logging.warning(
-                        "Skipping intrinsic current '%s' at a location with area = 0", mechanism
-                    )
-                    continue
                 alu_helper.addvar(var_ref, scaling_factor)
-            # simply skip if not valid. No logging or error is necessary
 
     def setup_alu_for_summation(self, alu_x):
         """Setup ALU helper for summation."""
@@ -335,7 +334,7 @@ class SynapseReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sum_currents_into_soma
+        self, cell_obj, point, vgid, pop_name, pop_offset, sections: SectionType
     ):
         """Append synapse variables for a given cell to the report grouped by gid."""
         gid = cell_obj.gid
@@ -350,6 +349,7 @@ class SynapseReport(Report):
             section = sc.sec
             x = point.x[i]
             # Iterate over point processes in the section
+
             point_processes = self.get_point_processes(section, mechanism)
             for synapse in point_processes:
                 if self.is_point_process_at_location(synapse, section, x):
@@ -359,7 +359,7 @@ class SynapseReport(Report):
                         synapse.selected_for_report = True
 
         if not synapse_list:
-            raise AttributeError(f"Mechanism '{mechanism}' not found.")
+            raise AttributeError(f"Synapse '{mechanism}' not found on any points on gid: {gid}. ")
         if not self.use_coreneuron:
             # Prepare the report for the cell
             self.report.AddNode(gid, pop_name, pop_offset)
@@ -374,19 +374,20 @@ class SynapseReport(Report):
 
 NOT_SUPPORTED = object()
 _report_classes = {
-    "compartment": CompartmentReport,
-    "compartment_set": CompartmentReport,
-    "summation": SummationReport,
-    "synapse": SynapseReport,
-    "lfp": NOT_SUPPORTED,
+    ReportType.COMPARTMENT: CompartmentReport,
+    ReportType.COMPARTMENT_SET: CompartmentReport,
+    ReportType.SUMMATION: SummationReport,
+    ReportType.SYNAPSE: SynapseReport,
+    ReportType.LFP: NOT_SUPPORTED,
 }
 
 
-def create_report(params, use_coreneuron):
+@cache_errors
+def create_report(params: ReportParameters, use_coreneuron):
     """Factory function to create a report instance based on parameters."""
-    cls = _report_classes.get(params.rep_type.lower())
+    cls = _report_classes.get(params.type)
     if cls is None:
-        raise ValueError(f"Unknown report type: {params.rep_type}")
+        raise ValueError(f"Unknown report type: {params.type.to_string()}")
     if cls is NOT_SUPPORTED:
         return None
     return cls(params, use_coreneuron)

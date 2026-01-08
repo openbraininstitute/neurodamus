@@ -98,13 +98,13 @@ def test_read_lfp_factors(test_weights_file):
     lfp = LFPManager()
     lfp._lfp_file, _ = test_weights_file
     # Test the function with valid input (node_id is 0 based, so expected 42 in the file)
-    gid = 43
+    gid = 42
     result = lfp.read_lfp_factors(gid, ("default", 0)).to_python()
     expected_result = [0.1, 0.2, 0.3, 0.4]
     assert result == expected_result, f'Expected {expected_result}, but got {result}'
 
     # Test the function with invalid input (non-existent gid)
-    gid = 420
+    gid = 419
     result = lfp.read_lfp_factors(gid, ("default", 0)).to_python()
     expected_result = []
     assert result == expected_result, f'Expected {expected_result}, but got {result}'
@@ -120,13 +120,13 @@ def test_number_electrodes(test_weights_file):
     lfp = LFPManager()
     lfp._lfp_file, _ = test_weights_file
     # Test the function with valid input
-    gid = 1
+    gid = 0
     result = lfp.get_number_electrodes(gid, ("default", 0))
     expected_result = 2
     assert result == expected_result, f'Expected {expected_result}, but got {result}'
 
     # Test the function with invalid input (non-existent gid)
-    gid = 420
+    gid = 419
     result = lfp.get_number_electrodes(gid, ("default", 0))
     expected_result = 0
     assert result == expected_result, f'Expected {expected_result}, but got {result}'
@@ -158,6 +158,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
             "target_simulator": "CORENEURON",
             "run": {"electrodes_file": lfp_weights_file},
             "reports": {
+                "override_field": 1,
                 "lfp": {
                     "type": "lfp",
                     "cells": "Mosaic",
@@ -231,6 +232,8 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     # compare results with refs
     lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report.h5")
     result_ids, result_data = lfp_data["RingA"]
+
+    
 
     node_ids = np.array([0, 1, 2])
     t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])

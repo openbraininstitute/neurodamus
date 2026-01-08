@@ -110,7 +110,7 @@ def make_nodes(filename, name, count, wanted_attributes):
 
 def make_edges(filename, edges, wanted_attributes):
     name = f"{edges.src}__{edges.tgt}__{edges.type}"
-    src_ids, tgt_ids = zip(*edges.connections)
+    src_ids, tgt_ids = zip(*edges.connections, strict=True)
     count = len(src_ids)
     with h5py.File(filename, "w") as h5:
         dg = h5.create_group(f"/edges/{name}")

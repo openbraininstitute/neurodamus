@@ -8,6 +8,7 @@
 */.ipynb_checkpoints/*
 .vscode
 spack*
+pytest-of*
 
 # Project files
 .ropeproject
@@ -34,4 +35,3 @@ sdist/*
 docs/build/
 cover/*
 MANIFEST
-removeme

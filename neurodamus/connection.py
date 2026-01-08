@@ -81,7 +81,7 @@ class ConnectionBase:
             syndelay_override: The delay for this connection, overriding "delay" property
             synapses_offset: The offset within the edge file (metadata)
         """
-        self.sgid = int(sgid or -1)
+        self.sgid = int(sgid)
         self.tgid = int(tgid)
         self.weight_factor = weight_factor
         self.syndelay_override = syndelay_override
@@ -159,7 +159,7 @@ class ConnectionBase:
 class Connection(ConnectionBase):
     """A Connection object serves as a container for synapses formed from
     a presynaptic and a postsynaptic gid, including Points where those
-    synapses are placed (stored in TPointList)
+    synapses are placed (stored in TargetPointList)
     """
 
     __slots__ = (
@@ -309,7 +309,7 @@ class Connection(ConnectionBase):
         times. Consider add_synapses to add multiple synapses in bulk
 
         Args:
-            syn_tpoints: TPointList with one point on the tgid where the
+            syn_tpoints: TargetPointList with one point on the tgid where the
                 associated synapse exists
             params_obj: Parameters object for the Synapse to be placed
             syn_id: Optional id for the synapse to be used for seeding rng
@@ -491,7 +491,9 @@ class Connection(ConnectionBase):
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
 
-        syn_helper = helper_cls(self.tgid, params_obj, x, syn_id, base_seed, *add_params)
+        # keep +1 to match legacy 1-based Neurodamus for reproducibility. Otherwise the
+        # rng gets a different seed
+        syn_helper = helper_cls(self.tgid + 1, params_obj, x, syn_id, base_seed, *add_params)
 
         # set the synapse conductance obtained from the synapse file
         # this variable is exclusively used for delay connections
@@ -508,11 +510,7 @@ class Connection(ConnectionBase):
         return syn_helper.synapse
 
     def finalize_gap_junctions(self):
-        """When all parameters are set, create synapses and netcons
-
-        Args:
-            cell: The cell to create synapses and netcons on.
-        """
+        """When all parameters are set, create synapses and netcons"""
         self._synapses = compat.List()
         self._netcons = []
 
@@ -709,7 +707,9 @@ class SpontMinis(ArtificialStim):
 
         src_pop_id, dst_pop_id = conn.population_id
         rng_seed = self._rng_info.getMinisSeed()
-        tgid_seed = conn.tgid + 250
+        tgid_seed = (
+            conn.tgid + 250 + 1
+        )  # keep +1 to match legacy 1-based Neurodamus for reproducibility setup RNG
 
         seed2 = src_pop_id * 65536 + dst_pop_id + rng_seed
         ips.setRNGs(

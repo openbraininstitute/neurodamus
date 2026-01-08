@@ -5,14 +5,16 @@ import numpy.testing as npt
 import pytest
 import pickle
 
-from tests.utils import check_signal_peaks
-
 from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
 from neurodamus.connection_manager import SynapseRuleManager
 from neurodamus.core.configuration import SimConfig
 from neurodamus.gap_junction import GapJunctionManager
 from pathlib import Path
+
+import numpy as np
+from scipy.signal import find_peaks
+
 
 
 @pytest.mark.parametrize(
@@ -22,7 +24,7 @@ from pathlib import Path
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "target_simulator": "NEURON",
                 "inputs": {
                     "Stimulus": {
@@ -30,7 +32,7 @@ from pathlib import Path
                         "input_type": "current_clamp",
                         "delay": 5,
                         "duration": 50,
-                        "node_set": "RingC",
+                        "node_set": "Ring:C",
                         "amp_start": 10,
                         "width": 1,
                         "frequency": 50,
@@ -50,7 +52,7 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
     offset = cell_manager.local_nodes.offset
     assert offset == 0
     gids = cell_manager.get_final_gids()
-    npt.assert_allclose(gids, np.array([1, 2, 3]))
+    npt.assert_allclose(gids, np.array([0, 1, 2]))
 
     # chemical connections RingC -> RingC
     chemical_manager = nd.circuits.get_edge_manager("RingC", "RingC", SynapseRuleManager)
@@ -60,14 +62,14 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
     assert len(list(gj_manager.all_connections())) == 2
     # Ensure we got our GJ instantiated and bi-directional
-    gjs_1 = list(gj_manager.get_connections(post_gids=1, pre_gids=3))
+    gjs_1 = list(gj_manager.get_connections(post_gids=0, pre_gids=2))
     assert len(gjs_1) == 1
-    gjs_2 = list(gj_manager.get_connections(post_gids=3, pre_gids=1))
+    gjs_2 = list(gj_manager.get_connections(post_gids=2, pre_gids=0))
     assert len(gjs_2) == 1
 
     # check gap junction parameters values without user correction
-    tgt_cellref = cell_manager.getCell(1)
-    connection = next(gj_manager.get_connections(post_gids=[3], pre_gids=[1]))
+    tgt_cellref = cell_manager.getCell(0)
+    connection = next(gj_manager.get_connections(post_gids=[2], pre_gids=[0]))
     assert connection.synapses[0].g == 100
     assert tgt_cellref.soma[0](0.5).pas.g == 0
     assert gj_manager.holding_ic_per_gid is None
@@ -81,7 +83,9 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
     tgtvar_vec.record(tgt_cellref.soma[0](0.5)._ref_v)
     h.finitialize()  # reinit for the recordings to be registered
     nd.run()
-    check_signal_peaks(tgtvar_vec, [52, 57, 252, 257, 452, 457])
+
+    peaks_pos = find_peaks(tgtvar_vec, prominence=1)[0]
+    np.testing.assert_allclose(peaks_pos, [52, 57, 252, 257, 452, 457])
 
 
 @pytest.mark.parametrize(
@@ -91,7 +95,7 @@ def test_gapjunctions_default(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "deterministic_stoch": True,
@@ -139,7 +143,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
     cell_manager = nd.circuits.get_node_manager("RingC")
     tgt_cellref = cell_manager.get_cellref(1)
     gj_manager = nd.circuits.get_edge_manager("RingC", "RingC", GapJunctionManager)
-    connection = next(gj_manager.get_connections(post_gids=[3], pre_gids=[1]))
+    connection = next(gj_manager.get_connections(post_gids=[2], pre_gids=[0]))
     assert connection.synapses[0].g == 0.2
     assert tgt_cellref.soma[0](0.5).pas.g == 0.033
     assert len(gj_manager.holding_ic_per_gid) == 1
@@ -161,7 +165,7 @@ def test_gap_junction_corrections(capsys, create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_gj.json"),
-                "node_set": "RingC",
+                "node_set": "Ring:C",
                 "beta_features": {
                     "gapjunction_target_population": "RingC",
                     "remove_channels": "all",

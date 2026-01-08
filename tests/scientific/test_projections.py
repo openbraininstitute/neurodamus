@@ -142,9 +142,9 @@ def test_synapse_delay_override(sonata_config_file):
                 assert conn.syndelay_override == 3.
 
         # Record the soma voltages
-        c1 = edges_A.cell_manager.get_cellref(1)
+        c0 = edges_A.cell_manager.get_cellref(0)
         voltage_vec = Nd.Vector()
-        voltage_vec.record(c1.soma[0](0.5)._ref_v)
+        voltage_vec.record(c0.soma[0](0.5)._ref_v)
         Nd.finitialize()  # reinit for the recordings to be registered
 
     nd.run()
