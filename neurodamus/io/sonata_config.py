@@ -16,35 +16,34 @@ class ConnectionTypes(str, Enum):
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
 
-
 @dataclass
 class RunConfig:
     """Python-side mutable version of SimulationConfig.Run."""
 
     tstop: float
     dt: float
-    random_seed: int
+    base_seed: int
     spike_threshold: float
-    integration_method: str
+    second_order: str
     stimulus_seed: int
     ionchannel_seed: int
     minis_seed: int
     synapse_seed: int
-    electrodes_file: str
+    lfp_weights_path: str
 
     # Additional extended fields
     output_root: str
     config_node_sets_file: str
     target_file: str
     spikes_file: str
-    spikes_sort_order: str
-    simulator: str
+    spikes_sort_order: libsonata.SimulationConfig.Output.SpikesSortOrder
+    simulator: libsonata.SimulationConfig.SimulatorType
     population_name: str | None
     nodeset_name: str
     celsius: float
     v_init: float
     extracellular_calcium: float
-    spike_location: str
+    spike_location: libsonata.SimulationConfig.Conditions.SpikeLocation
     compartment_sets_file: str
     
 
@@ -122,29 +121,32 @@ class SonataConfig:
 
         # self._adapt_libsonata_fields(parsed_run)
 
+        # print(self._sim_conf.run, dir(self._sim_conf.run), type(self._sim_conf.run))
+        # print(self._translate_dict(item_translation, self._sim_conf.run))
+        # assert False
         return RunConfig(
             tstop=self._sim_conf.run.tstop,
             dt=self._sim_conf.run.dt,
-            random_seed=self._sim_conf.run.random_seed,
+            base_seed=self._sim_conf.run.random_seed,
             spike_threshold=self._sim_conf.run.spike_threshold,
-            integration_method=self._sim_conf.run.integration_method,
+            second_order=self._sim_conf.run.integration_method,
             stimulus_seed=self._sim_conf.run.stimulus_seed,
             ionchannel_seed=self._sim_conf.run.ionchannel_seed,
             minis_seed=self._sim_conf.run.minis_seed,
             synapse_seed=self._sim_conf.run.synapse_seed,
-            electrodes_file=self._sim_conf.run.electrodes_file,
+            lfp_weights_path=self._sim_conf.run.electrodes_file,
             output_root=self._sim_conf.output.output_dir,
             config_node_sets_file=self._circuit_conf.node_sets_path,
             target_file=self._sim_conf.node_sets_file,
             spikes_file=self._sim_conf.output.spikes_file,
-            spikes_sort_order=self._sim_conf.output.spikes_sort_order.name,
-            simulator=self._sim_conf.target_simulator.name,
+            spikes_sort_order=self._sim_conf.output.spikes_sort_order,
+            simulator=self._sim_conf.target_simulator,
             population_name=None,
             nodeset_name=self._sim_conf.node_set,
             celsius=self._sim_conf.conditions.celsius,
             v_init=self._sim_conf.conditions.v_init,
             extracellular_calcium=self._sim_conf.conditions.extracellular_calcium,
-            spike_location=self._sim_conf.conditions.spike_location.name,
+            spike_location=self._sim_conf.conditions.spike_location,
             compartment_sets_file=self._sim_conf.compartment_sets_file,
             )
 

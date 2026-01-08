@@ -8,6 +8,8 @@ from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 
+import libsonata
+
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
@@ -651,29 +653,23 @@ def _set_simulator(config: _SimConfig):
     user_config = config.cli_options
     simulator = config.run_conf.simulator
 
-    if simulator is None:
-        config.run_conf["Simulator"] = simulator = "NEURON"
-    if simulator not in {"NEURON", "CORENEURON"}:
-        raise ConfigurationError("'Simulator' value must be either NEURON or CORENEURON")
-    if simulator == "NEURON" and (
+    if simulator == libsonata.SimulationConfig.SimulatorType.NEURON and (
         user_config.build_model is False or user_config.simulate_model is False
     ):
         raise ConfigurationError(
             "Disabling model building or simulation is only compatible with CoreNEURON"
         )
 
-    log_verbose("Simulator = %s", simulator)
-    config.use_neuron = simulator == "NEURON"
-    config.use_coreneuron = simulator == "CORENEURON"
+    log_verbose("Simulator = %s", simulator.name)
+    config.use_neuron = simulator == libsonata.SimulationConfig.SimulatorType.NEURON
+    config.use_coreneuron = simulator == libsonata.SimulationConfig.SimulatorType.CORENEURON
 
 
 @SimConfig.validator
 def _spike_parameters(config: _SimConfig):
     spike_location = config.run_conf.spike_location
-    if spike_location not in {"soma", "AIS"}:
-        raise ConfigurationError("Possible options for SpikeLocation are 'soma' and 'AIS'")
     spike_threshold = config.run_conf.spike_threshold
-    log_verbose("Spike_Location = %s", spike_location)
+    log_verbose("Spike_Location = %s", spike_location.name)
     log_verbose("Spike_Threshold = %s", spike_threshold)
     config.spike_location = spike_location
     config.spike_threshold = spike_threshold
@@ -725,10 +721,57 @@ def _simulator_globals(config: _SimConfig):
                     config.extracellular_calcium,
                 )
 
+
+@SimConfig.validator
+def _second_order(config: _SimConfig):
+    second_order = int(config.run_conf.second_order)
+    from neuron import h
+
+    log_verbose("SecondOrder = %g", second_order)
+    config.second_order = second_order
+    h.secondorder = second_order
+
+
+@SimConfig.validator
+def _single_vesicle(config: _SimConfig):
+    if "MinisSingleVesicle" not in config.run_conf:
+        return
+
+    from neuron import h
+
+    if not hasattr(h, "minis_single_vesicle_ProbAMPANMDA_EMS"):
+        raise NotImplementedError(
+            "Synapses don't implement minis_single_vesicle. More recent neurodamus model required."
+        )
+    minis_single_vesicle = int(config.run_conf["MinisSingleVesicle"])
+    log_verbose("minis_single_vesicle = %d", minis_single_vesicle)
+    h.minis_single_vesicle_ProbAMPANMDA_EMS = minis_single_vesicle
+    h.minis_single_vesicle_ProbGABAAB_EMS = minis_single_vesicle
+    h.minis_single_vesicle_GluSynapse = minis_single_vesicle
+
+
+@SimConfig.validator
+def _randomize_gaba_risetime(config: _SimConfig):
+    randomize_risetime = config.run_conf.get("RandomizeGabaRiseTime")
+    if randomize_risetime is None:
+        return
+    from neuron import h
+
+    h.load_file("GABAABHelper.hoc")
+    if not hasattr(h, "randomize_Gaba_risetime"):
+        raise NotImplementedError(
+            "Models don't support setting RandomizeGabaRiseTime. "
+            "Please load a more recent model or drop the option."
+        )
+    assert randomize_risetime in {"True", "False", "0", "false"}  # any non-"True" value is negative
+    log_verbose("randomize_Gaba_risetime = %s", randomize_risetime)
+    h.randomize_Gaba_risetime = randomize_risetime
+
+
 @SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
-    output_path = config.run_conf.output_root
+    output_path = config.run_conf.get("OutputRoot")
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
@@ -738,14 +781,14 @@ def _output_root(config: _SimConfig):
         output_path = Path(config.simulation_config_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
-    config.run_conf.output_root = str(output_path)
+    config.run_conf["OutputRoot"] = str(output_path)
     config.output_root = str(output_path)
 
 
 @SimConfig.validator
 def _check_save(config: _SimConfig):
     cli_args = config.cli_options
-    save_path = cli_args.save
+    save_path = cli_args.save or config.run_conf.get("Save")
 
     if not save_path:
         return
@@ -764,7 +807,7 @@ def _check_save(config: _SimConfig):
 
 @SimConfig.validator
 def _check_restore(config: _SimConfig):
-    restore = config.cli_options.restore
+    restore = config.cli_options.restore or config.run_conf.get("Restore")
     if not restore:
         return
 
@@ -925,6 +968,16 @@ def _report_vars(config: _SimConfig):
             )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
+
+
+@SimConfig.validator
+def _spikes_sort_order(config: _SimConfig):
+    order = config.run_conf.get("SpikesSortOrder", "by_time")
+    if order not in {"none", "by_time"}:
+        raise ConfigurationError(
+            f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
+        )
+
 
 @SimConfig.validator
 def _coreneuron_direct_mode(config: _SimConfig):
