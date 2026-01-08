@@ -456,6 +456,7 @@ def _check_params(  # noqa: C901
                 val,
             )
 
+
 @SimConfig.validator
 def _loadbal_mode(config: _SimConfig):
     cli_args = config.cli_options
@@ -648,6 +649,7 @@ def _global_parameters(config: _SimConfig):
     props = ("celsius", "v_init", "extracellular_calcium", "tstop", "buffer_time")
     log_verbose("Global params: %s", " | ".join(p + f": {getattr(config, p)}" for p in props))
 
+
 @SimConfig.validator
 def _set_simulator(config: _SimConfig):
     user_config = config.cli_options
@@ -733,45 +735,9 @@ def _second_order(config: _SimConfig):
 
 
 @SimConfig.validator
-def _single_vesicle(config: _SimConfig):
-    if "MinisSingleVesicle" not in config.run_conf:
-        return
-
-    from neuron import h
-
-    if not hasattr(h, "minis_single_vesicle_ProbAMPANMDA_EMS"):
-        raise NotImplementedError(
-            "Synapses don't implement minis_single_vesicle. More recent neurodamus model required."
-        )
-    minis_single_vesicle = int(config.run_conf["MinisSingleVesicle"])
-    log_verbose("minis_single_vesicle = %d", minis_single_vesicle)
-    h.minis_single_vesicle_ProbAMPANMDA_EMS = minis_single_vesicle
-    h.minis_single_vesicle_ProbGABAAB_EMS = minis_single_vesicle
-    h.minis_single_vesicle_GluSynapse = minis_single_vesicle
-
-
-@SimConfig.validator
-def _randomize_gaba_risetime(config: _SimConfig):
-    randomize_risetime = config.run_conf.get("RandomizeGabaRiseTime")
-    if randomize_risetime is None:
-        return
-    from neuron import h
-
-    h.load_file("GABAABHelper.hoc")
-    if not hasattr(h, "randomize_Gaba_risetime"):
-        raise NotImplementedError(
-            "Models don't support setting RandomizeGabaRiseTime. "
-            "Please load a more recent model or drop the option."
-        )
-    assert randomize_risetime in {"True", "False", "0", "false"}  # any non-"True" value is negative
-    log_verbose("randomize_Gaba_risetime = %s", randomize_risetime)
-    h.randomize_Gaba_risetime = randomize_risetime
-
-
-@SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
-    output_path = config.run_conf.get("OutputRoot")
+    output_path = config.run_conf.output_root
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
@@ -781,7 +747,7 @@ def _output_root(config: _SimConfig):
         output_path = Path(config.simulation_config_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
-    config.run_conf["OutputRoot"] = str(output_path)
+    config.run_conf.output_root = str(output_path)
     config.output_root = str(output_path)
 
 

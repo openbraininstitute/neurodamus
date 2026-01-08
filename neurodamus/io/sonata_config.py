@@ -3,8 +3,8 @@
 import json
 import logging
 import os.path
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 import libsonata
 
@@ -15,6 +15,7 @@ class ConnectionTypes(str, Enum):
     NeuroModulation = "NeuroModulation"
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
+
 
 @dataclass
 class RunConfig:
@@ -45,7 +46,7 @@ class RunConfig:
     extracellular_calcium: float
     spike_location: libsonata.SimulationConfig.Conditions.SpikeLocation
     compartment_sets_file: str
-    
+
 
 class SonataConfig:
     __slots__ = (
@@ -148,7 +149,7 @@ class SonataConfig:
             extracellular_calcium=self._sim_conf.conditions.extracellular_calcium,
             spike_location=self._sim_conf.conditions.spike_location,
             compartment_sets_file=self._sim_conf.compartment_sets_file,
-            )
+        )
 
     @property
     def Conditions(self):
