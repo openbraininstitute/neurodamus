@@ -454,15 +454,6 @@ def _check_params(  # noqa: C901
                 val,
             )
 
-
-@SimConfig.validator
-def _run_params(config: _SimConfig):
-    required_fields = ("Duration",)
-    numeric_fields = ("BaseSeed", "StimulusSeed", "Celsius", "V_Init")
-    non_negatives = ("Duration", "Dt", "ModelBuildingSteps")
-    _check_params("Run default", config.run_conf, required_fields, numeric_fields, non_negatives)
-
-
 @SimConfig.validator
 def _loadbal_mode(config: _SimConfig):
     cli_args = config.cli_options
@@ -470,7 +461,7 @@ def _loadbal_mode(config: _SimConfig):
         logging.warning("Disabled Load Balance (restrict_features)")
         config.loadbal_mode = LoadBalanceMode.RoundRobin
         return
-    lb_mode_str = cli_args.lb_mode or config.run_conf.get("RunMode")
+    lb_mode_str = cli_args.lb_mode or config.run_conf.run_mode
     config.loadbal_mode = LoadBalanceMode.parse(lb_mode_str)
 
 
