@@ -575,7 +575,7 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = self._run_conf.get("LFPWeightsPath")
+        lfp_weights_file = self._run_conf.lfp_weights_path
         if lfp_weights_file:
             if SimConfig.use_coreneuron:
                 lfp_manager = self._circuits.global_manager._lfp_manager
@@ -1003,7 +1003,7 @@ class Node:
 
     def _finalize_corenrn_reports(self, core_report_config, pop_offsets_alias):
         core_report_config.set_pop_offsets(pop_offsets_alias[0])
-        core_report_config.set_spike_filename(self._run_conf.get("SpikesFile"))
+        core_report_config.set_spike_filename(self._run_conf.spikes_file)
         core_report_config.dump(CoreConfig.report_config_file_save)
 
     def _finalize_nrn_reports(self):
@@ -1105,7 +1105,7 @@ class Node:
         # This is incompatible with efficient caching atm AND Incompatible with
         # mcd & Glut
         if not self._is_ngv_run:
-            Nd.cvode.cache_efficient("ElectrodesPath" not in self._run_conf)
+            Nd.cvode.cache_efficient(bool(self._run_conf.lfp_weights_path))
         self._pc.set_maxstep(4)
         with timeit(name="stdinit"):
             Nd.stdinit()
@@ -1294,7 +1294,7 @@ class Node:
             seed=SimConfig.rng_info.getGlobalSeed(),
             model_stats=int(SimConfig.cli_options.model_stats),
             report_conf=CoreConfig.report_config_file_save
-            if self._run_conf["EnableReports"]
+            if self._run_conf.enable_reports
             else None,
             mpi=int(os.environ.get("NEURON_INIT_MPI", "1")),
         )
@@ -1652,7 +1652,7 @@ class Neurodamus(Node):
             return
 
         log_stage("Creating connections in the simulator")
-        base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
+        base_seed = self._run_conf.base_seed  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
             syn_manager.finalize(base_seed)
         print_mem_usage()
@@ -1661,7 +1661,7 @@ class Neurodamus(Node):
         print_mem_usage()
         self.enable_modifications()
 
-        if self._run_conf["EnableReports"]:
+        if self._run_conf.enable_reports:
             self.enable_reports()
         print_mem_usage()
 
@@ -1704,7 +1704,7 @@ class Neurodamus(Node):
         log_stage(" =============== CORENEURON RESTORE ===============")
         self.load_targets()
         self.enable_replay()
-        if self._run_conf["EnableReports"]:
+        if self._run_conf.enable_reports:
             self.enable_reports()
 
         self._coreneuron_write_sim_config(corenrn_restore=True)

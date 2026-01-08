@@ -40,7 +40,7 @@ class StimulusManager:
 
     def __init__(self, target_manager):
         self._target_manager = target_manager
-        self._stim_seed = SimConfig.run_conf.get("StimulusSeed")
+        self._stim_seed = SimConfig.run_conf.stimulus_seed
         self._stimulus = []
         self.reset_helpers()  # reset helpers for multi-cycle builds
 

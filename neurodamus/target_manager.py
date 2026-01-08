@@ -149,9 +149,11 @@ class TargetManager:
     @classmethod
     def _init_nodesets(cls, run_conf):
         config_nodeset_file = run_conf.config_node_sets_file
+        simulation_nodesets_file = None
         target_file = run_conf.target_file
-        simulation_nodesets_file = target_file if target_file.endswith(".json") else None
-        return config_nodeset_file and NodeSetReader(
+        if target_file.endswith(".json"):
+            simulation_nodesets_file = target_file
+        return (config_nodeset_file or simulation_nodesets_file) and NodeSetReader(
             config_nodeset_file, simulation_nodesets_file
         )
 

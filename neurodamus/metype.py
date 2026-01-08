@@ -4,6 +4,8 @@ import logging
 from abc import abstractmethod
 from os import path as ospath
 
+import libsonata
+
 import numpy as np
 
 from .core import NeuronWrapper as Nd
@@ -201,7 +203,7 @@ class METype(BaseCell):
 
         Returns: NetCon obj
         """
-        if SimConfig.spike_location == "soma":
+        if SimConfig.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.soma:
             sec, seg = self.CellRef.soma[0], self.CellRef.soma[0](1)
         else:
             sec, seg = self.CellRef.axon[1], self.CellRef.axon[1](0.5)

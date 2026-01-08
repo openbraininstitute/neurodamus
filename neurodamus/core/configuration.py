@@ -217,7 +217,7 @@ class _SimConfig:
     build_model = True
     simulate_model = True
     loadbal_mode = None
-    spike_location = "soma"
+    spike_location = libsonata.SimulationConfig.Conditions.SpikeLocation.soma
     spike_threshold = -30
     dry_run = False
     num_target_ranks = None
