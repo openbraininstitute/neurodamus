@@ -506,14 +506,15 @@ class ElectrodeSource(SignalSource):
             usually the soma baricenter
     """
 
-    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position):
+    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt):
         super().__init__(base_amp=0, delay=delay)
         self.fields = fields
         self.duration = duration
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.base_position = base_position
+        self.segs_stim_vec = {}  # segment: stim_vec
+        self.signals = self.add_cosines()
 
     def add_cosines(self):
         """Add multiple cosinusoidal signals
@@ -524,6 +525,7 @@ class ElectrodeSource(SignalSource):
         tvec.indgen(self._cur_t, self._cur_t + total_duration, self.dt)
         self.time_vec.append(tvec)
         self.delay(total_duration)
+        self.time_vec.append(self._cur_t)  # add last time point
         res = []
         for field in self.fields:
             vec = Nd.h.Vector(len(tvec))
@@ -534,14 +536,14 @@ class ElectrodeSource(SignalSource):
 
         return res
 
-    def compute_signals(self, inject_position):
-        signals = self.add_cosines()
-        amplitudes = self.uniform_potentials(inject_position)
+    def compute_signals(self, inject_position, base_position):
+        amplitudes = self.uniform_potentials(inject_position, base_position)
         # scale each signal by amplitude, and sum together to get the final stim_vec
-        stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(signals), axis=0)
+        stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(self.signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
-        self.stim_vec.append(Nd.h.Vector(stim_vec_sum))
-        self._add_point(self._base_amp)  # Last point
+        stim_vec = Nd.h.Vector(stim_vec_sum)
+        stim_vec.append(self._base_amp)  # add last point
+        return stim_vec
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
@@ -563,11 +565,11 @@ class ElectrodeSource(SignalSource):
             ramp_down = np.linspace(1, 0, ramp_down_number)
             signal_vec[-ramp_down_number:] *= ramp_down
 
-    def uniform_potentials(self, injection_position):
+    def uniform_potentials(self, injection_position, base_position):
         """Calculates potential amplitude relative to base_point
         Units: Ex,Ey,Ez in V/m, segment position in um
         """
-        displacement = (injection_position - self.base_position) * 1e-6  # Converts from um to m
+        displacement = (injection_position - base_position) * 1e-6  # Converts from um to m
         return [
             np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
             for field in self.fields

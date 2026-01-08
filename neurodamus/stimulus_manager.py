@@ -847,7 +847,7 @@ class SpatiallyUniformEField(BaseStim):
 
         super().__init__(target_points, stim_info, cell_manager)
 
-        self.stimList = {}  # Extracellular fields go here
+        self.stimList = {}  # map of {gid: ElectrodeSource}
 
         self.add_new_stimuli(target_points, stim_info, cell_manager)
 
@@ -859,6 +859,15 @@ class SpatiallyUniformEField(BaseStim):
         # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
+            # create an ElectrodeSource object per cell
+            es = ElectrodeSource(
+                delay=self.delay,
+                duration=self.duration,
+                fields=self.fields,
+                ramp_up_time=self.ramp_up_time,
+                ramp_down_time=self.ramp_down_time,
+                dt=self.dt,
+            )
             cell = cell_manager.get_cell(gid)
             all_seg_points = cell.compute_segment_global_coordinates()
             local_seg_points = cell.compute_segment_local_coordinates()
@@ -874,15 +883,6 @@ class SpatiallyUniformEField(BaseStim):
                 # skip sections not in this split
                 if not sc.exists():
                     continue
-                es = ElectrodeSource(
-                    delay=self.delay,
-                    duration=self.duration,
-                    fields=self.fields,
-                    ramp_up_time=self.ramp_up_time,
-                    ramp_down_time=self.ramp_down_time,
-                    dt=self.dt,
-                    base_position=soma_global_position,
-                )
                 segment_position = (
                     self.get_segment_position(
                         all_seg_points[sc.sec.name()],
@@ -894,28 +894,43 @@ class SpatiallyUniformEField(BaseStim):
                     if "soma" not in sc.sec.name()
                     else soma_global_position
                 )
-                es.compute_signals(inject_position=segment_position)
+                stim_vec = es.compute_signals(
+                    inject_position=segment_position, base_position=soma_global_position
+                )
                 segment = sc.sec(target_point_list.x[sec_id])
+                es.segs_stim_vec[segment] = stim_vec
 
-                # Consolidate with existing stimuli
-                if segment in self.stimList:
-                    # Combine with existing
-                    existing_es = self.stimList[segment]
-                    combined_time, combined_stim = self.combine_stimuli(
-                        existing_es.time_vec, existing_es.stim_vec, es.time_vec, es.stim_vec
-                    )
-                    existing_es.time_vec = Nd.h.Vector(combined_time)
-                    existing_es.stim_vec = Nd.h.Vector(combined_stim)
-                else:
-                    # Add new stimulus
-                    self.stimList[segment] = es
+            # Consolidate with existing stimuli
+            if gid in self.stimList:
+                # Combine with existing
+                cur_es = self.stimList[gid]
+                self.merge_stimuli(cur_es, es)
+            else:
+                # Add new stimulus
+                self.stimList[gid] = es
+
+    def merge_stimuli(self, cur_es, new_es):
+        """Update the current ElectrodeSource with a new object
+        1. combine the time_vec
+        2. combine the segs1_stim_vec, if the time over laps, the stim_vec should be summed
+        """
+        t1_vec = cur_es.time_vec.as_numpy()
+        t2_vec = new_es.time_vec.as_numpy()
+
+        combined_time_vec = None
+        for segment, stim2_vec in new_es.segs_stim_vec.items():
+            stim1_vec = cur_es.segs_stim_vec[segment]
+            combined_time_vec, combined_stim_vec = self.combine_time_stim_vectors(
+                t1_vec, stim1_vec.as_numpy(), t2_vec, stim2_vec.as_numpy()
+            )
+            cur_es.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
+
+        if combined_time_vec:
+            cur_es.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
 
     @staticmethod
-    def combine_stimuli(time1_vec, stim1_vec, time2_vec, stim2_vec):
-        t1_vec = time1_vec.as_numpy()
-        stim1_vec = stim1_vec.as_numpy()
-        t2_vec = time2_vec.as_numpy()
-        stim2_vec = stim2_vec.as_numpy()
+    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec):
+        """Combine time and stim vectors."""
 
         def ranges_overlap(t1, t2):
             """Check if two time ranges overlap."""
@@ -924,18 +939,19 @@ class SpatiallyUniformEField(BaseStim):
             return not (t1_max < t2_min or t2_max < t1_min)
 
         if ranges_overlap(t1_vec, t2_vec):
-            last_t1, t1_vec = t1_vec[-1], t1_vec[:-1]
-            last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
+            # remove the last point which is for reverting signal back to base_amp
+            last_t1, t1 = t1_vec[-1], t1_vec[:-1]
+            last_s1, stim1 = stim1_vec[-1], stim1_vec[:-1]
 
-            last_t2, t2_vec = t2_vec[-1], t2_vec[:-1]
-            last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
+            last_t2, t2 = t2_vec[-1], t2_vec[:-1]
+            last_s2, stim2 = stim2_vec[-1], stim2_vec[:-1]
 
-            combined_time_vec = np.union1d(t1_vec, t2_vec)
-            lookup = dict(zip(t1_vec, stim1_vec, strict=True))
+            combined_time_vec = np.union1d(t1, t2)
+            lookup = dict(zip(t1, stim1, strict=True))
             combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-            lookup = dict(zip(t2_vec, stim2_vec, strict=True))
+            lookup = dict(zip(t2, stim2, strict=True))
             combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-
+            # add back the last point
             last_t = max(last_t1, last_t2)
             last_amp = last_s1 if last_t1 > last_t2 else last_s2
             combined_time_vec = np.append(combined_time_vec, last_t)
@@ -953,11 +969,11 @@ class SpatiallyUniformEField(BaseStim):
     def apply_all_stimuli(cls):
         """Apply all consolidated stimuli to their segments"""
         if cls._instance:
-            for segment, es in cls._instance.stimList.items():
-                section = segment.sec
-                section.insert("extracellular")
-                es.stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
-                # print(f"{segment}, {es.stim_vec.as_numpy()} {es.time_vec.as_numpy()}")
+            for es in cls._instance.stimList.values():
+                for segment, stim_vec in es.segs_stim_vec.items():
+                    section = segment.sec
+                    section.insert("extracellular")
+                    stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.dt = float(SimConfig.run_conf["Dt"])
