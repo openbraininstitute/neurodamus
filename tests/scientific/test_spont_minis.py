@@ -37,8 +37,6 @@ def test_spont_minis(create_tmp_simulation_config_file):
         restrict_features=[Feature.SpontMinis],  # Enable Feature.SynConfigure to see events
         restrict_connectivity=1,  # base restriction, no projections
         disable_reports=True,
-        cleanup_atexit=False,
-        # logging_level=3,
     )
 
     edges_a: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
