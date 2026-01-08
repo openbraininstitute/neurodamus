@@ -493,7 +493,7 @@ class ConductanceSource(SignalSource):
         )
 
 
-class ElectrodeSource(SignalSource):
+class ElectrodeSource:
     """Constructs an extracellular potential field as the sum of multiple user-defined e-fields,
     and applies the resulting signal to the segment's e_extracellular.
 
@@ -506,15 +506,32 @@ class ElectrodeSource(SignalSource):
             usually the soma baricenter
     """
 
-    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time, dt):
-        super().__init__(base_amp=0, delay=delay)
+    def __init__(
+        self, base_amp, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position
+    ):
+        self.time_vec = Nd.h.Vector()
+        self._cur_t = 0
+        self._base_amp = base_amp
+        self._delay = delay
         self.fields = fields
         self.duration = duration
+        self.base_position = base_position
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.segs_stim_vec = {}  # segment: stim_vec
+        self.segs_stim_vec = {}  # {segment: stim_vec}
+        if delay > 0.0:
+            self.time_vec.append(self._cur_t)
+            self._cur_t = delay
         self.signals = self.add_cosines()
+
+    def delay(self, duration):
+        """Increments the ref time so that the next created signal is delayed"""
+        # NOTE: We rely on the fact that Neuron allows "instantaneous" changes
+        # and made all signal shapes return to base_amp. Therefore delay() doesn't
+        # need to introduce any point to avoid interpolation.
+        self._cur_t += duration
+        return self
 
     def add_cosines(self):
         """Add multiple cosinusoidal signals
@@ -533,17 +550,17 @@ class ElectrodeSource(SignalSource):
             phase = field.get("Phase", 0)
             vec.sin(freq, phase + np.pi / 2, self.dt)
             res.append(vec)
-
         return res
 
-    def compute_signals(self, inject_position, base_position):
-        amplitudes = self.uniform_potentials(inject_position, base_position)
+    def compute_signals(self, inject_position):
+        amplitudes = self.uniform_potentials(inject_position)
         # scale each signal by amplitude, and sum together to get the final stim_vec
         stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(self.signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
-        stim_vec = Nd.h.Vector(stim_vec_sum)
-        stim_vec.append(self._base_amp)  # add last point
-        return stim_vec
+        if self._delay > 0:
+            stim_vec_sum = np.append(0, stim_vec_sum)
+        stim_vec_sum = np.append(stim_vec_sum, self._base_amp)
+        return Nd.h.Vector(stim_vec_sum)
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
@@ -565,11 +582,11 @@ class ElectrodeSource(SignalSource):
             ramp_down = np.linspace(1, 0, ramp_down_number)
             signal_vec[-ramp_down_number:] *= ramp_down
 
-    def uniform_potentials(self, injection_position, base_position):
+    def uniform_potentials(self, injection_position):
         """Calculates potential amplitude relative to base_point
         Units: Ex,Ey,Ez in V/m, segment position in um
         """
-        displacement = (injection_position - base_position) * 1e-6  # Converts from um to m
+        displacement = (injection_position - self.base_position) * 1e-6  # Converts from um to m
         return [
             np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
             for field in self.fields

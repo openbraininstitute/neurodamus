@@ -859,15 +859,6 @@ class SpatiallyUniformEField(BaseStim):
         # apply stim to each point in target_points
         for target_point_list in target_points:
             gid = target_point_list.gid
-            # create an ElectrodeSource object per cell
-            es = ElectrodeSource(
-                delay=self.delay,
-                duration=self.duration,
-                fields=self.fields,
-                ramp_up_time=self.ramp_up_time,
-                ramp_down_time=self.ramp_down_time,
-                dt=self.dt,
-            )
             cell = cell_manager.get_cell(gid)
             all_seg_points = cell.compute_segment_global_coordinates()
             local_seg_points = cell.compute_segment_local_coordinates()
@@ -875,6 +866,17 @@ class SpatiallyUniformEField(BaseStim):
             # soma position is the average of all its segment points
             soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
             soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+            # create an ElectrodeSource object per cell
+            es = ElectrodeSource(
+                base_amp=0,
+                delay=self.delay,
+                duration=self.duration,
+                fields=self.fields,
+                ramp_up_time=self.ramp_up_time,
+                ramp_down_time=self.ramp_down_time,
+                dt=self.dt,
+                base_position=soma_global_position,
+            )
 
             def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
                 return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
@@ -894,9 +896,7 @@ class SpatiallyUniformEField(BaseStim):
                     if "soma" not in sc.sec.name()
                     else soma_global_position
                 )
-                stim_vec = es.compute_signals(
-                    inject_position=segment_position, base_position=soma_global_position
-                )
+                stim_vec = es.compute_signals(inject_position=segment_position)
                 segment = sc.sec(target_point_list.x[sec_id])
                 es.segs_stim_vec[segment] = stim_vec
 
@@ -925,7 +925,7 @@ class SpatiallyUniformEField(BaseStim):
             )
             cur_es.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
 
-        if combined_time_vec:
+        if combined_time_vec is not None:
             cur_es.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
 
     @staticmethod
@@ -974,6 +974,9 @@ class SpatiallyUniformEField(BaseStim):
                     section = segment.sec
                     section.insert("extracellular")
                     stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
+                    # print(f"{es.time_vec.as_numpy()}")
+                    # print(f"{stim_vec.as_numpy()}")
+                    # print()
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.dt = float(SimConfig.run_conf["Dt"])
