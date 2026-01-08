@@ -29,7 +29,14 @@ class Report:
             raise TypeError("Report is an abstract base class and cannot be instantiated directly.")
 
         self.type = params.type
+
+
+
         self.variables = self.parse_variable_names(params.report_on)
+
+        print(self.variables)
+        print(params.report_on)
+        assert False
 
         self.report_dt = params.dt
         self.scaling = params.scaling
