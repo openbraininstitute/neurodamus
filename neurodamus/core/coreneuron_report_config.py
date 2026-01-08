@@ -7,8 +7,9 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Union, get_args, get_origin, get_type_hints
 
-from ._utils import run_only_rank0
 import libsonata
+
+from ._utils import run_only_rank0
 
 
 @dataclass

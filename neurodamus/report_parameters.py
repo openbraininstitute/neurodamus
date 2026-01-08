@@ -34,9 +34,7 @@ class ReportParameters:
     sections: libsonata.SimulationConfig.Report.Sections
     compartments: libsonata.SimulationConfig.Report.Compartments
     compartment_set: str
-    points: list[TargetPointList] | None = (
-        None  # this is filled later with get_point_list
-    )
+    points: list[TargetPointList] | None = None  # this is filled later with get_point_list
 
 
 @cache_errors
@@ -68,9 +66,7 @@ def check_report_parameters(
 
 
 @cache_errors
-def create_report_parameters(
-    sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size
-):
+def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, target, buffer_size):
     """Create report parameters from configuration and CLI"""
     start_time = rep_conf.start_time + max(0, nd_t)
     end_time = min(rep_conf.end_time + max(0, nd_t), sim_end)

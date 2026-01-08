@@ -1,9 +1,10 @@
 import logging
 
+import libsonata
+
 from .core import NeuronWrapper as Nd
 from .report_parameters import ReportParameters
 from .utils.pyutils import cache_errors
-import libsonata
 
 
 class Report:
@@ -30,8 +31,6 @@ class Report:
 
         self.type = params.type
 
-
-
         self.variables = self.parse_variable_names(params.report_on)
         self.report_dt = params.dt
         self.scaling = params.scaling
@@ -51,7 +50,13 @@ class Report:
         Nd.BBSaveState().ignore(self.report)
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        sections: libsonata.SimulationConfig.Report.Sections,
     ):
         """Abstract method to be implemented by subclasses to add section-level report data.
 
@@ -180,7 +185,10 @@ class Report:
         if mechanism in self.CURRENT_INJECTING_PROCESSES:
             return -1.0  # Negative for current injecting processes
 
-        if mechanism != "i_membrane_" and self.scaling == libsonata.SimulationConfig.Report.Scaling.area:
+        if (
+            mechanism != "i_membrane_"
+            and self.scaling == libsonata.SimulationConfig.Report.Scaling.area
+        ):
             return section(x).area() / 100.0
 
         return 1.0
@@ -205,7 +213,13 @@ class CompartmentReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, _sections: libsonata.SimulationConfig.Report.Sections
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        _sections: libsonata.SimulationConfig.Report.Sections,
     ):
         """Append section-based report data for a single cell and its compartments.
 
@@ -252,7 +266,13 @@ class SummationReport(Report):
     """
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        sections: libsonata.SimulationConfig.Report.Sections,
     ):
         """Append summed variable data for a given cell across sections.
 
@@ -263,7 +283,8 @@ class SummationReport(Report):
         :param pop_offset: Population GID offset.
         :param sections: Sum into soma if section is soma
 
-        Note: sections == libsonata.SimulationConfig.Report.Sections.soma effectively means that we need
+        Note: sections == libsonata.SimulationConfig.Report.Sections.soma
+        effectively means that we need
         to sum the values into the soma
         """
         if self.use_coreneuron:
@@ -337,7 +358,13 @@ class SynapseReport(Report):
             )
 
     def register_gid_section(
-        self, cell_obj, point, vgid, pop_name, pop_offset, sections: libsonata.SimulationConfig.Report.Sections
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        sections: libsonata.SimulationConfig.Report.Sections,
     ):
         """Append synapse variables for a given cell to the report grouped by gid."""
         gid = cell_obj.gid

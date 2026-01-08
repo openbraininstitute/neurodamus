@@ -959,6 +959,7 @@ def _model_building_steps(config: _SimConfig):
     logging.info(" -> Cycles: %d. [src: %s]", ncycles, "CLI")
     config.modelbuilding_steps = ncycles
 
+
 @SimConfig.validator
 def _spikes_sort_order(config: _SimConfig):
     order = config.run_conf.get("SpikesSortOrder", "by_time")

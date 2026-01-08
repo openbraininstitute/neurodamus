@@ -14,6 +14,12 @@ from .core.nodeset import SelectionNodeSet
 from .utils import compat
 from .utils.logging import log_verbose
 
+# libsonata exposes SimulationConfig via pybind as attributes, not importable modules.
+# Without these aliases, Ruff expands the type annotations to fully-qualified names,
+# formats them onto a single long line, and then tox -e format fails on E501.
+Sections = libsonata.SimulationConfig.Report.Sections
+Compartments = libsonata.SimulationConfig.Report.Compartments
+
 
 class TargetError(Exception):
     """A Exception class specific to data error with targets and nodesets"""
@@ -565,8 +571,8 @@ class NodesetTarget:
     def get_point_list(
         self,
         cell_manager,
-        section_type: libsonata.SimulationConfig.Report.Sections = libsonata.SimulationConfig.Report.Sections.soma,
-        compartment_type: libsonata.SimulationConfig.Report.Compartments = libsonata.SimulationConfig.Report.Compartments.center,
+        section_type: Sections = Sections.soma,
+        compartment_type: Compartments = Compartments.center,
     ) -> compat.List[TargetPointList]:
         """Retrieve TargetPointLists containing compartments (based on section type and
         compartment type) of any local cells on the cpu.

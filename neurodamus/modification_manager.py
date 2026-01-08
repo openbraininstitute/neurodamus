@@ -22,10 +22,11 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 import ast
 import logging
 
+import libsonata
+
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .utils.logging import log_verbose
-import libsonata
 
 
 class ModificationManager:
@@ -65,7 +66,9 @@ class TTX:
 
     def __init__(self, target, mod_info: dict, cell_manager):
         tpoints = target.get_point_list(
-            cell_manager, section_type=libsonata.SimulationConfig.Report.Sections.all, compartment_type=libsonata.SimulationConfig.Report.Compartments.all
+            cell_manager,
+            section_type=libsonata.SimulationConfig.Report.Sections.all,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
         )
 
         # insert and activate TTX mechanism in all sections of each cell in target
@@ -90,7 +93,9 @@ class ConfigureAllSections:
     def __init__(self, target, mod_info: dict, cell_manager):
         config, config_attrs = self.parse_section_config(mod_info["SectionConfigure"])
         tpoints = target.get_point_list(
-            cell_manager, section_type=libsonata.SimulationConfig.Report.Sections.all, compartment_type=libsonata.SimulationConfig.Report.Compartments.all
+            cell_manager,
+            section_type=libsonata.SimulationConfig.Report.Sections.all,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
         )
 
         napply = 0  # number of sections where config applies

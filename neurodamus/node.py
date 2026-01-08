@@ -65,7 +65,6 @@ from .report_parameters import (
     check_report_parameters,
     create_report_parameters,
 )
-import libsonata
 from .stimulus_manager import StimulusManager
 from .target_manager import TargetManager, TargetSpec
 from .utils.logging import log_stage, log_verbose
@@ -966,9 +965,7 @@ class Node:
             )
             if cumulative_error.is_error_appended:
                 continue
-            self._set_point_list_in_rep_params(rep_params, 
-                                               cumulative_error=cumulative_error
-                                               )
+            self._set_point_list_in_rep_params(rep_params, cumulative_error=cumulative_error)
             if cumulative_error.is_error_appended:
                 continue
 
@@ -977,7 +974,10 @@ class Node:
                     CoreReportConfigEntry.from_report_params(rep_params=rep_params)
                 )
 
-            if not SimConfig.use_coreneuron or rep_params.type == libsonata.SimulationConfig.Report.Type.synapse:
+            if (
+                not SimConfig.use_coreneuron
+                or rep_params.type == libsonata.SimulationConfig.Report.Type.synapse
+            ):
                 report.setup(
                     rep_params=rep_params,
                     global_manager=self._circuits.global_manager,
@@ -1028,8 +1028,14 @@ class Node:
             )
         else:
             sections, compartments = rep_params.sections, rep_params.compartments
-            if rep_params.type == libsonata.SimulationConfig.Report.Type.summation and sections == libsonata.SimulationConfig.Report.Sections.soma:
-                sections, compartments = libsonata.SimulationConfig.Report.Sections.all, libsonata.SimulationConfig.Report.Compartments.all
+            if (
+                rep_params.type == libsonata.SimulationConfig.Report.Type.summation
+                and sections == libsonata.SimulationConfig.Report.Sections.soma
+            ):
+                sections, compartments = (
+                    libsonata.SimulationConfig.Report.Sections.all,
+                    libsonata.SimulationConfig.Report.Compartments.all,
+                )
             rep_params.points = rep_params.target.get_point_list(
                 cell_manager=self._target_manager._cell_manager,
                 section_type=sections,
