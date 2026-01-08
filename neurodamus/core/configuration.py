@@ -461,7 +461,7 @@ def _loadbal_mode(config: _SimConfig):
         logging.warning("Disabled Load Balance (restrict_features)")
         config.loadbal_mode = LoadBalanceMode.RoundRobin
         return
-    lb_mode_str = cli_args.lb_mode or config.run_conf.run_mode
+    lb_mode_str = cli_args.lb_mode
     config.loadbal_mode = LoadBalanceMode.parse(lb_mode_str)
 
 
@@ -632,30 +632,24 @@ def _global_parameters(config: _SimConfig):
 
     run_conf = config.run_conf
 
-    config.celsius = run_conf.get("Celsius", 34)
-    config.v_init = run_conf.get("V_Init", -65)
-    config.extracellular_calcium = run_conf.get("ExtracellularCalcium")
-    config.buffer_time = 25 * run_conf.get("FlushBufferScalar", 1)
-    config.tstop = run_conf["Duration"]
+    config.celsius = run_conf.celsius
+    config.v_init = run_conf.v_init
+    config.extracellular_calcium = run_conf.extracellular_calcium
+    config.buffer_time = 25
+    config.tstop = run_conf.tstop
     h.celsius = config.celsius
     h.set_v_init(config.v_init)
     h.tstop = config.tstop
     config.default_neuron_dt = h.dt
-    h.dt = run_conf.get("Dt", h.dt)
+    h.dt = run_conf.dt
     h.steps_per_ms = 1.0 / h.dt
     props = ("celsius", "v_init", "extracellular_calcium", "tstop", "buffer_time")
     log_verbose("Global params: %s", " | ".join(p + f": {getattr(config, p)}" for p in props))
-    if "CompartmentsPerSection" in run_conf:
-        logging.warning(
-            "CompartmentsPerSection is currently not supported. "
-            "If needed, please request with a detailed usecase."
-        )
-
 
 @SimConfig.validator
 def _set_simulator(config: _SimConfig):
     user_config = config.cli_options
-    simulator = config.run_conf.get("Simulator")
+    simulator = config.run_conf.simulator
 
     if simulator is None:
         config.run_conf["Simulator"] = simulator = "NEURON"
@@ -675,10 +669,10 @@ def _set_simulator(config: _SimConfig):
 
 @SimConfig.validator
 def _spike_parameters(config: _SimConfig):
-    spike_location = config.run_conf.get("SpikeLocation", "soma")
+    spike_location = config.run_conf.spike_location
     if spike_location not in {"soma", "AIS"}:
         raise ConfigurationError("Possible options for SpikeLocation are 'soma' and 'AIS'")
-    spike_threshold = config.run_conf.get("SpikeThreshold", -30)
+    spike_threshold = config.run_conf.spike_threshold
     log_verbose("Spike_Location = %s", spike_location)
     log_verbose("Spike_Threshold = %s", spike_threshold)
     config.spike_location = spike_location
@@ -731,63 +725,10 @@ def _simulator_globals(config: _SimConfig):
                     config.extracellular_calcium,
                 )
 
-
-@SimConfig.validator
-def _second_order(config: _SimConfig):
-    second_order = config.run_conf.get("SecondOrder")
-    if second_order is None:
-        return
-    second_order = int(second_order)
-    if second_order in {0, 1, 2}:
-        from neuron import h
-
-        log_verbose("SecondOrder = %g", second_order)
-        config.second_order = second_order
-        h.secondorder = second_order
-    else:
-        raise _condition_checks["secondorder"][1]
-
-
-@SimConfig.validator
-def _single_vesicle(config: _SimConfig):
-    if "MinisSingleVesicle" not in config.run_conf:
-        return
-
-    from neuron import h
-
-    if not hasattr(h, "minis_single_vesicle_ProbAMPANMDA_EMS"):
-        raise NotImplementedError(
-            "Synapses don't implement minis_single_vesicle. More recent neurodamus model required."
-        )
-    minis_single_vesicle = int(config.run_conf["MinisSingleVesicle"])
-    log_verbose("minis_single_vesicle = %d", minis_single_vesicle)
-    h.minis_single_vesicle_ProbAMPANMDA_EMS = minis_single_vesicle
-    h.minis_single_vesicle_ProbGABAAB_EMS = minis_single_vesicle
-    h.minis_single_vesicle_GluSynapse = minis_single_vesicle
-
-
-@SimConfig.validator
-def _randomize_gaba_risetime(config: _SimConfig):
-    randomize_risetime = config.run_conf.get("RandomizeGabaRiseTime")
-    if randomize_risetime is None:
-        return
-    from neuron import h
-
-    h.load_file("GABAABHelper.hoc")
-    if not hasattr(h, "randomize_Gaba_risetime"):
-        raise NotImplementedError(
-            "Models don't support setting RandomizeGabaRiseTime. "
-            "Please load a more recent model or drop the option."
-        )
-    assert randomize_risetime in {"True", "False", "0", "false"}  # any non-"True" value is negative
-    log_verbose("randomize_Gaba_risetime = %s", randomize_risetime)
-    h.randomize_Gaba_risetime = randomize_risetime
-
-
 @SimConfig.validator
 def _output_root(config: _SimConfig):
     """Confirm output_path exists and is usable"""
-    output_path = config.run_conf.get("OutputRoot")
+    output_path = config.run_conf.output_root
 
     if config.cli_options.output_path not in {None, output_path}:
         output_path = config.cli_options.output_path
@@ -797,14 +738,14 @@ def _output_root(config: _SimConfig):
         output_path = Path(config.simulation_config_dir) / output_path
 
     log_verbose("OutputRoot = %s", output_path)
-    config.run_conf["OutputRoot"] = str(output_path)
+    config.run_conf.output_root = str(output_path)
     config.output_root = str(output_path)
 
 
 @SimConfig.validator
 def _check_save(config: _SimConfig):
     cli_args = config.cli_options
-    save_path = cli_args.save or config.run_conf.get("Save")
+    save_path = cli_args.save
 
     if not save_path:
         return
@@ -823,7 +764,7 @@ def _check_save(config: _SimConfig):
 
 @SimConfig.validator
 def _check_restore(config: _SimConfig):
-    restore = config.cli_options.restore or config.run_conf.get("Restore")
+    restore = config.cli_options.restore
     if not restore:
         return
 
@@ -984,16 +925,6 @@ def _report_vars(config: _SimConfig):
             )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
-
-
-@SimConfig.validator
-def _spikes_sort_order(config: _SimConfig):
-    order = config.run_conf.get("SpikesSortOrder", "by_time")
-    if order not in {"none", "by_time"}:
-        raise ConfigurationError(
-            f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
-        )
-
 
 @SimConfig.validator
 def _coreneuron_direct_mode(config: _SimConfig):

@@ -17,7 +17,7 @@ class ConnectionTypes(str, Enum):
     GlioVascular = "GlioVascular"
 
 
-@dataclass(frozen=True)
+@dataclass
 class RunConfig:
     """Python-side mutable version of SimulationConfig.Run."""
 
@@ -96,6 +96,27 @@ class SonataConfig:
         #     "minis_seed": "MinisSeed",
         #     "synapse_seed": "SynapseSeed",
         # }
+
+        # @staticmethod
+        # def _adapt_libsonata_fields(rep):
+        #     for key in rep:
+        #         # Convert enums to its string representation
+        #         if key in {
+        #             "Type",
+        #             "Sections",
+        #             "Scaling",
+        #             "Compartments",
+        #             "Mode",
+        #             "Pattern",
+        #             "SpikeLocation",
+        #         } and not isinstance(rep[key], str):
+        #             rep[key] = rep[key].name
+        #         # Convert comma separated variable names to space separated
+        #         if key == "ReportOn":
+        #             rep[key] = rep[key].replace(",", " ")
+        #         # Get the int value of the enum
+        #         elif key == "SecondOrder":
+        #             rep[key] = int(rep[key])
 
         # parsed_run = self._translate_dict(item_translation, self._sim_conf.run)
 
