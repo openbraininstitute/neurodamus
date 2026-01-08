@@ -354,9 +354,16 @@ class _SimConfig:
         parsed_run = cls._parsed_run
 
         cls.rng_info = h.RNGSettings()
-        cls.rng_info.interpret(parsed_run, cls.use_coreneuron)
-        if "BaseSeed" in parsed_run:
-            logging.info("User-defined RNG base seed %s", parsed_run["BaseSeed"])
+        rng_info_config = {
+            "BaseSeed": parsed_run.base_seed,
+            "IonChannelSeed": parsed_run.ionchannel_seed, 
+            "StimulusSeed": parsed_run.stimulus_seed,
+            "MinisSeed": parsed_run.minis_seed,
+            "SynapseSeed": parsed_run.synapse_seed,
+        }
+        cls.rng_info.interpret(rng_info_config, cls.use_coreneuron)
+
+        logging.info("User-defined RNG base seed %s", parsed_run.base_seed)
 
     @classmethod
     def validator(cls, f):
@@ -754,7 +761,7 @@ def _output_root(config: _SimConfig):
 @SimConfig.validator
 def _check_save(config: _SimConfig):
     cli_args = config.cli_options
-    save_path = cli_args.save or config.run_conf.get("Save")
+    save_path = cli_args.save
 
     if not save_path:
         return
@@ -773,7 +780,7 @@ def _check_save(config: _SimConfig):
 
 @SimConfig.validator
 def _check_restore(config: _SimConfig):
-    restore = config.cli_options.restore or config.run_conf.get("Restore")
+    restore = config.cli_options.restore
     if not restore:
         return
 
@@ -934,16 +941,6 @@ def _report_vars(config: _SimConfig):
             )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
-
-
-@SimConfig.validator
-def _spikes_sort_order(config: _SimConfig):
-    order = config.run_conf.get("SpikesSortOrder", "by_time")
-    if order not in {"none", "by_time"}:
-        raise ConfigurationError(
-            f"Unsupported spikes sort order {order}, " + "BBP supports 'none' and 'by_time'"
-        )
-
 
 @SimConfig.validator
 def _coreneuron_direct_mode(config: _SimConfig):
