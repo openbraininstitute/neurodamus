@@ -1,6 +1,5 @@
 """Mechanisms to load and balance cells across the computing resources."""
 
-
 import abc
 import hashlib
 import logging  # active only in rank 0 (init)
@@ -439,6 +438,7 @@ class GlobalCellManager(_CellManager):
     def getGidListForProcessor(self):
         def _hoc_append(vec_a, vec_b):
             return vec_a.append(vec_b)
+
         return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
 
     def get_final_gids(self):
