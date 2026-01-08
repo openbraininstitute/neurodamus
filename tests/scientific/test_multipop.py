@@ -47,7 +47,6 @@ def test_multipop_simple(create_tmp_simulation_config_file):
         restrict_features=[Feature.SynConfigure],  # use config verboseLevel as Flag
         restrict_connectivity=1,  # start off with two initial disconnected populations
         disable_reports=True,
-        cleanup_atexit=False,
         logging_level=3,
     )
 
@@ -127,7 +126,6 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
         restrict_connectivity=False,
         disable_reports=True,
-        cleanup_atexit=False,
         logging_level=3,
     )
 
