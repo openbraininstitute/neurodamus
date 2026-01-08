@@ -328,32 +328,6 @@ class SonataConfig:
     @property
     def parsedReports(self):
         return {name: self._sim_conf.report(name) for name in self._sim_conf.list_report_names}
-        # TODO removeme
-        # item_translation = {
-        #     "type": "Type",
-        #     "cells": "Target",
-        #     "sections": "Sections",
-        #     "scaling": "Scaling",
-        #     "compartments": "Compartments",
-        #     "variable_name": "ReportOn",
-        #     "unit": "Unit",
-        #     "dt": "Dt",
-        #     "start_time": "StartTime",
-        #     "end_time": "EndTime",
-        #     "file_name": "FileName",
-        #     "enabled": "Enabled",
-        # }
-        # reports = {}
-        # for name in self._sim_conf.list_report_names:
-        #     rep = self._translate_dict(item_translation, self._sim_conf.report(name))
-        #     # Adapt enums and variable names read from libsonata
-        #     self._adapt_libsonata_fields(rep)
-        #     # Format is SONATA with sonata_config
-        #     rep["Format"] = "SONATA"
-        #     reports[name] = rep
-        #     rep["Scaling"] = snake_to_camel(rep["Scaling"])
-
-        # return reports
 
     @property
     def parsedModifications(self):

@@ -60,7 +60,7 @@ from .io.sonata_config import ConnectionTypes
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
-from .report import create_report
+from .report import ReportManager
 from .report_parameters import (
     check_report_parameters,
     create_report_parameters,
@@ -958,7 +958,7 @@ class Node:
                 self._report_list.append(None)
                 continue
 
-            report = create_report(
+            report = ReportManager.create(
                 params=rep_params,
                 use_coreneuron=SimConfig.use_coreneuron,
                 cumulative_error=cumulative_error,

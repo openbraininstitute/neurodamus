@@ -7,6 +7,42 @@ from .report_parameters import ReportParameters
 from .utils.pyutils import cache_errors
 
 
+class ReportManager:
+    """Registry and factory for Report subclasses based on libsonata report types."""
+    
+    _report_types = {}
+
+    @classmethod
+    def register_type(cls, report_type):
+        """Decorator to register a Report subclass for a given report type."""
+        def decorator(report_cls):
+            cls._report_types[report_type] = report_cls
+            return report_cls
+        return decorator
+
+    @classmethod
+    @cache_errors
+    def create(cls, params: ReportParameters, use_coreneuron):
+        """Factory method to create a Report instance for the given parameters.
+
+        Returns:
+            Report instance for the given type, or None if the type is known
+            but unimplemented (e.g., LFP). Returning None causes the report
+            to be skipped downstream.
+
+        Raises:
+            ValueError: If the report type is unknown.
+        """
+        # LFP is recognized but not implemented; skip it
+        if params.type == libsonata.SimulationConfig.Report.Type.lfp:
+            return None
+
+        report_cls = cls._report_types.get(params.type)
+        if report_cls is None:
+            raise ValueError(f"Unknown report type: {params.type.name}")
+
+        return report_cls(params, use_coreneuron)
+
 class Report:
     """Abstract base class for handling simulation reports in NEURON.
 
@@ -194,6 +230,8 @@ class Report:
         return 1.0
 
 
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.compartment)
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.compartment_set)
 class CompartmentReport(Report):
     """Concrete Report subclass for reporting compartment-level variables.
 
@@ -259,6 +297,7 @@ class CompartmentReport(Report):
             self.report.AddVar(var_refs[0], section_id, gid, pop_name)
 
 
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.summation)
 class SummationReport(Report):
     """Concrete Report subclass for summing currents or other variables across sections.
 
@@ -345,6 +384,7 @@ class SummationReport(Report):
         self.alu_list.append(alu_helper)
 
 
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.synapse)
 class SynapseReport(Report):
     def __init__(
         self,
@@ -400,24 +440,3 @@ class SynapseReport(Report):
             except AttributeError as e:
                 msg = f"Variable '{variable}' not found at '{synapse.hname()}'."
                 raise AttributeError(msg) from e
-
-
-NOT_SUPPORTED = object()
-_report_classes = {
-    libsonata.SimulationConfig.Report.Type.compartment: CompartmentReport,
-    libsonata.SimulationConfig.Report.Type.compartment_set: CompartmentReport,
-    libsonata.SimulationConfig.Report.Type.summation: SummationReport,
-    libsonata.SimulationConfig.Report.Type.synapse: SynapseReport,
-    libsonata.SimulationConfig.Report.Type.lfp: NOT_SUPPORTED,
-}
-
-
-@cache_errors
-def create_report(params: ReportParameters, use_coreneuron):
-    """Factory function to create a report instance based on parameters."""
-    cls = _report_classes.get(params.type)
-    if cls is None:
-        raise ValueError(f"Unknown report type: {params.type.name}")
-    if cls is NOT_SUPPORTED:
-        return None
-    return cls(params, use_coreneuron)
