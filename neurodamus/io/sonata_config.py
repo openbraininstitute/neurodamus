@@ -46,6 +46,7 @@ class RunConfig:
     extracellular_calcium: float
     spike_location: libsonata.SimulationConfig.Conditions.SpikeLocation
     compartment_sets_file: str
+    enable_reports: bool
 
 
 class SonataConfig:
@@ -122,9 +123,6 @@ class SonataConfig:
 
         # self._adapt_libsonata_fields(parsed_run)
 
-        # print(self._sim_conf.run, dir(self._sim_conf.run), type(self._sim_conf.run))
-        # print(self._translate_dict(item_translation, self._sim_conf.run))
-        # assert False
         return RunConfig(
             tstop=self._sim_conf.run.tstop,
             dt=self._sim_conf.run.dt,
@@ -149,6 +147,7 @@ class SonataConfig:
             extracellular_calcium=self._sim_conf.conditions.extracellular_calcium,
             spike_location=self._sim_conf.conditions.spike_location,
             compartment_sets_file=self._sim_conf.compartment_sets_file,
+            enable_reports=False # set in node.py
         )
 
     @property

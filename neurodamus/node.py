@@ -56,7 +56,7 @@ from .core.coreneuron_configuration import (
 )
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
-from .io.sonata_config import ConnectionTypes
+from .io.sonata_config import ConnectionTypes, RunConfig
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
@@ -367,7 +367,7 @@ class Node:
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
         self._target_spec = TargetSpec(
-            self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName")
+            self._run_conf.nodeset_name, self._run_conf.population_name
         )
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
@@ -393,7 +393,7 @@ class Node:
 
         Note: remember to call Nd.init(...) before to ensure/load neurodamus mods
         """
-        if not self._run_conf or not isinstance(self._run_conf, dict):
+        if not self._run_conf or not isinstance(self._run_conf, RunConfig):
             raise ValueError("Invalid `_run_conf`: Must be a dictionary for multi-cycle runs.")
 
         # Init unconditionally
@@ -1596,7 +1596,7 @@ class Neurodamus(Node):
 
         Node.__init__(self, config_file, user_opts)
         # Use the run_conf dict to avoid passing it around
-        self._run_conf["EnableReports"] = enable_reports
+        self._run_conf.enable_reports = enable_reports
 
         if SimConfig.dry_run:
             if self._is_ngv_run:
