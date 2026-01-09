@@ -961,41 +961,6 @@ def _model_building_steps(config: _SimConfig):
 
 
 @SimConfig.validator
-def _report_vars(config: _SimConfig):
-    """Compartment reports read voltages or i_membrane only. Other types must be summation"""
-    mandatory_fields = ("Type", "StartTime", "Target", "Dt", "ReportOn", "Unit", "Format")
-    non_negatives = ("StartTime", "EndTime", "Dt")
-    report_configs_dict = {}
-
-    for rep_name, rep_config in config.reports.items():
-        report_configs_dict[rep_name] = rep_config
-
-        _check_params(
-            "Report " + rep_name,
-            rep_config,
-            mandatory_fields,
-            non_negatives=non_negatives,
-        )
-
-        if rep_config["Format"] != "SONATA":
-            raise ConfigurationError(
-                f"Unsupported report format: '{rep_config['Format']}'. Use 'SONATA' instead."
-            )
-
-        if (
-            config.use_coreneuron
-            and rep_config["Type"] == "compartment"
-            and rep_config["ReportOn"] not in {"v", "i_membrane"}
-        ):
-            logging.warning(
-                "Compartment reports on vars other than v and i_membrane "
-                " are still not fully supported (CoreNeuron)"
-            )
-    # Overwrite config with a pure dict since we never need underlying hoc map
-    config.reports = report_configs_dict
-
-
-@SimConfig.validator
 def _spikes_sort_order(config: _SimConfig):
     order = config.run_conf.get("SpikesSortOrder", "by_time")
     if order not in {"none", "by_time"}:

@@ -11,9 +11,14 @@ import numpy as np
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 from .core.nodeset import SelectionNodeSet
-from .report_parameters import CompartmentType, SectionType
 from .utils import compat
 from .utils.logging import log_verbose
+
+# libsonata exposes SimulationConfig via pybind as attributes, not importable modules.
+# Without these aliases, Ruff expands the type annotations to fully-qualified names,
+# formats them onto a single long line, and then tox -e format fails on E501.
+Sections = libsonata.SimulationConfig.Report.Sections
+Compartments = libsonata.SimulationConfig.Report.Compartments
 
 
 class TargetError(Exception):
@@ -566,22 +571,22 @@ class NodesetTarget:
     def get_point_list(
         self,
         cell_manager,
-        section_type: SectionType = SectionType.SOMA,
-        compartment_type: CompartmentType = CompartmentType.CENTER,
+        section_type: Sections = Sections.soma,
+        compartment_type: Compartments = Compartments.center,
     ) -> compat.List[TargetPointList]:
         """Retrieve TargetPointLists containing compartments (based on section type and
         compartment type) of any local cells on the cpu.
 
         Args:
             cell_manager: a cell manager or global cell manager
-            section_type: SectionType
-            compartment_type: CompartmentType
+            section_type: libsonata.SimulationConfig.Report.Sections
+            compartment_type: libsonata.SimulationConfig.Report.Compartments
 
         Returns:
             list of TargetPointList containing the compartment position
             and retrieved section references
         """
-        section_type_str = section_type.to_string()
+        section_type_str = section_type.name
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
@@ -591,7 +596,7 @@ class NodesetTarget:
 
             for sec in secs:
                 section_id = cell.get_section_id(sec)
-                if compartment_type == CompartmentType.CENTER:
+                if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
