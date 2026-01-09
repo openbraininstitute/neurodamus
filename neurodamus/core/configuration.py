@@ -18,6 +18,7 @@ from neurodamus.utils.pyutils import ConfigT, StrEnumBase
 EXCEPTION_NODE_FILENAME = ".exception_node"
 """A file which controls which rank shows exception"""
 
+SIMULATOR_MAP = {e.name: e for e in [libsonata.SimulationConfig.SimulatorType.NEURON, libsonata.SimulationConfig.SimulatorType.CORENEURON]}
 
 class LogLevel:
     ERROR_ONLY = 0
@@ -101,8 +102,6 @@ class CliOptions(ConfigT):
     restrict_features = NoRestriction  # can also be a list
     restrict_node_populations = NoRestriction
     restrict_connectivity = 0  # no restriction, 1 to disable projections, 2 to disable all
-
-
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
@@ -265,7 +264,12 @@ class _SimConfig:
         cls.num_target_ranks = cls.cli_options.num_target_ranks
         # change simulator by request before validator and init hoc config
         if cls.cli_options.simulator:
-            cls._parsed_run["Simulator"] = cls.cli_options.simulator
+            try:
+                cls._parsed_run.simulator = SIMULATOR_MAP[cls.cli_options.simulator]
+            except KeyError:
+                raise ValueError(
+                            f"Invalid simulator '{cls.cli_options.simulator}'. Must be one of: {list(SIMULATOR_MAP.keys())}"
+                        )
 
         cls.run_conf = cls._parsed_run
         for validator in cls._validators:
@@ -668,7 +672,7 @@ def _set_simulator(config: _SimConfig):
         raise ConfigurationError(
             "Disabling model building or simulation is only compatible with CoreNEURON"
         )
-
+    # TODO removeme
     log_verbose("Simulator = %s", simulator.name)
     config.use_neuron = simulator == libsonata.SimulationConfig.SimulatorType.NEURON
     config.use_coreneuron = simulator == libsonata.SimulationConfig.SimulatorType.CORENEURON
