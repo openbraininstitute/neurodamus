@@ -113,51 +113,51 @@ def test_synapse_delay_override(sonata_config_file):
         build_model=True,  # Needed to run CoreNEURON twice
     )
 
-    # edges_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
-    # assert len(list(edges_A.all_connections())) == 2
-    # edges_B_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeA")
-    # assert len(list(edges_B_A.all_connections())) == 2
+    edges_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
+    assert len(list(edges_A.all_connections())) == 2
+    edges_B_A: SynapseRuleManager = nd.circuits.get_edge_manager("NodeB", "NodeA")
+    assert len(list(edges_B_A.all_connections())) == 2
 
-    # # Check if any connections in edges_A have netcons
-    # assert any(len(conn._netcons) for conn in edges_A.all_connections())
-    # for conn in edges_A.all_connections():
-    #     assert conn.synapses[0].verboseLevel == 0
-    #     # If synapse delay is enabled, verify that the delay of each netcon is 5
-    #     if enable_synapse_delay:
-    #         for netcon in conn._netcons:
-    #             assert netcon.delay == 5.
+    # Check if any connections in edges_A have netcons
+    assert any(len(conn._netcons) for conn in edges_A.all_connections())
+    for conn in edges_A.all_connections():
+        assert conn.synapses[0].verboseLevel == 0
+        # If synapse delay is enabled, verify that the delay of each netcon is 5
+        if enable_synapse_delay:
+            for netcon in conn._netcons:
+                assert netcon.delay == 5.
 
-    # # If the target simulator is NEURON, check for replay netcons in edges_B_A connections
-    # if target_simulator == "NEURON":
-    #     assert any(len(conn._replay.netcons) for conn in edges_B_A.all_connections())
-    #     for conn in edges_B_A.all_connections():
-    #         assert conn.synapses[0].verboseLevel == 1
-    #         # Ensure the connection has replay netcons
-    #         assert len(conn._replay.netcons) != 0
-    #         # If synapse delay is enabled, verify that the delay of each replay netcon is 3
-    #         if enable_synapse_delay:
-    #             for netcon in conn._replay.netcons:
-    #                 assert netcon.delay == 3.
-    #             assert conn.syndelay_override == 3.
+    # If the target simulator is NEURON, check for replay netcons in edges_B_A connections
+    if target_simulator == "NEURON":
+        assert any(len(conn._replay.netcons) for conn in edges_B_A.all_connections())
+        for conn in edges_B_A.all_connections():
+            assert conn.synapses[0].verboseLevel == 1
+            # Ensure the connection has replay netcons
+            assert len(conn._replay.netcons) != 0
+            # If synapse delay is enabled, verify that the delay of each replay netcon is 3
+            if enable_synapse_delay:
+                for netcon in conn._replay.netcons:
+                    assert netcon.delay == 3.
+                assert conn.syndelay_override == 3.
 
-    #     # Record the soma voltages
-    #     c0 = edges_A.cell_manager.get_cellref(0)
-    #     voltage_vec = Nd.Vector()
-    #     voltage_vec.record(c0.soma[0](0.5)._ref_v)
-    #     Nd.finitialize()  # reinit for the recordings to be registered
+        # Record the soma voltages
+        c0 = edges_A.cell_manager.get_cellref(0)
+        voltage_vec = Nd.Vector()
+        voltage_vec.record(c0.soma[0](0.5)._ref_v)
+        Nd.finitialize()  # reinit for the recordings to be registered
 
-    # nd.run()
+    nd.run()
 
-    # # If the target simulator is CoreNEURON, read the soma voltage report
-    # if target_simulator == "CORENEURON":
-    #     # Load soma voltage data from the report file
-    #     soma_report_path = Path(nd._run_conf.output_root) / "soma.h5"
-    #     voltage_vec = _read_sonata_soma_report(soma_report_path)
+    # If the target simulator is CoreNEURON, read the soma voltage report
+    if target_simulator == "CORENEURON":
+        # Load soma voltage data from the report file
+        soma_report_path = Path(nd._run_conf.output_root) / "soma.h5"
+        voltage_vec = _read_sonata_soma_report(soma_report_path)
 
-    # # Find impact on voltage. See test_spont_minis for an explanation
-    # v_increase_rate = numpy.diff(voltage_vec, 2)
-    # window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    # strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
-    # assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))
-    # expected_positions = numpy.array([119, 120]) if enable_synapse_delay else numpy.array([96, 97])
-    # assert numpy.array_equal(strong_reduction_pos, expected_positions)
+    # Find impact on voltage. See test_spont_minis for an explanation
+    v_increase_rate = numpy.diff(voltage_vec, 2)
+    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
+    assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))
+    expected_positions = numpy.array([119, 120]) if enable_synapse_delay else numpy.array([96, 97])
+    assert numpy.array_equal(strong_reduction_pos, expected_positions)
