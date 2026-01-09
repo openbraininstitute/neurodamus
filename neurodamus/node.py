@@ -366,9 +366,7 @@ class Node:
 
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
-        self._target_spec = TargetSpec(
-            self._run_conf.nodeset_name, self._run_conf.population_name
-        )
+        self._target_spec = TargetSpec(self._run_conf.nodeset_name, self._run_conf.population_name)
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
@@ -1466,7 +1464,7 @@ class Node:
         output_root = SimConfig.output_root_path(create=True)
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
-            spike_path = self._run_conf.get("SpikesFile")
+            spike_path = self._run_conf.spikes_file
 
             # Get only the spike file name
             file_name = spike_path.split("/")[-1] if spike_path is not None else "out.h5"

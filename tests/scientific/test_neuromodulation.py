@@ -32,7 +32,7 @@ def test_neuromodulation_sims(create_tmp_simulation_config_file):
     timestamps = np.array([1.55, 2.025, 13.525])
     if SimConfig.use_coreneuron:
         from neurodamus.replay import SpikeManager
-        spike_dat = Path(nd._run_conf.get("OutputRoot"))/nd._run_conf.get("SpikesFile")
+        spike_dat = Path(nd._run_conf.get("OutputRoot"))/nd._run_conf.spikes_file
         obtained_timestamps, obtained_spike_gids = SpikeManager._read_spikes_sonata(spike_dat, "All")
     else:
         obtained_timestamps = nd._spike_vecs[0][0].as_numpy()

@@ -75,7 +75,7 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     assert int(lines[3].split()[0]) == 1, "gid 1 not found."
 
     # check the spikes
-    spike_dat = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.get("SpikesFile")
+    spike_dat = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.spikes_file
 
     timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
     assert len(timestamps_A) == 21

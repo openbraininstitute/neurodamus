@@ -147,7 +147,7 @@ class SonataConfig:
             extracellular_calcium=self._sim_conf.conditions.extracellular_calcium,
             spike_location=self._sim_conf.conditions.spike_location,
             compartment_sets_file=self._sim_conf.compartment_sets_file,
-            enable_reports=False # set in node.py
+            enable_reports=False,  # set in node.py
         )
 
     @property

@@ -5,7 +5,6 @@ from abc import abstractmethod
 from os import path as ospath
 
 import libsonata
-
 import numpy as np
 
 from .core import NeuronWrapper as Nd

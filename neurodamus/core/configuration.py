@@ -356,7 +356,7 @@ class _SimConfig:
         cls.rng_info = h.RNGSettings()
         rng_info_config = {
             "BaseSeed": parsed_run.base_seed,
-            "IonChannelSeed": parsed_run.ionchannel_seed, 
+            "IonChannelSeed": parsed_run.ionchannel_seed,
             "StimulusSeed": parsed_run.stimulus_seed,
             "MinisSeed": parsed_run.minis_seed,
             "SynapseSeed": parsed_run.synapse_seed,
@@ -941,6 +941,7 @@ def _report_vars(config: _SimConfig):
             )
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
+
 
 @SimConfig.validator
 def _coreneuron_direct_mode(config: _SimConfig):
