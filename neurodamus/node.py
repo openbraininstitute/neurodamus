@@ -650,10 +650,6 @@ class Node:
         if SimConfig.cli_options.restrict_connectivity >= 2:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
-
-        print("AAA", conf, type(conf))
-        
-
         c_target = TargetSpec(conf.get("NodesetName"), conf.get("PopulationName"))
         if c_target.population is None:
             c_target.population = self._circuits.alias.get(conf.name)

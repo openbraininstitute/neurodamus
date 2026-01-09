@@ -939,13 +939,18 @@ def _report_vars(config: _SimConfig):
     # Overwrite config with a pure dict since we never need underlying hoc map
     config.reports = report_configs_dict
 
+
 @SimConfig.validator
 def _spikes_sort_order(config: _SimConfig):
     order = config.run_conf.spikes_sort_order
-    if order not in {libsonata.SimulationConfig.Output.SpikesSortOrder.none, libsonata.SimulationConfig.Output.SpikesSortOrder.by_time}:
+    if order not in {
+        libsonata.SimulationConfig.Output.SpikesSortOrder.none,
+        libsonata.SimulationConfig.Output.SpikesSortOrder.by_time,
+    }:
         raise ConfigurationError(
-            f"Unsupported spikes sort order {order.name}, " + "Neurodamus supports 'none' and 'by_time'"
+            f"Unsupported spikes sort order {order.name}, Neurodamus supports 'none' and 'by_time'"
         )
+
 
 @SimConfig.validator
 def _coreneuron_direct_mode(config: _SimConfig):

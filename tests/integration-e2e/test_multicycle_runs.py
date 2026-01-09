@@ -31,7 +31,7 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     timestamps = np.array([
         33.425, 37.35, 39.725
     ])
-    spike_file = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.spikes_file
+    spike_file = Path(nd._run_conf.output_root) / nd._run_conf.spikes_file
     obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     npt.assert_allclose(timestamps, obtained_timestamps)
@@ -61,7 +61,7 @@ def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
         0.2, 0.3, 0.3, 2.5, 3.4, 4.2, 5.5, 7., 7.4, 8.6, 13.8, 19.6, 25.7, 32., 36.4, 38.5,
         40.8, 42.6, 45.2, 48.3, 49.9
     ])
-    spike_file = Path(nd._run_conf.get("OutputRoot")) / nd._run_conf.spikes_file
+    spike_file = Path(nd._run_conf.output_root) / nd._run_conf.spikes_file
     obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
     
     npt.assert_allclose(spike_gids, obtained_spike_gids)
