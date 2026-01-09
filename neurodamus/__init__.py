@@ -6,8 +6,7 @@ It is deeply based on the HOC implementation, therefore providing python modules
 `node`, `cell_distributor`, etc; and still depends on several low-level HOC files at runtime.
 """
 
-
-from .node import Neurodamus, Node
 from ._metadata import __version__
+from .node import Neurodamus, Node
 
 __all__ = ["Neurodamus", "Node", "__version__"]
