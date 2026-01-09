@@ -100,7 +100,7 @@ def test_parse_conditions(create_tmp_simulation_config_file):
     assert cond.randomize_gaba_rise_time == False
     assert cond.mechanisms["ProbAMPANMDA_EMS"]["init_depleted"] == False
     assert cond.mechanisms["ProbAMPANMDA_EMS"]["minis_single_vesicle"] == True
-    assert SimConfig.run_conf["SpikeLocation"] == "AIS"
+    assert SimConfig.run_conf.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.AIS
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
