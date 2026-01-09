@@ -225,19 +225,24 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     """
     Two stimulus blocks, one contains a cosine field and the other contains a constant field,
     they should be summed before applying
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
+    1. check their stimulus managers share the same SpatiallyUniformEField instance (singleton)
+    2. check the size of segs_stim_vec, should be applied to all the segments, n_seg
+    3. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
+    4. check stim_vec of 1st stimulus should be 0 (soma),
        for 3rd stimlus the sum of the cosine fields and constant fields
-    4. check an extracellar mechanism is added to each segment
+    5. check an extracellar mechanism is added to each segment
     """
 
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
     n.enable_stimulus()
+    assert (
+        n._stim_manager._stimulus[0]
+        == n._stim_manager._stimulus[1]
+        == SpatiallyUniformEField._instance
+    )
     stimulus = n._stim_manager._stimulus[0]
-    assert isinstance(stimulus, SpatiallyUniformEField)
     cell_manager = n.circuits.get_node_manager("RingA")
     cell = cell_manager.get_cellref(0)
     assert list(stimulus.stimList.keys()) == [0]
