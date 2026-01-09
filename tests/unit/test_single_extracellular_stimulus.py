@@ -133,7 +133,7 @@ def test_interpolate_myelin_coordinates():
 def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
-    1. check the size of stimList, should be applied to all the segments, n_seg
+    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 3rd stimulus, no ramp_up_time and ramp_down_time
     3. check the base point of the stimli = the mean of the soma segment points
     4. check stim_vec of 1st stimulus should be 0 (soma), and a sin wave for 4th stimlus (dendrite)
@@ -234,7 +234,7 @@ REF_COSINE = np.array(
 def test_one_field_withramp(create_tmp_simulation_config_file):
     """
     A cosinusoid field with ramp up and down
-    1. check the size of stimList, should be applied to all the segments, n_seg
+    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
     and a cosine wave with 3 ramp up steps and 4 ramp down steps
@@ -316,7 +316,7 @@ REF_CONSTANT = np.array(
 def test_one_constant_field(create_tmp_simulation_config_file):
     """
     A constant field when frequency = 0
-    1. check the size of stimList, should be applied to all the segments, n_seg
+    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
     and a constant vec for 3rd stimlus including ramp up and down
@@ -375,7 +375,7 @@ def test_one_constant_field(create_tmp_simulation_config_file):
 def test_two_fields(create_tmp_simulation_config_file):
     """
     Two fields that should be summed together cosine + constant fields
-    1. check the size of stimList, should be applied to all the segments, n_seg
+    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
        for 3rd stimlus the sum of the cosine fields and constant fields
@@ -682,7 +682,7 @@ def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak)
     cell0_voltage_vec = [vec[3] for vec in data if vec[0] == 0]
     assert len(cell0_voltage_vec) == 21 * 23  # 21 time steps * 23 compartments
     peaks_pos = find_peaks(cell0_voltage_vec, prominence=1)[0]
-    np.testing.assert_allclose(peaks_pos, ref_peak)
+    npt.assert_allclose(peaks_pos, ref_peak)
     n.clear_model()  # clear up the reporting vector, required for the next run.
 
 

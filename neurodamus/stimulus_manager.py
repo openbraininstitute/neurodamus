@@ -845,15 +845,12 @@ class SpatiallyUniformEField(BaseStim):
             self.add_new_stimuli(target_points, stim_info, cell_manager)
             return
 
-        super().__init__(target_points, stim_info, cell_manager)
-
         self.stimList = {}  # map of {gid: ElectrodeSource}
-
         self.add_new_stimuli(target_points, stim_info, cell_manager)
-
         self._initialized = True
 
     def add_new_stimuli(self, target_points, stim_info, cell_manager):
+        # parse parameters for the current stimus block
         self.parse_check_all_parameters(stim_info)
 
         # apply stim to each point in target_points
@@ -916,12 +913,16 @@ class SpatiallyUniformEField(BaseStim):
         """
         t1_vec = cur_es.time_vec.as_numpy()
         t2_vec = new_es.time_vec.as_numpy()
-
         combined_time_vec = None
         for segment, stim2_vec in new_es.segs_stim_vec.items():
             stim1_vec = cur_es.segs_stim_vec[segment]
             combined_time_vec, combined_stim_vec = self.combine_time_stim_vectors(
-                t1_vec, stim1_vec.as_numpy(), t2_vec, stim2_vec.as_numpy()
+                t1_vec,
+                stim1_vec.as_numpy(),
+                t2_vec,
+                stim2_vec.as_numpy(),
+                cur_es._delay > 0,
+                new_es._delay > 0,
             )
             cur_es.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
 
@@ -929,8 +930,27 @@ class SpatiallyUniformEField(BaseStim):
             cur_es.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
 
     @staticmethod
-    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec):
-        """Combine time and stim vectors."""
+    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2):
+        """Combine time and stim vectors from 2 ElectrodeSource objects,
+        time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
+            the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
+            and the last amp stim_vec[-1]=0 in order to revert the single back to base_am
+        Args:
+            t1_vec, stim1_vec : vectors for the stimulus 1,
+            t2_vec, stim2_vec : vectors for the stimulus 2,
+            is_delay1 : if the stimulus 1 has delay
+            is_delay2 : if the stimulus 2 has delay
+            In case of delay, the first element of the time-stim vectors should be removed,
+            because the time starts from the 2nd element.
+
+        Returns: the combined time and stim vectors
+        """
+        if is_delay1:
+            t1_vec = t1_vec[1:]
+            stim1_vec = stim1_vec[1:]
+        if is_delay2:
+            t2_vec = t2_vec[1:]
+            stim2_vec = stim2_vec[1:]
 
         def ranges_overlap(t1, t2):
             """Check if two time ranges overlap."""
@@ -940,16 +960,16 @@ class SpatiallyUniformEField(BaseStim):
 
         if ranges_overlap(t1_vec, t2_vec):
             # remove the last point which is for reverting signal back to base_amp
-            last_t1, t1 = t1_vec[-1], t1_vec[:-1]
-            last_s1, stim1 = stim1_vec[-1], stim1_vec[:-1]
+            last_t1, t1_vec = t1_vec[-1], t1_vec[:-1]
+            last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
 
-            last_t2, t2 = t2_vec[-1], t2_vec[:-1]
-            last_s2, stim2 = stim2_vec[-1], stim2_vec[:-1]
+            last_t2, t2_vec = t2_vec[-1], t2_vec[:-1]
+            last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
 
-            combined_time_vec = np.union1d(t1, t2)
-            lookup = dict(zip(t1, stim1, strict=True))
+            combined_time_vec = np.union1d(t1_vec, t2_vec)
+            lookup = dict(zip(t1_vec, stim1_vec, strict=True))
             combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-            lookup = dict(zip(t2, stim2, strict=True))
+            lookup = dict(zip(t2_vec, stim2_vec, strict=True))
             combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
             # add back the last point
             last_t = max(last_t1, last_t2)
@@ -963,6 +983,11 @@ class SpatiallyUniformEField(BaseStim):
             combined_time_vec = np.append(t2_vec, t1_vec)
             combined_stim_vec = np.append(stim2_vec, stim1_vec)
 
+        if (is_delay1 or is_delay2) and combined_time_vec[0] > 0:
+            # in case of delay and t=0 doesn't exist, add back t=0 stim=0
+            combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
+            combined_stim_vec = np.insert(combined_stim_vec, 0, 0.0)
+
         return combined_time_vec, combined_stim_vec
 
     @classmethod
@@ -974,11 +999,10 @@ class SpatiallyUniformEField(BaseStim):
                     section = segment.sec
                     section.insert("extracellular")
                     stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
-                    # print(f"{es.time_vec.as_numpy()}")
-                    # print(f"{stim_vec.as_numpy()}")
-                    # print()
 
     def parse_check_all_parameters(self, stim_info: dict):
+        self.duration = float(stim_info["Duration"])  # duration [ms]
+        self.delay = float(stim_info["Delay"])  # start time [ms]
         self.dt = float(SimConfig.run_conf["Dt"])
         self.fields = stim_info["Fields"]
         self.ramp_up_time = stim_info.get("RampUpTime", 0.0)

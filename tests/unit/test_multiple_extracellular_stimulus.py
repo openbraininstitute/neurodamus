@@ -12,6 +12,7 @@ from neurodamus import Neurodamus, Node
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 
+# Reference of various stim vectors without delay
 REF_COSINE = np.array(
     [
         -0.0,
@@ -59,6 +60,126 @@ REF_CONSTANT = np.array(
         0.0,
     ]
 )
+
+REF_CONSTANT_SMALLCELL = [
+    -0.0,
+    -8.006978,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -16.013957,
+    -10.675971,
+    -5.337986,
+    -0.0,
+    0.0,
+]
+
+
+def test_combine_time_stim_vectors():
+    # case 1, overlap, no delay
+    t1_vec = [0, 1, 2, 3, 4, 5, 5]
+    stim1_vec = [10, 10, 10, 10, 10, 10, 0]
+    t2_vec = [3, 4, 5, 6, 7, 7]
+    stim2_vec = [100, 100, 100, 100, 100, 0]
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
+    )
+    npt.assert_allclose(
+        res_time_vec,
+        [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            7,
+        ],
+    )
+    npt.assert_allclose(res_stim_vec, [10.0, 10.0, 10.0, 110.0, 110.0, 110.0, 100.0, 100.0, 0.0])
+
+    # case 2, overlap, delay
+    t1_vec = [0, 1, 2, 3, 4, 5, 5]
+    stim1_vec = [0, 10, 10, 10, 10, 10, 0]
+    t2_vec = [0, 3, 4, 5, 6, 7, 7]
+    stim2_vec = [0, 100, 100, 100, 100, 100, 0]
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
+    )
+    npt.assert_allclose(
+        res_time_vec,
+        [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            7,
+        ],
+    )
+    npt.assert_allclose(res_stim_vec, [0, 10.0, 10.0, 110.0, 110.0, 110.0, 100.0, 100.0, 0.0])
+
+    # case 3, no overlap, t1_vec before t2_vec
+    t1_vec = [0, 1, 2, 3, 4, 5, 5]
+    stim1_vec = [10, 10, 10, 10, 10, 10, 0]
+    t2_vec = [30, 40, 50, 60, 70, 70]
+    stim2_vec = [100, 100, 100, 100, 100, 0]
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
+    )
+    npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5, 30, 40, 50, 60, 70, 70])
+    npt.assert_allclose(res_stim_vec, [10, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
+
+    # case 4, no overlap, t1_vec before t2_vec, with delay
+    t1_vec = [0, 1, 2, 3, 4, 5, 5]
+    stim1_vec = [0, 10, 10, 10, 10, 10, 0]
+    t2_vec = [0, 30, 40, 50, 60, 70, 70]
+    stim2_vec = [0, 100, 100, 100, 100, 100, 0]
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
+    )
+    npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5, 30, 40, 50, 60, 70, 70])
+    npt.assert_allclose(res_stim_vec, [0, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
+
+    # case 5, no overlap, t2_vec before t1_vec
+    t1_vec = [30, 40, 50, 60, 70, 70]
+    stim1_vec = [100, 100, 100, 100, 100, 0]
+
+    t2_vec = [11, 12, 13, 14, 15, 15]
+    stim2_vec = [10, 10, 10, 10, 10, 10, 0]
+
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
+    )
+    npt.assert_allclose(res_time_vec, [11, 12, 13, 14, 15, 15, 30, 40, 50, 60, 70, 70])
+    npt.assert_allclose(res_stim_vec, [10, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
+
+    # case 6, no overlap, t2_vec before t1_vec, with delay
+    t1_vec = [0, 30, 40, 50, 60, 70, 70]
+    stim1_vec = [0, 100, 100, 100, 100, 100, 0]
+
+    t2_vec = [0, 1, 2, 3, 3]
+    stim2_vec = [10, 10, 10, 10, 0]
+
+    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=False
+    )
+    npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 3, 30, 40, 50, 60, 70, 70])
+    npt.assert_allclose(res_stim_vec, [10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
 
 
 @pytest.mark.parametrize(
@@ -179,7 +300,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_two_fields_delay(create_tmp_simulation_config_file):
+def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
     """
     Check the delay is applied correctly into the stimulus stim_vec and time_vec
     """
@@ -256,7 +377,7 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_three_fields_delay(create_tmp_simulation_config_file):
+def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     """
     Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
     """
@@ -287,66 +408,180 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
 
 
 @pytest.mark.parametrize(
-    ("create_tmp_simulation_config_file", "ref_peak"),
+    "create_tmp_simulation_config_file",
     [
-        (
-            {
-                "simconfig_fixture": "ringtest_baseconfig",
-                "extra_config": {
-                    "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                    "target_simulator": "NEURON",
-                    "inputs": {
-                        "Stimulus": {
-                            "module": "pulse",
-                            "input_type": "current_clamp",
-                            "delay": 5,
-                            "duration": 50,
-                            "node_set": "RingA",
-                            "represents_physical_electrode": True,
-                            "amp_start": 10,
-                            "width": 1,
-                            "frequency": 50,
-                        }
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+                "run": {"dt": 1},
+                "inputs": {
+                    "ex_efields_1": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 5,
+                        "duration": 10,
+                        "node_set": "RingA_Cell0",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
                     },
-                    "reports": {
-                        "compartment_v": {
-                            "type": "compartment",
-                            "cells": "Mosaic",
-                            "variable_name": "v",
-                            "sections": "all",
-                            "dt": 1,
-                            "start_time": 0.0,
-                            "end_time": 20.0,
-                        }
+                    "ex_efields_2": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 5,
+                        "duration": 10,
+                        "node_set": "RingA",
+                        "fields": [
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
                     },
                 },
             },
-            [
-                6,
-                27,
-                48,
-                69,
-                90,
-                111,
-                132,
-                153,
-                174,
-                195,
-                216,
-                237,
-                258,
-                279,
-                300,
-                321,
-                342,
-                363,
-                384,
-                405,
-                426,
-                447,
-                468,
-            ],
-        ),
+        }
+    ],
+    indirect=True,
+)
+def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
+    """
+    Check two stimulus blocks where the node_sets overlap
+    Cell 0 contains the sum of the two stimuli
+    cell 1,2 contain the 2nd stimluli
+    """
+
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    n.enable_stimulus()
+    stimulus = n._stim_manager._stimulus[0]
+    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
+    dt = stimulus.dt
+    delay = stimulus.delay
+    npt.assert_approx_equal(delay, 5)
+    ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
+    # cell 0
+    es0 = stimulus.stimList[0]
+    seg_stimuli = list(es0.segs_stim_vec.values())
+    dend_stim_vec = seg_stimuli[3]
+    npt.assert_allclose(es0.time_vec, ref_timevec)
+    npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
+
+    # cell 1
+    es1 = stimulus.stimList[1]
+    seg_stimuli = list(es1.segs_stim_vec.values())
+    dend_stim_vec = seg_stimuli[3]
+    npt.assert_allclose(es1.time_vec, ref_timevec)
+    npt.assert_allclose(dend_stim_vec, np.append(0, REF_CONSTANT_SMALLCELL), rtol=1e-5)
+    n.clear_model()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+                "run": {"dt": 1},
+                "inputs": {
+                    "ex_efields_1": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 5,
+                        "duration": 5,
+                        "node_set": "RingA_Cell0",
+                        "fields": [
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                        ],
+                        "ramp_up_time": 3.0,
+                        "ramp_down_time": 4.0,
+                    },
+                    "ex_efields_2": {
+                        "input_type": "extracellular_stimulation",
+                        "module": "spatially_uniform_e_field",
+                        "delay": 0,
+                        "duration": 7,
+                        "node_set": "RingA_Cell0",
+                        "fields": [
+                            {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
+                        ],
+                    },
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
+    """
+    Check 2 stimulus blocks with different time window
+    block 1 : [5,17], block 2: [0,3]
+    """
+
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    n.enable_stimulus()
+    stimulus = n._stim_manager._stimulus[0]
+    delay = stimulus.delay
+    npt.assert_approx_equal(delay, 0)  # delay of the last stimulus block
+    ref_timevec = [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+        10.0,
+        11.0,
+        12.0,
+        13.0,
+        14.0,
+        15.0,
+        16.0,
+        17.0,
+        17.0,
+    ]
+    ref_stimvec = [
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -0.964335,
+        -1.168896,
+        -1.120606,
+        0.156271,
+        0.409122,
+        0.505702,
+        0.409122,
+        0.156271,
+        -0.156271,
+        -0.409122,
+        -0.337135,
+        -0.136374,
+        -0.0,
+        0.0,
+    ]
+    es = stimulus.stimList[0]
+    seg_stimuli = list(es.segs_stim_vec.values())
+    dend_stim_vec = seg_stimuli[3]
+    npt.assert_allclose(es.time_vec, ref_timevec)
+    npt.assert_allclose(dend_stim_vec, ref_stimvec, rtol=1e-5)
+    n.clear_model()
+
+
+@pytest.mark.parametrize(
+    ("create_tmp_simulation_config_file", "ref_peak"),
+    [
         (
             {
                 "simconfig_fixture": "ringtest_baseconfig",
@@ -436,8 +671,7 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     indirect=["create_tmp_simulation_config_file"],
 )
 def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak):
-    """2 NEURON integration tests, with and without the electric field stimulus.
-    Check the compartment ASCII reports without different reference peak position"""
+    """NEURON integration tests, check the compartment ASCII report"""
     from neurodamus.core import (
         NeuronWrapper as Nd,
     )  # Import at function level, otherwise will impact other tests
