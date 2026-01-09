@@ -923,7 +923,7 @@ class Node:
 
             # Build final config. On errors log, stop only after all reports processed
             rep_params = create_report_parameters(
-                sim_end=self._run_conf["Duration"],
+                sim_end=self._run_conf.tstop,
                 nd_t=Nd.t,
                 output_root=SimConfig.output_root,
                 rep_name=rep_name,

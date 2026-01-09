@@ -862,7 +862,7 @@ def _check_model_build_mode(config: _SimConfig):
 def _keep_coreneuron_data(config: _SimConfig):
     if config.use_coreneuron:
         keep_core_data = False
-        if config.cli_options.keep_build or config.run_conf.get("KeepModelData", False) == "True":
+        if config.cli_options.keep_build:
             keep_core_data = True
         elif not config.cli_options.simulate_model or config.save:
             logging.warning("Keeping coreneuron data for CoreNeuron following run")
