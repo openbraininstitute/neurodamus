@@ -306,9 +306,7 @@ class Cell_V6(METype):  # noqa: N801
     @staticmethod
     def get_local_seg_extremes(nseg, pp):
         """Compute the local position of beginning and end of each compartment in a section
-
         Assumption: all the compartments have the same length
-
         Args:
             nseg: number of compartments.
             pp: a nX4 matrix of positions of points.
@@ -316,9 +314,7 @@ class Cell_V6(METype):  # noqa: N801
             axis. It is in the interval [0, 1].
             The other 3 columns give x,y,z triplets of the points in a global system of
             reference.
-
-        Returns:
-        - a matrix 3Xn of the position of the extremes of every proper compartment
+        Returns: a matrix 3Xn of the position of the extremes of every proper compartment
         """
         if not pp:
             # when section has no 3d points, i.e. new axons, return placeholder

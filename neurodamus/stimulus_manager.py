@@ -830,7 +830,7 @@ class SpatiallyUniformEField(BaseStim):
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
     in time, and whose spatial gradient (i.e., E field) is constant.
     Note: Uses singleton pattern, one instance per MPI process.
-          Multiple stimulus blocks are consolidated per cell to create a unified stimulus.
+    Multiple stimulus blocks are consolidated per cell to create a unified stimulus.
     """
 
     _instance = None
@@ -934,8 +934,8 @@ class SpatiallyUniformEField(BaseStim):
     def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2):
         """Combine time and stim vectors from 2 ElectrodeSource objects,
         time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
-            the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
-            and the last amp stim_vec[-1]=0 in order to revert the single back to base_am
+        the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
+        and the last amp stim_vec[-1]=0 in order to revert the signal back to base_amp
         Args:
             t1_vec, stim1_vec : vectors for the stimulus 1,
             t2_vec, stim2_vec : vectors for the stimulus 2,
