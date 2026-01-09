@@ -102,14 +102,10 @@ def test_extracellular_calcium_warning(create_tmp_simulation_config_file, caplog
 def test_parse_conditions(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
 
-    expected_conditions = {
-        "init_depleted_ProbAMPANMDA_EMS": False,
-        "minis_single_vesicle_ProbAMPANMDA_EMS": True,
-        "randomize_Gaba_risetime": "False"
-    }
-
-    utils.check_is_subset(next(iter(SimConfig._simulation_config.Conditions.values())),
-                          expected_conditions)
+    cond = SimConfig._simulation_config.parsedConditions
+    assert cond.randomize_gaba_rise_time == False
+    assert cond.mechanisms["ProbAMPANMDA_EMS"]["init_depleted"] == False
+    assert cond.mechanisms["ProbAMPANMDA_EMS"]["minis_single_vesicle"] == True
     assert SimConfig.run_conf["SpikeLocation"] == "AIS"
 
 
