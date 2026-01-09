@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .core import NeuronWrapper as Nd, random
+from .core import MPI, NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
 from .report_parameters import CompartmentType, SectionType
@@ -831,23 +831,26 @@ class SpatiallyUniformEField(BaseStim):
     in time, and whose spatial gradient (i.e., E field) is constant.
     """
 
-    _instance = None
-    _initialized = False
+    _instances = {}  # Per-rank instances
+    _initialized = {}
 
     def __new__(cls, *_args, **_kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        rank = MPI.rank
+        if rank not in cls._instances:
+            cls._instances[rank] = super().__new__(cls)
+            cls._initialized[rank] = False
+        return cls._instances[rank]
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        # Skip if already initialized
-        if self._initialized:
+        rank = MPI.rank
+        # Skip if already initialized for this rank
+        if self._initialized.get(rank, False):
             self.add_new_stimuli(target_points, stim_info, cell_manager)
             return
 
         self.stimList = {}  # map of {gid: ElectrodeSource}
         self.add_new_stimuli(target_points, stim_info, cell_manager)
-        self._initialized = True
+        self._initialized[rank] = True
 
     def add_new_stimuli(self, target_points, stim_info, cell_manager):
         # parse parameters for the current stimus block
@@ -993,8 +996,8 @@ class SpatiallyUniformEField(BaseStim):
     @classmethod
     def apply_all_stimuli(cls):
         """Apply all consolidated stimuli to their segments"""
-        if cls._instance:
-            for es in cls._instance.stimList.values():
+        if instance := cls._instances.get(MPI.rank):
+            for es in instance.stimList.values():
                 for segment, stim_vec in es.segs_stim_vec.items():
                     section = segment.sec
                     section.insert("extracellular")
