@@ -842,7 +842,6 @@ class SpatiallyUniformEField(BaseStim):
         return cls._instance
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        # Skip if already initialized
         if self._initialized:
             self.add_new_stimuli(target_points, stim_info, cell_manager)
             return
@@ -852,6 +851,9 @@ class SpatiallyUniformEField(BaseStim):
         self._initialized = True
 
     def add_new_stimuli(self, target_points, stim_info, cell_manager):
+        """Process stimulus block for target cells.
+        Creates ElectrodeSource for new cells or merges with existing stimuli.
+        """
         # parse parameters for the current stimus block
         self.parse_check_all_parameters(stim_info)
 

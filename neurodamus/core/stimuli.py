@@ -498,6 +498,9 @@ class ElectrodeSource:
     and applies the resulting signal to the segment's e_extracellular.
 
     Args:
+        base_amp: baseline amplitude when signal is inactive
+        delay: start time delay in ms
+        duration: duration of the signal, not including ramp up and ramp down
         fields: list of user-defined electric field components (e.g. cosinuoid fields)
         duration: duration of the signal, not including ramp up and ramp down.
         ramp_up_time: duration during which the signal amplitude ramps up linearly from 0, in ms
@@ -509,7 +512,7 @@ class ElectrodeSource:
     def __init__(
         self, base_amp, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position
     ):
-        self.time_vec = Nd.h.Vector()
+        self.time_vec = Nd.h.Vector()  # Time points for stimulus waveform
         self._cur_t = 0
         self._base_amp = base_amp
         self._delay = delay
@@ -519,8 +522,9 @@ class ElectrodeSource:
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.segs_stim_vec = {}  # {segment: stim_vec}
-        if delay > 0.0:
+        self.segs_stim_vec = {}  # Map of {segment: stimulus_vector} for each cell segment
+        # for delay, add cur_t as the first point, then advance cur_t
+        if delay > 0:
             self.time_vec.append(self._cur_t)
             self._cur_t = delay
         self.signals = self.add_cosines()
@@ -557,8 +561,9 @@ class ElectrodeSource:
         # scale each signal by amplitude, and sum together to get the final stim_vec
         stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(self.signals), axis=0)
         self.apply_ramp(stim_vec_sum, self.dt)
+        # for delay, insert base_amp at the beginning of stim_vec for the 1st point in time_vec
         if self._delay > 0:
-            stim_vec_sum = np.append(0, stim_vec_sum)
+            stim_vec_sum = np.append(self._base_amp, stim_vec_sum)
         stim_vec_sum = np.append(stim_vec_sum, self._base_amp)
         return Nd.h.Vector(stim_vec_sum)
 
