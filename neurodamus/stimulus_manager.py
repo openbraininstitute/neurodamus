@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .core import MPI, NeuronWrapper as Nd, random
+from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
 from .report_parameters import CompartmentType, SectionType
@@ -829,28 +829,27 @@ class SpatiallyUniformEField(BaseStim):
     """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
     in time, and whose spatial gradient (i.e., E field) is constant.
+    Note: Uses singleton pattern, one instance per MPI process.
+          Multiple stimulus blocks are consolidated per cell to create a unified stimulus.
     """
 
-    _instances = {}  # Per-rank instances
-    _initialized = {}
+    _instance = None
+    _initialized = False
 
     def __new__(cls, *_args, **_kwargs):
-        rank = MPI.rank
-        if rank not in cls._instances:
-            cls._instances[rank] = super().__new__(cls)
-            cls._initialized[rank] = False
-        return cls._instances[rank]
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
-        rank = MPI.rank
-        # Skip if already initialized for this rank
-        if self._initialized.get(rank, False):
+        # Skip if already initialized
+        if self._initialized:
             self.add_new_stimuli(target_points, stim_info, cell_manager)
             return
 
         self.stimList = {}  # map of {gid: ElectrodeSource}
         self.add_new_stimuli(target_points, stim_info, cell_manager)
-        self._initialized[rank] = True
+        self._initialized = True
 
     def add_new_stimuli(self, target_points, stim_info, cell_manager):
         # parse parameters for the current stimus block
@@ -900,9 +899,8 @@ class SpatiallyUniformEField(BaseStim):
                 segment = sc.sec(target_point_list.x[sec_id])
                 es.segs_stim_vec[segment] = stim_vec
 
-            # Consolidate with existing stimuli
             if gid in self.stimList:
-                # Combine with existing
+                # Consolidate with existing stimulus
                 cur_es = self.stimList[gid]
                 self.merge_stimuli(cur_es, es)
             else:
@@ -996,8 +994,8 @@ class SpatiallyUniformEField(BaseStim):
     @classmethod
     def apply_all_stimuli(cls):
         """Apply all consolidated stimuli to their segments"""
-        if instance := cls._instances.get(MPI.rank):
-            for es in instance.stimList.values():
+        if cls._instance:
+            for es in cls._instance.stimList.values():
                 for segment, stim_vec in es.segs_stim_vec.items():
                     section = segment.sec
                     section.insert("extracellular")

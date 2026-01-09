@@ -85,11 +85,11 @@ REF_CONSTANT = {0: REF_CONSTANT_BIGCELL, 1: REF_CONSTANT_SMALLCELL}
 @pytest.mark.mpi(ranks=2)
 def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     """
-    A constant field when frequency = 0
+    check the constant field in each mpi processes, cell 0 in rank 0 and cell 1 in rank1
     1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 3rd stimlus including ramp up and down
+    2. check time_vec of one seg stimulus, should include ramp_up_time and ramp_down_time
+    3. check stim_vec of one seg stimulus should be a constant vec including ramp up and down
+    4. check all segment has extracellular mechanism inserted
     """
     assert MPI.size == mpi_ranks == 2
 
@@ -118,4 +118,7 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(dend_stim_vec, REF_CONSTANT[gid], rtol=1e-6)
+
+    assert all(sec.has_membrane("extracellular") for sec in cellref.all)
+
     n.clear_model()

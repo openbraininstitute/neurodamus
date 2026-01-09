@@ -134,7 +134,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
     1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 3rd stimulus, no ramp_up_time and ramp_down_time
+    2. check time_vec of 1st and 4th stimulus, no ramp_up_time and ramp_down_time
     3. check the base point of the stimli = the mean of the soma segment points
     4. check stim_vec of 1st stimulus should be 0 (soma), and a sin wave for 4th stimlus (dendrite)
     """
@@ -319,7 +319,7 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 3rd stimlus including ramp up and down
+    and a constant vec for 4th stimlus including ramp up and down
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -378,7 +378,7 @@ def test_two_fields(create_tmp_simulation_config_file):
     1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
     2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
     3. check stim_vec of 1st stimulus should be 0 (soma),
-       for 3rd stimlus the sum of the cosine fields and constant fields
+       for 4th stimlus the sum of the cosine fields and constant fields
     4. check an extracellar mechanism is added to each segment
     """
 
