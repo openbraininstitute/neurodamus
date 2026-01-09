@@ -611,7 +611,7 @@ class Noise(BaseStim):
 
         self.parse_check_all_parameters(stim_info)
 
-        sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
+        sim_dt = float(SimConfig.run_conf.dt)  # simulation time-step [ms]
 
         # apply stim to each point in target_points
         for target_point_list in target_points:
