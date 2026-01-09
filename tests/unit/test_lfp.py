@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 import h5py
+import libsonata
 
 from ..conftest import RINGTEST_DIR
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
@@ -155,12 +156,12 @@ def test_lfp_reports(create_tmp_simulation_config_file):
     assert len(SimConfig.reports) == 1
     rep_name, rep_config = next(iter(SimConfig.reports.items()))
     assert rep_name == 'lfp_report'
-    assert rep_config['Type'] == 'lfp'
-    assert rep_config['Target'] == 'Mosaic'
-    assert rep_config['StartTime'] == 0.0
-    assert rep_config['EndTime'] == 2.0
-    assert rep_config['Dt'] == 0.1
-    assert rep_config['ReportOn'] == 'v'
-    assert rep_config['FileName'] == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
+    assert rep_config.type == libsonata.SimulationConfig.Report.Type.lfp
+    assert rep_config.cells == 'Mosaic'
+    assert rep_config.start_time == 0.0
+    assert rep_config.end_time == 2.0
+    assert rep_config.dt == 0.1
+    assert rep_config.variable_name == 'v'
+    assert rep_config.file_name == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
 
     nd.run()

@@ -38,7 +38,7 @@ def test_coreneuron_no_write_model(create_tmp_simulation_config_file):
                                                                 4.2, 5.5, 7., 7.4, 8.6]))
     npt.assert_allclose(spike_dict["node_ids"][:10], np.array([0, 1, 2, 0, 1, 2, 0, 0, 1, 2]))
 
-    soma_file = Path(SimConfig.reports["soma_report"]["FileName"]).name
+    soma_file = Path(SimConfig.reports["soma_report"].file_name).name
     soma_path = Path(SimConfig.output_root) / soma_file
     soma_reader = ElementReportReader(soma_path)
     soma_A = soma_reader["NodeA"]
