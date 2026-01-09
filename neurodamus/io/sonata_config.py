@@ -46,7 +46,8 @@ class RunConfig:
     extracellular_calcium: float
     spike_location: libsonata.SimulationConfig.Conditions.SpikeLocation
     compartment_sets_file: str
-    enable_reports: bool
+    enable_reports: bool | None = None # set in node.py
+    restore: str | None = None # set in configuration.py
 
 
 class SonataConfig:
@@ -147,7 +148,6 @@ class SonataConfig:
             extracellular_calcium=self._sim_conf.conditions.extracellular_calcium,
             spike_location=self._sim_conf.conditions.spike_location,
             compartment_sets_file=self._sim_conf.compartment_sets_file,
-            enable_reports=False,  # set in node.py
         )
 
     @property

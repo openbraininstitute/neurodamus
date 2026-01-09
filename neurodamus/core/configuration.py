@@ -788,7 +788,7 @@ def _check_restore(config: _SimConfig):
         raise ConfigurationError("Save-restore only available with CoreNeuron")
 
     # sync restore settings to hoc, otherwise we end up with an empty coreneuron_input dir
-    config.run_conf["Restore"] = restore
+    config.run_conf.restore = restore
 
     assert isinstance(restore, str), "Restore must be a string path"
     path_obj = Path(restore)
@@ -899,9 +899,6 @@ def _model_building_steps(config: _SimConfig):
     if not SimConfig.use_coreneuron:
         logging.warning("IGNORING ModelBuildingSteps since simulator is not CORENEURON")
         return
-
-    if "NodesetName" not in config.run_conf:
-        raise ConfigurationError("Multi-iteration coreneuron data generation requires NodesetName")
 
     logging.info("Splitting Target for multi-iteration CoreNeuron data generation")
     logging.info(" -> Cycles: %d. [src: %s]", ncycles, "CLI")
