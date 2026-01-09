@@ -22,12 +22,12 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+import libsonata
 import numpy as np
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
 from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
-from .report_parameters import CompartmentType, SectionType
 from .utils.logging import log_verbose
 
 if TYPE_CHECKING:
@@ -87,8 +87,8 @@ class StimulusManager:
         if stim_info["Pattern"] == "SpatiallyUniformEField":
             return target.get_point_list(
                 cell_manager=cell_manager,
-                section_type=SectionType.ALL,
-                compartment_type=CompartmentType.ALL,
+                section_type=libsonata.SimulationConfig.Report.Sections.all,
+                compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
             )
         return target.get_point_list(cell_manager=cell_manager)
 
