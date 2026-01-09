@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import pytest
+import libsonata
 
 from tests import utils
 from tests.conftest import RINGTEST_DIR
@@ -14,7 +15,7 @@ from neurodamus.utils.logging import setup_logging
 def test_parse_base():
     raw_conf = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
     assert raw_conf._sim_conf.run.random_seed == 1122
-    assert raw_conf.parsedRun["BaseSeed"] == 1122
+    assert raw_conf.parsedRun.base_seed == 1122
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -42,20 +43,15 @@ def test_parse_run(create_tmp_simulation_config_file):
     assert SimConfig.rng_info.getMinisSeed() == 44
     assert SimConfig.rng_info.getSynapseSeed() == 45
 
-    expected_conf = {
-        "PopulationName": None,
-        "NodesetName": "Mosaic",
-        "Simulator": "NEURON",
-        "Duration": 50.0,
-        "Dt": 0.1,
-        "Celsius": 35,
-        "V_Init": -65,
-        "SpikeLocation": "soma",
-        "ExtracellularCalcium": 1.2
-    }
-
-    utils.check_is_subset(SimConfig.run_conf, expected_conf)
-
+    assert SimConfig.run_conf.population_name is None
+    assert SimConfig.run_conf.nodeset_name == "Mosaic"
+    assert SimConfig.run_conf.simulator == libsonata.SimulationConfig.SimulatorType.NEURON
+    assert SimConfig.run_conf.tstop == 50.0
+    assert SimConfig.run_conf.dt == 0.1
+    assert SimConfig.run_conf.celsius == 35
+    assert SimConfig.run_conf.v_init == -65
+    assert SimConfig.run_conf.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.soma
+    assert SimConfig.run_conf.extracellular_calcium == 1.2
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -107,7 +103,7 @@ def test_parse_conditions(create_tmp_simulation_config_file):
 
     utils.check_is_subset(next(iter(SimConfig._simulation_config.Conditions.values())),
                           expected_conditions)
-    assert SimConfig.run_conf["SpikeLocation"] == "AIS"
+    assert SimConfig.run_conf.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.AIS
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -217,8 +213,8 @@ def test_parse_connections(create_tmp_simulation_config_file):
 def test_parse_ouput(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
     # output section
-    assert SimConfig.run_conf["SpikesFile"] == "spikes.h5"
-    assert SimConfig.run_conf["SpikesSortOrder"] == "by_time"
+    assert SimConfig.run_conf.spikes_file == "spikes.h5"
+    assert SimConfig.run_conf.spikes_sort_order == libsonata.SimulationConfig.Output.SpikesSortOrder.by_time
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -333,7 +329,7 @@ def test_parse_reports(create_tmp_simulation_config_file):
         "EndTime": 50.0,
         "Dt": 0.1,
         "Enabled": True,
-        "FileName": str(Path(SimConfig.run_conf["OutputRoot"]) / "soma_report.h5")
+        "FileName": str(Path(SimConfig.run_conf.output_root) / "soma_report.h5")
     }
     utils.check_is_subset(SimConfig.reports["soma_report"], expected_soma_report)
 
@@ -349,7 +345,7 @@ def test_parse_reports(create_tmp_simulation_config_file):
         "Dt": 0.1,
         "Enabled": True,
         "FileName": str(
-            Path(SimConfig.run_conf["OutputRoot"]) / "my_compartment_report.h5"
+            Path(SimConfig.run_conf.output_root) / "my_compartment_report.h5"
         )
     }
     utils.check_is_subset(SimConfig.reports["compartment_report"], expected_compartment_report)
