@@ -1002,7 +1002,8 @@ class SpatiallyUniformEField(BaseStim):
             for es in cls._instance.stimList.values():
                 for segment, stim_vec in es.segs_stim_vec.items():
                     section = segment.sec
-                    section.insert("extracellular")
+                    if not section.has_membrane("extracellular"):
+                        section.insert("extracellular")
                     stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
 
     def parse_check_all_parameters(self, stim_info: dict):
