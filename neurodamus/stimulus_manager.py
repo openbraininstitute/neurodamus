@@ -62,7 +62,9 @@ class StimulusManager:
         log_verbose("Interpret stimulus")
         target_points = self.get_point_list(target_spec, stim_info, cell_manager)
         stim = stim_t(target_points, stim_info, cell_manager)
-        self._stimulus.append(stim)
+        # SpatiallyUniformEField stimulus blocks shares the same singleton object, append once
+        if stim not in self._stimulus:
+            self._stimulus.append(stim)
 
     def get_point_list(
         self, target_spec: TargetSpec, stim_info: dict, cell_manager

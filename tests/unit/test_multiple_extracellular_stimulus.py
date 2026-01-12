@@ -237,12 +237,9 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     n.load_targets()
     n.create_cells()
     n.enable_stimulus()
-    assert (
-        n._stim_manager._stimulus[0]
-        == n._stim_manager._stimulus[1]
-        == SpatiallyUniformEField._instance
-    )
+    assert len(n._stim_manager._stimulus) == 1
     stimulus = n._stim_manager._stimulus[0]
+    assert stimulus == SpatiallyUniformEField._instance
     cell_manager = n.circuits.get_node_manager("RingA")
     cell = cell_manager.get_cellref(0)
     assert list(stimulus.stimList.keys()) == [0]
