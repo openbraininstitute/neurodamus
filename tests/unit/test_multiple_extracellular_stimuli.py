@@ -90,7 +90,7 @@ def test_combine_time_stim_vectors():
     stim1_vec = [10, 10, 10, 10, 10, 10, 0]
     t2_vec = [3, 4, 5, 6, 7, 7]
     stim2_vec = [100, 100, 100, 100, 100, 0]
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
     )
     npt.assert_allclose(
@@ -114,7 +114,7 @@ def test_combine_time_stim_vectors():
     stim1_vec = [0, 10, 10, 10, 10, 10, 0]
     t2_vec = [0, 3, 4, 5, 6, 7, 7]
     stim2_vec = [0, 100, 100, 100, 100, 100, 0]
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
     )
     npt.assert_allclose(
@@ -138,7 +138,7 @@ def test_combine_time_stim_vectors():
     stim1_vec = [10, 10, 10, 10, 10, 10, 0]
     t2_vec = [30, 40, 50, 60, 70, 70]
     stim2_vec = [100, 100, 100, 100, 100, 0]
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
     )
     npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5, 30, 40, 50, 60, 70, 70])
@@ -149,7 +149,7 @@ def test_combine_time_stim_vectors():
     stim1_vec = [0, 10, 10, 10, 10, 10, 0]
     t2_vec = [0, 30, 40, 50, 60, 70, 70]
     stim2_vec = [0, 100, 100, 100, 100, 100, 0]
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
     )
     npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5, 30, 40, 50, 60, 70, 70])
@@ -162,7 +162,7 @@ def test_combine_time_stim_vectors():
     t2_vec = [11, 12, 13, 14, 15, 15]
     stim2_vec = [10, 10, 10, 10, 10, 10, 0]
 
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
     )
     npt.assert_allclose(res_time_vec, [11, 12, 13, 14, 15, 15, 30, 40, 50, 60, 70, 70])
@@ -175,7 +175,7 @@ def test_combine_time_stim_vectors():
     t2_vec = [0, 1, 2, 3, 3]
     stim2_vec = [10, 10, 10, 10, 0]
 
-    res_time_vec, res_stim_vec = SpatiallyUniformEField.combine_time_stim_vectors(
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
         t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=False
     )
     npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 3, 30, 40, 50, 60, 70, 70])

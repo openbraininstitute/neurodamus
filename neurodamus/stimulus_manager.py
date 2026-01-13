@@ -905,95 +905,10 @@ class SpatiallyUniformEField(BaseStim):
 
             if gid in self.stimList:
                 # Consolidate with existing stimulus
-                cur_es = self.stimList[gid]
-                self.merge_stimuli(cur_es, es)
+                self.stimList[gid] += es
             else:
                 # Add new stimulus
                 self.stimList[gid] = es
-
-    def merge_stimuli(self, cur_es, new_es):
-        """Update the current ElectrodeSource with a new object
-        1. combine the time_vec
-        2. combine the segs1_stim_vec, if the time over laps, the stim_vec should be summed
-        """
-        t1_vec = cur_es.time_vec.as_numpy()
-        t2_vec = new_es.time_vec.as_numpy()
-        combined_time_vec = None
-        for segment, stim2_vec in new_es.segs_stim_vec.items():
-            stim1_vec = cur_es.segs_stim_vec[segment]
-            combined_time_vec, combined_stim_vec = self.combine_time_stim_vectors(
-                t1_vec,
-                stim1_vec.as_numpy(),
-                t2_vec,
-                stim2_vec.as_numpy(),
-                cur_es._delay > 0,
-                new_es._delay > 0,
-            )
-            cur_es.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
-
-        if combined_time_vec is not None:
-            cur_es.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
-
-    @staticmethod
-    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2):
-        """Combine time and stim vectors from 2 ElectrodeSource objects,
-        time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
-        the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
-        and the last amp stim_vec[-1]=0 in order to revert the signal back to base_amp
-        Args:
-            t1_vec, stim1_vec : vectors for the stimulus 1,
-            t2_vec, stim2_vec : vectors for the stimulus 2,
-            is_delay1 : if the stimulus 1 has delay
-            is_delay2 : if the stimulus 2 has delay
-            In case of delay, the first element of the time-stim vectors should be removed,
-            because the time starts from the 2nd element.
-
-        Returns: the combined time and stim vectors
-        """
-        if is_delay1:
-            t1_vec = t1_vec[1:]
-            stim1_vec = stim1_vec[1:]
-        if is_delay2:
-            t2_vec = t2_vec[1:]
-            stim2_vec = stim2_vec[1:]
-
-        def ranges_overlap(t1, t2):
-            """Check if two time ranges overlap."""
-            t1_min, t1_max = t1[0], t1[-1]
-            t2_min, t2_max = t2[0], t2[-1]
-            return not (t1_max < t2_min or t2_max < t1_min)
-
-        if ranges_overlap(t1_vec, t2_vec):
-            # remove the last point which is for reverting signal back to base_amp
-            last_t1, t1_vec = t1_vec[-1], t1_vec[:-1]
-            last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
-
-            last_t2, t2_vec = t2_vec[-1], t2_vec[:-1]
-            last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
-
-            combined_time_vec = np.union1d(t1_vec, t2_vec)
-            lookup = dict(zip(t1_vec, stim1_vec, strict=True))
-            combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-            lookup = dict(zip(t2_vec, stim2_vec, strict=True))
-            combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
-            # add back the last point
-            last_t = max(last_t1, last_t2)
-            last_amp = last_s1 if last_t1 > last_t2 else last_s2
-            combined_time_vec = np.append(combined_time_vec, last_t)
-            combined_stim_vec = np.append(combined_stim_vec, last_amp)
-        elif t1_vec[-1] < t2_vec[0]:
-            combined_time_vec = np.append(t1_vec, t2_vec)
-            combined_stim_vec = np.append(stim1_vec, stim2_vec)
-        else:
-            combined_time_vec = np.append(t2_vec, t1_vec)
-            combined_stim_vec = np.append(stim2_vec, stim1_vec)
-
-        if (is_delay1 or is_delay2) and combined_time_vec[0] > 0:
-            # in case of delay and t=0 doesn't exist, add back t=0 stim=0
-            combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
-            combined_stim_vec = np.insert(combined_stim_vec, 0, 0.0)
-
-        return combined_time_vec, combined_stim_vec
 
     @classmethod
     def apply_all_stimuli(cls):
