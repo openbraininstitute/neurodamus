@@ -661,9 +661,13 @@ class ElectrodeSource:
 
             combined_time_vec = np.union1d(t1_vec, t2_vec)
             lookup = dict(zip(t1_vec, stim1_vec, strict=True))
-            combined_stim_vec = np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+            combined_stim_vec = np.array(
+                [lookup.get(t, 0.0) for t in combined_time_vec], dtype=float
+            )
             lookup = dict(zip(t2_vec, stim2_vec, strict=True))
-            combined_stim_vec += np.array([lookup.get(t, 0.0) for t in combined_time_vec])
+            combined_stim_vec += np.array(
+                [lookup.get(t, 0.0) for t in combined_time_vec], dtype=float
+            )
             # add back the last point
             last_t = max(last_t1, last_t2)
             last_amp = last_s1 if last_t1 > last_t2 else last_s2
@@ -676,7 +680,7 @@ class ElectrodeSource:
             combined_time_vec = np.append(t2_vec, t1_vec)
             combined_stim_vec = np.append(stim2_vec, stim1_vec)
 
-        if (is_delay1 or is_delay2) and combined_time_vec[0] > 0:
+        if combined_time_vec[0] > 0:
             # in case of delay and t=0 doesn't exist, add back t=0 stim=0
             combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
             combined_stim_vec = np.insert(combined_stim_vec, 0, 0.0)
