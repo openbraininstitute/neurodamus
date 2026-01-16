@@ -920,6 +920,7 @@ class SpatiallyUniformEField(BaseStim):
                     if not section.has_membrane("extracellular"):
                         section.insert("extracellular")
                     stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
+                es.cleanup()
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.duration = float(stim_info["Duration"])  # duration [ms]

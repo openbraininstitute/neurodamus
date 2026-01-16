@@ -597,6 +597,10 @@ class ElectrodeSource:
             for field in self.fields
         ]  # Converts from V to mV
 
+    def cleanup(self):
+        """Clear unused list variable to free memory"""
+        self.signals = None
+
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object
         1. combine the time_vec
