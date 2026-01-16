@@ -396,7 +396,10 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     captured = capsys.readouterr()
-    warning = "[WARNING] SpatiallyUniformEField delay 4.5 is not divisible by dt 1.0, rounded up to the next time point 5.0"
+    warning = (
+        "[WARNING] SpatiallyUniformEField delay 4.5 is not divisible by dt 1.0, "
+        "rounded up to the next time point 5.0"
+    )
     assert warning in captured.out
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)

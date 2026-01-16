@@ -631,7 +631,7 @@ class ElectrodeSource:
         return self
 
     @staticmethod
-    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2, dt):
+    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2, dt):  # noqa: PLR0914
         """Combine time and stim vectors from 2 ElectrodeSource objects,
         time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
         the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
@@ -641,24 +641,25 @@ class ElectrodeSource:
             t2_vec, stim2_vec : numpy arrays for the stimulus 2,
             is_delay1 : if the stimulus 1 has delay
             is_delay2 : if the stimulus 2 has delay
-            In case of delay, the first element of the time-stim vectors should be removed,
-            because the time starts from the 2nd element, and the delay time is always divisible by dt
+            In case of delay, the 1st element of the time-stim vectors should be removed,
+            and the delay time is always divisible by dt
 
         Returns: the combined time and stim vectors
         """
-
         if is_delay1:
             t1_vec = t1_vec[1:]
             if not (np.isclose(t1_vec[0] % dt, 0) or np.isclose(t1_vec[0] % dt, dt)):
                 raise ValueError(
-                    f"ElectrodeSource time vector must be divisible by dt {dt}, check the delay parameter {t1_vec[0]}"
+                    f"ElectrodeSource time vector must be divisible by dt {dt}, "
+                    f"check the delay parameter {t1_vec[0]}"
                 )
             stim1_vec = stim1_vec[1:]
         if is_delay2:
             t2_vec = t2_vec[1:]
             if not (np.isclose(t2_vec[0] % dt, 0) or np.isclose(t2_vec[0] % dt, dt)):
                 raise ValueError(
-                    f"ElectrodeSource time vector must be divisible by dt {dt}, check the delay parameter {t2_vec[0]}"
+                    f"ElectrodeSource time vector must be divisible by dt {dt}, "
+                    f"check the delay parameter {t2_vec[0]}"
                 )
             stim2_vec = stim2_vec[1:]
 
@@ -698,14 +699,13 @@ class ElectrodeSource:
                 last_t_tick, last_s = last_t2_tick, last_s2
             combined_time_ticks = np.append(combined_time_ticks, last_t_tick)
             combined_stim_vec = np.append(combined_stim_vec, last_s)
+        # Non-overlapping: concatenate
+        elif t1_ticks[-1] < t2_ticks[0]:
+            combined_time_ticks = np.concatenate([t1_ticks, t2_ticks])
+            combined_stim_vec = np.concatenate([stim1_vec, stim2_vec])
         else:
-            # Non-overlapping: concatenate
-            if t1_ticks[-1] < t2_ticks[0]:
-                combined_time_ticks = np.concatenate([t1_ticks, t2_ticks])
-                combined_stim_vec = np.concatenate([stim1_vec, stim2_vec])
-            else:
-                combined_time_ticks = np.concatenate([t2_ticks, t1_ticks])
-                combined_stim_vec = np.concatenate([stim2_vec, stim1_vec])
+            combined_time_ticks = np.concatenate([t2_ticks, t1_ticks])
+            combined_stim_vec = np.concatenate([stim2_vec, stim1_vec])
 
         # Convert ticks -> float time
         combined_time_vec = combined_time_ticks.astype(float) * dt
