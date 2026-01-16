@@ -607,6 +607,9 @@ class ElectrodeSource:
         combined_time_vec = None
         for segment, stim2_vec in other.segs_stim_vec.items():
             stim1_vec = self.segs_stim_vec[segment]
+            assert np.isclose(self.dt, other.dt), (
+                "multiple extracellular stimuli must have common dt"
+            )
             combined_time_vec, combined_stim_vec = self.combine_time_stim_vectors(
                 t1_vec,
                 stim1_vec.as_numpy(),
@@ -614,6 +617,7 @@ class ElectrodeSource:
                 stim2_vec.as_numpy(),
                 self._delay > 0,
                 other._delay > 0,
+                self.dt,
             )
             self.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
 
@@ -623,65 +627,87 @@ class ElectrodeSource:
         return self
 
     @staticmethod
-    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2):
+    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2, dt):
         """Combine time and stim vectors from 2 ElectrodeSource objects,
         time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
         the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
         and the last amp stim_vec[-1]=0 in order to revert the signal back to base_amp
         Args:
-            t1_vec, stim1_vec : vectors for the stimulus 1,
-            t2_vec, stim2_vec : vectors for the stimulus 2,
+            t1_vec, stim1_vec : numpy arrays for the stimulus 1,
+            t2_vec, stim2_vec : numpy arrays for the stimulus 2,
             is_delay1 : if the stimulus 1 has delay
             is_delay2 : if the stimulus 2 has delay
             In case of delay, the first element of the time-stim vectors should be removed,
-            because the time starts from the 2nd element.
+            because the time starts from the 2nd element, and the delay time is always divisible by dt
 
         Returns: the combined time and stim vectors
         """
+
         if is_delay1:
             t1_vec = t1_vec[1:]
+            if not (np.isclose(t1_vec[0] % dt, 0) or np.isclose(t1_vec[0] % dt, dt)):
+                raise ValueError(
+                    f"ElectrodeSource time vector must be divisible by dt {dt}, check the delay parameter {t1_vec[0]}"
+                )
             stim1_vec = stim1_vec[1:]
         if is_delay2:
             t2_vec = t2_vec[1:]
+            if not (np.isclose(t2_vec[0] % dt, 0) or np.isclose(t2_vec[0] % dt, dt)):
+                raise ValueError(
+                    f"ElectrodeSource time vector must be divisible by dt {dt}, check the delay parameter {t2_vec[0]}"
+                )
             stim2_vec = stim2_vec[1:]
 
-        def ranges_overlap(t1, t2):
-            """Check if two time ranges overlap."""
-            t1_min, t1_max = t1[0], t1[-1]
-            t2_min, t2_max = t2[0], t2[-1]
-            return not (t1_max < t2_min or t2_max < t1_min)
+        # Convert time -> integer ticks
+        t1_ticks = np.round(t1_vec / dt).astype(np.int64)
+        t2_ticks = np.round(t2_vec / dt).astype(np.int64)
 
-        if ranges_overlap(t1_vec, t2_vec):
-            # remove the last point which is for reverting signal back to base_amp
-            last_t1, t1_vec = t1_vec[-1], t1_vec[:-1]
+        if not (t1_ticks[-1] + 1 < t2_ticks[0] or t2_ticks[-1] + 1 < t1_ticks[0]):
+            # Range overlap or exact continuous, exact union of time_ticks
+            # remove the last point which is for reseting signal to base_amp
+            last_t1_tick, t1_ticks = t1_ticks[-1], t1_ticks[:-1]
             last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
 
-            last_t2, t2_vec = t2_vec[-1], t2_vec[:-1]
+            last_t2_tick, t2_ticks = t2_ticks[-1], t2_ticks[:-1]
             last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
 
-            combined_time_vec = np.union1d(t1_vec, t2_vec)
-            lookup = dict(zip(t1_vec, stim1_vec, strict=True))
-            combined_stim_vec = np.array(
-                [lookup.get(t, 0.0) for t in combined_time_vec], dtype=float
-            )
-            lookup = dict(zip(t2_vec, stim2_vec, strict=True))
-            combined_stim_vec += np.array(
-                [lookup.get(t, 0.0) for t in combined_time_vec], dtype=float
-            )
-            # add back the last point
-            last_t = max(last_t1, last_t2)
-            last_amp = last_s1 if last_t1 > last_t2 else last_s2
-            combined_time_vec = np.append(combined_time_vec, last_t)
-            combined_stim_vec = np.append(combined_stim_vec, last_amp)
-        elif t1_vec[-1] < t2_vec[0]:
-            combined_time_vec = np.append(t1_vec, t2_vec)
-            combined_stim_vec = np.append(stim1_vec, stim2_vec)
+            combined_time_ticks = np.union1d(t1_ticks, t2_ticks)
+            # Stepwise amplitude lookup (vectorized)
+            idx1_left = (
+                np.searchsorted(t1_ticks, combined_time_ticks, side="right") - 1
+            )  # idx= -1 for not existing points smaller than t1_ticks
+            idx1_right = np.searchsorted(
+                t1_ticks, combined_time_ticks, side="left"
+            )  # id x= -1 for not existing points larger than t1_ticks
+            mask1 = idx1_left == idx1_right  # find the common points
+            idx2_left = np.searchsorted(t2_ticks, combined_time_ticks, side="right") - 1
+            idx2_right = np.searchsorted(t2_ticks, combined_time_ticks, side="left")
+            mask2 = idx2_left == idx2_right
+
+            combined_stim_vec = np.zeros_like(combined_time_ticks, dtype=float)
+            combined_stim_vec[mask1] += stim1_vec[idx1_left[mask1]]
+            combined_stim_vec[mask2] += stim2_vec[idx2_left[mask2]]
+            # Add last point for resetting to base_amp
+            if last_t1_tick > last_t2_tick:
+                last_t_tick, last_s = last_t1_tick, last_s1
+            else:
+                last_t_tick, last_s = last_t2_tick, last_s2
+            combined_time_ticks = np.append(combined_time_ticks, last_t_tick)
+            combined_stim_vec = np.append(combined_stim_vec, last_s)
         else:
-            combined_time_vec = np.append(t2_vec, t1_vec)
-            combined_stim_vec = np.append(stim2_vec, stim1_vec)
+            # Non-overlapping: concatenate
+            if t1_ticks[-1] < t2_ticks[0]:
+                combined_time_ticks = np.concatenate([t1_ticks, t2_ticks])
+                combined_stim_vec = np.concatenate([stim1_vec, stim2_vec])
+            else:
+                combined_time_ticks = np.concatenate([t2_ticks, t1_ticks])
+                combined_stim_vec = np.concatenate([stim2_vec, stim1_vec])
+
+        # Convert ticks -> float time
+        combined_time_vec = combined_time_ticks.astype(float) * dt
 
         if combined_time_vec[0] > 0:
-            # in case of delay and t=0 doesn't exist, add back t=0 stim=0
+            # in case of delay add back t=0 stim=0
             combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
             combined_stim_vec = np.insert(combined_stim_vec, 0, 0.0)
 

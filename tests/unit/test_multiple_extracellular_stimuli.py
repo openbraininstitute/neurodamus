@@ -86,12 +86,12 @@ REF_CONSTANT_SMALLCELL = [
 
 def test_combine_time_stim_vectors():  # noqa: PLR0915
     # case 1, overlap, no delay
-    t1_vec = [0, 0.5, 1.0, 1.5, 2, 2.5, 2.5]
-    stim1_vec = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0]
-    t2_vec = [1.5, 2.0, 2.5, 3.0, 3.5, 3.5]
-    stim2_vec = [100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
+    t1_vec = np.array([0, 0.5, 1.0, 1.5, 2, 2.5, 2.5])
+    stim1_vec = np.array([10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0])
+    t2_vec = np.array([0, 0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 3.5])
+    stim2_vec = np.array([100, 100, 100, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0])
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False, dt=0.5
     )
     npt.assert_allclose(
         res_time_vec,
@@ -107,15 +107,15 @@ def test_combine_time_stim_vectors():  # noqa: PLR0915
             3.5,
         ],
     )
-    npt.assert_allclose(res_stim_vec, [10.0, 10.0, 10.0, 110.0, 110.0, 110.0, 100.0, 100.0, 0.0])
+    npt.assert_allclose(res_stim_vec, [110.0, 110.0, 110.0, 110.0, 110.0, 110.0, 100.0, 100.0, 0.0])
 
     # case 2, overlap, delay
-    t1_vec = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0]
-    stim1_vec = [0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0]
-    t2_vec = [0.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0]
-    stim2_vec = [0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
+    t1_vec = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0])
+    stim1_vec = np.array([0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0])
+    t2_vec = np.array([0.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0])
+    stim2_vec = np.array([0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0])
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=1.0
     )
     npt.assert_allclose(
         res_time_vec,
@@ -134,77 +134,132 @@ def test_combine_time_stim_vectors():  # noqa: PLR0915
     npt.assert_allclose(res_stim_vec, [0, 10.0, 10.0, 110.0, 110.0, 110.0, 100.0, 100.0, 0.0])
 
     # case 3, no overlap, t1_vec before t2_vec
-    t1_vec = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0]
-    stim1_vec = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0]
-    t2_vec = [0.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
-    stim2_vec = [0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
+    t1_vec = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.2])
+    stim1_vec = np.array([10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0, 0.0])
+    t2_vec = np.array([0.0, 30.0, 30.2, 30.4, 30.6, 30.8, 31.0, 31.0])
+    stim2_vec = np.array([0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0, 0.0])
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=True
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=True, dt=0.2
     )
-    npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5, 30, 40, 50, 60, 70, 70])
+    npt.assert_allclose(
+        res_time_vec, [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.2, 30.0, 30.2, 30.4, 30.6, 30.8, 31, 31]
+    )
     npt.assert_allclose(
         res_stim_vec,
-        [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0],
+        [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0, 0.0],
     )
 
     # case 4, full inclusion, t2 with delay
-    t1_vec = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0]
-    stim1_vec = [0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0]
-    t2_vec = [0.0, 2.0, 3.0, 4.0, 4.0]
-    stim2_vec = [0.0, 100.0, 100.0, 100.0, 0.0]
+    t1_vec = np.array([0.0, 1.2, 2.4, 3.6, 4.8, 6, 7.2, 7.2])
+    stim1_vec = np.array([0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0.0])
+    t2_vec = np.array([0.0, 2.4, 3.6, 4.8, 6, 6])
+    stim2_vec = np.array([0.0, 100.0, 100.0, 100.0, 0.0, 0.0])
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=True
-    )
-    npt.assert_allclose(res_time_vec, [0, 1, 2, 3, 4, 5, 5])
-    npt.assert_allclose(res_stim_vec, [0, 10, 110, 110, 110, 10, 0])
-
-    # case 5, no overlap, t2_vec before t1_vec
-    t1_vec = [0.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
-    stim1_vec = [0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0]
-
-    t2_vec = [0.0, 11.0, 12.0, 13.0, 14.0, 15.0, 15.0]
-    stim2_vec = [0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0]
-
-    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=True, dt=1.2
     )
     npt.assert_allclose(
-        res_time_vec, [0.0, 11.0, 12.0, 13.0, 14.0, 15.0, 15.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
+        res_time_vec,
+        [
+            0,
+            1.2,
+            2.4,
+            3.6,
+            4.8,
+            6,
+            7.2,
+            7.2,
+        ],
+    )
+    npt.assert_allclose(res_stim_vec, [0, 10, 110, 110, 110, 10, 10, 0])
+
+    # case 5, no overlap, t2_vec before t1_vec
+    t1_vec = np.array([0.0, 30.0, 30.025, 30.05, 30.075, 31.1, 31.1])
+    stim1_vec = np.array([0.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0])
+
+    t2_vec = np.array([0.0, 11.0, 11.025, 11.05, 11.075, 11.1, 11.1])
+    stim2_vec = np.array([0.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 0])
+
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=0.025
+    )
+    npt.assert_allclose(
+        res_time_vec,
+        [0.0, 11, 11.025, 11.05, 11.075, 11.1, 11.1, 30.0, 30.025, 30.05, 30.075, 31.1, 31.1],
     )
     npt.assert_allclose(res_stim_vec, [0.0, 10, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
 
     # case 6, no overlap, t2_vec before t1_vec, with delay
-    t1_vec = [0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
-    stim1_vec = [0, 100, 100, 100, 100, 100, 0]
+    t1_vec = np.array([0, 30.0, 30.2, 30.4, 30.6, 30.8, 30.8])
+    stim1_vec = np.array([0, 100, 100, 100, 100, 100, 0])
 
-    t2_vec = [0.0, 10.0, 20.0, 30.0, 30.0]
-    stim2_vec = [10, 10, 10, 10, 0]
+    t2_vec = np.array([0.0, 10.0, 10.2, 10.4, 10.4])
+    stim2_vec = np.array([0.0, 10, 10, 10, 0])
 
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=False
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=0.2
     )
-    npt.assert_allclose(res_time_vec, [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0])
-    npt.assert_allclose(res_stim_vec, [10, 10, 10, 110, 100, 100, 100, 100, 0])
+    npt.assert_allclose(
+        res_time_vec, [0.0, 10.0, 10.2, 10.4, 10.4, 30.0, 30.2, 30.4, 30.6, 30.8, 30.8]
+    )
+    npt.assert_allclose(res_stim_vec, [0, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0])
 
-    # case 7, t1 = t2
+    # case 7 t1 and t2 is continuous
+    # t1 before t2
+    t1_vec = np.array([0, 9.0, 9.2, 9.4, 9.6, 9.8, 9.8])
+    stim1_vec = np.array([0, 100, 100, 100, 100, 100, 0])
+    t2_vec = np.array([0.0, 10.0, 10.2, 10.4, 10.4])
+    stim2_vec = np.array([0.0, 10, 10, 10, 0])
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=0.2
+    )
+    npt.assert_allclose(res_time_vec, [0.0, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.4])
+    npt.assert_allclose(res_stim_vec, [0, 100, 100, 100, 100, 100, 10, 10, 10, 0])
+
+    # t2 before t1
+    t1_vec = np.array([0, 1.5, 1.75, 2.0, 2.25, 2.5, 2.5])
+    stim1_vec = np.array([0, 100, 100, 100, 100, 100, 0])
+    t2_vec = np.array([0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.25])
+    stim2_vec = np.array([10, 10, 10, 10, 10, 10, 0])
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=False, dt=0.25
+    )
+    npt.assert_allclose(
+        res_time_vec, [0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.5]
+    )
+    npt.assert_allclose(
+        res_stim_vec, [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
+    )
+
+    # case 8, t1 = t2
     # with delay
-    t1_vec = t2_vec = [0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
-    stim1_vec = stim2_vec = [0, 100.0, 100.0, 100, 100, 100, 100, 100, 0]
+    t1_vec = t2_vec = np.array([0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0])
+    stim1_vec = stim2_vec = np.array([0, 100.0, 100.0, 100, 100, 100, 100, 100, 0])
 
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=10.0
     )
     npt.assert_allclose(res_time_vec, t1_vec)
     npt.assert_allclose(res_stim_vec, np.add(stim1_vec, stim2_vec))
 
     # without delay
-    t1_vec = t2_vec = [0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0]
-    stim1_vec = stim2_vec = [0, 100.0, 100.0, 100, 100, 100, 100, 100, 0]
+    t1_vec = t2_vec = np.array([0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 70.0])
+    stim1_vec = stim2_vec = np.array([0, 100.0, 100.0, 100, 100, 100, 100, 100, 0])
     res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
-        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=False, is_delay2=False, dt=10.0
     )
     npt.assert_allclose(res_time_vec, t1_vec)
     npt.assert_allclose(res_stim_vec, np.add(stim1_vec, stim2_vec))
+
+    # case 9, one time point in t1 and t2, with delay
+    t1_vec = np.array([0.0, 10.025, 10.025])
+    stim1_vec = np.array([0.0, 10.0, 0.0])
+    t2_vec = np.array([0.0, 10.075, 10.075])
+    stim2_vec = np.array([0.0, 100.0, 0.0])
+    res_time_vec, res_stim_vec = ElectrodeSource.combine_time_stim_vectors(
+        t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1=True, is_delay2=True, dt=0.025
+    )
+    npt.assert_allclose(res_time_vec, [0, 10.025, 10.025, 10.075, 10.075])
+    npt.assert_allclose(res_stim_vec, [0, 10, 0, 100, 0])
 
 
 @pytest.mark.parametrize(
@@ -312,7 +367,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
                     "ex_efields_2": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
-                        "delay": 5,
+                        "delay": 4.5,
                         "duration": 10,
                         "node_set": "RingA_Cell0",
                         "fields": [
@@ -327,9 +382,10 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
+def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
     """
-    Check the delay is applied correctly into the stimulus stim_vec and time_vec
+    Check the combination of two stimulus blocks, one with delay.
+    The original delay 4.5 is not divisible by dt 1.0, rounded up to the next time point.
     """
 
     n = Node(create_tmp_simulation_config_file)
@@ -339,6 +395,9 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
     stimulus = n._stim_manager._stimulus[0]
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
+    captured = capsys.readouterr()
+    warning = "[WARNING] SpatiallyUniformEField delay 4.5 is not divisible by dt 1.0, rounded up to the next time point 5.0"
+    assert warning in captured.out
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
@@ -546,7 +605,7 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
 def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
     """
     Check 2 stimulus blocks with different time window
-    block 1 : [5,17], block 2: [0,3]
+    block 1 : [5,17], block 2: [0,7]
     """
 
     n = Node(create_tmp_simulation_config_file)
