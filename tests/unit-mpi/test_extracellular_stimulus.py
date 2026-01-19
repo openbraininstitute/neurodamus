@@ -86,10 +86,11 @@ REF_CONSTANT = {0: REF_CONSTANT_BIGCELL, 1: REF_CONSTANT_SMALLCELL}
 def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     """
     check the constant field in each mpi processes, cell 0 in rank 0 and cell 1 in rank1
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of one seg stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of one seg stimulus should be a constant vec including ramp up and down
+    1. check the size of segment_potentials, should be applied to all the segments, n_seg
+    2. check time_vec of the stimulus, should include ramp_up_time and ramp_down_time
+    3. check potential of the 4th segment, should be a constant vec including ramp up and down
     4. check all segment has extracellular mechanism inserted
+    5. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
     assert MPI.size == mpi_ranks == 2
 
@@ -107,18 +108,16 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     cell = n.circuits.get_node_manager("RingA").get_cell(gid)
     cellref = cell.CellRef
     es = stimulus.stimList[gid]
-    assert len(es.segs_stim_vec) == sum(sec.nseg for sec in cellref.all)
+    assert len(es.segment_potentials) == sum(sec.nseg for sec in cellref.all)
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_obj = cellref.soma[0]
-    soma_seg_points = cell.segment_global_coords[soma_obj.name()]
-    npt.assert_allclose(es.base_position, np.array(soma_seg_points).mean(axis=0))
-    seg_stimuli = list(es.segs_stim_vec.values())
-    dend_stim_vec = seg_stimuli[3]
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(dend_stim_vec, REF_CONSTANT[gid], rtol=1e-6)
+    npt.assert_allclose(es.segment_potentials[3], REF_CONSTANT[gid], rtol=1e-6)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
+
+    assert es.efields is None
+    assert es.segment_displacements is None
 
     n.clear_model()

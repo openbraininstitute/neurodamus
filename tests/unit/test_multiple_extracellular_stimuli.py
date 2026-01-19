@@ -306,11 +306,12 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     Two stimulus blocks, one contains a cosine field and the other contains a constant field,
     they should be summed before applying
     1. check their stimulus managers share the same SpatiallyUniformEField instance (singleton)
-    2. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    3. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    4. check stim_vec of 1st stimulus should be 0 (soma),
-       for 3rd stimlus the sum of the cosine fields and constant fields
+    2. check the size of segment_potentials, should be applied to all the segments, n_seg
+    3. check time_vec of stimulus, should include ramp_up_time and ramp_down_time
+    4. check potential of 1st segment should be 0 (soma),
+       for 4th segment the sum of the cosine fields and constant fields
     5. check an extracellar mechanism is added to each segment
+    6. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
 
     n = Node(create_tmp_simulation_config_file)
@@ -326,19 +327,21 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cell.all)
-    assert len(es.segs_stim_vec) == total_segments
+    assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
-    seg_stimuli = list(es.segs_stim_vec.values())
-    soma_stim_vec = seg_stimuli[0]
+    soma_stim_vec = es.segment_potentials[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    seg_stim_vec = seg_stimuli[3]
+    seg_stim_vec = es.segment_potentials[3]
     npt.assert_allclose(seg_stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
+
+    assert es.efields is None
+    assert es.segment_displacements is None
 
     n.clear_model()
 
@@ -406,11 +409,10 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
-    seg_stimuli = list(es.segs_stim_vec.values())
-    soma_stim_vec = seg_stimuli[0]
+    soma_stim_vec = es.segment_potentials[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = seg_stimuli[3]
+    dend_stim_vec = es.segment_potentials[3]
     npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
     n.clear_model()
 
@@ -483,11 +485,10 @@ def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
-    seg_stimuli = list(es.segs_stim_vec.values())
-    soma_stim_vec = seg_stimuli[0]
+    soma_stim_vec = es.segment_potentials[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = seg_stimuli[3]
+    dend_stim_vec = es.segment_potentials[3]
     npt.assert_allclose(
         dend_stim_vec,
         np.append(0, REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT),
@@ -554,15 +555,13 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     # cell 0
     es0 = stimulus.stimList[0]
-    seg_stimuli = list(es0.segs_stim_vec.values())
-    dend_stim_vec = seg_stimuli[3]
+    dend_stim_vec = es0.segment_potentials[3]
     npt.assert_allclose(es0.time_vec, ref_timevec)
     npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
 
     # cell 1
     es1 = stimulus.stimList[1]
-    seg_stimuli = list(es1.segs_stim_vec.values())
-    dend_stim_vec = seg_stimuli[3]
+    dend_stim_vec = es1.segment_potentials[3]
     npt.assert_allclose(es1.time_vec, ref_timevec)
     npt.assert_allclose(dend_stim_vec, np.append(0, REF_CONSTANT_SMALLCELL), rtol=1e-5)
     n.clear_model()
@@ -661,8 +660,7 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
         0.0,
     ]
     es = stimulus.stimList[0]
-    seg_stimuli = list(es.segs_stim_vec.values())
-    dend_stim_vec = seg_stimuli[3]
+    dend_stim_vec = es.segment_potentials[3]
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(dend_stim_vec, ref_stimvec, rtol=1e-5)
     n.clear_model()

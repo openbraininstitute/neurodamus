@@ -29,9 +29,7 @@ def test_apply_ramp():
     ref_up_time = 2  # 4 time steps from 0
     ref_down_time = 1.5  # 2 time steps to 0
 
-    stimulus = ElectrodeSource(
-        0, 0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0]
-    )
+    stimulus = ElectrodeSource(0, 0, 100, [], ref_up_time, ref_down_time, dt)
     stim_vec = Nd.Vector(range(1, 11))
     assert np.isclose(stimulus.ramp_up_time, ref_up_time)
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
@@ -44,9 +42,7 @@ def test_apply_ramp():
     ref_up_time = 2.4  # 4 time steps from 0
     ref_down_time = 1.7  # 3 time steps to 0
 
-    stimulus = ElectrodeSource(
-        0, 0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0]
-    )
+    stimulus = ElectrodeSource(0, 0, 100, [], ref_up_time, ref_down_time, dt)
     stim_vec = Nd.Vector(range(1, 11))
     assert np.isclose(stimulus.ramp_up_time, ref_up_time)
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
@@ -59,9 +55,7 @@ def test_apply_ramp():
     ref_up_time = 0.3
     ref_down_time = 0.4
 
-    stimulus = ElectrodeSource(
-        0, 0, 100, [], ref_up_time, ref_down_time, dt, base_position=[0, 0, 0]
-    )
+    stimulus = ElectrodeSource(0, 0, 100, [], ref_up_time, ref_down_time, dt)
     stim_vec = Nd.Vector(range(1, 11))
     assert np.isclose(stimulus.ramp_up_time, ref_up_time)
     assert np.isclose(stimulus.ramp_down_time, ref_down_time)
@@ -133,10 +127,9 @@ def test_interpolate_myelin_coordinates():
 def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, no ramp_up_time and ramp_down_time
-    3. check the base point of the stimli = the mean of the soma segment points
-    4. check stim_vec of 1st stimulus should be 0 (soma), and a sin wave for 4th stimlus (dendrite)
+    1. check the size of segment_potentials, should be applied to all the segments, n_seg
+    2. check time_vec of stimulus, no ramp_up_time and ramp_down_time
+    3. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -150,18 +143,13 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cellref.all)
-    assert len(es.segs_stim_vec) == total_segments
+    assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_obj = cellref.soma[0]
-    soma_seg_obj = next(iter(soma_obj))
-    soma_seg_points = cell.segment_global_coords[soma_obj.name()]
-    npt.assert_allclose(es.base_position, np.array(soma_seg_points).mean(axis=0))
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segs_stim_vec[soma_seg_obj], ref_stimvec)
-    dend_seg_obj = next(iter(cellref.dend[0]))
+    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
     ref_stimvec = [
         -0.505702,
         -0.409122,
@@ -176,7 +164,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
         -0.505702,
         0.0,
     ]
-    npt.assert_allclose(es.segs_stim_vec[dend_seg_obj], ref_stimvec, rtol=1e-5)
+    npt.assert_allclose(es.segment_potentials[3], ref_stimvec, rtol=1e-5)
 
     n.clear_model()
 
@@ -234,10 +222,10 @@ REF_COSINE = np.array(
 def test_one_field_withramp(create_tmp_simulation_config_file):
     """
     A cosinusoid field with ramp up and down
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a cosine wave with 3 ramp up steps and 4 ramp down steps
+    1. check the size of segment_potentials, should be applied to all the segments, n_seg
+    2. check time_vec of the stimlus, should include ramp_up_time and ramp_down_time
+    3. check potentials of 1st segment should be 0 (soma),
+    and a cosine wave with 3 ramp up steps and 4 ramp down steps for 4th segment
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -250,16 +238,14 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cell.all)
-    assert len(es.segs_stim_vec) == total_segments
+    assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_seg_obj = next(iter(cell.soma[0]))
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segs_stim_vec[soma_seg_obj], ref_stimvec)
-    dend_seg_obj = next(iter(cell.dend[0]))
-    npt.assert_allclose(es.segs_stim_vec[dend_seg_obj], REF_COSINE, rtol=1e-5)
+    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+    npt.assert_allclose(es.segment_potentials[3], REF_COSINE, rtol=1e-5)
     n.clear_model()
 
 
@@ -316,10 +302,10 @@ REF_CONSTANT = np.array(
 def test_one_constant_field(create_tmp_simulation_config_file):
     """
     A constant field when frequency = 0
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
-    and a constant vec for 4th stimlus including ramp up and down
+    1. check the size of segment_potentials, should be applied to all the segments, n_seg
+    2. check time_vec of stimulus, should include ramp_up_time and ramp_down_time
+    3. check potential of 1st segment should be 0 (soma),
+    and a constant vec for 4th segment including ramp up and down
     """
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
@@ -331,16 +317,14 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     cell = cell_manager.get_cellref(0)
     es = stimulus.stimList[0]
     total_segments = sum(sec.nseg for sec in cell.all)
-    assert len(es.segs_stim_vec) == total_segments
+    assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    soma_seg_obj = next(iter(cell.soma[0]))
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segs_stim_vec[soma_seg_obj], ref_stimvec)
-    dend_seg_obj = next(iter(cell.dend[0]))
-    npt.assert_allclose(es.segs_stim_vec[dend_seg_obj], REF_CONSTANT, rtol=1e-6)
+    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+    npt.assert_allclose(es.segment_potentials[3], REF_CONSTANT, rtol=1e-6)
     n.clear_model()
 
 
@@ -375,11 +359,12 @@ def test_one_constant_field(create_tmp_simulation_config_file):
 def test_two_fields(create_tmp_simulation_config_file):
     """
     Two fields that should be summed together cosine + constant fields
-    1. check the size of segs_stim_vec, should be applied to all the segments, n_seg
-    2. check time_vec of 1st and 4th stimulus, should include ramp_up_time and ramp_down_time
-    3. check stim_vec of 1st stimulus should be 0 (soma),
-       for 4th stimlus the sum of the cosine fields and constant fields
+    1. check the size of segment_potentials, should be applied to all the segments, n_seg
+    2. check time_vec of stimulus, should include ramp_up_time and ramp_down_time
+    3. check potential of 1st segment should be 0 (soma),
+       for 4th segment the sum of the cosine fields and constant fields
     4. check an extracellar mechanism is added to each segment
+    5. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
 
     n = Node(create_tmp_simulation_config_file)
@@ -392,19 +377,19 @@ def test_two_fields(create_tmp_simulation_config_file):
     cell = cell_manager.get_cellref(0)
     es = stimulus.stimList[0]
     total_segments = sum(sec.nseg for sec in cell.all)
-    assert len(es.segs_stim_vec) == total_segments
+    assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
     ref_stimvec = np.zeros(len(ref_timevec))
-    segs_stim_vecs = list(es.segs_stim_vec.values())
-    soma_stim_vec = segs_stim_vecs[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = segs_stim_vecs[3]
-    npt.assert_allclose(dend_stim_vec, REF_COSINE + REF_CONSTANT, rtol=1e-5)
+    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+    npt.assert_allclose(es.segment_potentials[3], REF_COSINE + REF_CONSTANT, rtol=1e-5)
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
+
+    assert es.efields is None
+    assert es.segment_displacements is None
 
     n.clear_model()
 
@@ -439,7 +424,7 @@ def test_two_fields(create_tmp_simulation_config_file):
 )
 def test_two_fields_delay(create_tmp_simulation_config_file):
     """
-    Check the delay is applied correctly into the stimulus stim_vec and time_vec
+    Check the delay is applied correctly into the stimulus segment_potentials and time_vec
     """
 
     n = Node(create_tmp_simulation_config_file)
@@ -454,12 +439,11 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
-    segs_stim_vecs = list(es.segs_stim_vec.values())
-    soma_stim_vec = segs_stim_vecs[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = segs_stim_vecs[3]
-    npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
+    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+    npt.assert_allclose(
+        es.segment_potentials[3], np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5
+    )
     n.clear_model()
 
 
@@ -509,7 +493,7 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
-    seg_stimuli = list(es.segs_stim_vec.values())
+    seg_stimuli = list(es.segment_potentials)
     soma_stim_vec = seg_stimuli[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(soma_stim_vec, ref_stimvec)

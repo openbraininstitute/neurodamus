@@ -505,29 +505,25 @@ class ElectrodeSource:
         duration: duration of the signal, not including ramp up and ramp down.
         ramp_up_time: duration during which the signal amplitude ramps up linearly from 0, in ms
         ramp_down_time: duration during which the signal amplitude ramps down linearly to 0, in ms
-        base_position: coordinate [x, y, z] of the ground point where potential is 0,
-            usually the soma baricenter
     """
 
-    def __init__(
-        self, base_amp, delay, duration, fields, ramp_up_time, ramp_down_time, dt, base_position
-    ):
+    def __init__(self, base_amp, delay, duration, fields, ramp_up_time, ramp_down_time, dt):
         self.time_vec = Nd.h.Vector()  # Time points for stimulus waveform
         self._cur_t = 0
         self._base_amp = base_amp
         self._delay = delay
         self.fields = fields
         self.duration = duration
-        self.base_position = base_position
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.segs_stim_vec = {}  # Map of {segment: stimulus_vector} for each cell segment
         # for delay, add cur_t as the first point, then advance cur_t
         if delay > 0:
             self.time_vec.append(self._cur_t)
             self._cur_t = delay
-        self.signals = self.add_cosines()
+        self.efields = self.add_cosines()  # list of vectors E_x, E_y, E_z varied by time
+        self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
+        self.segment_potentials = []  # potentials that are applied to segment.extracellular._ref_e
 
     def delay(self, duration):
         """Increments the ref time so that the next created signal is delayed"""
@@ -547,25 +543,30 @@ class ElectrodeSource:
         self.time_vec.append(tvec)
         self.delay(total_duration)
         self.time_vec.append(self._cur_t)  # add last time point
-        res = []
+        res_x = Nd.h.Vector(len(self.time_vec))
+        res_y = Nd.h.Vector(len(self.time_vec))
+        res_z = Nd.h.Vector(len(self.time_vec))
         for field in self.fields:
             vec = Nd.h.Vector(len(tvec))
             freq = field.get("Frequency", 0)
             phase = field.get("Phase", 0)
+            Ex = field["Ex"]
+            Ey = field["Ey"]
+            Ez = field["Ez"]
             vec.sin(freq, phase + np.pi / 2, self.dt)
-            res.append(vec)
-        return res
+            self.apply_ramp(vec, self.dt)
+            if self._delay > 0:
+                # for delay, insert base_amp for the 1st point
+                vec.insrt(0, self._base_amp)
+            vec.append(self._base_amp)  # add last point
+            res_x.add(vec.c().mul(Ex))
+            res_y.add(vec.c().mul(Ey))
+            res_z.add(vec.c().mul(Ez))
 
-    def compute_signals(self, inject_position):
-        amplitudes = self.uniform_potentials(inject_position)
-        # scale each signal by amplitude, and sum together to get the final stim_vec
-        stim_vec_sum = np.sum(np.array(amplitudes)[:, None] * np.array(self.signals), axis=0)
-        self.apply_ramp(stim_vec_sum, self.dt)
-        # for delay, insert base_amp at the beginning of stim_vec for the 1st point in time_vec
-        if self._delay > 0:
-            stim_vec_sum = np.append(self._base_amp, stim_vec_sum)
-        stim_vec_sum = np.append(stim_vec_sum, self._base_amp)
-        return Nd.h.Vector(stim_vec_sum)
+        return [res_x, res_y, res_z]
+
+    def compute_potentials(self, displacement_vec):
+        return np.dot(displacement_vec, self.efields) * 1e3  # Converts from V to mV
 
     def apply_ramp(self, signal_vec, step):
         """Apply signal ramp up and down
@@ -587,43 +588,42 @@ class ElectrodeSource:
             ramp_down = np.linspace(1, 0, ramp_down_number)
             signal_vec[-ramp_down_number:] *= ramp_down
 
-    def uniform_potentials(self, injection_position):
-        """Calculates potential amplitude relative to base_point
-        Units: Ex,Ey,Ez in V/m, segment position in um
-        """
-        displacement = (injection_position - self.base_position) * 1e-6  # Converts from um to m
-        return [
-            np.dot(displacement, np.array([field["Ex"], field["Ey"], field["Ez"]])) * 1e3
-            for field in self.fields
-        ]  # Converts from V to mV
+    def apply_segment_potentials(self):
+        """Apply potentials to segment.extracellular._ref_e"""
+        for segment, displacement in self.segment_displacements.items():
+            section = segment.sec
+            e_ext_vec = Nd.h.Vector(self.compute_potentials(displacement))
+            if not section.has_membrane("extracellular"):
+                section.insert("extracellular")
+            e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 1)
+            self.segment_potentials.append(e_ext_vec)
+
+        self.cleanup()
 
     def cleanup(self):
         """Clear unused list variable to free memory"""
-        self.signals = None
+        self.efields = None
+        self.segment_displacements = None
 
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object
         1. combine the time_vec
-        2. combine the segs1_stim_vec, if the time over laps, the stim_vec should be summed
+        2. combine efields E_x/y/z, if the time overlaps, should be summed
         """
-        t1_vec = self.time_vec.as_numpy()
-        t2_vec = other.time_vec.as_numpy()
+        assert np.isclose(self.dt, other.dt), "multiple extracellular stimuli must have common dt"
         combined_time_vec = None
-        for segment, stim2_vec in other.segs_stim_vec.items():
-            stim1_vec = self.segs_stim_vec[segment]
-            assert np.isclose(self.dt, other.dt), (
-                "multiple extracellular stimuli must have common dt"
-            )
-            combined_time_vec, combined_stim_vec = self.combine_time_stim_vectors(
-                t1_vec,
-                stim1_vec.as_numpy(),
-                t2_vec,
-                stim2_vec.as_numpy(),
+        for idx, efield2 in enumerate(other.efields):
+            efield1 = self.efields[idx]
+            combined_time_vec, combined_efield = self.combine_time_stim_vectors(
+                self.time_vec.as_numpy(),
+                efield1.as_numpy(),
+                other.time_vec.as_numpy(),
+                efield2.as_numpy(),
                 self._delay > 0,
                 other._delay > 0,
                 self.dt,
             )
-            self.segs_stim_vec[segment] = Nd.h.Vector(combined_stim_vec)
+            self.efields[idx] = Nd.h.Vector(combined_efield)
 
         if combined_time_vec is not None:
             self.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
@@ -632,7 +632,7 @@ class ElectrodeSource:
 
     @staticmethod
     def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2, dt):  # noqa: PLR0914
-        """Combine time and stim vectors from 2 ElectrodeSource objects,
+        """Combine time and signal vectors from 2 ElectrodeSource objects,
         time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
         the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
         and the last amp stim_vec[-1]=0 in order to revert the signal back to base_amp

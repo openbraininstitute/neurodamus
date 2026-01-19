@@ -861,15 +861,6 @@ class SpatiallyUniformEField(BaseStim):
 
         # apply stim to each point in target_points
         for target_point_list in target_points:
-            gid = target_point_list.gid
-            cell = cell_manager.get_cell(gid)
-            all_seg_points = cell.compute_segment_global_coordinates()
-            local_seg_points = cell.compute_segment_local_coordinates()
-            soma = cell.CellRef.soma[0]
-            # soma position is the average of all its segment points
-            soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
-            soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
-            # create an ElectrodeSource object per cell
             es = ElectrodeSource(
                 base_amp=0,
                 delay=self.delay,
@@ -878,31 +869,8 @@ class SpatiallyUniformEField(BaseStim):
                 ramp_up_time=self.ramp_up_time,
                 ramp_down_time=self.ramp_down_time,
                 dt=self.dt,
-                base_position=soma_global_position,
             )
-
-            def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
-                return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
-
-            for sec_id, sc in enumerate(target_point_list.sclst):
-                # skip sections not in this split
-                if not sc.exists():
-                    continue
-                segment_position = (
-                    self.get_segment_position(
-                        all_seg_points[sc.sec.name()],
-                        soma_local_position,
-                        sc.sec,
-                        target_point_list.x[sec_id],
-                        local_to_global,
-                    )
-                    if "soma" not in sc.sec.name()
-                    else soma_global_position
-                )
-                stim_vec = es.compute_signals(inject_position=segment_position)
-                segment = sc.sec(target_point_list.x[sec_id])
-                es.segs_stim_vec[segment] = stim_vec
-
+            gid = target_point_list.gid
             if gid in self.stimList:
                 # Consolidate with existing stimulus
                 self.stimList[gid] += es
@@ -910,17 +878,47 @@ class SpatiallyUniformEField(BaseStim):
                 # Add new stimulus
                 self.stimList[gid] = es
 
+                # Compute segment displacement from the ground point where potential is 0,
+                # i.e. the soma baricenter position in x/y/z
+                cell = cell_manager.get_cell(gid)
+                all_seg_points = cell.compute_segment_global_coordinates()
+                local_seg_points = cell.compute_segment_local_coordinates()
+                soma = cell.CellRef.soma[0]
+                # soma position is the average of all its segment points
+                soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
+                soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+
+                def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
+                    return cell.local_to_global_coord_mapping(
+                        np.vstack([soma_local_position, pos])
+                    )[1]
+
+                for sec_id, sc in enumerate(target_point_list.sclst):
+                    # skip sections not in this split
+                    if not sc.exists():
+                        continue
+                    segment_position = (
+                        self.get_segment_position(
+                            all_seg_points[sc.sec.name()],
+                            soma_local_position,
+                            sc.sec,
+                            target_point_list.x[sec_id],
+                            local_to_global,
+                        )
+                        if "soma" not in sc.sec.name()
+                        else soma_global_position
+                    )
+                    # vector of displacement in x,y,z, convert from um to m
+                    displacement_vec = (segment_position - soma_global_position) * 1e-6
+                    segment = sc.sec(target_point_list.x[sec_id])
+                    es.segment_displacements[segment] = displacement_vec
+
     @classmethod
     def apply_all_stimuli(cls):
         """Apply all consolidated stimuli to their segments"""
         if cls._instance:
             for es in cls._instance.stimList.values():
-                for segment, stim_vec in es.segs_stim_vec.items():
-                    section = segment.sec
-                    if not section.has_membrane("extracellular"):
-                        section.insert("extracellular")
-                    stim_vec.play(segment.extracellular._ref_e, es.time_vec, 1)
-                es.cleanup()
+                es.apply_segment_potentials()
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.duration = float(stim_info["Duration"])  # duration [ms]
