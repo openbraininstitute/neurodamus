@@ -458,7 +458,7 @@ class ReportReader:
 
         for name, (nodes, df) in self.populations.items():
             if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1:
-                new_df = df.groupby(level=0, axis=1).sum()
+                new_df = df.T.groupby(level=0).sum().T
                 # force 2-level MultiIndex with second level zeros
                 new_df.columns = pd.MultiIndex.from_arrays([
                     new_df.columns,
