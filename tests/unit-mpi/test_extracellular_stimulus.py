@@ -111,7 +111,7 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     assert len(es.segment_potentials) == sum(sec.nseg for sec in cellref.all)
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(es.segment_potentials[3], REF_CONSTANT[gid], rtol=1e-6)
 

@@ -146,7 +146,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
@@ -241,7 +241,7 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
@@ -320,7 +320,7 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
@@ -380,7 +380,7 @@ def test_two_fields(create_tmp_simulation_config_file):
     assert len(es.segment_potentials) == total_segments
     duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
-    ref_timevec = np.append(np.arange(0, duration + 1, dt), duration)
+    ref_timevec = np.arange(0, duration + dt + 1, dt)
     ref_stimvec = np.zeros(len(ref_timevec))
     npt.assert_allclose(es.time_vec, ref_timevec)
     npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
@@ -436,7 +436,7 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     dt = stimulus.dt
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)
-    ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
+    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
     npt.assert_allclose(es.time_vec, ref_timevec)
@@ -490,7 +490,7 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     dt = stimulus.dt
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)
-    ref_timevec = [0, *np.arange(delay, delay + duration + 1, dt), delay + duration]
+    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
     ref_stimvec = np.zeros(len(ref_timevec))
     es = stimulus.stimList[0]
     seg_stimuli = list(es.segment_potentials)
