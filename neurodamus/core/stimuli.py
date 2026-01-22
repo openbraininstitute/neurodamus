@@ -521,7 +521,7 @@ class ElectrodeSource:
         if delay > 0:
             self.time_vec.append(self._cur_t)
             self._cur_t = delay
-        self.efields = self.add_cosines()  # list of vectors E_x, E_y, E_z varied by time
+        self.efields = self.add_cosines()  # np.array, E_x, E_y, E_z vectors varied by time
         self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
         self.segment_potentials = []  # potentials that are applied to segment.extracellular._ref_e
 
@@ -563,7 +563,7 @@ class ElectrodeSource:
             res_y.add(vec.c().mul(Ey))
             res_z.add(vec.c().mul(Ez))
 
-        return [res_x, res_y, res_z]
+        return np.array([res_x, res_y, res_z])
 
     def compute_potentials(self, displacement_vec):
         return np.dot(displacement_vec, self.efields) * 1e3  # Converts from V to mV
@@ -611,40 +611,33 @@ class ElectrodeSource:
         2. combine efields E_x/y/z, if the time overlaps, should be summed
         """
         assert np.isclose(self.dt, other.dt), "multiple extracellular stimuli must have common dt"
-        combined_time_vec = None
-        for idx, efield2 in enumerate(other.efields):
-            efield1 = self.efields[idx]
-            combined_time_vec, combined_efield = self.combine_time_stim_vectors(
-                self.time_vec.as_numpy(),
-                efield1.as_numpy(),
-                other.time_vec.as_numpy(),
-                efield2.as_numpy(),
-                self._delay > 0,
-                other._delay > 0,
-                self.dt,
-            )
-            self.efields[idx] = Nd.h.Vector(combined_efield)
-
-        if combined_time_vec is not None:
-            self.time_vec = Nd.h.Vector(combined_time_vec)  # apply once per cell
-
+        combined_time_vec, self.efields = self.combine_time_efields(
+            self.time_vec.as_numpy(),
+            self.efields,
+            other.time_vec.as_numpy(),
+            other.efields,
+            self._delay > 0,
+            other._delay > 0,
+            self.dt,
+        )
+        self.time_vec = Nd.h.Vector(combined_time_vec)
         return self
 
     @staticmethod
-    def combine_time_stim_vectors(t1_vec, stim1_vec, t2_vec, stim2_vec, is_delay1, is_delay2, dt):  # noqa: PLR0914
-        """Combine time and signal vectors from 2 ElectrodeSource objects,
+    def combine_time_efields(t1_vec, efields1, t2_vec, efields2, is_delay1, is_delay2, dt):  # noqa: PLR0914
+        """Combine time and efields vectors from 2 ElectrodeSource objects,
         time_vec is always ordered, if delay, time_vec[0] = 0, stim_vec[0] are added,
         the last 2 points time_vec are always the same, time_vec[-1]=time[-2],
         and the last amp stim_vec[-1]=0 in order to revert the signal back to base_amp
         Args:
-            t1_vec, stim1_vec : numpy arrays for the stimulus 1,
-            t2_vec, stim2_vec : numpy arrays for the stimulus 2,
+            t1_vec, t2_vec : numpy arrays of size n_timepoints,
+            efields1, efields2: shape (3, n_timepoints) for Ex, Ey, Ez
             is_delay1 : if the stimulus 1 has delay
             is_delay2 : if the stimulus 2 has delay
             In case of delay, the 1st element of the time-stim vectors should be removed,
             and the delay time is always divisible by dt
 
-        Returns: the combined time and stim vectors
+        Returns: np.array, the combined time and efields vectors
         """
         if is_delay1:
             t1_vec = t1_vec[1:]
@@ -653,7 +646,7 @@ class ElectrodeSource:
                     f"ElectrodeSource time vector must be divisible by dt {dt}, "
                     f"check the delay parameter {t1_vec[0]}"
                 )
-            stim1_vec = stim1_vec[1:]
+            efields1 = efields1[:, 1:]  # Remove first column for all 3 rows
         if is_delay2:
             t2_vec = t2_vec[1:]
             if not (np.isclose(t2_vec[0] % dt, 0) or np.isclose(t2_vec[0] % dt, dt)):
@@ -661,7 +654,7 @@ class ElectrodeSource:
                     f"ElectrodeSource time vector must be divisible by dt {dt}, "
                     f"check the delay parameter {t2_vec[0]}"
                 )
-            stim2_vec = stim2_vec[1:]
+            efields2 = efields2[:, 1:]
 
         # Convert time -> integer ticks
         t1_ticks = np.round(t1_vec / dt).astype(np.int64)
@@ -671,10 +664,10 @@ class ElectrodeSource:
             # Range overlap or exact continuous, exact union of time_ticks
             # remove the last point which is for reseting signal to base_amp
             last_t1_tick, t1_ticks = t1_ticks[-1], t1_ticks[:-1]
-            last_s1, stim1_vec = stim1_vec[-1], stim1_vec[:-1]
+            last_s1, efields1 = efields1[:, -1], efields1[:, :-1]
 
             last_t2_tick, t2_ticks = t2_ticks[-1], t2_ticks[:-1]
-            last_s2, stim2_vec = stim2_vec[-1], stim2_vec[:-1]
+            last_s2, efields2 = efields2[:, -1], efields2[:, :-1]
 
             combined_time_ticks = np.union1d(t1_ticks, t2_ticks)
             # Stepwise amplitude lookup (vectorized)
@@ -689,23 +682,23 @@ class ElectrodeSource:
             idx2_right = np.searchsorted(t2_ticks, combined_time_ticks, side="left")
             mask2 = idx2_left == idx2_right
 
-            combined_stim_vec = np.zeros_like(combined_time_ticks, dtype=float)
-            combined_stim_vec[mask1] += stim1_vec[idx1_left[mask1]]
-            combined_stim_vec[mask2] += stim2_vec[idx2_left[mask2]]
+            combined_efields = np.zeros((len(efields1), len(combined_time_ticks)), dtype=float)
+            combined_efields[:, mask1] += efields1[:, idx1_left[mask1]]
+            combined_efields[:, mask2] += efields2[:, idx2_left[mask2]]
             # Add last point for resetting to base_amp
             if last_t1_tick > last_t2_tick:
                 last_t_tick, last_s = last_t1_tick, last_s1
             else:
                 last_t_tick, last_s = last_t2_tick, last_s2
             combined_time_ticks = np.append(combined_time_ticks, last_t_tick)
-            combined_stim_vec = np.append(combined_stim_vec, last_s)
+            combined_efields = np.column_stack([combined_efields, last_s])  # Append column
         # Non-overlapping: concatenate
         elif t1_ticks[-1] < t2_ticks[0]:
-            combined_time_ticks = np.concatenate([t1_ticks, t2_ticks])
-            combined_stim_vec = np.concatenate([stim1_vec, stim2_vec])
+            combined_time_ticks = np.concatenate((t1_ticks, t2_ticks))
+            combined_efields = np.concatenate((efields1, efields2), axis=1)
         else:
-            combined_time_ticks = np.concatenate([t2_ticks, t1_ticks])
-            combined_stim_vec = np.concatenate([stim2_vec, stim1_vec])
+            combined_time_ticks = np.concatenate((t2_ticks, t1_ticks))
+            combined_efields = np.concatenate((efields2, efields1), axis=1)
 
         # Convert ticks -> float time
         combined_time_vec = combined_time_ticks.astype(float) * dt
@@ -713,6 +706,6 @@ class ElectrodeSource:
         if combined_time_vec[0] > 0:
             # in case of delay add back t=0 stim=0
             combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
-            combined_stim_vec = np.insert(combined_stim_vec, 0, 0.0)
+            combined_efields = np.insert(combined_efields, 0, 0.0, axis=1)
 
-        return combined_time_vec, combined_stim_vec
+        return combined_time_vec, combined_efields
