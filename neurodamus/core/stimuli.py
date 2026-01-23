@@ -628,7 +628,6 @@ class ElectrodeSource:
     @staticmethod
     def combine_time_efields(t1_vec, efields1, t2_vec, efields2, is_delay1, is_delay2, dt):
         """Combine time and efields vectors from 2 ElectrodeSource objects,
-
         Args:
             t1_vec, t2_vec : numpy arrays of size n_timepoints, always ordered
             efields1, efields2: shape (3, n_timepoints) for Ex, Ey, Ez
@@ -636,7 +635,6 @@ class ElectrodeSource:
             is_delay2 : if the stimulus 2 has delay
             In case of delay, the 1st element of the time-efields vectors should be removed,
             and the delay time is always divisible by dt
-
         Returns: np.array, the combined time and efields vectors
         """
         if is_delay1:
