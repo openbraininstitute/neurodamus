@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-c"]
 
 ARG LIBSONATA_TAG=master
 ARG LIBSONATAREPORT_TAG=master
-ARG NEURON_TAG=master
+ARG NEURON_TAG=9.0.1
 ARG NEURON_COMMIT_ID
 ARG WORKDIR=/opt/software
 ARG INSTALL_DIR=/opt/software/install
