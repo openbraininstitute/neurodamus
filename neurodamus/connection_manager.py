@@ -19,7 +19,7 @@ from .io.synapse_reader import SonataReader
 from .target_manager import TargetManager, TargetSpec
 from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
-from .utils.pyutils import bin_search, dict_filter_map, gen_ranges
+from .utils.pyutils import bin_search, gen_ranges
 from .utils.timeit import timeit
 
 if TYPE_CHECKING:
@@ -392,7 +392,9 @@ class ConnectionManagerBase:
         conn_dst_spec = TargetSpec(
             dst_target or self.cell_manager.circuit_target, self.current_population.dst_pop_name
         )
-        this_pathway = {"Source": conn_src_spec, "Destination": conn_dst_spec}
+
+        this_pathway = {"source": conn_src_spec, "destination": conn_dst_spec}
+
         matching_conns = [
             conn
             for conn in SimConfig.connections.values()
@@ -404,25 +406,21 @@ class ConnectionManagerBase:
             return
 
         # if we have a single connect block with weight=0, skip synapse creation entirely
-        if len(matching_conns) == 1 and matching_conns[0].get("Weight") == 0.0:
+        if len(matching_conns) == 1 and matching_conns[0].weight == 0.0:
             logging.warning("SKIPPING Connection create since they have invariably weight=0")
             return
 
         logging.info("Creating group connections (%d groups match)", len(matching_conns))
         for conn_conf in matching_conns:
-            if "Delay" in conn_conf and conn_conf["Delay"] > 0:
+            if conn_conf.delay is not None and conn_conf.delay > 0:
                 # Delayed connections are for configuration only, not creation
                 continue
 
-            # check if we are not supposed to create (only configure later)
-            if conn_conf.get("CreateMode") == "NoCreate":
-                continue
-
-            conn_src = conn_conf["Source"]
-            conn_dst = conn_conf["Destination"]
-            synapse_id = conn_conf.get("SynapseID")
-            mod_override = conn_conf.get("ModOverride")
-            self.connect_group(conn_src, conn_dst, synapse_id, mod_override)
+            conn_src = conn_conf.source
+            conn_dst = conn_conf.destination
+            synapse_id = None
+            modoverride = conn_conf.modoverride
+            self.connect_group(conn_src, conn_dst, synapse_id, modoverride)
 
     def configure_connections(self, conn_conf):
         """Configure-only circuit connections according to a config Connection block
@@ -430,20 +428,20 @@ class ConnectionManagerBase:
         Args:
             conn_conf: The configuration block (dict)
         """
-        log_msg = " * Pathway {:s} -> {:s}".format(conn_conf["Source"], conn_conf["Destination"])
+        log_msg = f" * Pathway {conn_conf.source:s} -> {conn_conf.destination:s}"
 
-        if "Delay" in conn_conf and conn_conf["Delay"] > 0:
-            log_msg += f":\t[DELAYED] t={conn_conf['Delay']:g}, weight={conn_conf['Weight']:g}"
+        if conn_conf.delay is not None and conn_conf.delay > 0:
+            log_msg += f":\t[DELAYED] t={conn_conf.delay:g}, weight={conn_conf.weight:g}"
             configured_conns = self.setup_delayed_connection(conn_conf)
         else:
-            if "SynapseConfigure" in conn_conf:
-                log_msg += ":\tconfigure with '{:s}'".format(conn_conf["SynapseConfigure"])
-            if "NeuromodStrength" in conn_conf:
-                log_msg += "\toverwrite NeuromodStrength = {:g}".format(
-                    conn_conf["NeuromodStrength"]
+            if conn_conf.synapse_configure is not None:
+                log_msg += f":\tconfigure with '{conn_conf.synapse_configure:s}'"
+            if conn_conf.neuromodulation_strength is not None:
+                log_msg += (
+                    f"\toverwrite neuromodulation_strength = {conn_conf.neuromodulation_strength:g}"
                 )
-            if "NeuromodDtc" in conn_conf:
-                log_msg += "\toverwrite NeuromodDtc = {:g}".format(conn_conf["NeuromodDtc"])
+            if conn_conf.neuromodulation_dtc is not None:
+                log_msg += f"\toverwrite neuromodulation_dtc = {conn_conf.neuromodulation_dtc:g}"
             configured_conns = self.configure_group(conn_conf)
 
         all_ranks_total = MPI.allreduce(configured_conns, MPI.SUM)
@@ -843,23 +841,13 @@ class ConnectionManagerBase:
             conn_config: The connection configuration dict
             gidvec: A restricted set of gids to configure (original, w/o offsetting)
         """
-        src_target = conn_config["Source"]
-        dst_target = conn_config["Destination"]
-        syn_params = dict_filter_map(
-            conn_config,
-            {
-                "Weight": "weight_factor",
-                "SpontMinis": "minis_spont_rate",
-                "SynDelayOverride": "syndelay_override",
-                "NeuromodStrength": "neuromod_strength",
-                "NeuromodDtc": "neuromod_dtc",
-            },
-        )
+        src_target = conn_config.source
+        dst_target = conn_config.destination
 
         # Load eventual mod override helper
-        if "ModOverride" in conn_config:
-            logging.info("   => Overriding mod: %s", conn_config["ModOverride"])
-            override_helper = conn_config["ModOverride"] + "Helper"
+        if conn_config.modoverride is not None:
+            logging.info("   => Overriding mod: %s", conn_config.modoverride)
+            override_helper = conn_config.modoverride + "Helper"
             Nd.load_hoc(override_helper)
             assert hasattr(Nd.h, override_helper), (
                 "ModOverride helper doesn't define hoc template: " + override_helper
@@ -867,12 +855,17 @@ class ConnectionManagerBase:
 
         configured_conns = 0
         for conn in self.get_target_connections(src_target, dst_target, gidvec):
-            for key, val in syn_params.items():
-                setattr(conn, key, val)
-            if "ModOverride" in conn_config:
-                conn.mod_override = conn_config["ModOverride"]
-            if "SynapseConfigure" in conn_config:
-                conn.add_synapse_configuration(conn_config["SynapseConfigure"])
+            conn.weight_factor = conn_config.weight
+            conn.minis_spont_rate = conn_config.spont_minis
+            conn.syndelay_override = conn_config.synapse_delay_override
+            if conn_config.neuromodulation_strength is not None:
+                conn.neuromod_strength = conn_config.neuromodulation_strength
+            if conn_config.neuromodulation_dtc is not None:
+                conn.neuromod_dtc = conn_config.neuromodulation_dtc
+            if conn_config.modoverride is not None:
+                conn.mod_override = conn_config.modoverride
+            if conn_config.synapse_configure is not None:
+                conn.add_synapse_configuration(conn_config.synapse_configure)
             configured_conns += 1
         return configured_conns
 
@@ -1030,10 +1023,10 @@ class SynapseRuleManager(ConnectionManagerBase):
         Args:
             conn_config: Connection configuration parsed from sonata config
         """
-        src_target_name = conn_config["Source"]
-        dst_target_name = conn_config["Destination"]
-        delay = conn_config["Delay"]
-        new_weight = conn_config.get("Weight", 0.0)
+        src_target_name = conn_config.source
+        dst_target_name = conn_config.destination
+        delay = conn_config.delay
+        new_weight = conn_config.weight
 
         configured_conns = 0
         for conn in self.get_target_connections(src_target_name, dst_target_name):

@@ -3,6 +3,7 @@
 import json
 import logging
 import os.path
+from dataclasses import dataclass
 from enum import Enum
 
 import libsonata
@@ -14,6 +15,42 @@ class ConnectionTypes(str, Enum):
     NeuroModulation = "NeuroModulation"
     NeuroGlial = "NeuroGlial"
     GlioVascular = "GlioVascular"
+
+
+@dataclass
+class ConnectionOverride:
+    """Python-side mutable version of SimulationConfig.ConnectionOverride."""
+
+    name: str
+    source: str
+    destination: str
+    weight: float
+    spont_minis: bool | None = None
+    synapse_configure: dict | None = None
+    modoverride: dict | None = None
+    synapse_delay_override: float | None = None
+    delay: float | None = None
+    neuromodulation_dtc: float | None = None
+    neuromodulation_strength: float | None = None
+
+    @classmethod
+    def from_libsonata(
+        cls,
+        conn: libsonata._libsonata.SimulationConfig.ConnectionOverride,
+    ) -> "ConnectionOverride":
+        return cls(
+            name=conn.name,
+            source=conn.source,
+            destination=conn.target,
+            weight=conn.weight,
+            spont_minis=conn.spont_minis,
+            synapse_configure=conn.synapse_configure,
+            modoverride=conn.modoverride,
+            synapse_delay_override=conn.synapse_delay_override,
+            delay=conn.delay,
+            neuromodulation_dtc=conn.neuromodulation_dtc,
+            neuromodulation_strength=conn.neuromodulation_strength,
+        )
 
 
 class SonataConfig:
@@ -252,18 +289,10 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        item_translation = {
-            "target": "Destination",
-            "modoverride": "ModOverride",
-            "synapse_delay_override": "SynDelayOverride",
-            "neuromodulation_dtc": "NeuromodDtc",
-            "neuromodulation_strength": "NeuromodStrength",
-        }
-        connects = {
-            libsonata_conn.name: self._translate_dict(item_translation, libsonata_conn)
+        return {
+            libsonata_conn.name: ConnectionOverride.from_libsonata(libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
         }
-        return connects
 
     @property
     def parsedStimuli(self) -> list:
