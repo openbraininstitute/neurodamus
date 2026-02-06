@@ -1108,7 +1108,7 @@ class Node:
         # This is incompatible with efficient caching atm AND Incompatible with
         # mcd & Glut
         if not self._is_ngv_run:
-            Nd.cvode.cache_efficient(bool(self._run_conf.lfp_weights_path))
+            Nd.cvode.cache_efficient(1)
         self._pc.set_maxstep(4)
         with timeit(name="stdinit"):
             Nd.stdinit()
