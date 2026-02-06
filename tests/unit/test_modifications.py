@@ -6,6 +6,59 @@ from neurodamus.modification_manager import ModificationManager
 from neurodamus.node import Neurodamus, Node
 from types import SimpleNamespace
 
+from tests.conftest import RINGTEST_DIR
+
+SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "applyTTX",
+                            "type": "TTX",
+                            "node_set": "RingA"
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_applyTTX(create_tmp_simulation_config_file):
+    """
+    A test of enabling TTX with a short simulation.
+    As Ringtest cells don't contain mechanisms that use the TTX concentration
+    to enable/disable sodium channels, no spike change is expected.
+    Instead, we check that all sections contain TTXDynamicsSwitch after modification
+    """
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Node(create_tmp_simulation_config_file)
+
+    # setup sim
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+
+    # check TTXDynamicsSwitch is not inserted in any section of cell gid=1
+    cell = n._pc.gid2cell(1)
+    for sec in cell.all:
+        assert not Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
+
+    n.enable_modifications()
+
+    # check TTXDynamicsSwitch is inserted after modifications
+    for sec in cell.all:
+        assert Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [

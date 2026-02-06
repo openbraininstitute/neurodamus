@@ -52,8 +52,6 @@ class ModificationManager:
 
     @classmethod
     def register_type(cls, mod_class):
-        if not hasattr(mod_class, "MOD_TYPE"):
-            raise TypeError(f"{mod_class.__name__} must define MOD_TYPE (ModificationType)")
         cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
