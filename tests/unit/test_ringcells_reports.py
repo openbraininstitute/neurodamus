@@ -314,10 +314,10 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     n.run()
 
     # Write ASCII reports
-    write_ascii_reports(ascii_recorders, n._run_conf["OutputRoot"])
+    write_ascii_reports(ascii_recorders, n._run_conf.output_root)
 
     # Read ASCII reports
-    soma_report = Path(n._run_conf["OutputRoot"]) / ("soma_v.txt")
+    soma_report = Path(n._run_conf.output_root) / ("soma_v.txt")
     assert soma_report.exists()
     data = read_ascii_report(soma_report)
     assert len(data) == 2500  # 500 time steps * 5 soma sections
@@ -326,7 +326,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     peaks_pos = find_peaks(cell_voltage_vec, prominence=1)[0]
     np.testing.assert_allclose(peaks_pos, [92, 291])
 
-    compartment_i_report = Path(n._run_conf["OutputRoot"]) / ("compartment_i.txt")
+    compartment_i_report = Path(n._run_conf.output_root) / ("compartment_i.txt")
     assert compartment_i_report.exists()
     data = read_ascii_report(compartment_i_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
@@ -335,7 +335,7 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     peaks_pos = find_peaks(cell_current_vec, prominence=0.05)[0]
     np.testing.assert_allclose(peaks_pos, [9,  29,  50,  70, 110, 132, 152, 173, 193])
     
-    compartment_pas_report = Path(n._run_conf["OutputRoot"]) / ("compartment_pas.txt")
+    compartment_pas_report = Path(n._run_conf.output_root) / ("compartment_pas.txt")
     assert compartment_pas_report.exists()
     data = read_ascii_report(compartment_pas_report)
     assert len(data) == 1025  # 45 time steps * 5*5 compartments
