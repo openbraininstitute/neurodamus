@@ -1,12 +1,32 @@
 from pathlib import Path
+import pytest
 from neurodamus.utils.logging import log_verbose
 # !! NOTE: Please dont import Neuron or Nd objects. pytest will trigger Neuron instantiation!
 
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
-CONFIG_FILE_MINI = SIM_DIR / "simulation_config_mini.json"
+from tests.conftest import V5_SONATA
 
-
-def test_TTX_modification():
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+        "src_dir": str(V5_SONATA),
+        "simconfig_file": "simulation_config_mini.json",
+        "extra_config": {
+            "conditions": {
+                "modifications": [
+                    {
+                        "name": "applyTTX",
+                        "node_set": "Mini5",
+                        "type": "TTX"
+                    }
+                ]
+            },
+        }
+        }
+    ],
+    indirect=True,
+)
+def test_TTX_modification(create_tmp_simulation_config_file):
     """
     A test of enabling TTX with a short simulation.
     Expected outcome is non-zero spike count without TTX, zero with TTX.
@@ -18,7 +38,7 @@ def test_TTX_modification():
     from neurodamus.node import Node
 
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE_MINI))
+    n = Node(create_tmp_simulation_config_file)
 
     # setup sim
     n.load_targets()
@@ -29,10 +49,6 @@ def test_TTX_modification():
     n.solve()
     # _spike_vecs is a list of (spikes, ids)
     nspike_noTTX = sum(len(spikes) for spikes, _ in n._spike_vecs)
-
-    # append modification to config directly
-    TTX_mod = {"Type": "TTX", "Target": "Mini5"}
-    SimConfig.modifications["applyTTX"] = TTX_mod
 
     # setup sim again
     Nd.t = 0.0
@@ -46,8 +62,29 @@ def test_TTX_modification():
     assert nspike_noTTX > 0
     assert nspike_TTX == 0
 
-
-def test_ConfigureAllSections_modification():
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+        "src_dir": str(V5_SONATA),
+        "simconfig_file": "simulation_config_mini.json",
+        "extra_config": {
+            "conditions": {
+                "modifications": [
+                    {
+                        "name": "no_SK_E2",
+                        "node_set": "Mini5",
+                        "type": "ConfigureAllSections",
+                        "section_configure": "%s.gSK_E2bar_SK_E2 = 0"
+                    }
+                ]
+            },
+        }
+        }
+    ],
+    indirect=True,
+)
+def test_ConfigureAllSections_modification(create_tmp_simulation_config_file):
     """
     A test of performing ConfigureAllSections with a short simulation.
     Expected outcome is higher spike count when enabled.
@@ -59,7 +96,7 @@ def test_ConfigureAllSections_modification():
     from neurodamus.node import Node
 
     GlobalConfig.verbosity = LogLevel.VERBOSE
-    n = Node(str(CONFIG_FILE_MINI))
+    n = Node(create_tmp_simulation_config_file)
 
     # setup sim
     n.load_targets()
@@ -69,12 +106,6 @@ def test_ConfigureAllSections_modification():
     n.sim_init()
     n.solve(tstop=150)  # longer duration to see influence on spikes
     nspike_noConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
-
-    # append modification to config directly
-    ConfigureAllSections_mod = {"Type": "ConfigureAllSections",
-                                "Target": "Mini5",
-                                "SectionConfigure": "%s.gSK_E2bar_SK_E2 = 0"}
-    SimConfig.modifications["no_SK_E2"] = ConfigureAllSections_mod
 
     # setup sim again
     Nd.t = 0.0

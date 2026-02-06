@@ -264,7 +264,7 @@ class _SimConfig:
         cls.connections = cls._config_parser.parsedConnects
         cls.stimuli = cls._config_parser.parsedStimuli
         cls.reports = cls._config_parser.parsedReports
-        cls.modifications = cls._config_parser.parsedModifications or {}
+        cls.modifications = cls._config_parser.parsedModifications
         cls.beta_features = cls._config_parser.beta_features
         cls.cli_options = CliOptions(**(cli_options or {}))
 
@@ -570,16 +570,6 @@ def _stimulus_params(config: _SimConfig):
             valid_values,
             deprecated_values,
         )
-
-
-@SimConfig.validator
-def _modification_params(config: _SimConfig):
-    required_fields = (
-        "Target",
-        "Type",
-    )
-    for name, mod_block in config.modifications.items():
-        _check_params("Modification " + name, mod_block, required_fields, ())
 
 
 def make_circuit_config(config_dict, req_morphology=True):
