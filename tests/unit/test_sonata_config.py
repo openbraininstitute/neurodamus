@@ -6,6 +6,8 @@ import pytest
 from tests import utils
 from tests.conftest import RINGTEST_DIR
 
+import libsonata
+
 from neurodamus.core.configuration import SimConfig
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import setup_logging
@@ -137,7 +139,7 @@ def test_parse_seeds(create_tmp_simulation_config_file):
                         "name": "no_SK_E2",
                         "node_set": "single",
                         "type": "ConfigureAllSections",
-                        "section_configure": "%%s.gSK_E2bar_SK_E2 = 0"
+                        "section_configure": "%s.gSK_E2bar_SK_E2 = 0"
                     },
                     {
                         "name": "applyTTX",
@@ -151,14 +153,15 @@ def test_parse_seeds(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_parse_modifications(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
-    assert list(SimConfig.modifications.keys()) == ["no_SK_E2", "applyTTX"]  # order preserved
-    TTX_mod = SimConfig.modifications["applyTTX"]
-    assert TTX_mod["Type"] == "TTX"
-    assert TTX_mod["Target"] == "single"
-    ConfigureAllSections_mod = SimConfig.modifications["no_SK_E2"]
-    ConfigureAllSections_mod["Type"] = "ConfigureAllSections"
-    ConfigureAllSections_mod["Target"] = "single"
-    ConfigureAllSections_mod["SectionConfigure"] = "%s.gSK_E2bar_SK_E2 = 0"
+    assert list(mod.name for mod in SimConfig.modifications) == ["no_SK_E2", "applyTTX"]  # order preserved
+
+    TTX_mod = SimConfig.modifications[1]
+    assert TTX_mod.type == libsonata.SimulationConfig.ModificationBase.ModificationType.TTX
+    assert TTX_mod.node_set == "single"
+    ConfigureAllSections_mod = SimConfig.modifications[0]
+    assert ConfigureAllSections_mod.type == libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
+    assert ConfigureAllSections_mod.node_set == "single"
+    assert ConfigureAllSections_mod.section_configure == "%s.gSK_E2bar_SK_E2 = 0"
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
