@@ -817,11 +817,16 @@ class SEClamp(BaseStim):
                 seclamp.rs = self.rs
                 seclamp.dur1 = self.duration
                 seclamp.amp1 = self.vhold
+                if self.voltage_vec and self.time_vec:
+                    self.voltage_vec.play(seclamp._ref_amp1, self.time_vec, 0)
                 self.stimList.append(seclamp)  # save SEClamp
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.vhold = float(stim_info["Voltage"])  # holding voltage [mV]
         self.rs = float(stim_info.get("RS", 0.01))  # series resistance [MOhm]
+        self.voltage_vec = Nd.h.Vector(stim_info.get("VoltageLevels"))
+        duration_levels = np.array(stim_info.get("DurationLevels"))
+        self.time_vec = Nd.h.Vector(np.cumsum(duration_levels))
         if self.delay > 0:
             logging.warning("%s ignores delay", self.__class__.__name__)
 
