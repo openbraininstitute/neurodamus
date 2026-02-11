@@ -10,5 +10,11 @@
     "node_id": [
         1
     ]
+  },
+  "RingA_Cell0": {
+    "population": "RingA",
+    "node_id": [
+        0
+    ]
   }
 }
