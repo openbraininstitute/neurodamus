@@ -922,7 +922,7 @@ class SpatiallyUniformEField(BaseStim):
 
     def parse_check_all_parameters(self, stim_info: dict):
         self.duration = float(stim_info["Duration"])  # duration [ms]
-        self.dt = float(SimConfig.run_conf["Dt"])
+        self.dt = float(SimConfig.run_conf.dt)
         self.delay = float(stim_info["Delay"])  # start time [ms]
         if not (np.isclose(self.delay % self.dt, 0) or np.isclose(self.delay % self.dt, self.dt)):
             self.delay = np.ceil(self.delay / self.dt) * self.dt

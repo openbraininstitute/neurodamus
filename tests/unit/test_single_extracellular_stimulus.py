@@ -657,10 +657,10 @@ def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak)
     n.run()
 
     # Write ASCII reports
-    write_ascii_reports(ascii_recorders, n._run_conf["OutputRoot"])
+    write_ascii_reports(ascii_recorders, n._run_conf.output_root)
 
     # Read ASCII reports
-    report = Path(n._run_conf["OutputRoot"]) / ("compartment_v.txt")
+    report = Path(n._run_conf.output_root) / ("compartment_v.txt")
     assert report.exists()
     data = read_ascii_report(report)
     cell0_voltage_vec = [vec[3] for vec in data if vec[0] == 0]
