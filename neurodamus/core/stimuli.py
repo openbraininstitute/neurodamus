@@ -613,7 +613,7 @@ class ElectrodeSource:
         2. combine efields E_x/y/z, if the time overlaps, should be summed
         """
         assert np.isclose(self.dt, other.dt), "multiple extracellular stimuli must have common dt"
-        combined_time_vec, self.efields = self.combine_time_efields(
+        combined_time_vec, self.efields = self._combine_time_efields(
             self.time_vec.as_numpy(),
             self.efields,
             other.time_vec.as_numpy(),
@@ -626,7 +626,7 @@ class ElectrodeSource:
         return self
 
     @staticmethod
-    def combine_time_efields(t1_vec, efields1, t2_vec, efields2, is_delay1, is_delay2, dt):
+    def _combine_time_efields(t1_vec, efields1, t2_vec, efields2, is_delay1, is_delay2, dt):
         """Combine time and efields vectors from 2 ElectrodeSource objects.
         In case of delay, the 1st element of the time-efields vectors should be removed,
         and the delay time is always divisible by dt
@@ -691,7 +691,9 @@ class ElectrodeSource:
 
         if combined_time_vec[0] > 0:
             # in case of delay add back t=0 stim=0
-            combined_time_vec = np.insert(combined_time_vec, 0, 0.0)
-            combined_efields = np.insert(combined_efields, 0, 0.0, axis=1)
+            combined_time_vec = np.concatenate([[0.0], combined_time_vec])
+            combined_efields = np.concatenate([np.zeros((combined_efields.shape[0], 1)), combined_efields], axis=1)
+
+        assert combined_efields.shape[1] == len(combined_time_vec), "Time and efield length mismatch"
 
         return combined_time_vec, combined_efields
