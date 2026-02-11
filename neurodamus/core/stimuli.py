@@ -640,19 +640,9 @@ class ElectrodeSource:
         """
         if is_delay1:
             t1_vec = t1_vec[1:]
-            if not (np.isclose(t1_vec[0] % dt, 0) or np.isclose(t1_vec[0] % dt, dt)):
-                raise ValueError(
-                    f"ElectrodeSource time vector must be divisible by dt {dt}, "
-                    f"check the delay parameter {t1_vec[0]}"
-                )
             efields1 = efields1[:, 1:]  # Remove first column for all 3 rows
         if is_delay2:
             t2_vec = t2_vec[1:]
-            if not (np.isclose(t2_vec[0] % dt, 0) or np.isclose(t2_vec[0] % dt, dt)):
-                raise ValueError(
-                    f"ElectrodeSource time vector must be divisible by dt {dt}, "
-                    f"check the delay parameter {t2_vec[0]}"
-                )
             efields2 = efields2[:, 1:]
 
         # Convert time -> integer ticks
@@ -692,8 +682,12 @@ class ElectrodeSource:
         if combined_time_vec[0] > 0:
             # in case of delay add back t=0 stim=0
             combined_time_vec = np.concatenate([[0.0], combined_time_vec])
-            combined_efields = np.concatenate([np.zeros((combined_efields.shape[0], 1)), combined_efields], axis=1)
+            combined_efields = np.concatenate(
+                [np.zeros((combined_efields.shape[0], 1)), combined_efields], axis=1
+            )
 
-        assert combined_efields.shape[1] == len(combined_time_vec), "Time and efield length mismatch"
+        assert combined_efields.shape[1] == len(combined_time_vec), (
+            "Time and efield length mismatch"
+        )
 
         return combined_time_vec, combined_efields

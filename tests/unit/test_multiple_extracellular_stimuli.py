@@ -206,9 +206,7 @@ def test_combine_time_stim_vectors():  # noqa: PLR0915
         res_time_vec,
         [0.0, 11, 11.025, 11.05, 11.075, 11.1, 11.125, 30.0, 30.025, 30.05, 30.075, 31.1, 31.125],
     )
-    npt.assert_allclose(
-        res_stim_vec, [[0.0, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0]]
-    )
+    npt.assert_allclose(res_stim_vec, [[0.0, 10, 10, 10, 10, 10, 0, 100, 100, 100, 100, 100, 0]])
 
     # case 6, no overlap, t2_vec before t1_vec, with delay
     t1_vec = np.array([0, 30.0, 30.2, 30.4, 30.6, 30.8, 31.0])
