@@ -153,12 +153,11 @@ class TargetManager:
 
     @classmethod
     def _init_nodesets(cls, run_conf):
-        config_nodeset_file = run_conf.get("config_node_sets_file", None)
-        simulation_nodesets_file = run_conf.get("node_sets_file")
-        if not simulation_nodesets_file and "TargetFile" in run_conf:
-            target_file = run_conf["TargetFile"]
-            if target_file.endswith(".json"):
-                simulation_nodesets_file = target_file
+        config_nodeset_file = run_conf.config_node_sets_file
+        simulation_nodesets_file = None
+        target_file = run_conf.target_file
+        if target_file.endswith(".json"):
+            simulation_nodesets_file = target_file
         return (config_nodeset_file or simulation_nodesets_file) and NodeSetReader(
             config_nodeset_file, simulation_nodesets_file
         )
@@ -166,8 +165,8 @@ class TargetManager:
     @staticmethod
     def _init_compartment_sets(run_conf):
         return (
-            libsonata.CompartmentSets.from_file(run_conf["compartment_sets_file"])
-            if run_conf["compartment_sets_file"]
+            libsonata.CompartmentSets.from_file(run_conf.compartment_sets_file)
+            if run_conf.compartment_sets_file
             else {}
         )
 

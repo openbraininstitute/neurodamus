@@ -56,7 +56,7 @@ from .core.coreneuron_configuration import (
 )
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
-from .io.sonata_config import ConnectionTypes
+from .io.sonata_config import ConnectionTypes, RunConfig
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
@@ -364,9 +364,7 @@ class Node:
 
         self._run_conf = SimConfig.run_conf
         self._target_manager = TargetManager(self._run_conf)
-        self._target_spec = TargetSpec(
-            self._run_conf.get("NodesetName"), self._run_conf.get("PopulationName")
-        )
+        self._target_spec = TargetSpec(self._run_conf.nodeset_name, self._run_conf.population_name)
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
             self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
         self._sonata_circuits = SimConfig.sonata_circuits
@@ -391,7 +389,7 @@ class Node:
 
         Note: remember to call Nd.init(...) before to ensure/load neurodamus mods
         """
-        if not self._run_conf or not isinstance(self._run_conf, dict):
+        if not self._run_conf or not isinstance(self._run_conf, RunConfig):
             raise ValueError("Invalid `_run_conf`: Must be a dictionary for multi-cycle runs.")
 
         # Init unconditionally
@@ -573,7 +571,7 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = self._run_conf.get("LFPWeightsPath")
+        lfp_weights_file = self._run_conf.lfp_weights_path
         if lfp_weights_file:
             if SimConfig.use_coreneuron:
                 lfp_manager = self._circuits.global_manager._lfp_manager
@@ -650,7 +648,6 @@ class Node:
         if SimConfig.cli_options.restrict_connectivity >= 2:
             logging.warning("Skipped connectivity (restrict_connectivity)")
             return
-
         c_target = TargetSpec(conf.get("NodesetName"), conf.get("PopulationName"))
         if c_target.population is None:
             c_target.population = self._circuits.alias.get(conf.name)
@@ -863,9 +860,9 @@ class Node:
         log_stage("Enabling modifications...")
 
         mod_manager = ModificationManager(self._target_manager)
-        for name, mod_info in SimConfig.modifications.items():
-            target_spec = TargetSpec(mod_info["Target"], None)
-            logging.info(" * [MOD] %s: %s -> %s", name, mod_info["Type"], target_spec)
+        for mod_info in SimConfig.modifications:
+            target_spec = TargetSpec(mod_info.node_set, None)
+            logging.info(" * [MOD] %s: %s -> %s", mod_info.name, mod_info.type.name, target_spec)
             mod_manager.interpret(target_spec, mod_info)
 
     def write_and_get_population_offsets(self) -> tuple[dict, dict, dict]:
@@ -924,7 +921,7 @@ class Node:
 
             # Build final config. On errors log, stop only after all reports processed
             rep_params = create_report_parameters(
-                sim_end=self._run_conf["Duration"],
+                sim_end=self._run_conf.tstop,
                 nd_t=Nd.t,
                 output_root=SimConfig.output_root,
                 rep_name=rep_name,
@@ -1005,7 +1002,7 @@ class Node:
 
     def _finalize_corenrn_reports(self, core_report_config, pop_offsets_alias):
         core_report_config.set_pop_offsets(pop_offsets_alias[0])
-        core_report_config.set_spike_filename(self._run_conf.get("SpikesFile"))
+        core_report_config.set_spike_filename(self._run_conf.spikes_file)
         core_report_config.dump(CoreConfig.report_config_file_save)
 
     def _finalize_nrn_reports(self):
@@ -1113,7 +1110,7 @@ class Node:
         # This is incompatible with efficient caching atm AND Incompatible with
         # mcd & Glut
         if not self._is_ngv_run:
-            Nd.cvode.cache_efficient("ElectrodesPath" not in self._run_conf)
+            Nd.cvode.cache_efficient(1)
         self._pc.set_maxstep(4)
         with timeit(name="stdinit"):
             Nd.stdinit()
@@ -1302,7 +1299,7 @@ class Node:
             seed=SimConfig.rng_info.getGlobalSeed(),
             model_stats=int(SimConfig.cli_options.model_stats),
             report_conf=CoreConfig.report_config_file_save
-            if self._run_conf["EnableReports"]
+            if self._run_conf.enable_reports
             else None,
             mpi=int(os.environ.get("NEURON_INIT_MPI", "1")),
         )
@@ -1474,7 +1471,7 @@ class Node:
         output_root = SimConfig.output_root_path(create=True)
         if hasattr(self._sonatareport_helper, "create_spikefile"):
             # Write spike report for multiple populations if exist
-            spike_path = self._run_conf.get("SpikesFile")
+            spike_path = self._run_conf.spikes_file
 
             # Get only the spike file name
             file_name = spike_path.split("/")[-1] if spike_path is not None else "out.h5"
@@ -1604,7 +1601,7 @@ class Neurodamus(Node):
 
         Node.__init__(self, config_file, user_opts)
         # Use the run_conf dict to avoid passing it around
-        self._run_conf["EnableReports"] = enable_reports
+        self._run_conf.enable_reports = enable_reports
 
         if SimConfig.dry_run:
             if self._is_ngv_run:
@@ -1660,7 +1657,7 @@ class Neurodamus(Node):
             return
 
         log_stage("Creating connections in the simulator")
-        base_seed = self._run_conf.get("BaseSeed", 0)  # base seed for synapse RNG
+        base_seed = self._run_conf.base_seed  # base seed for synapse RNG
         for syn_manager in self._circuits.all_synapse_managers():
             syn_manager.finalize(base_seed)
         print_mem_usage()
@@ -1669,7 +1666,7 @@ class Neurodamus(Node):
         print_mem_usage()
         self.enable_modifications()
 
-        if self._run_conf["EnableReports"]:
+        if self._run_conf.enable_reports:
             self.enable_reports()
         print_mem_usage()
 
@@ -1712,7 +1709,7 @@ class Neurodamus(Node):
         log_stage(" =============== CORENEURON RESTORE ===============")
         self.load_targets()
         self.enable_replay()
-        if self._run_conf["EnableReports"]:
+        if self._run_conf.enable_reports:
             self.enable_reports()
 
         self._coreneuron_write_sim_config(corenrn_restore=True)

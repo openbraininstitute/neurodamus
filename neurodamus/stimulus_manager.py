@@ -44,7 +44,7 @@ class StimulusManager:
 
     def __init__(self, target_manager):
         self._target_manager = target_manager
-        self._stim_seed = SimConfig.run_conf.get("StimulusSeed")
+        self._stim_seed = SimConfig.run_conf.stimulus_seed
         self._stimulus = []
         self.reset_helpers()  # reset helpers for multi-cycle builds
 
@@ -623,7 +623,7 @@ class Noise(BaseStim):
 
         self.parse_check_all_parameters(stim_info)
 
-        sim_dt = float(SimConfig.run_conf["Dt"])  # simulation time-step [ms]
+        sim_dt = float(SimConfig.run_conf.dt)  # simulation time-step [ms]
 
         # apply stim to each point in target_points
         for target_point_list in target_points:

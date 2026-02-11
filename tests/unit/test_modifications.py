@@ -1,16 +1,36 @@
 import numpy as np
 import pytest
 
-from tests.conftest import RINGTEST_DIR
-
-from neurodamus.core.configuration import ConfigurationError, SimConfig
+from neurodamus.core.configuration import ConfigurationError
 from neurodamus.modification_manager import ModificationManager
 from neurodamus.node import Neurodamus, Node
+from types import SimpleNamespace
+
+from tests.conftest import RINGTEST_DIR
 
 SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
 
-
-def test_applyTTX():
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "applyTTX",
+                            "type": "TTX",
+                            "node_set": "RingA"
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_applyTTX(create_tmp_simulation_config_file):
     """
     A test of enabling TTX with a short simulation.
     As Ringtest cells don't contain mechanisms that use the TTX concentration
@@ -21,7 +41,7 @@ def test_applyTTX():
     # NeuronWrapper needs to be imported at function level
     from neurodamus.core import NeuronWrapper as Nd
 
-    n = Node(str(SIMULATION_CONFIG_FILE))
+    n = Node(create_tmp_simulation_config_file)
 
     # setup sim
     n.load_targets()
@@ -33,16 +53,11 @@ def test_applyTTX():
     for sec in cell.all:
         assert not Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
 
-    # append modification to config directly
-    TTX_mod = {"Type": "TTX", "Target": "RingA"}
-    SimConfig.modifications["applyTTX"] = TTX_mod
-
     n.enable_modifications()
 
     # check TTXDynamicsSwitch is inserted after modifications
     for sec in cell.all:
         assert Nd.ismembrane("TTXDynamicsSwitch", sec=sec)
-
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -51,6 +66,16 @@ def test_applyTTX():
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "Mosaic",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.gnabar_hh = 0",
+                        }
+                    ]
+                },
                 "inputs": {
                     "pulse": {
                         "module": "pulse",
@@ -94,14 +119,6 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     cell = n._pc.gid2cell(1)
     for sec in cell.all:
         assert getattr(sec, sec_variable) > 0
-
-    # append modification to config directly
-    ConfigureAllSections_mod = {
-        "Type": "ConfigureAllSections",
-        "Target": "Mosaic",
-        "SectionConfigure": f"%s.{sec_variable} = 0",
-    }
-    SimConfig.modifications["no_SK_E2"] = ConfigureAllSections_mod
 
     n.enable_modifications()
 
@@ -169,6 +186,55 @@ def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
                     "modifications": [
                         {
                             "name": "no_SK_E2",
+                            "node_set": "RingA:oneCell",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.e_pas *= 0.1",
+                        },
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "RingA:oneCell",
+                            "type": "ConfigureAllSections",
+                            "section_configure": "%s.gnabar_hh *= 11",
+                        }
+
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_ConfigureAllSections_AugAssign_name_clash(create_tmp_simulation_config_file):
+    """This should produce the same results as test_ConfigureAllSections_AugAssign
+    
+    However, here we apply the same modification in 2 steps with modifications 
+    that have the same name. Their combined effect should be equivalent 
+    to the modification in test_ConfigureAllSections_AugAssign.
+    """
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    Neurodamus(create_tmp_simulation_config_file)
+    soma1 = Nd._pc.gid2cell(0).soma[0]
+    soma2 = Nd._pc.gid2cell(1).soma[0]
+
+    assert np.isclose(soma1.gnabar_hh, 0.12)
+    assert np.isclose(soma1.e_pas, -70)
+    assert np.isclose(soma2.gnabar_hh, 1.32)
+    assert np.isclose(soma2.e_pas, -7)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
                             "node_set": "Mosaic",
                             "type": "ConfigureAllSections",
                             "section_configure": "%s.gSK_E2bar_SK_E2 = 0",
@@ -192,6 +258,17 @@ def test_error_unknown_modification():
     mod_manager = ModificationManager(target_manager="dummy")
     with pytest.raises(ConfigurationError, match="Unknown Modification mod_blabla"):
         mod_manager.interpret(target_spec="dummy", mod_info={"Type": "mod_blabla"})
+
+def test_error_unknown_modification():
+    mod_manager = ModificationManager(target_manager="dummy")
+    unknown_type = object()
+    mod_info = SimpleNamespace(type=unknown_type)
+
+    with pytest.raises(
+        ConfigurationError,
+        match="Unknown Modification",
+    ):
+        mod_manager.interpret(target_spec="dummy", mod_info=mod_info)
 
 
 @pytest.mark.parametrize(

@@ -31,14 +31,14 @@ Install
 Prerequisites
 -------------
 - hdf5
-- libsonatareport https://github.com/BlueBrain/libsonatareport
+- libsonatareport https://github.com/openbraininstitute/libsonatareport
 - neuron with MPI https://github.com/neuronsimulator/nrn
 
 Install neurodamus
 ------------------
 .. code-block:: sh
 
-  git clone https://github.com/BlueBrain/neurodamus.git
+  git clone https://github.com/openbraininstitute/neurodamus.git
   cd neurodamus
   pip install .
 
@@ -54,7 +54,7 @@ Once neuron and neurodamus are installed, you can build `special` with your mod 
   cp -r $DATADIR/mod/* mods/
   nrnivmodl -incflags '-I <include-paths-of-our-dependencies>' -loadflags '-L <libs-paths-for-linking>' mods
 
-To use the Blue Brain open models, you can build `neurodamus-models <https://github.com/blueBrain/neurodamus-models>`_.
+To use the Blue Brain open models, you can build `neurodamus-models <https://github.com/openbraininstitute/neurodamus-models/>`_.
 It will also produce a handy `build_neurodamus.sh` script that calls `nrnivmodl` with all dependencies to compile your future mod files
 
 .. code-block:: sh
@@ -89,13 +89,13 @@ We hope to bring the same advantages to the launcher script soon.
  srun <srun params> <your_built_special> -mpi -python $NEURODAMUS_PYTHON/init.py <neurodamus params>
 
 An example of a full installation with a simulation run can be found in the workflow test
-`simulation_test.yaml <https://github.com/BlueBrain/neurodamus/blob/main/.github/workflows/simulation_test.yml>`__.
+`simulation_test.yml <https://github.com/openbraininstitute/neurodamus/blob/main/.github/workflows/simulation_test.yml>`__.
 
 Docker container
 ================
 Alternatively, you can start directly a neurodamus docker container where all the packages are built.
 With the container, you can build your mod files and run simulations.
-See instructions in `docker/README.md <https://github.com/BlueBrain/neurodamus/blob/main/docker/README.md>`_.
+See instructions in `docker/README.md <https://github.com/openbraininstitute/neurodamus/blob/main/docker/README.md>`_.
 
 Building the docker container
 -----------------------------
@@ -118,8 +118,9 @@ The development of this software was supported by funding to the Blue Brain Proj
 a research center of the École polytechnique fédérale de Lausanne (EPFL),
 from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
 
-Copyright (c) 2005-2023 Blue Brain Project/EPFL
-Copyright (c) 2025 Open Brain Institute
+Copyright (c) 2005-2024 Blue Brain Project/EPFL
+
+Copyright (c) 2025-2026 Open Brain Institute
 
 .. substitutions
 .. |banner| image:: docs/img/neurodamus_banner_230701.png
