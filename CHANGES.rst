@@ -8,6 +8,7 @@ Version 4.1.0
 
 *New Features*
   * Implement extracellular stimulus: module "spatially_uniform_e_field" (#425)
+
 *Improvements*
   * `SonataConfig.parsedRun`: rework (#469)
   * `SonataConfig.parsedModifications` rework (#461)
