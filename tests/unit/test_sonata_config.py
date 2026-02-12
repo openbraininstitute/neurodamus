@@ -134,13 +134,13 @@ def test_parse_seeds(create_tmp_simulation_config_file):
                     {
                         "name": "no_SK_E2",
                         "node_set": "single",
-                        "type": "ConfigureAllSections",
+                        "type": "configure_all_sections",
                         "section_configure": "%s.gSK_E2bar_SK_E2 = 0"
                     },
                     {
                         "name": "applyTTX",
                         "node_set": "single",
-                        "type": "TTX"
+                        "type": "ttx"
                     }
                 ]
             }
@@ -151,13 +151,15 @@ def test_parse_modifications(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
     assert list(mod.name for mod in SimConfig.modifications) == ["no_SK_E2", "applyTTX"]  # order preserved
 
-    TTX_mod = SimConfig.modifications[1]
-    assert TTX_mod.type == libsonata.SimulationConfig.ModificationBase.ModificationType.TTX
-    assert TTX_mod.node_set == "single"
-    ConfigureAllSections_mod = SimConfig.modifications[0]
-    assert ConfigureAllSections_mod.type == libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
-    assert ConfigureAllSections_mod.node_set == "single"
-    assert ConfigureAllSections_mod.section_configure == "%s.gSK_E2bar_SK_E2 = 0"
+    ttx_mod = SimConfig.modifications[1]
+    assert ttx_mod.type == libsonata.SimulationConfig.ModificationBase.ModificationType.ttx
+    assert ttx_mod.node_set == "single"
+    configure_all_sections_mod = SimConfig.modifications[0]
+    assert configure_all_sections_mod.type == (
+        libsonata.SimulationConfig.ModificationBase.ModificationType.configure_all_sections
+    )
+    assert configure_all_sections_mod.node_set == "single"
+    assert configure_all_sections_mod.section_configure == "%s.gSK_E2bar_SK_E2 = 0"
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

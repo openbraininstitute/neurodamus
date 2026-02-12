@@ -63,7 +63,7 @@ class TTX:
     Uses TTXDynamicsSwitch as in BGLibPy. Overrides HOC version, which is outdated
     """
 
-    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.TTX
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.ttx
 
     def __init__(self, target, mod_info: libsonata.SimulationConfig.ModificationTTX, cell_manager):
         tpoints = target.get_point_list(
@@ -91,7 +91,7 @@ class ConfigureAllSections:
     Use case is modifying mechanism variables from config.
     """
 
-    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.ConfigureAllSections
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.configure_all_sections
 
     def __init__(
         self,
@@ -122,8 +122,8 @@ class ConfigureAllSections:
 
         if napply == 0:
             logging.warning(
-                "ConfigureAllSections applied to zero sections, "
-                "please check its SectionConfigure for possible mistakes"
+                "configure_all_sections applied to zero sections, "
+                "please check its section_configure for possible mistakes"
             )
 
     def parse_section_config(self, config):
@@ -136,7 +136,7 @@ class ConfigureAllSections:
                 # must be single assignment of a __sec_wildcard__ attribute
                 if not isinstance(tgt, ast.Attribute) or tgt.value.id != "__sec_wildcard__":
                     raise ConfigurationError(
-                        "SectionConfigure only supports single assignments "
+                        "section_configure only supports single assignments "
                         "of attributes of the section wildcard %s"
                     )
             all_attrs.visit(elem)  # collect attributes in assignment
@@ -159,5 +159,5 @@ class ConfigureAllSections:
         if isinstance(node, ast.AugAssign):
             return [node.target]
         raise ConfigurationError(
-            "SectionConfigure must consist of one or more semicolon-separated assignments"
+            "section_configure must consist of one or more semicolon-separated assignments"
         )
