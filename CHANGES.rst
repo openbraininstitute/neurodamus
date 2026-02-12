@@ -5,6 +5,7 @@ Change Log
 Version 4.1.0
 =============
 **12 February 2026**
+
 *New Features*
   * Implement extracellular stimulus: module "spatially_uniform_e_field" (#425)
 *Improvements*
