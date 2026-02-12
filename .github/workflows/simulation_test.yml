@@ -110,17 +110,7 @@ jobs:
         brew unlink fmt
         echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
 
-    - name: Cache python virtual env
-      id: cache-venv
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-venv
-      with:
-        path: venv
-        key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ steps.pyver.outputs.version }}
-
     - name: Upgrade pip and install base Python packages
-      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         python -m venv venv
         . ./venv/bin/activate
@@ -186,7 +176,6 @@ jobs:
         cmake --build nrn/build --target install
 
     - name: Install mpi4py
-      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
         MPICC=mpicc pip install --no-binary=mpi4py mpi4py
 
