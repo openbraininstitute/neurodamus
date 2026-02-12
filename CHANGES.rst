@@ -2,6 +2,35 @@
 Change Log
 ==========
 
+Version 4.1.0
+=============
+**12 February 2026**
+*New Features*
+  * Implement extracellular stimulus: module "spatially_uniform_e_field" (#425)
+*Improvements*
+  * `SonataConfig.parsedRun`: rework (#469)
+  * `SonataConfig.parsedModifications` rework (#461)
+  * `SonataConfig.Conditions` rework (#450)
+  * `SonataConfig.parsedReports` rework (#463)
+  * docs with required software and files (#470)
+  * remove `cleanup_atexit` since it is not an option (#464)
+  * print neurodamus version when starting (#358)
+  * Cleanup rng (#449)
+  * Remove `auto_init` / `AutoInit` (#443)
+  * Fix `IonChannelSeed` from not getting set (#446)
+  * make `neurodamus/node.py` 0 based (#437)
+  * remove unnecessary python "helpers" in hoc (#439)
+  * remove `CircuitTarget` in favor of 2 variables (#438)
+  * Use full python version in the CI cache key (#428)
+  * Remove LIBSONATA_ZERO_BASED_GIDS as of libsonatareport-2.0.0 (#427)
+
+*Bug Fixes*
+  * Dockerfile: set neuron default tag 9.0.1 (#475)
+  * Fix CI tests: pandas 3.0.0 no longer supports groupby axis=1   (#473)
+  * fix lint bug (#467)
+  * Work around sphinx 9 and sphinx-bluebrain-theme (#431)
+
+
 Version 4.0.0
 ==============
 **2 December 2025**
