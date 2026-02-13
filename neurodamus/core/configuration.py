@@ -1,6 +1,7 @@
 """Runtime configuration"""
 
 import logging
+import math
 import os
 import os.path
 import re
@@ -1006,7 +1007,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
                 yield base_conn
 
     def process_t0_parameter_override(conn):
-        if float(conn.get("Weight", 1)) == 0:
+        if math.isclose(float(conn.get("Weight", 1)), 0.0, abs_tol=1e-12):
             zero_weight_conns.append(conn)
         for overridden_conn in get_overlapping_connection_pathway(processed_conn_blocks, conn):
             conn["_overrides"] = overridden_conn
