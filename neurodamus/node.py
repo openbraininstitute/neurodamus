@@ -73,6 +73,7 @@ from .utils.pyutils import cache_errors
 from .utils.timeit import TimerManager, timeit
 from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
+from neurodamus.stimulus_manager import SpatiallyUniformEField
 from neurodamus.utils.pyutils import CumulativeError, rmtree
 
 
@@ -755,8 +756,6 @@ class Node:
         self._stim_manager = StimulusManager(self._target_manager)
 
         for stim in SimConfig.stimuli:
-            if stim.get("Mode") == "Extracellular":
-                raise ConfigurationError("input_type extracellular_stimulation is not supported")
             target_spec = TargetSpec(stim.get("Target"), None)
 
             stim_name = stim["Name"]
@@ -770,6 +769,9 @@ class Node:
                 target_spec,
             )
             self._stim_manager.interpret(target_spec, stim)
+        if SimConfig.has_extracellular_stimulus:
+            logging.info("Inject extracellular stimuli")
+            SpatiallyUniformEField.apply_all_stimuli()
 
     # -
     @mpi_no_errors

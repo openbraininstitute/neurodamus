@@ -57,6 +57,7 @@ neurodamus.stimulus\_manager
       Pulse
       Sinusoidal
       SEClamp
+      SpatiallyUniformEField
 
 neurodamus.cell\_distributor
 ============================
