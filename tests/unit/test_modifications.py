@@ -20,7 +20,7 @@ SIMULATION_CONFIG_FILE = RINGTEST_DIR / "simulation_config.json"
                     "modifications": [
                         {
                             "name": "applyTTX",
-                            "type": "TTX",
+                            "type": "ttx",
                             "node_set": "RingA"
                         }
                     ]
@@ -71,7 +71,7 @@ def test_applyTTX(create_tmp_simulation_config_file):
                         {
                             "name": "no_SK_E2",
                             "node_set": "Mosaic",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "%s.gnabar_hh = 0",
                         }
                     ]
@@ -93,9 +93,9 @@ def test_applyTTX(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_ConfigureAllSections(create_tmp_simulation_config_file):
+def test_configure_all_sections(create_tmp_simulation_config_file):
     """
-    A test of performing ConfigureAllSections with a short simulation.
+    A test of performing configure_all_sections with a short simulation.
     Without the modification, there are spikes with the given stimulus.
     After applying sec.gnabar_hh = 0, the expected outcome is 0 spike.
     """
@@ -113,7 +113,7 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     n.enable_stimulus()
     n.sim_init()
     n.solve()
-    nspike_noConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
+    nspike_no_configure_all_sections = sum(len(spikes) for spikes, _ in n._spike_vecs)
 
     # check section variable initial value before modification
     cell = n._pc.gid2cell(1)
@@ -131,10 +131,10 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     n._sim_ready = False
     n.sim_init()
     n.solve()
-    nspike_ConfigureAllSections = sum(len(spikes) for spikes, _ in n._spike_vecs)
+    nspike_configure_all_sections = sum(len(spikes) for spikes, _ in n._spike_vecs)
 
-    assert nspike_noConfigureAllSections > 0
-    assert nspike_ConfigureAllSections == 0
+    assert nspike_no_configure_all_sections > 0
+    assert nspike_configure_all_sections == 0
 
 
 @pytest.mark.parametrize(
@@ -149,7 +149,7 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
                         {
                             "name": "no_SK_E2",
                             "node_set": "RingA:oneCell",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "%s.gnabar_hh *= 11; %s.e_pas *= 0.1",
                         }
                     ]
@@ -159,8 +159,8 @@ def test_ConfigureAllSections(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
-    """Test the augmented assignment (*=) and multiple assignments for ConfigureAllSections"""
+def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
+    """Test the augmented assignment (*=) and multiple assignments for configure_all_sections"""
 
     # NeuronWrapper needs to be imported at function level
     from neurodamus.core import NeuronWrapper as Nd
@@ -187,13 +187,13 @@ def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
                         {
                             "name": "no_SK_E2",
                             "node_set": "RingA:oneCell",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "%s.e_pas *= 0.1",
                         },
                         {
                             "name": "no_SK_E2",
                             "node_set": "RingA:oneCell",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "%s.gnabar_hh *= 11",
                         }
 
@@ -204,12 +204,12 @@ def test_ConfigureAllSections_AugAssign(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_ConfigureAllSections_AugAssign_name_clash(create_tmp_simulation_config_file):
-    """This should produce the same results as test_ConfigureAllSections_AugAssign
+def test_configure_all_sections_AugAssign_name_clash(create_tmp_simulation_config_file):
+    """This should produce the same results as test_configure_all_sections_AugAssign
     
     However, here we apply the same modification in 2 steps with modifications 
     that have the same name. Their combined effect should be equivalent 
-    to the modification in test_ConfigureAllSections_AugAssign.
+    to the modification in test_configure_all_sections_AugAssign.
     """
 
     # NeuronWrapper needs to be imported at function level
@@ -236,7 +236,7 @@ def test_ConfigureAllSections_AugAssign_name_clash(create_tmp_simulation_config_
                         {
                             "name": "no_SK_E2",
                             "node_set": "Mosaic",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "%s.gSK_E2bar_SK_E2 = 0",
                         }
                     ]
@@ -250,7 +250,7 @@ def test_warning_no_modification(create_tmp_simulation_config_file, capsys):
     """Test warning when modification is not applied on any section"""
     Neurodamus(create_tmp_simulation_config_file)
     captured = capsys.readouterr()
-    assert "ConfigureAllSections applied to zero sections" in captured.out
+    assert "configure_all_sections applied to zero sections" in captured.out
 
 
 def test_error_unknown_modification():
@@ -283,7 +283,7 @@ def test_error_unknown_modification():
                         {
                             "name": "no_SK_E2",
                             "node_set": "Mosaic",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "gSK_E2bar_SK_E2 = 0",
                         }
                     ]
@@ -293,11 +293,11 @@ def test_error_unknown_modification():
     ],
     indirect=True,
 )
-def test_error_wrong_SectionConfigure_syntax(create_tmp_simulation_config_file):
-    """Test error handling: wrong SectionConfigure syntax"""
+def test_error_wrong_section_configure_syntax(create_tmp_simulation_config_file):
+    """Test error handling: wrong section_configure syntax"""
     with pytest.raises(
         ConfigurationError,
-        match="SectionConfigure only supports single assignments of "
+        match="section_configure only supports single assignments of "
         "attributes of the section wildcard %s",
     ):
         Neurodamus(create_tmp_simulation_config_file)
@@ -315,7 +315,7 @@ def test_error_wrong_SectionConfigure_syntax(create_tmp_simulation_config_file):
                         {
                             "name": "no_SK_E2",
                             "node_set": "Mosaic",
-                            "type": "ConfigureAllSections",
+                            "type": "configure_all_sections",
                             "section_configure": "print(gSK_E2bar_SK_E2)",
                         }
                     ]
@@ -329,6 +329,6 @@ def test_error_wrong_invalid_operation(create_tmp_simulation_config_file):
     """Test error handling: wrong operation (neither assign nor aug assign)"""
     with pytest.raises(
         ConfigurationError,
-        match="SectionConfigure must consist of one or more semicolon-separated assignments",
+        match="section_configure must consist of one or more semicolon-separated assignments",
     ):
         Neurodamus(create_tmp_simulation_config_file)

@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
@@ -1006,7 +1007,7 @@ def check_connections_configure(config: _SimConfig, target_manager):  # noqa: C9
                 yield base_conn
 
     def process_t0_parameter_override(conn):
-        if float(conn.get("Weight", 1)) == 0:
+        if np.isclose(float(conn.get("Weight", 1)), 0.0):
             zero_weight_conns.append(conn)
         for overridden_conn in get_overlapping_connection_pathway(processed_conn_blocks, conn):
             conn["_overrides"] = overridden_conn
