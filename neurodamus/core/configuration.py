@@ -1,7 +1,6 @@
 """Runtime configuration"""
 
 import logging
-import numpy as np
 import os
 import os.path
 import re
@@ -10,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
