@@ -7,11 +7,12 @@ import numpy.testing as npt
 import pytest
 
 from tests.conftest import RINGTEST_DIR
+from tests.utils import create_variable_recorder
 
 import neurodamus.core.stimuli as st
 import neurodamus.stimulus_manager as smng
 from neurodamus.core.configuration import ConfigurationError
-from neurodamus.node import Node
+from neurodamus.node import Neurodamus, Node
 
 target_name = "RingA"
 target_onecell = "RingA:oneCell"
@@ -172,29 +173,183 @@ def test_hyperpolarizing(ringtest_stimulus_manager):
     npt.assert_allclose(signal_source.time_vec, [0, 0, 10, 10])
 
 
-def test_seclamp(caplog, ringtest_stimulus_manager):
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "run": {"tstop": 10, "dt": 0.5},
+                "inputs": {
+                    "Stimulus": {
+                        "module": "seclamp",
+                        "input_type": "voltage_clamp",
+                        "delay": 0.0,
+                        "duration": 10,
+                        "node_set": "RingA",
+                        "voltage": 5.5,
+                        "series_resistance": 0.1,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_seclamp(create_tmp_simulation_config_file):
     """SECLamp Stimlus"""
+    from neurodamus.core import NeuronWrapper as Nd
 
-    stim_info = {
-        "Pattern": "SEClamp",
-        "Mode": "Voltage",
-        "Voltage": 5.0,
-        "RS": 0.1,
-        "Duration": 10,
-        "Delay": 1,
-    }
-
-    with caplog.at_level(logging.WARNING):
-        ringtest_stimulus_manager.interpret(target_onecell, stim_info)
-        assert "SEClamp ignores delay" in caplog.text
-
-    stimulus = ringtest_stimulus_manager._stimulus[0]
+    n = Neurodamus(create_tmp_simulation_config_file)
+    stimulus = n.stim_manager._stimulus[0]
     assert isinstance(stimulus, smng.SEClamp)
     signal_source = stimulus.stimList[0]
     assert signal_source.hname() == "SEClamp[0]"
     assert np.isclose(signal_source.rs, 0.1)
     assert np.isclose(signal_source.dur1, 10)
-    assert np.isclose(signal_source.amp1, 5)
+    assert np.isclose(signal_source.amp1, 5.5)
+    assert not stimulus.time_vec
+    assert not stimulus.voltage_vec
+    recorder = create_variable_recorder(signal_source._ref_vc)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(recorder, [5.5] * 21)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "run": {"tstop": 10, "dt": 0.5},
+                "inputs": {
+                    "Stimulus": {
+                        "module": "seclamp",
+                        "input_type": "voltage_clamp",
+                        "delay": 0,
+                        "duration": 10,
+                        "node_set": "RingA",
+                        "voltage": 5.5,
+                        "series_resistance": 0.1,
+                        "duration_levels": [1.1, 2.2, 3.3],
+                        "voltage_levels": [10, 15, 20],
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_seclamp_levels(create_tmp_simulation_config_file):
+    """SECLamp Stimlus with level lists"""
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Neurodamus(create_tmp_simulation_config_file)
+    stimulus = n.stim_manager._stimulus[0]
+    seclamp = stimulus.stimList[0]
+    assert np.isclose(seclamp.rs, 0.1)
+    assert np.isclose(seclamp.dur1, 10)
+    assert np.isclose(seclamp.amp1, 5.5)
+    npt.assert_allclose(stimulus.time_vec, [1.1, 3.3, 6.6])
+    npt.assert_allclose(stimulus.voltage_vec, [10, 15, 20])
+    recorder = create_variable_recorder(seclamp._ref_vc)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(
+        recorder,
+        [
+            5.5,
+            5.5,
+            5.5,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "run": {"tstop": 10, "dt": 0.5},
+                "inputs": {
+                    "Stimulus": {
+                        "module": "seclamp",
+                        "input_type": "voltage_clamp",
+                        "delay": 0,
+                        "duration": 10,
+                        "node_set": "RingA",
+                        "voltage": 5.5,
+                        "series_resistance": 0.1,
+                        "duration_levels": [0, 1.1, 2.2, 3.3],
+                        "voltage_levels": [9, 10, 15, 20],
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_seclamp_override_initial_voltage(create_tmp_simulation_config_file):
+    """SECLamp Stimlus with level lists, the initial voltage is overriden by the lists"""
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Neurodamus(create_tmp_simulation_config_file)
+    stimulus = n.stim_manager._stimulus[0]
+    seclamp = stimulus.stimList[0]
+    assert np.isclose(seclamp.rs, 0.1)
+    assert np.isclose(seclamp.dur1, 10)
+    assert np.isclose(seclamp.amp1, 9)
+    npt.assert_allclose(stimulus.time_vec, [0, 1.1, 3.3, 6.6])
+    npt.assert_allclose(stimulus.voltage_vec, [9, 10, 15, 20])
+    recorder = create_variable_recorder(seclamp._ref_vc)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(
+        recorder,
+        [
+            9,
+            9,
+            9,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+        ],
+    )
 
 
 def test_noise(ringtest_stimulus_manager):
