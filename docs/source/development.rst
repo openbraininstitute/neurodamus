@@ -23,10 +23,10 @@ Neurodamus-py requires a few dependencies, most of them very usual:
 - docopt
 - libsonata
 - psutil
+- scipy
 
 There are also optional dependencies required for some functionalities, so keep them in mind if you are developing:
 
-- scipy
 - morphio
 - NEURON
 

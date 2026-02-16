@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import math
 from collections import defaultdict
 from itertools import chain
 from os import path as ospath
@@ -405,10 +404,7 @@ class ConnectionManagerBase:
             return
 
         # if we have a single connect block with weight=0, skip synapse creation entirely
-        if (
-            len(matching_conns) == 1 and
-            math.isclose(matching_conns[0].get("Weight"), 0.0, abs_tol=1e-12)
-        ):
+        if len(matching_conns) == 1 and np.isclose(matching_conns[0].get("Weight"), 0.0):
             logging.warning("SKIPPING Connection create since they have invariably weight=0")
             return
 
