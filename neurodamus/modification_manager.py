@@ -189,8 +189,6 @@ class SectionList:
                 "please check its section_configure for possible mistakes"
             )
 
-        return
-
     def parse_section_config(self, target, config, cell_manager):
         napply = 0
         all_attrs = self.AttributeCollector()
@@ -213,7 +211,8 @@ class SectionList:
 
         return napply
 
-    def apply_modification(self, target, section, attr, modif, cell_manager):
+    @staticmethod
+    def apply_modification(target, section, attr, modif, cell_manager):
         if section == "apical":
             section_type = libsonata.SimulationConfig.Report.Sections.apic
         elif section == "axonal":
