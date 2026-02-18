@@ -191,7 +191,6 @@ class SectionList:
 
         return
 
-
     def parse_section_config(self, target, config, cell_manager):
         napply = 0
         all_attrs = self.AttributeCollector()
@@ -214,7 +213,6 @@ class SectionList:
 
         return napply
 
-
     def apply_modification(self, target, section, attr, modif, cell_manager):
         if section == "apical":
             section_type = libsonata.SimulationConfig.Report.Sections.apic
@@ -227,8 +225,10 @@ class SectionList:
         elif section == "all":
             section_type = libsonata.SimulationConfig.Report.Sections.all
         else:
-            raise ConfigurationError(f"Unknown section type: {section}.\n"
-                                     f"Allowed types are: apical, axonal, basal, somatic or all")
+            raise ConfigurationError(
+                f"Unknown section type: {section}.\n"
+                f"Allowed types are: apical, axonal, basal, somatic or all"
+            )
 
         # Filter by section type
         tpoints = target.get_point_list(
@@ -250,7 +250,6 @@ class SectionList:
                     napply += 1
 
         return napply
-
 
     class AttributeCollector(ast.NodeVisitor):
         """Node visitor collecting all attribute names in a set"""
