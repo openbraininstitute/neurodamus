@@ -332,3 +332,80 @@ def test_error_wrong_invalid_operation(create_tmp_simulation_config_file):
         match="section_configure must consist of one or more semicolon-separated assignments",
     ):
         Neurodamus(create_tmp_simulation_config_file)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "scale_soma",
+                            "node_set": "Mosaic",
+                            "type": "section_list",
+                            "section_configure": "somatic.gnabar_hh = 0; basal.gnabar_hh = 0",
+                        }
+                    ]
+                },
+                "inputs": {
+                    "pulse": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "delay": 5,
+                        "duration": 50,
+                        "node_set": "RingA",
+                        "amp_start": 5,
+                        "width": 1,
+                        "frequency": 50,
+                    }
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_configure_section_list(create_tmp_simulation_config_file):
+    """
+    A test of performing section_list with a short simulation.
+    Without the modification, there are spikes with the given stimulus.
+    After applying apical.gnabar_hh = 0, the expected outcome is 0 spikes.
+    """
+
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Node(create_tmp_simulation_config_file)
+    sec_variable = "gnabar_hh"
+
+    # setup sim
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+    n.enable_stimulus()
+    n.sim_init()
+    n.solve()
+    nspike_no_modif = sum(len(spikes) for spikes, _ in n._spike_vecs)
+
+    # check section variable initial value before modification
+    cell = n._pc.gid2cell(1)
+    for sec in cell.all:
+        assert getattr(sec, sec_variable) > 0
+
+    n.enable_modifications()
+
+    # check section variable value after modifications
+    for sec in cell.all:
+        assert getattr(sec, sec_variable) == 0
+
+    # setup sim again
+    Nd.t = 0.0
+    n._sim_ready = False
+    n.sim_init()
+    n.solve()
+    nspike_modif_section_list = sum(len(spikes) for spikes, _ in n._spike_vecs)
+
+    assert nspike_no_modif > 0
+    assert nspike_modif_section_list == 0
