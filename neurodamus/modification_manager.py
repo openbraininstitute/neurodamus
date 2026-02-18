@@ -267,3 +267,125 @@ class SectionList:
         raise ConfigurationError(
             "section_configure must consist of one or more semicolon-separated assignments"
         )
+
+
+@ModificationManager.register_type
+class Section:
+    """Perform one or more assignments involving section attributes,
+    for the given section with the referenced attributes.
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
+
+    def __init__(
+        self,
+        target,
+        mod_info: libsonata.SimulationConfig.ModificationSection,
+        cell_manager,
+    ):
+        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section_list applied to zero sections, "
+                "please check its section_configure for possible mistakes"
+            )
+
+    def parse_section_config(self, target, config, cell_manager):
+        napply = 0
+        all_attrs = self.AttributeCollector()
+        tree = ast.parse(config)
+        for elem in tree.body:  # for each semicolon-separated statement
+            # check assignment targets
+            for tgt in self.assignment_targets(elem):
+                # must be single assignment of a section attribute
+                if not isinstance(tgt, ast.Attribute):
+                    raise ConfigurationError(
+                        "section_configure only supports single assignments "
+                        "of attributes of the section"
+                    )
+            all_attrs.visit(elem)  # collect attributes in assignment
+
+            section, index, attr = self._parse_section_target(elem.targets[0])
+            modif = ast.unparse(elem)
+
+            # print(f"section: {section} ; index: {index} ; attr: {attr} ; modif: {modif}")
+            napply += self.apply_modification(target, section, index, attr, modif, cell_manager)
+
+        return napply
+
+    @staticmethod
+    def _parse_section_target(tgt: ast.Attribute):
+        """Extract (section_name, section_index, attribute) from
+        targets like soma[0].gnabar_hh
+        """
+        if not isinstance(tgt.value, ast.Subscript):
+            raise ConfigurationError("section must be indexed, e.g. soma[0]")
+
+        sub = tgt.value
+
+        if not isinstance(sub.value, ast.Name):
+            raise ConfigurationError("invalid section name")
+
+        if not isinstance(sub.slice, ast.Constant):
+            raise ConfigurationError("section index must be constant")
+
+        return sub.value.id, sub.slice.value, tgt.attr
+
+    @staticmethod
+    def apply_modification(target, section, idx, attr, modif, cell_manager):
+        if section == "apic":
+            section_type = libsonata.SimulationConfig.Report.Sections.apic
+        elif section == "axon":
+            section_type = libsonata.SimulationConfig.Report.Sections.axon
+        elif section == "dend":
+            section_type = libsonata.SimulationConfig.Report.Sections.dend
+        elif section == "soma":
+            section_type = libsonata.SimulationConfig.Report.Sections.soma
+        else:
+            raise ConfigurationError(
+                f"Unknown section type: {section}.\nAllowed types are: apic, axon, dend or soma"
+            )
+
+        # Filter by section type
+        tpoints = target.get_point_list(
+            cell_manager,
+            section_type=section_type,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+        )
+
+        napply = 0  # number of sections where config applies
+        # change mechanism variable in all sections that have it
+        for tpoint_list in tpoints:
+            if len(tpoint_list.sclst) > idx:
+                sec = tpoint_list.sclst[idx].sec
+                if hasattr(sec, attr):
+                    # print(f"Applying modification: {modif} to section: {sec}")
+                    modif_sec = modif.replace(f"{section}[{idx}].", "sec.", 1)
+                    # unsafe but sanitized
+                    exec(modif_sec, {"__builtins__": None}, {"sec": sec})  # noqa: S102
+                    napply += 1
+
+        return napply
+
+    class AttributeCollector(ast.NodeVisitor):
+        """Node visitor collecting all attribute names in a set"""
+
+        attrs = set()
+
+        def visit_Attribute(self, node):
+            self.attrs.add(node.attr)
+
+    @staticmethod
+    def assignment_targets(node):
+        if isinstance(node, ast.Assign):
+            return node.targets
+        if isinstance(node, ast.AugAssign):
+            return [node.target]
+        raise ConfigurationError(
+            "section_configure must consist of one or more semicolon-separated assignments"
+        )
