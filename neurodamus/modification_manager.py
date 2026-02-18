@@ -161,3 +161,111 @@ class ConfigureAllSections:
         raise ConfigurationError(
             "section_configure must consist of one or more semicolon-separated assignments"
         )
+
+
+@ModificationManager.register_type
+class SectionList:
+    """Perform one or more assignments involving section attributes,
+    for the sections in the list that have the referenced attributes.
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
+
+    def __init__(
+        self,
+        target,
+        mod_info: libsonata.SimulationConfig.ModificationSectionList,
+        cell_manager,
+    ):
+        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section_list applied to zero sections, "
+                "please check its section_configure for possible mistakes"
+            )
+
+        return
+
+
+    def parse_section_config(self, target, config, cell_manager):
+        napply = 0
+        all_attrs = self.AttributeCollector()
+        tree = ast.parse(config)
+        for elem in tree.body:  # for each semicolon-separated statement
+            # check assignment targets
+            for tgt in self.assignment_targets(elem):
+                # must be single assignment of a section attribute
+                if not isinstance(tgt, ast.Attribute):
+                    raise ConfigurationError(
+                        "section_configure only supports single assignments "
+                        "of attributes of the section"
+                    )
+            all_attrs.visit(elem)  # collect attributes in assignment
+
+            section = elem.targets[0].value.id
+            attr = elem.targets[0].attr
+            modif = ast.unparse(elem)
+            napply += self.apply_modification(target, section, attr, modif, cell_manager)
+
+        return napply
+
+
+    def apply_modification(self, target, section, attr, modif, cell_manager):
+        if section == "apical":
+            section_type = libsonata.SimulationConfig.Report.Sections.apic
+        elif section == "axonal":
+            section_type = libsonata.SimulationConfig.Report.Sections.axon
+        elif section == "basal":
+            section_type = libsonata.SimulationConfig.Report.Sections.dend
+        elif section == "somatic":
+            section_type = libsonata.SimulationConfig.Report.Sections.soma
+        elif section == "all":
+            section_type = libsonata.SimulationConfig.Report.Sections.all
+        else:
+            raise ConfigurationError(f"Unknown section type: {section}.\n"
+                                     f"Allowed types are: apical, axonal, basal, somatic or all")
+
+        # Filter by section type
+        tpoints = target.get_point_list(
+            cell_manager,
+            section_type=section_type,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+        )
+
+        napply = 0  # number of sections where config applies
+        # change mechanism variable in all sections that have it
+        for tpoint_list in tpoints:
+            for sc in tpoint_list.sclst:
+                if not sc.exists():  # skip sections not on this split
+                    continue
+                sec = sc.sec
+                if hasattr(sec, attr):
+                    # unsafe but sanitized
+                    exec(modif, {"__builtins__": None}, {section: sec})  # noqa: S102
+                    napply += 1
+
+        return napply
+
+
+    class AttributeCollector(ast.NodeVisitor):
+        """Node visitor collecting all attribute names in a set"""
+
+        attrs = set()
+
+        def visit_Attribute(self, node):
+            self.attrs.add(node.attr)
+
+    @staticmethod
+    def assignment_targets(node):
+        if isinstance(node, ast.Assign):
+            return node.targets
+        if isinstance(node, ast.AugAssign):
+            return [node.target]
+        raise ConfigurationError(
+            "section_configure must consist of one or more semicolon-separated assignments"
+        )
