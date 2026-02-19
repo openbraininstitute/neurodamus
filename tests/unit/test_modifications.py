@@ -367,7 +367,7 @@ def test_error_wrong_invalid_operation(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_configure_section_list(create_tmp_simulation_config_file):
+def test_modification_section_list(create_tmp_simulation_config_file):
     """
     A test of performing section_list with a short simulation.
     Without the modification, there are spikes with the given stimulus.
@@ -409,3 +409,49 @@ def test_configure_section_list(create_tmp_simulation_config_file):
 
     assert nspike_no_modif > 0
     assert nspike_modif_section_list == 0
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "no_SK_E2",
+                            "node_set": "RingA:oneCell",
+                            "type": "section",
+                            "section_configure": "soma[0].gnabar_hh = 11; dend[0].e_pas = 0.1",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_modification_section(create_tmp_simulation_config_file):
+    """Test the augmented assignment (*=) and multiple assignments for configure_all_sections"""
+
+    n = Node(create_tmp_simulation_config_file)
+
+    # setup sim config
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+    n.enable_stimulus()
+
+    soma_bef = n._pc.gid2cell(1).soma[0].gnabar_hh
+    dend_bef = n._pc.gid2cell(1).dend[0].e_pas
+
+    n.enable_modifications()
+
+    soma_aft = n._pc.gid2cell(1).soma[0].gnabar_hh
+    dend_aft = n._pc.gid2cell(1).dend[0].e_pas
+
+    assert np.isclose(soma_bef, 0.12)
+    assert np.isclose(dend_bef, -65.0)
+    assert np.isclose(soma_aft, 11)
+    assert np.isclose(dend_aft, 0.1)
