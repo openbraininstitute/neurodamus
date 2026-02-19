@@ -41,10 +41,10 @@ class ModificationManager:
         self._modifications = []
 
     def interpret(self, target_spec, mod_info):
-        mod_t_name = mod_info["Type"]
-        mod_t = self._mod_types.get(mod_t_name)
+        mod_t = self._mod_types.get(mod_info.type)
+
         if not mod_t:
-            raise ConfigurationError(f"Unknown Modification {mod_t_name}")
+            raise ConfigurationError(f"Unknown Modification {mod_info.type}")
         target = self._target_manager.get_target(target_spec)
         cell_manager = self._target_manager._cell_manager
         mod = mod_t(target, mod_info, cell_manager)
@@ -52,8 +52,7 @@ class ModificationManager:
 
     @classmethod
     def register_type(cls, mod_class):
-        """Registers a new class as a handler for a new modification type"""
-        cls._mod_types[mod_class.__name__] = mod_class
+        cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
 
@@ -64,7 +63,9 @@ class TTX:
     Uses TTXDynamicsSwitch as in BGLibPy. Overrides HOC version, which is outdated
     """
 
-    def __init__(self, target, mod_info: dict, cell_manager):
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.ttx
+
+    def __init__(self, target, mod_info: libsonata.SimulationConfig.ModificationTTX, cell_manager):
         tpoints = target.get_point_list(
             cell_manager,
             section_type=libsonata.SimulationConfig.Report.Sections.all,
@@ -90,8 +91,15 @@ class ConfigureAllSections:
     Use case is modifying mechanism variables from config.
     """
 
-    def __init__(self, target, mod_info: dict, cell_manager):
-        config, config_attrs = self.parse_section_config(mod_info["SectionConfigure"])
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.configure_all_sections
+
+    def __init__(
+        self,
+        target,
+        mod_info: libsonata.SimulationConfig.ModificationConfigureAllSections,
+        cell_manager,
+    ):
+        config, config_attrs = self.parse_section_config(mod_info.section_configure)
         tpoints = target.get_point_list(
             cell_manager,
             section_type=libsonata.SimulationConfig.Report.Sections.all,
@@ -114,8 +122,8 @@ class ConfigureAllSections:
 
         if napply == 0:
             logging.warning(
-                "ConfigureAllSections applied to zero sections, "
-                "please check its SectionConfigure for possible mistakes"
+                "configure_all_sections applied to zero sections, "
+                "please check its section_configure for possible mistakes"
             )
 
     def parse_section_config(self, config):
@@ -128,7 +136,7 @@ class ConfigureAllSections:
                 # must be single assignment of a __sec_wildcard__ attribute
                 if not isinstance(tgt, ast.Attribute) or tgt.value.id != "__sec_wildcard__":
                     raise ConfigurationError(
-                        "SectionConfigure only supports single assignments "
+                        "section_configure only supports single assignments "
                         "of attributes of the section wildcard %s"
                     )
             all_attrs.visit(elem)  # collect attributes in assignment
@@ -151,5 +159,5 @@ class ConfigureAllSections:
         if isinstance(node, ast.AugAssign):
             return [node.target]
         raise ConfigurationError(
-            "SectionConfigure must consist of one or more semicolon-separated assignments"
+            "section_configure must consist of one or more semicolon-separated assignments"
         )

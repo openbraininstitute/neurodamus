@@ -315,7 +315,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
         target_spec = TargetSpec(rep_conf.cells, None)
         target = target_manager.get_target(target_spec)
 
-        rep_params = create_report_parameters(sim_end=SimConfig.run_conf["Duration"], nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
+        rep_params = create_report_parameters(sim_end=SimConfig.run_conf.tstop, nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
 
         if rep_params.type != SimulationConfig.Report.Type.compartment:
             continue
@@ -458,7 +458,7 @@ class ReportReader:
 
         for name, (nodes, df) in self.populations.items():
             if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1:
-                new_df = df.groupby(level=0, axis=1).sum()
+                new_df = df.T.groupby(level=0).sum().T
                 # force 2-level MultiIndex with second level zeros
                 new_df.columns = pd.MultiIndex.from_arrays([
                     new_df.columns,

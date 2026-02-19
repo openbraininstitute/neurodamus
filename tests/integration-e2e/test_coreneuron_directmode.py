@@ -30,7 +30,7 @@ def test_coreneuron_no_write_model(create_tmp_simulation_config_file):
         f"{coreneuron_data} should be empty."
     )
 
-    spikes_path = Path(SimConfig.output_root) / nd._run_conf.get("SpikesFile")
+    spikes_path = Path(SimConfig.output_root) / nd._run_conf.spikes_file
     spikes_reader = SpikeReader(spikes_path)
     pop_A = spikes_reader["NodeA"]
     spike_dict = pop_A.get_dict()

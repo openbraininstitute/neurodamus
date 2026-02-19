@@ -22,13 +22,14 @@ dependencies = [
     "docopt-ng",
     "libsonata",
     "psutil",
-    "packaging"
+    "packaging",
+    "scipy"
 ]
 requires-python=">=3.10"
 
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API
-full=['scipy', 'morphio', 'NEURON']
+full=['morphio', 'NEURON']
 docs=['sphinx', 'sphinx-bluebrain-theme']
 
 [project.scripts]

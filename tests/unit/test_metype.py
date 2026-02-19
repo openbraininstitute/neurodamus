@@ -1,9 +1,14 @@
+from itertools import product
 from unittest.mock import Mock, seal
+
+import numpy.testing as npt
 import pytest
 
-from itertools import product
+from tests.conftest import RINGTEST_DIR
 
-from neurodamus.metype import SectionIdError, BaseCell
+from neurodamus import Node
+from neurodamus.metype import BaseCell, Cell_V6, SectionIdError
+
 
 def _make_mock_cell():
     mock_cell_ref = Mock()
@@ -17,6 +22,7 @@ def _make_mock_cell():
     mock_cell._cellref = mock_cell_ref
 
     return mock_cell
+
 
 def test_get_section_id():
     """
@@ -41,12 +47,12 @@ def test_get_section_id():
             mock_cell.CellRef.ais = list(range(32, 42))
             mock_cell.CellRef.nSecLastAIS = 10
         if flags[1]:
-            offset = flags[0]*10
-            mock_cell.CellRef.node = list(range(32+offset, 42+offset))
+            offset = flags[0] * 10
+            mock_cell.CellRef.node = list(range(32 + offset, 42 + offset))
             mock_cell.CellRef.nSecNodal = 10
         if flags[2]:
-            offset = flags[0]*10 + flags[1]*10
-            mock_cell.CellRef.myelin = list(range(32+offset, 42+offset))
+            offset = flags[0] * 10 + flags[1] * 10
+            mock_cell.CellRef.myelin = list(range(32 + offset, 42 + offset))
             mock_cell.CellRef.nSecMyelinated = 10
         seal(mock_cell.CellRef)
 
@@ -55,20 +61,24 @@ def test_get_section_id():
         assert mock_cell.get_section_id("TestCell[0].dend[2]") == 2 * 10 + 2
         assert mock_cell.get_section_id("TestCell[0].apic[3]") == 3 * 10 + 3
         if flags[0]:
-            mock_cell.get_section_id("TestCell[0].ais[4]") == 4 * 10 + 4
+            assert mock_cell.get_section_id("TestCell[0].ais[4]") == 4 * 10 + 4
         else:
             with pytest.raises(SectionIdError):
                 mock_cell.get_section_id("TestCell[0].ais[4]")
         if flags[1]:
-            mock_cell.get_section_id("TestCell[0].node[5]") == 4 * 10 + 5 + flags[0]*10
+            assert mock_cell.get_section_id("TestCell[0].node[5]") == 4 * 10 + 5 + flags[0] * 10
         else:
             with pytest.raises(SectionIdError):
                 mock_cell.get_section_id("TestCell[0].node[5]")
         if flags[2]:
-            mock_cell.get_section_id("TestCell[0].myelin[6]") == 4 * 10 + 6 + flags[0]*10 + flags[1]*10
+            assert (
+                mock_cell.get_section_id("TestCell[0].myelin[6]")
+                == 4 * 10 + 6 + flags[0] * 10 + flags[1] * 10
+            )
         else:
             with pytest.raises(SectionIdError):
                 mock_cell.get_section_id("TestCell[0].myelin[6]")
+
 
 def test_get_sec():
     """
@@ -86,7 +96,7 @@ def test_get_sec():
     mock_cell = _make_mock_cell()
     seal(mock_cell.CellRef)
     assert mock_cell.get_sec(9) == 9
-    
+
     assert mock_cell.get_sec(10) == 10
     assert mock_cell.get_sec(11) == 11
     with pytest.raises(SectionIdError):
@@ -95,3 +105,52 @@ def test_get_sec():
     assert mock_cell.get_sec(21) == 13
     with pytest.raises(SectionIdError):
         mock_cell.get_sec(1111)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {"network": str(RINGTEST_DIR / "circuit_config_bigA.json")},
+        }
+    ],
+    indirect=True,
+)
+def test_get_segment_points(create_tmp_simulation_config_file):
+    """Test the function Cell_V6:get_all_segment_points"""
+    n = Node(create_tmp_simulation_config_file, {"enable_coord_mapping": True})
+    n.load_targets()
+    n.create_cells()
+    cell_manager = n.circuits.get_node_manager("RingA")
+    assert len(cell_manager.cells) == 3
+    cell0 = next(iter(cell_manager.cells))
+    assert isinstance(cell0, Cell_V6)
+    assert cell0.gid == 0
+    cell0.compute_segment_global_coordinates()
+    assert len(cell0.segment_global_coords) == 11
+    soma_obj = cell0.CellRef.soma[0]
+    soma_seg_points = cell0.segment_global_coords[soma_obj.name()]
+    assert len(soma_seg_points) == soma_obj.nseg + 1
+    npt.assert_allclose(
+        soma_seg_points,
+        [
+            [27.169665, 14.716397, 10.445964],
+            [9.473245, 6.573606, 2.934297],
+            [-8.223174, -1.569184, -4.577369],
+            [-25.919593, -9.711975, -12.089035],
+        ],
+        rtol=1e-6,
+    )
+    dend0 = cell0.CellRef.dend[0]
+    dend0_seg_points = cell0.segment_global_coords[dend0.name()]
+    assert len(dend0_seg_points) == dend0.nseg + 1
+    npt.assert_allclose(
+        dend0_seg_points,
+        [
+            [-12.945952, -5.82375, -1.29223],
+            [-99.252297, -51.315415, -23.240427],
+            [-185.558643, -96.807081, -45.188625],
+        ],
+        rtol=1e-6
+    )

@@ -12,6 +12,9 @@ depicted in the following image:
 
 .. image:: img/neurodamus.svg
 
+In general, the files and software needed to run a simulation are described in:
+
+.. image:: img/required_files_and_software.drawio.svg
 
 The Sonata simulation input files
 ---------------------------------

@@ -932,7 +932,7 @@ class LoadBalance:
                 lb_mode, reason = LoadBalanceMode.RoundRobin, "No target set, unknown cell count"
             else:
                 lb_mode, reason = LoadBalanceMode.auto_select(
-                    sim_config.use_neuron, target.gid_count(), run_conf["Duration"]
+                    sim_config.use_neuron, target.gid_count(), run_conf.tstop
                 )
             logging.warning("Load Balance AUTO-SELECTED: %s. Reason: %s", lb_mode.name, reason)
 
