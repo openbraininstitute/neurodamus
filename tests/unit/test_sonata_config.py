@@ -195,7 +195,7 @@ def test_parse_connections(create_tmp_simulation_config_file):
         "NeuromodStrength": 0.75
     }
 
-    utils.check_is_subset(conn, expected_conn)
+    assert conn == utils.merge_dicts(conn, expected_conn)
     assert conn.get("SpontMins") is None
     assert conn.get("Modoverride") is None
 
@@ -265,7 +265,7 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "Delay": 0.,
         "Duration": 10000.0
     }
-    utils.check_is_subset(SimConfig.stimuli[0], expected_input_hp)
+    assert SimConfig.stimuli[0] == utils.merge_dicts(SimConfig.stimuli[0], expected_input_hp)
 
     input_RSN = SimConfig.stimuli[1]
     expected_input_RSN = {
@@ -280,11 +280,11 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "SDPercent": 40.,
         "Dt": 0.25
     }
-    utils.check_is_subset(input_RSN, expected_input_RSN)
+    assert input_RSN == utils.merge_dicts(input_RSN, expected_input_RSN)
     assert input_RSN.get("Seed") is None
 
     expected_input_subthreshold = {
         "Pattern": "SubThreshold",
         "PercentLess": 50.0
     }
-    utils.check_is_subset(SimConfig.stimuli[2], expected_input_subthreshold)
+    assert SimConfig.stimuli[2] == utils.merge_dicts(SimConfig.stimuli[2], expected_input_subthreshold)
