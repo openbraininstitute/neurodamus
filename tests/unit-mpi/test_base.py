@@ -146,6 +146,10 @@ def test_empty_rank_with_coreneuron(create_tmp_simulation_config_file, mpi_ranks
     # - `pytest-isolate-mpi` changes cwd (one per rank) and starts the simulations
     # - all the ranks write in the folder for rank 0 (as coreneuron would want to do)
     # - if you assert if a file is there, it will do it in its own, changed, cwd.
-
+    
+    # The name of the files depend on the gids and the rank. It is decided when the
+    # pop is added
     assert (Path(CoreConfig.datadir) / "1_1.dat").exists()
-    assert (Path(CoreConfig.datadir) / "1002_1.dat").exists()
+    # This pop is there just to ensure that all ranks have at least 1 gid. It is
+    # decided in _coreneuron_ensure_all_ranks_have_gids 
+    assert (Path(CoreConfig.datadir) / "2002_1.dat").exists()

@@ -27,9 +27,9 @@ def test_SelectionNodeSet_base():
 
 @pytest.mark.forked
 def test_SelectionNodeSet_add():
-    set_mid = SelectionNodeSet([1, 2, 3, 1000]).register_global("pop2")
+    set_mid = SelectionNodeSet([1, 2, 3, 999]).register_global("pop2")
     assert set_mid.offset == 0
-    assert set_mid.max_gid == 1000
+    assert set_mid.max_gid == 999
 
     # Append to right
     set_right = SelectionNodeSet([1, 2, 3, 4]).register_global("pop3")
@@ -141,5 +141,21 @@ def test_intersection_with_offset():
     result = a.intersection(b).flatten()
     assert np.array_equal(result, np.array([12, 13], dtype=np.uint32))
 
+@pytest.mark.forked
+def test_global_gid_offset_applied_when_single_zero_node():
+    """
+    Ensure global GID offset is correctly applied when previous population
+    contains only a single node with local id 0.
+
+    Regression test: previously, offset logic failed for singleton {0},
+    causing overlapping global GIDs across populations.
+    """
+    a = SelectionNodeSet([0])
+    a.register_global("pop0")
+    b = SelectionNodeSet([0])
+    b.register_global("pop1") 
+
+    assert a.gids(False) == [0] 
+    assert b.gids(False) == [1000] 
 
     
