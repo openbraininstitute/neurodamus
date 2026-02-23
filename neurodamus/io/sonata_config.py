@@ -166,11 +166,12 @@ class SonataConfig:
                         "h5v1"
                     ]
                     circuit_config["MorphologyType"] = "h5"
-            circuit_config["Engine"] = "NGV" if node_prop.type == "astrocyte" else "METype"
-            circuit_config["Engine"] = (
-                "AllenPoint" if node_prop.type == "point_process" else "METype"
-            )
-
+            node_type_engine_dict = {
+                "astrocyte": "NGV",
+                "point_process": "AllenPoint",
+                "biophysical": "METype",
+            }
+            circuit_config["Engine"] = node_type_engine_dict.get(node_prop.type, "METype")
             # Find inner connectivity
             # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
             # default set of connections. Even though nowadays we can potentially consider
