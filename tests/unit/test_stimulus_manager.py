@@ -7,7 +7,6 @@ import numpy.testing as npt
 import pytest
 
 from tests.conftest import RINGTEST_DIR
-from tests.utils import create_variable_recorder
 
 import neurodamus.core.stimuli as st
 import neurodamus.stimulus_manager as smng
@@ -210,7 +209,8 @@ def test_seclamp(create_tmp_simulation_config_file):
     assert np.isclose(signal_source.amp1, 5.5)
     assert not stimulus.time_vec
     assert not stimulus.voltage_vec
-    recorder = create_variable_recorder(signal_source._ref_vc)
+    recorder = Nd.Vector()
+    recorder.record(signal_source._ref_vc)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
     npt.assert_allclose(recorder, [5.5] * 21)
@@ -253,7 +253,8 @@ def test_seclamp_levels(create_tmp_simulation_config_file):
     assert np.isclose(seclamp.amp1, 5.5)
     npt.assert_allclose(stimulus.time_vec, [1.1, 3.3, 6.6])
     npt.assert_allclose(stimulus.voltage_vec, [10, 15, 20])
-    recorder = create_variable_recorder(seclamp._ref_vc)
+    recorder = Nd.Vector()
+    recorder.record(seclamp._ref_vc)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
     npt.assert_allclose(
@@ -321,7 +322,8 @@ def test_seclamp_override_initial_voltage(create_tmp_simulation_config_file):
     assert np.isclose(seclamp.amp1, 9)
     npt.assert_allclose(stimulus.time_vec, [0, 1.1, 3.3, 6.6])
     npt.assert_allclose(stimulus.voltage_vec, [9, 10, 15, 20])
-    recorder = create_variable_recorder(seclamp._ref_vc)
+    recorder = Nd.Vector()
+    recorder.record(seclamp._ref_vc)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
     npt.assert_allclose(
