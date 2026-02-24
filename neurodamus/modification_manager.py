@@ -26,8 +26,6 @@ import libsonata
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .target_manager import TargetPointList
-from .utils import compat
 from .utils.logging import log_verbose
 
 
@@ -509,26 +507,3 @@ class CompartmentSet:
         if isinstance(node, ast.AugAssign):
             return [node.target]
         raise ConfigurationError("section_configure must consist of assignments")
-
-    @staticmethod
-    def get_point_list_from_compartment_set(
-        cell_manager, compartment_set
-    ) -> compat.List[TargetPointList]:
-
-        point_list = compat.List()
-        sel_node_set = compartment_set.node_ids()
-
-        for cl in compartment_set.filtered_iter(sel_node_set):
-            raw_gid, section_id, offset = (cl.node_id, cl.section_id, cl.offset)
-
-            cell = cell_manager.get_cell(raw_gid)
-            sec = cell.get_sec(section_id)
-
-            if len(point_list) and point_list[-1].gid == raw_gid:
-                point_list[-1].append(section_id, Nd.SectionRef(sec), offset)
-            else:
-                point = TargetPointList(raw_gid)
-                point.append(section_id, Nd.SectionRef(sec), offset)
-                point_list.append(point)
-
-        return point_list
