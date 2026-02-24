@@ -861,7 +861,11 @@ class Node:
 
         mod_manager = ModificationManager(self._target_manager)
         for mod_info in SimConfig.modifications:
-            target_spec = TargetSpec(mod_info.node_set, None)
+            if mod_info.type.name == "compartment_set":
+                target = mod_info.compartment_set
+            else:
+                target = mod_info.node_set
+            target_spec = TargetSpec(target, None)
             logging.info(" * [MOD] %s: %s -> %s", mod_info.name, mod_info.type.name, target_spec)
             mod_manager.interpret(target_spec, mod_info)
 
