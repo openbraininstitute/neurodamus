@@ -26,6 +26,8 @@ import libsonata
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
+from .target_manager import TargetPointList
+from .utils import compat
 from .utils.logging import log_verbose
 
 
@@ -45,7 +47,10 @@ class ModificationManager:
 
         if not mod_t:
             raise ConfigurationError(f"Unknown Modification {mod_info.type}")
-        target = self._target_manager.get_target(target_spec)
+        if isinstance(mod_info, libsonata.SimulationConfig.ModificationCompartmentSet):
+            target = self._target_manager.get_compartment_set(target_spec.name)
+        else:
+            target = self._target_manager.get_target(target_spec)
         cell_manager = self._target_manager._cell_manager
         mod = mod_t(target, mod_info, cell_manager)
         self._modifications.append(mod)
@@ -389,3 +394,141 @@ class Section:
         raise ConfigurationError(
             "section_configure must consist of one or more semicolon-separated assignments"
         )
+
+
+@ModificationManager.register_type
+class CompartmentSet:
+    """Perform one or more assignments involving compartment attributes
+    (e.g. cm, hh.gnabar, pas.g) on selected segments from compartment set.
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.compartment_set
+
+    def __init__(self, target, mod_info, cell_manager):
+        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} segments")
+
+        if napply == 0:
+            logging.warning(
+                "compartment_set applied to zero segments. Check section_configure for mistakes."
+            )
+
+    def parse_section_config(self, target, config, cell_manager):
+        napply = 0
+        tree = ast.parse(config)
+
+        for stmt in tree.body:
+            if not isinstance(stmt, (ast.Assign, ast.AugAssign)):
+                raise ConfigurationError("section_configure must contain assignments only")
+
+            targets = self.assignment_targets(stmt)
+            if len(targets) != 1:
+                raise ConfigurationError("Only single-target assignments are supported")
+
+            lhs_node = targets[0]
+            if not isinstance(lhs_node, (ast.Name, ast.Attribute)):
+                raise ConfigurationError("Assignments must target variables like cm or hh.gnabar")
+
+            dotted_name = self.get_full_attr_name(lhs_node)
+            value = self.evaluate_rhs(stmt.value)
+            napply += self.apply_modification(target, dotted_name, value, cell_manager)
+
+        return napply
+
+    def apply_modification(self, target, dotted_name, value, cell_manager):
+        napply = 0
+        sel_node_set = target.node_ids()
+
+        for cl in target.filtered_iter(sel_node_set):
+            raw_gid, section_id, offset = (cl.node_id, cl.section_id, cl.offset)
+            cell = cell_manager.get_cell(raw_gid)
+            sec = cell.get_sec(section_id)
+            seg = sec(offset)
+
+            try:
+                self.set_segment_value(seg, dotted_name, value)
+                # print(f"Applying comp_set modification: {value} to section: {seg}")
+                # print(f"gid: {raw_gid}, section: {section_id}, offset: {offset}")
+
+            except AttributeError:
+                continue  # segment doesn't have that mechanism
+
+            napply += 1
+
+        return napply
+
+    @staticmethod
+    def get_full_attr_name(node):
+        """Reconstruct dotted name from AST Attribute."""
+        parts = []
+
+        while isinstance(node, ast.Attribute):
+            parts.append(node.attr)
+            node = node.value
+
+        if isinstance(node, ast.Name):
+            parts.append(node.id)
+        else:
+            raise ConfigurationError("Unsupported assignment target")
+
+        return ".".join(reversed(parts))
+
+    @staticmethod
+    def set_segment_value(seg, dotted_name, value):
+        """Resolve dotted attribute on a segment safely."""
+        parts = dotted_name.split(".")
+
+        obj = seg
+        for p in parts[:-1]:
+            obj = getattr(obj, p)
+
+        setattr(obj, parts[-1], value)
+
+    @staticmethod
+    def evaluate_rhs(node):
+        """Safely evaluate numeric RHS (no eval)."""
+        if isinstance(node, ast.Constant):
+            return float(node.value)
+
+        if (
+            isinstance(node, ast.UnaryOp)
+            and isinstance(node.op, ast.USub)
+            and isinstance(node.operand, ast.Constant)
+        ):
+            return -float(node.operand.value)
+
+        raise ConfigurationError("Only numeric constants are allowed in section_configure")
+
+    @staticmethod
+    def assignment_targets(node):
+        if isinstance(node, ast.Assign):
+            return node.targets
+        if isinstance(node, ast.AugAssign):
+            return [node.target]
+        raise ConfigurationError("section_configure must consist of assignments")
+
+    @staticmethod
+    def get_point_list_from_compartment_set(
+        cell_manager, compartment_set
+    ) -> compat.List[TargetPointList]:
+
+        point_list = compat.List()
+        sel_node_set = compartment_set.node_ids()
+
+        for cl in compartment_set.filtered_iter(sel_node_set):
+            raw_gid, section_id, offset = (cl.node_id, cl.section_id, cl.offset)
+
+            cell = cell_manager.get_cell(raw_gid)
+            sec = cell.get_sec(section_id)
+
+            if len(point_list) and point_list[-1].gid == raw_gid:
+                point_list[-1].append(section_id, Nd.SectionRef(sec), offset)
+            else:
+                point = TargetPointList(raw_gid)
+                point.append(section_id, Nd.SectionRef(sec), offset)
+                point_list.append(point)
+
+        return point_list
