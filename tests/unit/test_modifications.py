@@ -455,3 +455,107 @@ def test_modification_section(create_tmp_simulation_config_file):
     assert np.isclose(dend_bef, -65.0)
     assert np.isclose(soma_aft, 11)
     assert np.isclose(dend_aft, 0.1)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "compartment_sets_file": str(RINGTEST_DIR / "compartment_sets.json"),
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "Ca_hotspot_dend[10]_manipulation",
+                            "compartment_set": "csA",
+                            "type": "compartment_set",
+                            "section_configure": "hh.gnabar = 3.0; cm = 2.0",
+                        }
+                    ]
+                },
+                "inputs": {
+                    "override_field": 1,
+                    "Stimulus": {
+                        "module": "pulse",
+                        "input_type": "current_clamp",
+                        "represents_physical_electrode": True,
+                        "amp_start": 3,
+                        "width": 10,
+                        "frequency": 50,
+                        "delay": 0,
+                        "duration": 50,
+                        "compartment_set":"csA",
+                    },
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_modification_compartment_set(create_tmp_simulation_config_file):
+    """Test the augmented assignment (*=) and multiple assignments for compartment_set"""
+
+    from neurodamus.core import NeuronWrapper as Nd
+    n = Node(create_tmp_simulation_config_file)
+
+    # setup sim config
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+    n.enable_stimulus()
+
+    # Check values before applying modifications
+    for cd in n.circuits.all_node_managers():
+        for cell in cd.cells:
+            cell_sections = set(cell.get_section_counts())
+            for section_id in cell_sections:
+                sec = cell.get_sec(section_id)
+                for seg in sec.allseg():
+                    if hasattr(seg, "cm"):
+                        assert np.isclose(seg.cm, 1.0)
+                    if hasattr(seg, "hh.gnabar"):
+                        assert seg.hh.gnabar < 1.0
+
+    n.enable_modifications()
+
+    # Auxiliary structures to retrieve compartment set segments faster
+    cs = n.target_manager.get_compartment_set("csA")
+    comp_set = list(cs.filtered_iter(cs.node_ids()))
+
+    # Matching segments for section-wise attributes (cm)
+    cs_section_hits = set()
+    # Matching segments for segment-specific attributes (hh.gnabar)
+    cs_segment_hits = set()
+
+    gid_to_manager = {}
+    for cd in n.circuits.all_node_managers():
+        for cell in cd.cells:
+            gid_to_manager[cell.gid] = cd
+
+    for cl in comp_set:
+        cs_section_hits.add((cl.node_id, cl.section_id))
+
+        section = gid_to_manager[cl.node_id].get_cell(cl.node_id).get_sec(cl.section_id)
+        segment  = section(cl.offset)
+        # approximate the segment index to compare against other segments
+        idx = int(segment.x * section.nseg)
+        cs_segment_hits.add((cl.node_id, cl.section_id, section, idx))
+
+    for cd in n.circuits.all_node_managers():
+        for cell in cd.cells:
+            for sec_id in set(cell.get_section_counts()):
+                sec = cell.get_sec(sec_id)
+                for seg in sec.allseg():
+                    in_section = (cell.gid, sec_id) in cs_section_hits
+                    in_segment = (cell.gid, sec_id, sec, int(seg.x * sec.nseg)) in cs_segment_hits
+
+                    if in_section and hasattr(seg, "cm"):
+                            assert np.isclose(seg.cm, 2.0)
+                    elif hasattr(seg, "cm"):
+                            assert np.isclose(seg.cm, 1.0)
+
+                    if in_segment and hasattr(seg, "hh.gnabar"):
+                            assert np.isclose(seg.hh.gnabar, 3.0)
+                    elif hasattr(seg, "hh.gnabar"):
+                            assert seg.hh.gnabar < 1.0
