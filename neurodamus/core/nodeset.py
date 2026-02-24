@@ -101,8 +101,9 @@ class PopulationNodes:
         # This offset is gonna be the offset+max_gid of the previous population, round up
         if prev_gidpop is not None:
             cur_max = prev_gidpop.offset + prev_gidpop.max_gid
-            # round up 1000's. GIDs are 1 based: Blocks [1-1000], [1001-2000]
-            offset = ((cur_max - 1) // 1000 + 1) * 1000
+            # round up 1000's. GIDs are 0 based: Blocks [0-1000], [1000-2000]
+            offset = (cur_max // 1000 + 1) * 1000
+
         self.offset = offset
         # Update individual nodesets
         for nodeset in self.nodesets:  # nodeset is a weakref
@@ -224,6 +225,9 @@ class SelectionNodeSet:
         if self:
             # libsonata.Selection.ranges may be unsorted
             # Probably not needed since add_gids sorts
+            # Since ranges are [included, not included), we need
+            # to pick the value before right range
+            # libsonata ranges are already 0-based
             self._max_gid = max(self.max_gid, np.max([i - 1 for _, i in self._selection.ranges]))
         if gid_info:
             self._gid_info.update(gid_info)
