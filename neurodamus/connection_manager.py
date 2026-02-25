@@ -397,7 +397,7 @@ class ConnectionManagerBase:
 
         matching_conns = [
             conn
-            for conn in SimConfig.connections.values()
+            for conn in SimConfig.connections
             if self._target_manager.pathways_overlap(conn, this_pathway)
         ]
         if not matching_conns:

@@ -633,7 +633,7 @@ class Node:
             return
 
         log_stage("Configuring connections...")
-        for conn_conf in SimConfig.connections.values():
+        for conn_conf in SimConfig.connections:
             self._process_connection_configure(conn_conf)
 
         logging.info("Done, but waiting for all ranks")

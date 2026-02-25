@@ -39,7 +39,7 @@ def test_synapses_params():
         modoverride= "GluSynapse",
         weight=conn_weight,
     )
-    SimConfig.connections[CONN_plast.name] = CONN_plast
+    SimConfig.connections.append(CONN_plast)
     # init_I_E
     CONN_i2e = ConnectionOverride(
         name="init_I_E",
@@ -47,7 +47,7 @@ def test_synapses_params():
         destination="post_L5_PC",
         weight=conn_weight,
     )
-    SimConfig.connections[CONN_i2e.name] = CONN_i2e
+    SimConfig.connections.append(CONN_i2e)
 
     # setup sim
     n.load_targets()

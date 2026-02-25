@@ -409,18 +409,13 @@ class _SimConfig:
             src_spec.population = alias.get(src_spec.population, src_spec.population)
             setattr(conn, item, str(src_spec))
 
-        new_connections = {}
-        for name, conn in cls.connections.items():
+        for conn in cls.connections:
             update_item(conn, "source")
             update_item(conn, "destination")
             if Feature.SpontMinis not in restrict_features:
                 conn.spont_minis = None
             if Feature.SynConfigure not in restrict_features:
                 conn.synapse_configure = None
-
-            new_connections[name] = conn
-
-        cls.connections = new_connections
 
     @classmethod
     def check_connections_configure(cls, target_manager):
@@ -1139,7 +1134,7 @@ def check_connections_configure(config: _SimConfig, target_manager) -> None:
     logging.info("Checking Connection Configurations")
 
     config_assignment = re.compile(r"(\S+)\s*\*?=\s*(\S+)")
-    all_conn_blocks = [_ConnCtx(c) for c in config.connections.values()]
+    all_conn_blocks = [_ConnCtx(c) for c in config.connections]
     processed_conn_blocks: list[_ConnCtx] = []
     zero_weight_conns: list[_ConnCtx] = []
     conn_configure_global_vars: dict[str, list[str]] = defaultdict(list)

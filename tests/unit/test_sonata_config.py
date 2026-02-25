@@ -183,8 +183,9 @@ def test_parse_modifications(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_parse_connections(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
-    conn = SimConfig.connections["GABAB_erev"]
+    conn = SimConfig.connections[0]
 
+    assert conn.name == "GABAB_erev"
     assert conn.source == "Inhibitory"
     assert conn.destination == "Mosaic"
     assert conn.weight == 1.0

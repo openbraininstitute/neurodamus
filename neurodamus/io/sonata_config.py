@@ -25,9 +25,9 @@ class ConnectionOverride:
     source: str
     destination: str
     weight: float
-    spont_minis: bool | None = None
+    spont_minis: float | None = None
     synapse_configure: dict | None = None
-    modoverride: dict | None = None
+    modoverride: str | None = None
     synapse_delay_override: float | None = None
     delay: float | None = None
     neuromodulation_dtc: float | None = None
@@ -311,10 +311,10 @@ class SonataConfig:
 
     @property
     def parsedConnects(self):
-        return {
-            libsonata_conn.name: ConnectionOverride.from_libsonata(libsonata_conn)
+        return [
+            ConnectionOverride.from_libsonata(libsonata_conn)
             for libsonata_conn in self._sim_conf.connection_overrides()
-        }
+        ]
 
     @property
     def parsedStimuli(self) -> list:

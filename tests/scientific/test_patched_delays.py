@@ -30,12 +30,12 @@ def test_eager_caching():
         weight=1.0,
         modoverride="GluSynapse",
     )
-    SimConfig.connections[CONN_plast.name] = CONN_plast
+    SimConfig.connections.append(CONN_plast)
     # init_I_E
     CONN_i2e = ConnectionOverride(
         name="init_I_E", source="pre_L5_BC", destination="post_L5_PC", weight=1.0
     )
-    SimConfig.connections[CONN_i2e.name] = CONN_i2e
+    SimConfig.connections.append(CONN_i2e)
     assert len(SimConfig.connections) == 2
 
     # setup sim
