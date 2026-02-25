@@ -986,6 +986,19 @@ def get_debug_cell_gids(cli_options):
 
 @dataclass
 class _ConnCtx:
+    """Internal wrapper for a connection configuration block used during
+    connection validation and override resolution.
+
+    Each instance holds a parsed connection object (`conf`) and links to
+    a previously processed overlapping block via `override`, forming a
+    single-step override chain (newer → older). The `full_override` flag
+    marks that the overridden block is completely covered (exact pathway
+    match), which is required for valid weight=0 overrides.
+
+    The `visited` flag is used only for debug traversal when displaying
+    override chains.
+    """
+
     conf: dict[str, str]
     override: "_ConnCtx | None" = None
     full_override: bool = False
