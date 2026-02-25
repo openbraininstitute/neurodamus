@@ -470,23 +470,9 @@ def test_modification_section(create_tmp_simulation_config_file):
                             "name": "Ca_hotspot_dend[10]_manipulation",
                             "compartment_set": "csA",
                             "type": "compartment_set",
-                            "section_configure": "hh.gnabar = 3.0; cm = 2.0",
+                            "section_configure": "gnabar_hh = 3.0; cm = 2.0",
                         }
                     ]
-                },
-                "inputs": {
-                    "override_field": 1,
-                    "Stimulus": {
-                        "module": "pulse",
-                        "input_type": "current_clamp",
-                        "represents_physical_electrode": True,
-                        "amp_start": 3,
-                        "width": 10,
-                        "frequency": 50,
-                        "delay": 0,
-                        "duration": 50,
-                        "compartment_set":"csA",
-                    },
                 },
             },
         }
@@ -503,7 +489,6 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
     n.load_targets()
     n.create_cells()
     n.create_synapses()
-    n.enable_stimulus()
 
     # Check values before applying modifications
     for cd in n.circuits.all_node_managers():
@@ -514,6 +499,7 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
                 for seg in sec.allseg():
                     if hasattr(seg, "cm"):
                         assert np.isclose(seg.cm, 1.0)
+                    # "hh.gnabar" is equivalent to "gnabar_hh"
                     if hasattr(seg, "hh.gnabar"):
                         assert seg.hh.gnabar < 1.0
 
@@ -537,10 +523,12 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
         cs_section_hits.add((cl.node_id, cl.section_id))
 
         section = gid_to_manager[cl.node_id].get_cell(cl.node_id).get_sec(cl.section_id)
-        segment  = section(cl.offset)
-        # approximate the segment index to compare against other segments
-        idx = int(segment.x * section.nseg)
-        cs_segment_hits.add((cl.node_id, cl.section_id, section, idx))
+        segment = section(cl.offset)
+        # Segment node index should be unique for each segment in the circuit
+        # The same segment can be obtained when indexing through different offsets,
+        # depending on the number of segments (nsec)
+        seg_nidx = segment.node_index()
+        cs_segment_hits.add((cl.node_id, cl.section_id, seg_nidx))
 
     for cd in n.circuits.all_node_managers():
         for cell in cd.cells:
@@ -548,14 +536,10 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
                 sec = cell.get_sec(sec_id)
                 for seg in sec.allseg():
                     in_section = (cell.gid, sec_id) in cs_section_hits
-                    in_segment = (cell.gid, sec_id, sec, int(seg.x * sec.nseg)) in cs_segment_hits
+                    in_segment = (cell.gid, sec_id, seg.node_index()) in cs_segment_hits
 
-                    if in_section and hasattr(seg, "cm"):
-                            assert np.isclose(seg.cm, 2.0)
-                    elif hasattr(seg, "cm"):
-                            assert np.isclose(seg.cm, 1.0)
+                    if hasattr(seg, "cm"):
+                        assert np.isclose(seg.cm, 2.) if in_section else np.isclose(seg.cm, 1.)
 
-                    if in_segment and hasattr(seg, "hh.gnabar"):
-                            assert np.isclose(seg.hh.gnabar, 3.0)
-                    elif hasattr(seg, "hh.gnabar"):
-                            assert seg.hh.gnabar < 1.0
+                    if hasattr(seg, "hh.gnabar"):
+                        assert np.isclose(seg.hh.gnabar, 3.) if in_segment else seg.hh.gnabar < 1.
