@@ -166,328 +166,34 @@ class ConfigureAllSections:
         )
 
 
-@ModificationManager.register_type
-class SectionList:
-    """Perform one or more assignments involving section attributes,
-    for the sections in the list that have the referenced attributes.
+class BaseASTModification:
+    """Common AST parsing helpers for assignment-based modification configuration."""
 
-    Use case is modifying mechanism variables from config.
-    """
-
-    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
-
-    def __init__(
-        self,
-        target,
-        mod_info: libsonata.SimulationConfig.ModificationSectionList,
-        cell_manager,
-    ):
-        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
-
-        log_verbose(f"Applied to {napply} sections")
-
-        if napply == 0:
-            logging.warning(
-                "section_list applied to zero sections, "
-                "please check its section_configure for possible mistakes"
-            )
-
-    def parse_section_config(self, target, config, cell_manager):
-        napply = 0
-        all_attrs = self.AttributeCollector()
+    @staticmethod
+    def parse_assignments(config: str):
         tree = ast.parse(config)
-        for elem in tree.body:  # for each semicolon-separated statement
-            # check assignment targets
-            for tgt in self.assignment_targets(elem):
-                # must be single assignment of a section attribute
-                if not isinstance(tgt, ast.Attribute):
-                    raise ConfigurationError(
-                        "section_configure only supports single assignments "
-                        "of attributes of the section"
-                    )
-            all_attrs.visit(elem)  # collect attributes in assignment
-
-            section = elem.targets[0].value.id
-            attr = elem.targets[0].attr
-            modif = ast.unparse(elem)
-            napply += self.apply_modification(target, section, attr, modif, cell_manager)
-
-        return napply
-
-    @staticmethod
-    def apply_modification(target, section, attr, modif, cell_manager):
-        if section == "apical":
-            section_type = libsonata.SimulationConfig.Report.Sections.apic
-        elif section == "axonal":
-            section_type = libsonata.SimulationConfig.Report.Sections.axon
-        elif section == "basal":
-            section_type = libsonata.SimulationConfig.Report.Sections.dend
-        elif section == "somatic":
-            section_type = libsonata.SimulationConfig.Report.Sections.soma
-        elif section == "all":
-            section_type = libsonata.SimulationConfig.Report.Sections.all
-        else:
-            raise ConfigurationError(
-                f"Unknown section type: {section}.\n"
-                f"Allowed types are: apical, axonal, basal, somatic or all"
-            )
-
-        # Filter by section type
-        tpoints = target.get_point_list(
-            cell_manager,
-            section_type=section_type,
-            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
-        )
-
-        napply = 0  # number of sections where config applies
-        # change mechanism variable in all sections that have it
-        for tpoint_list in tpoints:
-            for sc in tpoint_list.sclst:
-                if not sc.exists():  # skip sections not on this split
-                    continue
-                sec = sc.sec
-                if hasattr(sec, attr):
-                    # unsafe but sanitized
-                    exec(modif, {"__builtins__": None}, {section: sec})  # noqa: S102
-                    napply += 1
-
-        return napply
-
-    class AttributeCollector(ast.NodeVisitor):
-        """Node visitor collecting all attribute names in a set"""
-
-        attrs = set()
-
-        def visit_Attribute(self, node):
-            self.attrs.add(node.attr)
-
-    @staticmethod
-    def assignment_targets(node):
-        if isinstance(node, ast.Assign):
-            return node.targets
-        if isinstance(node, ast.AugAssign):
-            return [node.target]
-        raise ConfigurationError(
-            "section_configure must consist of one or more semicolon-separated assignments"
-        )
-
-
-@ModificationManager.register_type
-class Section:
-    """Perform one or more assignments involving section attributes,
-    for the given section with the referenced attributes.
-
-    Use case is modifying mechanism variables from config.
-    """
-
-    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
-
-    def __init__(
-        self,
-        target,
-        mod_info: libsonata.SimulationConfig.ModificationSection,
-        cell_manager,
-    ):
-        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
-
-        log_verbose(f"Applied to {napply} sections")
-
-        if napply == 0:
-            logging.warning(
-                "section_list applied to zero sections, "
-                "please check its section_configure for possible mistakes"
-            )
-
-    def parse_section_config(self, target, config, cell_manager):
-        napply = 0
-        all_attrs = self.AttributeCollector()
-        tree = ast.parse(config)
-        for elem in tree.body:  # for each semicolon-separated statement
-            # check assignment targets
-            for tgt in self.assignment_targets(elem):
-                # must be single assignment of a section attribute
-                if not isinstance(tgt, ast.Attribute):
-                    raise ConfigurationError(
-                        "section_configure only supports single assignments "
-                        "of attributes of the section"
-                    )
-            all_attrs.visit(elem)  # collect attributes in assignment
-
-            section, index, attr = self._parse_section_target(elem.targets[0])
-            modif = ast.unparse(elem)
-
-            # print(f"section: {section} ; index: {index} ; attr: {attr} ; modif: {modif}")
-            napply += self.apply_modification(target, section, index, attr, modif, cell_manager)
-
-        return napply
-
-    @staticmethod
-    def _parse_section_target(tgt: ast.Attribute):
-        """Extract (section_name, section_index, attribute) from
-        targets like soma[0].gnabar_hh
-        """
-        if not isinstance(tgt.value, ast.Subscript):
-            raise ConfigurationError("section must be indexed, e.g. soma[0]")
-
-        sub = tgt.value
-
-        if not isinstance(sub.value, ast.Name):
-            raise ConfigurationError("invalid section name")
-
-        if not isinstance(sub.slice, ast.Constant):
-            raise ConfigurationError("section index must be constant")
-
-        return sub.value.id, sub.slice.value, tgt.attr
-
-    @staticmethod
-    def apply_modification(target, section, idx, attr, modif, cell_manager):
-        if section == "apic":
-            section_type = libsonata.SimulationConfig.Report.Sections.apic
-        elif section == "axon":
-            section_type = libsonata.SimulationConfig.Report.Sections.axon
-        elif section == "dend":
-            section_type = libsonata.SimulationConfig.Report.Sections.dend
-        elif section == "soma":
-            section_type = libsonata.SimulationConfig.Report.Sections.soma
-        else:
-            raise ConfigurationError(
-                f"Unknown section type: {section}.\nAllowed types are: apic, axon, dend or soma"
-            )
-
-        # Filter by section type
-        tpoints = target.get_point_list(
-            cell_manager,
-            section_type=section_type,
-            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
-        )
-
-        napply = 0  # number of sections where config applies
-        # change mechanism variable in all sections that have it
-        for tpoint_list in tpoints:
-            if len(tpoint_list.sclst) > idx:
-                sec = tpoint_list.sclst[idx].sec
-                if hasattr(sec, attr):
-                    # print(f"Applying modification: {modif} to section: {sec}")
-                    modif_sec = modif.replace(f"{section}[{idx}].", "sec.", 1)
-                    # unsafe but sanitized
-                    exec(modif_sec, {"__builtins__": None}, {"sec": sec})  # noqa: S102
-                    napply += 1
-
-        return napply
-
-    class AttributeCollector(ast.NodeVisitor):
-        """Node visitor collecting all attribute names in a set"""
-
-        attrs = set()
-
-        def visit_Attribute(self, node):
-            self.attrs.add(node.attr)
-
-    @staticmethod
-    def assignment_targets(node):
-        if isinstance(node, ast.Assign):
-            return node.targets
-        if isinstance(node, ast.AugAssign):
-            return [node.target]
-        raise ConfigurationError(
-            "section_configure must consist of one or more semicolon-separated assignments"
-        )
-
-
-@ModificationManager.register_type
-class CompartmentSet:
-    """Perform one or more assignments involving compartment attributes
-    (e.g. cm, hh.gnabar, pas.g) on selected segments from compartment set.
-
-    Use case is modifying mechanism variables from config.
-    """
-
-    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.compartment_set
-
-    def __init__(self, target, mod_info, cell_manager):
-        napply = self.parse_section_config(target, mod_info.section_configure, cell_manager)
-
-        log_verbose(f"Applied to {napply} segments")
-
-        if napply == 0:
-            logging.warning(
-                "compartment_set applied to zero segments. Check section_configure for mistakes."
-            )
-
-    def parse_section_config(self, target, config, cell_manager):
-        napply = 0
-        tree = ast.parse(config)
-
         for stmt in tree.body:
             if not isinstance(stmt, (ast.Assign, ast.AugAssign)):
                 raise ConfigurationError("section_configure must contain assignments only")
 
-            targets = self.assignment_targets(stmt)
+            targets = BaseASTModification.assignment_targets(stmt)
+
             if len(targets) != 1:
                 raise ConfigurationError("Only single-target assignments are supported")
 
-            lhs_node = targets[0]
-            if not isinstance(lhs_node, (ast.Name, ast.Attribute)):
-                raise ConfigurationError("Assignments must target variables like cm or hh.gnabar")
-
-            dotted_name = self.get_full_attr_name(lhs_node)
-            value = self.evaluate_rhs(stmt.value)
-            napply += self.apply_modification(target, dotted_name, value, cell_manager)
-
-        return napply
-
-    def apply_modification(self, target, dotted_name, value, cell_manager):
-        napply = 0
-        sel_node_set = target.node_ids()
-
-        for cl in target.filtered_iter(sel_node_set):
-            raw_gid, section_id, offset = (cl.node_id, cl.section_id, cl.offset)
-            cell = cell_manager.get_cell(raw_gid)
-            sec = cell.get_sec(section_id)
-            seg = sec(offset)
-
-            try:
-                self.set_segment_value(seg, dotted_name, value)
-                # print(f"Applying comp_set modification: {value} to section: {seg}")
-                # print(f"gid: {raw_gid}, section: {section_id}, offset: {offset}")
-
-            except AttributeError:
-                continue  # segment doesn't have that mechanism
-
-            napply += 1
-
-        return napply
+            yield stmt, targets[0]
 
     @staticmethod
-    def get_full_attr_name(node):
-        """Reconstruct dotted name from AST Attribute."""
-        parts = []
-
-        while isinstance(node, ast.Attribute):
-            parts.append(node.attr)
-            node = node.value
-
-        if isinstance(node, ast.Name):
-            parts.append(node.id)
-        else:
-            raise ConfigurationError("Unsupported assignment target")
-
-        return ".".join(reversed(parts))
+    def assignment_targets(node):
+        if isinstance(node, ast.Assign):
+            return node.targets
+        if isinstance(node, ast.AugAssign):
+            return [node.target]
+        raise ConfigurationError("section_configure must consist of assignments")
 
     @staticmethod
-    def set_segment_value(seg, dotted_name, value):
-        """Resolve dotted attribute on a segment safely."""
-        parts = dotted_name.split(".")
-
-        obj = seg
-        for p in parts[:-1]:
-            obj = getattr(obj, p)
-
-        setattr(obj, parts[-1], value)
-
-    @staticmethod
-    def evaluate_rhs(node):
-        """Safely evaluate numeric RHS (no eval)."""
+    def evaluate_numeric_rhs(node):
+        """Safely evaluate numeric right-hand side (no evaluation)."""
         if isinstance(node, ast.Constant):
             return float(node.value)
 
@@ -501,9 +207,246 @@ class CompartmentSet:
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
     @staticmethod
-    def assignment_targets(node):
-        if isinstance(node, ast.Assign):
-            return node.targets
-        if isinstance(node, ast.AugAssign):
-            return [node.target]
-        raise ConfigurationError("section_configure must consist of assignments")
+    def resolve_dotted_attr(obj, dotted_name):
+        parts = dotted_name.split(".")
+        for p in parts[:-1]:
+            obj = getattr(obj, p)
+        return obj, parts[-1]
+
+
+class BaseSectionModification(BaseASTModification):
+    """Shared base class for section and section_list modifications."""
+
+    SECTION_MAP = {
+        # section_list type entries
+        "apical": libsonata.SimulationConfig.Report.Sections.apic,
+        "axonal": libsonata.SimulationConfig.Report.Sections.axon,
+        "basal": libsonata.SimulationConfig.Report.Sections.dend,
+        "somatic": libsonata.SimulationConfig.Report.Sections.soma,
+        "all": libsonata.SimulationConfig.Report.Sections.all,
+        # section type entries
+        "apic": libsonata.SimulationConfig.Report.Sections.apic,
+        "axon": libsonata.SimulationConfig.Report.Sections.axon,
+        "dend": libsonata.SimulationConfig.Report.Sections.dend,
+        "soma": libsonata.SimulationConfig.Report.Sections.soma,
+    }
+
+    def get_allowed_entries(self):
+        return ", ".join(sorted(self.SECTION_MAP))
+
+    def get_section_type(self, name: str):
+        try:
+            return self.SECTION_MAP[name]
+        except KeyError as err:
+            allowed = self.get_allowed_entries()
+            raise ConfigurationError(
+                f"Unknown section type: {name}. Allowed types are: {allowed}"
+            ) from err
+
+    @staticmethod
+    def iter_sections(target, cell_manager, section_type):
+        tpoints = target.get_point_list(
+            cell_manager,
+            section_type=section_type,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+        )
+
+        for tpoint_list in tpoints:
+            for sc in tpoint_list.sclst:
+                if sc.exists():
+                    yield sc.sec
+
+
+@ModificationManager.register_type
+class SectionList(BaseSectionModification):
+    """Perform one or more assignments involving section attributes,
+    for the sections in the list that have the referenced attributes.
+
+    Accepted syntax is of the style "apical.gbar_NaTg = 0", with semi-colon-separated assignments
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    SECTION_MAP = {
+        "apical": libsonata.SimulationConfig.Report.Sections.apic,
+        "axonal": libsonata.SimulationConfig.Report.Sections.axon,
+        "basal": libsonata.SimulationConfig.Report.Sections.dend,
+        "somatic": libsonata.SimulationConfig.Report.Sections.soma,
+        "all": libsonata.SimulationConfig.Report.Sections.all,
+    }
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
+
+    def __init__(self, target, mod_info, cell_manager):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section_list applied to zero sections. Check section_configure for mistakes."
+            )
+
+    def apply_config(self, target, config, cell_manager):
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            if not isinstance(lhs, ast.Attribute):
+                raise ConfigurationError(
+                    "section_list only supports assignments like apical.gbar = 0"
+                )
+
+            if not isinstance(lhs.value, ast.Name):
+                raise ConfigurationError("Invalid section target")
+
+            section_name = lhs.value.id
+            attr_name = lhs.attr
+            value = self.evaluate_numeric_rhs(stmt.value)
+
+            section_type = self.get_section_type(section_name)
+
+            for sec in self.iter_sections(target, cell_manager, section_type):
+                if hasattr(sec, attr_name):
+                    setattr(sec, attr_name, value)
+                    napply += 1
+
+        return napply
+
+
+@ModificationManager.register_type
+class Section(BaseSectionModification):
+    """Perform one or more assignments involving section attributes,
+    for the given section with the referenced attributes.
+
+    Accepted syntax is of the style "apic[10].gbar_KTst = 0", with semi-colon-separated assignments
+
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    SECTION_MAP = {
+        "apic": libsonata.SimulationConfig.Report.Sections.apic,
+        "axon": libsonata.SimulationConfig.Report.Sections.axon,
+        "dend": libsonata.SimulationConfig.Report.Sections.dend,
+        "soma": libsonata.SimulationConfig.Report.Sections.soma,
+    }
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
+
+    def __init__(self, target, mod_info, cell_manager):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section applied to zero sections. Check section_configure for mistakes."
+            )
+
+    def apply_config(self, target, config, cell_manager):
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            if not isinstance(lhs, ast.Attribute):
+                raise ConfigurationError("section must use syntax like soma[0].gnabar = 0")
+
+            if not isinstance(lhs.value, ast.Subscript):
+                raise ConfigurationError("Section must be indexed")
+
+            sub = lhs.value
+
+            if not isinstance(sub.value, ast.Name):
+                raise ConfigurationError("Invalid section name")
+
+            if not isinstance(sub.slice, ast.Constant):
+                raise ConfigurationError("Section index must be constant")
+
+            section_name = sub.value.id
+            idx = sub.slice.value
+            attr_name = lhs.attr
+            value = self.evaluate_numeric_rhs(stmt.value)
+
+            section_type = self.get_section_type(section_name)
+
+            tpoints = target.get_point_list(
+                cell_manager,
+                section_type=section_type,
+                compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+            )
+
+            for tpoint_list in tpoints:
+                if len(tpoint_list.sclst) > idx:
+                    sec = tpoint_list.sclst[idx].sec
+                    if hasattr(sec, attr_name):
+                        setattr(sec, attr_name, value)
+                        napply += 1
+                else:
+                    raise ValueError(
+                        f"{idx} array index out of range (length = {len(tpoint_list.sclst)})"
+                    )
+
+        return napply
+
+
+@ModificationManager.register_type
+class CompartmentSet(BaseASTModification):
+    """Perform one or more assignments involving compartment attributes on selected segments from
+    compartment set.
+
+    Accepted syntax is of the style "gbar_Ca_HVA2 = 1.5", with semi-colon-separated assignments
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.compartment_set
+
+    def __init__(self, target, mod_info, cell_manager):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} segments")
+
+        if napply == 0:
+            logging.warning(
+                "compartment_set applied to zero segments. Check section_configure for mistakes."
+            )
+
+    def apply_config(self, target, config, cell_manager):
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            if not isinstance(lhs, (ast.Name, ast.Attribute)):
+                raise ConfigurationError(
+                    "Assignments must target compartment variables like 'hh.gnabar' or 'gnabar_hh'"
+                )
+
+            dotted_name = self.get_full_attr_name(lhs)
+            value = self.evaluate_numeric_rhs(stmt.value)
+
+            for cl in target.filtered_iter(target.node_ids()):
+                cell = cell_manager.get_cell(cl.node_id)
+                sec = cell.get_sec(cl.section_id)
+                seg = sec(cl.offset)
+
+                try:
+                    obj, final_attr = self.resolve_dotted_attr(seg, dotted_name)
+                    setattr(obj, final_attr, value)
+                    napply += 1
+                except AttributeError:
+                    continue  # mechanism not present
+
+        return napply
+
+    @staticmethod
+    def get_full_attr_name(node):
+        parts = []
+
+        while isinstance(node, ast.Attribute):
+            parts.append(node.attr)
+            node = node.value
+
+        if isinstance(node, ast.Name):
+            parts.append(node.id)
+        else:
+            raise ConfigurationError("Unsupported assignment target")
+
+        return ".".join(reversed(parts))
