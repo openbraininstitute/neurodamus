@@ -1091,7 +1091,7 @@ def _display_override_chains(
                     "(base)" if not current.override else " ^",
                     f"{current.conf.name}  {current.conf.source} -> {current.conf.destination}",
                     current.conf.weight if not None else "-",
-                    current.conf.spont_minis if not None else "-",
+                    current.conf.spont_minis if current.conf.spont_minis is not None else "-",
                     ", ".join(_get_syn_config_vars(current, config_assignment)),
                 )
                 if current.visited:
