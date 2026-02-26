@@ -405,7 +405,6 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
-
 class ReportReader:
     def __init__(self, file: str):
         self._reader = ElementReportReader(file)
