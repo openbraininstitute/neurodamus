@@ -1089,8 +1089,7 @@ def _display_override_chains(
                 logging.info(
                     " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
                     "(base)" if not current.override else " ^",
-                    f"{current.conf.name}  ",
-                    f"{current.conf.source} -> {current.conf.destination}",
+                    f"{current.conf.name}  {current.conf.source} -> {current.conf.destination}",
                     current.conf.weight if not None else "-",
                     current.conf.spont_minis if not None else "-",
                     ", ".join(_get_syn_config_vars(current, config_assignment)),
