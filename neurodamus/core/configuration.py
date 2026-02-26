@@ -1090,7 +1090,7 @@ def _display_override_chains(
                     " -> %-6s %-60.60s Weight: %-8s SpontMinis: %-8s SynConfigure: %s",
                     "(base)" if not current.override else " ^",
                     f"{current.conf.name}  {current.conf.source} -> {current.conf.destination}",
-                    current.conf.weight if not None else "-",
+                    current.conf.weight if current.conf.weight is not None else "-",
                     current.conf.spont_minis if current.conf.spont_minis is not None else "-",
                     ", ".join(_get_syn_config_vars(current, config_assignment)),
                 )
