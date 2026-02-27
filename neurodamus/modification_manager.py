@@ -21,6 +21,7 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 
 import ast
 import logging
+import operator
 
 import libsonata
 
@@ -169,6 +170,13 @@ class ConfigureAllSections:
 class BaseASTModification:
     """Common AST parsing helpers for assignment-based modification configuration."""
 
+    AUG_OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+    }
+
     @staticmethod
     def parse_assignments(config: str):
         tree = ast.parse(config)
@@ -210,7 +218,10 @@ class BaseASTModification:
     def resolve_dotted_attr(obj, dotted_name):
         parts = dotted_name.split(".")
         for p in parts[:-1]:
-            obj = getattr(obj, p)
+            if hasattr(obj, p):
+                obj = getattr(obj, p)
+            else:
+                return obj, None
         return obj, parts[-1]
 
 
@@ -251,10 +262,13 @@ class BaseSectionModification(BaseASTModification):
             compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
         )
 
+        sections = set()
         for tpoint_list in tpoints:
             for sc in tpoint_list.sclst:
                 if sc.exists():
-                    yield sc.sec
+                    sections.add(sc.sec)
+
+        return sections
 
 
 @ModificationManager.register_type
@@ -301,14 +315,31 @@ class SectionList(BaseSectionModification):
 
             section_name = lhs.value.id
             attr_name = lhs.attr
-            value = self.evaluate_numeric_rhs(stmt.value)
-
             section_type = self.get_section_type(section_name)
 
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
+
             for sec in self.iter_sections(target, cell_manager, section_type):
-                if hasattr(sec, attr_name):
-                    setattr(sec, attr_name, value)
-                    napply += 1
+                if not hasattr(sec, attr_name):
+                    continue
+
+                if isinstance(stmt, ast.Assign):
+                    new_value = rhs_value
+
+                elif isinstance(stmt, ast.AugAssign):
+                    current = getattr(sec, attr_name)
+                    op_type = type(stmt.op)
+
+                    if op_type not in BaseASTModification.AUG_OPS:
+                        raise ConfigurationError(f"Unsupported operator {op_type}")
+
+                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                else:
+                    raise ConfigurationError("Unsupported assignment type")
+
+                setattr(sec, attr_name, new_value)
+                napply += 1
 
         return napply
 
@@ -319,7 +350,6 @@ class Section(BaseSectionModification):
     for the given section with the referenced attributes.
 
     Accepted syntax is of the style "apic[10].gbar_KTst = 0", with semi-colon-separated assignments
-
 
     Use case is modifying mechanism variables from config.
     """
@@ -364,7 +394,7 @@ class Section(BaseSectionModification):
             section_name = sub.value.id
             idx = sub.slice.value
             attr_name = lhs.attr
-            value = self.evaluate_numeric_rhs(stmt.value)
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             section_type = self.get_section_type(section_name)
 
@@ -374,19 +404,46 @@ class Section(BaseSectionModification):
                 compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
             )
 
+            target_cells = set()
             for tpoint_list in tpoints:
-                if len(tpoint_list.sclst) > idx:
-                    sec = tpoint_list.sclst[idx].sec
-                    if hasattr(sec, attr_name):
-                        setattr(sec, attr_name, value)
-                        napply += 1
-                else:
+                for sec in tpoint_list.sclst:
+                    cell = sec.sec.cell()
+                    target_cells.add(cell)
+                    break
+
+            for cell in target_cells:
+                sec_list = getattr(cell, section_name)
+                if len(sec_list) <= idx:
                     raise ValueError(
-                        f"{idx} array index out of range (length = {len(tpoint_list.sclst)})"
+                        f"{idx} array index out of range (length = {len(sec_list)})"
                     )
 
-        return napply
+                sec = sec_list[idx]
 
+                if not hasattr(sec, attr_name):
+                    continue
+
+                if isinstance(stmt, ast.Assign):
+                    new_value = rhs_value
+
+                elif isinstance(stmt, ast.AugAssign):
+                    current = getattr(sec, attr_name)
+                    op_type = type(stmt.op)
+
+                    if op_type not in BaseASTModification.AUG_OPS:
+                        raise ConfigurationError(
+                            f"Unsupported operator {op_type.__name__}"
+                        )
+
+                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                else:
+                    raise ConfigurationError("Unsupported assignment type")
+
+                setattr(sec, attr_name, new_value)
+                napply += 1
+
+        return napply
 
 @ModificationManager.register_type
 class CompartmentSet(BaseASTModification):
@@ -416,23 +473,42 @@ class CompartmentSet(BaseASTModification):
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, (ast.Name, ast.Attribute)):
                 raise ConfigurationError(
-                    "Assignments must target compartment variables like 'hh.gnabar' or 'gnabar_hh'"
+                    "Assignments must target compartment variables like "
+                    "'hh.gnabar' or 'gnabar_hh'"
                 )
 
             dotted_name = self.get_full_attr_name(lhs)
-            value = self.evaluate_numeric_rhs(stmt.value)
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for cl in target.filtered_iter(target.node_ids()):
                 cell = cell_manager.get_cell(cl.node_id)
                 sec = cell.get_sec(cl.section_id)
                 seg = sec(cl.offset)
 
-                try:
-                    obj, final_attr = self.resolve_dotted_attr(seg, dotted_name)
-                    setattr(obj, final_attr, value)
-                    napply += 1
-                except AttributeError:
-                    continue  # mechanism not present
+                obj, final_attr = self.resolve_dotted_attr(seg, dotted_name)
+
+                if final_attr is None or not hasattr(obj, final_attr):
+                    continue
+
+                if isinstance(stmt, ast.Assign):
+                    new_value = rhs_value
+
+                elif isinstance(stmt, ast.AugAssign):
+                    current = getattr(obj, final_attr)
+                    op_type = type(stmt.op)
+
+                    if op_type not in BaseASTModification.AUG_OPS:
+                        raise ConfigurationError(
+                            f"Unsupported operator {op_type.__name__}"
+                        )
+
+                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                else:
+                    raise ConfigurationError("Unsupported assignment type")
+
+                setattr(obj, final_attr, new_value)
+                napply += 1
 
         return napply
 

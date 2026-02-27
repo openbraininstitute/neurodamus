@@ -1,3 +1,6 @@
+import json
+from tempfile import NamedTemporaryFile
+
 import numpy as np
 import pytest
 
@@ -410,6 +413,7 @@ def test_modification_section_list(create_tmp_simulation_config_file):
     assert nspike_no_modif > 0
     assert nspike_modif_section_list == 0
 
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -441,20 +445,19 @@ def test_modification_section(create_tmp_simulation_config_file):
     n.load_targets()
     n.create_cells()
     n.create_synapses()
-    n.enable_stimulus()
 
-    soma_bef = n._pc.gid2cell(1).soma[0].gnabar_hh
-    dend_bef = n._pc.gid2cell(1).dend[0].e_pas
+    soma = n._pc.gid2cell(1).soma[0].gnabar_hh
+    dend = n._pc.gid2cell(1).dend[0].e_pas
 
     n.enable_modifications()
 
-    soma_aft = n._pc.gid2cell(1).soma[0].gnabar_hh
-    dend_aft = n._pc.gid2cell(1).dend[0].e_pas
+    soma_mod = n._pc.gid2cell(1).soma[0].gnabar_hh
+    dend_mod = n._pc.gid2cell(1).dend[0].e_pas
 
-    assert np.isclose(soma_bef, 0.12)
-    assert np.isclose(dend_bef, -65.0)
-    assert np.isclose(soma_aft, 11)
-    assert np.isclose(dend_aft, 0.1)
+    assert np.isclose(soma, 0.12)
+    assert np.isclose(dend, -65.0)
+    assert np.isclose(soma_mod, 11)
+    assert np.isclose(dend_mod, 0.1)
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -543,3 +546,99 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
 
                     if hasattr(seg, "hh.gnabar"):
                         assert np.isclose(seg.hh.gnabar, 3.) if in_segment else seg.hh.gnabar < 1.
+
+
+@pytest.mark.parametrize(
+    "mod_type, target_param, target_name, section_configure, expected",
+    [
+        (
+            "section_list",
+            "node_set",
+            "RingA:oneCell",
+            "somatic.gnabar_hh *= 2.; basal.gnabar_hh += 1.; somatic.Ra -= 50.; basal.Ra /= 10.",
+            {
+                "soma": {"gnabar_hh": [0.24], "Ra": [50.]},
+                "dend": {"gnabar_hh": [1.12, 1.12], "Ra": [10., 10.]}
+            }
+         ),
+        (
+            "section",
+            "node_set",
+            "RingA:oneCell",
+            "soma[0].gnabar_hh *= 2.; dend[0].gnabar_hh += 1.; soma[0].Ra -= 50.; dend[1].Ra /= 10.",
+            {
+                "soma": {"gnabar_hh": [0.24], "Ra": [50.]},
+                "dend": {"gnabar_hh": [1.12, 0.12], "Ra": [100., 10.]}
+            }
+        ),
+        (
+            "compartment_set",
+            "compartment_set",
+            "csA",
+            "gnabar_hh *= 2.; gnabar_hh += 1.; e_pas -= 5.; e_pas /= 10.",
+            {
+                "soma": {"gnabar_hh": [1.24], "e_pas": [-7.5]},
+                "dend": {"gnabar_hh": [0.12, 1.24], "e_pas": [-65., -7.]}
+            }
+        ),
+    ],
+)
+def test_modification_augassign_multiple_types(
+        ringtest_baseconfig, mod_type, target_param, target_name, section_configure, expected
+):
+    """
+    Test augmented assignments (+=, -=, *=, /=) for section_list, section, and compartment_set.
+    """
+    # NeuronWrapper needs to be imported at function level
+    from neurodamus.core import NeuronWrapper as Nd
+
+    # Build modification dict dynamically
+    modification = {
+        "name": "augassign_test",
+        "type": mod_type,
+        target_param: target_name,
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if target_param == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    # Process simulation config
+    n = Node(sim_file_path)
+
+    # setup sim config
+    n.load_targets()
+    n.create_cells()
+    n.create_synapses()
+    n.enable_modifications()
+
+    # Retrieve cells
+    cell0 = Nd._pc.gid2cell(0)
+    cell1 = Nd._pc.gid2cell(1)
+
+    # Cell 0 is not in the node_set/compartment_set, so it is not modified
+    assert np.isclose(cell0.soma[0].gnabar_hh, 0.12)
+    assert np.isclose(cell0.dend[0].gnabar_hh, 0.12)
+    assert np.isclose(cell0.dend[1].gnabar_hh, 0.12)
+
+    # Cell 1 is modified
+    for type in expected.keys():
+        # soma, dend
+        val_dict = expected[type]
+        for mech in val_dict.keys():
+            # gnabar_hh, Ra/e_pas
+            values = val_dict[mech]
+            for idx, val in enumerate(values):
+                section = getattr(cell1, type)[idx]
+                mechanism = getattr(section, mech)
+                assert np.isclose(mechanism, val)
