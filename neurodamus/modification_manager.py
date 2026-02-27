@@ -414,9 +414,7 @@ class Section(BaseSectionModification):
             for cell in target_cells:
                 sec_list = getattr(cell, section_name)
                 if len(sec_list) <= idx:
-                    raise ValueError(
-                        f"{idx} array index out of range (length = {len(sec_list)})"
-                    )
+                    raise ValueError(f"{idx} array index out of range (length = {len(sec_list)})")
 
                 sec = sec_list[idx]
 
@@ -431,9 +429,7 @@ class Section(BaseSectionModification):
                     op_type = type(stmt.op)
 
                     if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(
-                            f"Unsupported operator {op_type.__name__}"
-                        )
+                        raise ConfigurationError(f"Unsupported operator {op_type.__name__}")
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
@@ -444,6 +440,7 @@ class Section(BaseSectionModification):
                 napply += 1
 
         return napply
+
 
 @ModificationManager.register_type
 class CompartmentSet(BaseASTModification):
@@ -473,8 +470,7 @@ class CompartmentSet(BaseASTModification):
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, (ast.Name, ast.Attribute)):
                 raise ConfigurationError(
-                    "Assignments must target compartment variables like "
-                    "'hh.gnabar' or 'gnabar_hh'"
+                    "Assignments must target compartment variables like 'hh.gnabar' or 'gnabar_hh'"
                 )
 
             dotted_name = self.get_full_attr_name(lhs)
@@ -498,9 +494,7 @@ class CompartmentSet(BaseASTModification):
                     op_type = type(stmt.op)
 
                     if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(
-                            f"Unsupported operator {op_type.__name__}"
-                        )
+                        raise ConfigurationError(f"Unsupported operator {op_type.__name__}")
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
