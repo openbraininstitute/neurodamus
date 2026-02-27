@@ -5,7 +5,7 @@ https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connect
 """
 
 
-
+import logging
 import pytest
 import numpy as np
 from scipy.signal import find_peaks
@@ -384,3 +384,33 @@ def test_override_globals(create_tmp_simulation_config_file):
 
     assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
     assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "All->All", "source": "Mosaic", "target": "Mosaic", "weight": 0},
+                {"name": "Delayed", "source": "Mosaic", "target": "Mosaic", "weight": 0.5, "delay": 10}
+            ],
+        },
+    },
+], indirect=True)
+def test_no_forbidden_warning(create_tmp_simulation_config_file, monkeypatch):
+    forbidden_message = "The following connections with Weight=0 are not overridden,"
+    captured = []
+
+    def fake_handle(self, record):
+        captured.append(record)
+
+    # patch the logger class handle method globally
+    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
+
+    from neurodamus import Neurodamus
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert not any(forbidden_message in str(r.getMessage()) for r in captured), (
+        f"Found forbidden warning: {forbidden_message}"
+    )

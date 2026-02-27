@@ -1070,6 +1070,10 @@ def _process_delayed_connections(
                 base_conn.full_override = target_manager.pathways_overlap(
                     conn_ctx.conf, base_conn.conf, equal_only=True
                 )
+                # I do not know why this was missing
+                if base_conn.full_override:
+                    base_conn.override = conn_ctx
+
         if not is_overriding:
             logging.warning(
                 "Delayed connection %s is not overriding any weight=0 Connection",
@@ -1117,7 +1121,7 @@ def _check_weight0_overrides(zero_weight_conns: list[_ConnCtx]) -> None:
     """Phase 3c: Warn about or raise errors for weight=0 overrides."""
     not_overridden_weight_0 = []
     for conn_ctx in zero_weight_conns:
-        if conn_ctx.override is None:
+        if not conn_ctx.full_override:
             not_overridden_weight_0.append(conn_ctx)
         elif not conn_ctx.full_override:
             raise ConfigurationError(
