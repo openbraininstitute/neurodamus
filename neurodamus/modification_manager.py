@@ -377,39 +377,13 @@ class Section(BaseSectionModification):
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
-            if not isinstance(lhs, ast.Attribute):
-                raise ConfigurationError("section must use syntax like soma[0].gnabar = 0")
-
-            if not isinstance(lhs.value, ast.Subscript):
-                raise ConfigurationError("Section must be indexed")
-
             sub = lhs.value
-
-            if not isinstance(sub.value, ast.Name):
-                raise ConfigurationError("Invalid section name")
-
-            if not isinstance(sub.slice, ast.Constant):
-                raise ConfigurationError("Section index must be constant")
-
             section_name = sub.value.id
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            section_type = self.get_section_type(section_name)
-
-            tpoints = target.get_point_list(
-                cell_manager,
-                section_type=section_type,
-                compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
-            )
-
-            target_cells = set()
-            for tpoint_list in tpoints:
-                for sec in tpoint_list.sclst:
-                    cell = sec.sec.cell()
-                    target_cells.add(cell)
-                    break
+            target_cells = self.get_target_cells(target, cell_manager, section_name)
 
             for cell in target_cells:
                 sec_list = getattr(cell, section_name)
@@ -440,6 +414,40 @@ class Section(BaseSectionModification):
                 napply += 1
 
         return napply
+
+    def get_target_cells(self, target, cell_manager, section_name):
+        section_type = self.get_section_type(section_name)
+
+        tpoints = target.get_point_list(
+            cell_manager,
+            section_type=section_type,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+        )
+
+        target_cells = set()
+        for tpoint_list in tpoints:
+            for sec in tpoint_list.sclst:
+                cell = sec.sec.cell()
+                target_cells.add(cell)
+                break
+
+        return target_cells
+
+    @staticmethod
+    def section_sanity_checks(lhs):
+        if not isinstance(lhs, ast.Attribute):
+            raise ConfigurationError("section must use syntax like soma[0].gnabar = 0")
+
+        if not isinstance(lhs.value, ast.Subscript):
+            raise ConfigurationError("Section must be indexed")
+
+        sub = lhs.value
+
+        if not isinstance(sub.value, ast.Name):
+            raise ConfigurationError("Invalid section name")
+
+        if not isinstance(sub.slice, ast.Constant):
+            raise ConfigurationError("Section index must be constant")
 
 
 @ModificationManager.register_type
