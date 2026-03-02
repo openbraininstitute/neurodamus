@@ -46,6 +46,7 @@ jobs:
           file: .coverage.baseline
           flag-name: baseline
           parallel: true
+          fail-on-error: false
 
       - name: Upload unit coverage to Coveralls
         uses: coverallsapp/github-action@v2
@@ -54,6 +55,7 @@ jobs:
           file: .coverage.unit
           flag-name: unit
           parallel: true
+          fail-on-error: false
 
       - name: Upload unit-ngv-mpi coverage to Coveralls
         uses: coverallsapp/github-action@v2
@@ -62,6 +64,7 @@ jobs:
           file: .coverage.unit-ngv-mpi
           flag-name: unit-ngv-mpi
           parallel: true
+          fail-on-error: false
 
       - name: Upload unit-mpi coverage to Coveralls
         uses: coverallsapp/github-action@v2
@@ -70,6 +73,7 @@ jobs:
           file: .coverage.unit-mpi
           flag-name: unit-mpi
           parallel: true
+          fail-on-error: false
 
   finish:
     if: ${{ always() }}
@@ -82,3 +86,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
           carryforward: "baseline,unit"
+          fail-on-error: false
