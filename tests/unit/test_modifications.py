@@ -730,6 +730,7 @@ def test_modification_wrong_target_multiple_types(
         error_message = "Could not find 'node_set' in 'modification 0'"
 
     with pytest.raises(
+        Exception,
         match=error_message,
     ):
         Neurodamus(sim_file_path)
