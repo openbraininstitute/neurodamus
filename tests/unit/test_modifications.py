@@ -1,4 +1,5 @@
 import json
+import re
 from tempfile import NamedTemporaryFile
 
 import numpy as np
@@ -473,7 +474,7 @@ def test_modification_section(create_tmp_simulation_config_file):
                             "name": "Ca_hotspot_dend[10]_manipulation",
                             "compartment_set": "csA",
                             "type": "compartment_set",
-                            "section_configure": "gnabar_hh = 3.0; cm = 2.0",
+                            "section_configure": "hh.gnabar = -3.0; cm = 2.0",
                         }
                     ]
                 },
@@ -504,7 +505,7 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
                         assert np.isclose(seg.cm, 1.0)
                     # "hh.gnabar" is equivalent to "gnabar_hh"
                     if hasattr(seg, "hh.gnabar"):
-                        assert seg.hh.gnabar < 1.0
+                        assert 0.0 < seg.hh.gnabar < 1.0
 
     n.enable_modifications()
 
@@ -545,7 +546,9 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
                         assert np.isclose(seg.cm, 2.) if in_section else np.isclose(seg.cm, 1.)
 
                     if hasattr(seg, "hh.gnabar"):
-                        assert np.isclose(seg.hh.gnabar, 3.) if in_segment else seg.hh.gnabar < 1.
+                        assert np.isclose(
+                            seg.hh.gnabar, -3.
+                        ) if in_segment else 0. < seg.hh.gnabar < 1.
 
 
 @pytest.mark.parametrize(
@@ -642,3 +645,369 @@ def test_modification_augassign_multiple_types(
                 section = getattr(cell1, type)[idx]
                 mechanism = getattr(section, mech)
                 assert np.isclose(mechanism, val)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic.gSK_E2bar_SK_E2 = 0"),
+        ("section", "soma[0].gSK_E2bar_SK_E2 = 0"),
+        ("compartment_set", "gSK_E2bar_SK_E2 = 0"),
+    ],
+)
+def test_modification_no_modif_multiple_types(
+        ringtest_baseconfig, capsys, mod_type, section_configure
+):
+    """Test warning when modification is not applied on any target."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "no_modif_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    # Process simulation config
+    Neurodamus(sim_file_path)
+    captured = capsys.readouterr()
+    if mod_type == "compartment_set":
+        assert f"{mod_type} applied to zero segments" in captured.out
+    else:
+        assert f"{mod_type} applied to zero sections" in captured.out
+
+@pytest.mark.parametrize(
+    "mod_type, target, section_configure",
+    [
+        ("section_list", "compartment_set", "somatic.gSK_E2bar_SK_E2 = 0"),
+        ("section", "compartment_set", "soma[0].gSK_E2bar_SK_E2 = 0"),
+        ("compartment_set", "node_set", "gSK_E2bar_SK_E2 = 0"),
+    ],
+)
+def test_modification_wrong_target_multiple_types(
+        ringtest_baseconfig, mod_type, target, section_configure
+):
+    """Test error handling: missing appropriate node_set/compartment_set keys."""
+
+    # Build modification dict dynamically
+    modification = {
+        "name": "wrong_target_test",
+        "type": mod_type,
+        target: "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    if mod_type == "compartment_set":
+        error_message = "Could not find 'compartment_set' in 'modification 0'"
+    else:
+        error_message = "Could not find 'node_set' in 'modification 0'"
+
+    with pytest.raises(
+        match=error_message,
+    ):
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "print(somatic.gSK_E2bar_SK_E2)"),
+        ("section", "print(soma[0].gSK_E2bar_SK_E2)"),
+        ("compartment_set", "print(gSK_E2bar_SK_E2)"),
+    ],
+)
+def test_modification_wrong_syntax_no_assignments_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test wrong syntax in section_configure: no assignments."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "wrong_syntax_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match="section_configure must contain assignments only"
+    ):
+        # Process simulation config
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic.gSK_E2bar_SK_E2 = somatic.gSK_E2bar_SK_E2 = 0"),
+        ("section", "soma[0].gSK_E2bar_SK_E2 = soma[0].gSK_E2bar_SK_E2 = 0"),
+        ("compartment_set", "gSK_E2bar_SK_E2 = gSK_E2bar_SK_E2 = 0"),
+    ],
+)
+def test_modification_wrong_syntax_multiple_assignments_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test wrong syntax in section_configure: chained assignments."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "wrong_syntax_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match="Only single-target assignments are supported in section_configure"
+    ):
+        # Process simulation config
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic.gSK_E2bar_SK_E2 = somatic.gSK_E2bar_SK_E2"),
+        ("section", "soma[0].gSK_E2bar_SK_E2 = soma[0].gSK_E2bar_SK_E2"),
+        ("compartment_set", "gSK_E2bar_SK_E2 = gSK_E2bar_SK_E2"),
+    ],
+)
+def test_modification_wrong_syntax_non_num_const_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test wrong syntax in section_configure: non-numeric constants."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "wrong_syntax_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match="Only numeric constants are allowed in section_configure"
+    ):
+        # Process simulation config
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic = 0"),
+        ("section", "soma[0] = 0"),
+        ("compartment_set", "gnabar[0] = 0"),
+    ],
+)
+def test_modification_wrong_syntax_no_attr_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test wrong syntax in section_configure: no attribute in assignment."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "wrong_syntax_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Add compartment sets file if compartment_set modification
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    if mod_type == "compartment_set":
+        err_msg = "target properties like "
+    else:
+        err_msg = "use syntax like "
+
+    with pytest.raises(
+        ConfigurationError,
+        match=f"{mod_type} modification must {err_msg}",
+    ):
+        # Process simulation config
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "soma.gnabar_hh = 0"),
+        ("section", "somatic[0].gnabar_hh = 0"),
+    ],
+)
+def test_modification_invalid_section_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test passing invalid section name (e.g.: different from somatic/soma, basal/dend, etc.)."""
+
+    # Build modification dict dynamically
+    # We can add both node_set and compartment_set, the irrelevant one is just ignored
+    modification = {
+        "name": "invalid_section_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    if mod_type == "section_list":
+        err_msg = "Unknown section type: soma. Allowed types are: all, apical, axonal, basal, somatic"
+    else:
+        err_msg = "Unknown section type: somatic. Allowed types are: apic, axon, dend, soma"
+
+    with pytest.raises(
+        ConfigurationError,
+        match=f"{err_msg}",
+    ):
+        # Process simulation config
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "wrong_syntax_test",
+                            "node_set": "Mosaic",
+                            "type": "section",
+                            "section_configure": "soma[3].gnabar_hh = 0",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_modification_idx_oob_section(create_tmp_simulation_config_file):
+    """Test section index out of bounds."""
+    with pytest.raises(
+        ValueError,
+        match=re.escape("3 array index out of range (length = 1)"),
+    ):
+        Neurodamus(create_tmp_simulation_config_file)
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "wrong_syntax_test",
+                            "node_set": "Mosaic",
+                            "type": "section",
+                            "section_configure": "soma.gnabar_hh = 0",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_modification_no_idx_section(create_tmp_simulation_config_file):
+    """Test wrong syntax: non-indexed section."""
+    with pytest.raises(
+        ConfigurationError,
+        match=re.escape("Section must be indexed"),
+    ):
+        Neurodamus(create_tmp_simulation_config_file)

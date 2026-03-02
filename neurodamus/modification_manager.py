@@ -181,13 +181,12 @@ class BaseASTModification:
     def parse_assignments(config: str):
         tree = ast.parse(config)
         for stmt in tree.body:
-            if not isinstance(stmt, (ast.Assign, ast.AugAssign)):
-                raise ConfigurationError("section_configure must contain assignments only")
-
             targets = BaseASTModification.assignment_targets(stmt)
 
             if len(targets) != 1:
-                raise ConfigurationError("Only single-target assignments are supported")
+                raise ConfigurationError(
+                    "Only single-target assignments are supported in section_configure"
+                )
 
             yield stmt, targets[0]
 
@@ -197,14 +196,16 @@ class BaseASTModification:
             return node.targets
         if isinstance(node, ast.AugAssign):
             return [node.target]
-        raise ConfigurationError("section_configure must consist of assignments")
+        raise ConfigurationError("section_configure must contain assignments only")
 
     @staticmethod
     def evaluate_numeric_rhs(node):
         """Safely evaluate numeric right-hand side (no evaluation)."""
+        # Positive constants
         if isinstance(node, ast.Constant):
             return float(node.value)
 
+        # Negative constants
         if (
             isinstance(node, ast.UnaryOp)
             and isinstance(node.op, ast.USub)
@@ -307,7 +308,7 @@ class SectionList(BaseSectionModification):
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, ast.Attribute):
                 raise ConfigurationError(
-                    "section_list only supports assignments like apical.gbar = 0"
+                    "section_list modification must use syntax like apical.gbar = 0"
                 )
 
             if not isinstance(lhs.value, ast.Name):
@@ -323,10 +324,10 @@ class SectionList(BaseSectionModification):
                 if not hasattr(sec, attr_name):
                     continue
 
-                if isinstance(stmt, ast.Assign):
-                    new_value = rhs_value
+                # Treat ast.Assign as default
+                new_value = rhs_value
 
-                elif isinstance(stmt, ast.AugAssign):
+                if isinstance(stmt, ast.AugAssign):
                     current = getattr(sec, attr_name)
                     op_type = type(stmt.op)
 
@@ -334,9 +335,6 @@ class SectionList(BaseSectionModification):
                         raise ConfigurationError(f"Unsupported operator {op_type}")
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                else:
-                    raise ConfigurationError("Unsupported assignment type")
 
                 setattr(sec, attr_name, new_value)
                 napply += 1
@@ -377,6 +375,7 @@ class Section(BaseSectionModification):
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
+            self.section_sanity_checks(lhs)
             sub = lhs.value
             section_name = sub.value.id
             idx = sub.slice.value
@@ -395,20 +394,17 @@ class Section(BaseSectionModification):
                 if not hasattr(sec, attr_name):
                     continue
 
-                if isinstance(stmt, ast.Assign):
-                    new_value = rhs_value
+                # Treat ast.Assign as default
+                new_value = rhs_value
 
-                elif isinstance(stmt, ast.AugAssign):
+                if isinstance(stmt, ast.AugAssign):
                     current = getattr(sec, attr_name)
                     op_type = type(stmt.op)
 
                     if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type.__name__}")
+                        raise ConfigurationError(f"Unsupported operator {op_type}")
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                else:
-                    raise ConfigurationError("Unsupported assignment type")
 
                 setattr(sec, attr_name, new_value)
                 napply += 1
@@ -436,7 +432,7 @@ class Section(BaseSectionModification):
     @staticmethod
     def section_sanity_checks(lhs):
         if not isinstance(lhs, ast.Attribute):
-            raise ConfigurationError("section must use syntax like soma[0].gnabar = 0")
+            raise ConfigurationError("section modification must use syntax like soma[0].gnabar = 0")
 
         if not isinstance(lhs.value, ast.Subscript):
             raise ConfigurationError("Section must be indexed")
@@ -478,7 +474,8 @@ class CompartmentSet(BaseASTModification):
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, (ast.Name, ast.Attribute)):
                 raise ConfigurationError(
-                    "Assignments must target compartment variables like 'hh.gnabar' or 'gnabar_hh'"
+                    "compartment_set modification must target properties like 'hh.gnabar' or "
+                    "'gnabar_hh'"
                 )
 
             dotted_name = self.get_full_attr_name(lhs)
@@ -494,20 +491,17 @@ class CompartmentSet(BaseASTModification):
                 if final_attr is None or not hasattr(obj, final_attr):
                     continue
 
-                if isinstance(stmt, ast.Assign):
-                    new_value = rhs_value
+                # Treat ast.Assign as default
+                new_value = rhs_value
 
-                elif isinstance(stmt, ast.AugAssign):
+                if isinstance(stmt, ast.AugAssign):
                     current = getattr(obj, final_attr)
                     op_type = type(stmt.op)
 
                     if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type.__name__}")
+                        raise ConfigurationError(f"Unsupported operator {op_type}")
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                else:
-                    raise ConfigurationError("Unsupported assignment type")
 
                 setattr(obj, final_attr, new_value)
                 napply += 1
