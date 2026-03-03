@@ -69,6 +69,37 @@ class TargetPointList:
                 f"Expected all lists to have equal length."
             )
 
+    def matches(
+        self,
+        expected_gid: int,
+        expected_sclst_ids: list[int],
+        expected_xs: list[float],
+        *,
+        rtol: float = 1e-9,
+        atol: float = 1e-12,
+    ) -> bool:
+        """Compare section IDs and offsets against expected values.
+
+        Floats are compared with np.allclose for robustness.
+
+        Args:
+            expected_sclst_ids: expected list of section ids
+            expected_xs: expected list of offsets along sections
+            rtol: relative tolerance for offsets
+            atol: absolute tolerance for offsets
+
+        Returns:
+            True if section IDs match exactly and offsets are close.
+        """
+        self.validate()
+        if self.gid != expected_gid:
+            return False
+        if list(self.sclst_ids) != list(expected_sclst_ids):
+            return False
+        if len(self.x) != len(expected_xs):
+            return False
+        return np.allclose(self.x, expected_xs, rtol=rtol, atol=atol)
+
     def __len__(self) -> int:
         self.validate()
         return len(self.sclst)
@@ -572,18 +603,22 @@ class NodesetTarget:
         cell_manager,
         section_type: Sections = Sections.soma,
         compartment_type: Compartments = Compartments.center,
+        section_names: set | None = None,
     ) -> compat.List[TargetPointList]:
-        """Retrieve TargetPointLists containing compartments (based on section type and
-        compartment type) of any local cells on the cpu.
+        """Return TargetPointLists for selected compartments of all local cells.
+
+        Sections are filtered by section_type and optionally by section_names.
+        For each section, either the center (0.5) or all segment positions are
+        included depending on compartment_type.
 
         Args:
-            cell_manager: a cell manager or global cell manager
-            section_type: libsonata.SimulationConfig.Report.Sections
-            compartment_type: libsonata.SimulationConfig.Report.Compartments
+            cell_manager: cell manager providing access to cells.
+            section_type: section category to extract.
+            compartment_type: center or all segments.
+            section_names: optional set of section names to include.
 
         Returns:
-            list of TargetPointList containing the compartment position
-            and retrieved section references
+            List of TargetPointList per local cell with section ids and positions.
         """
         section_type_str = section_type.name
         point_lists = compat.List()
@@ -592,6 +627,9 @@ class NodesetTarget:
             point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
             secs = getattr(cell.CellRef, section_type_str)
+
+            if section_names is not None:
+                secs = [sec for sec in secs if sec.name().split(".", 2)[1] in section_names]
 
             for sec in secs:
                 section_id = cell.get_section_id(sec)
