@@ -591,14 +591,16 @@ class NodesetTarget:
         Returns:
             List of TargetPointList per local cell with section ids and positions.
         """
-        if section_local_ids is not None and len(section_local_ids) > 1:
-            assert np.all(section_local_ids[:-1] < section_local_ids[1:]), (
-                f"section_local_ids should be strictly increasing. {section_local_ids}"
-            )
+        if section_local_ids is not None:
             assert section_type != Sections.all, (
                 "`section_type.all` is not compatible with `section_local_ids` ",
                 "filtering. Select a sectionList or do not try to filter by local_indexing",
             )
+        if section_local_ids is not None and len(section_local_ids) > 1:
+            assert np.all(section_local_ids[:-1] < section_local_ids[1:]), (
+                f"section_local_ids should be strictly increasing. {section_local_ids}"
+            )
+
 
         section_type_str = section_type.name
         point_lists = compat.List()
