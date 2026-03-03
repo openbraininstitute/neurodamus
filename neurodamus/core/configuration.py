@@ -1001,7 +1001,7 @@ class _ConnCtx:
 
     conf: dict[str, str]
     override: "_ConnCtx | None" = None
-    full_override: bool = False
+    full_override: bool | None = None
     visited: bool = False
 
 
@@ -1070,9 +1070,6 @@ def _process_delayed_connections(
                 base_conn.full_override = target_manager.pathways_overlap(
                     conn_ctx.conf, base_conn.conf, equal_only=True
                 )
-                # I do not know why this was missing
-                if base_conn.full_override:
-                    base_conn.override = conn_ctx
 
         if not is_overriding:
             logging.warning(
@@ -1121,11 +1118,11 @@ def _check_weight0_overrides(zero_weight_conns: list[_ConnCtx]) -> None:
     """Phase 3c: Warn about or raise errors for weight=0 overrides."""
     not_overridden_weight_0 = []
     for conn_ctx in zero_weight_conns:
-        if not conn_ctx.full_override:
+        if conn_ctx.full_override is None:
             not_overridden_weight_0.append(conn_ctx)
-        elif not conn_ctx.full_override:
+        elif conn_ctx.full_override is False:
             raise ConfigurationError(
-                f"Partial Weight=0 override is not supported: Conn {conn_ctx.conf['Name']}"
+                f"Partial Weight=0 override is not supported: Conn {conn_ctx.conf.name}"
             )
 
     if not_overridden_weight_0:

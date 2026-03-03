@@ -3,7 +3,7 @@
 Reference:
 https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connection-overrides
 """
-
+from ..conftest import V5_SONATA
 
 import logging
 import pytest
@@ -11,6 +11,8 @@ import numpy as np
 from scipy.signal import find_peaks
 
 from tests import utils
+
+from neurodamus.core.configuration import ConfigurationError
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -393,24 +395,16 @@ def test_override_globals(create_tmp_simulation_config_file):
             "node_set": "Mosaic",
             "connection_overrides": [
                 {"name": "All->All", "source": "Mosaic", "target": "Mosaic", "weight": 0},
-                {"name": "Delayed", "source": "Mosaic", "target": "Mosaic", "weight": 0.5, "delay": 10}
+                {"name": "RingA->RingA", "source": "Mosaic", "target": "RingA", "weight": 0.1, "delay": 10},
             ],
         },
     },
 ], indirect=True)
-def test_no_forbidden_warning(create_tmp_simulation_config_file, monkeypatch):
-    forbidden_message = "The following connections with Weight=0 are not overridden,"
-    captured = []
-
-    def fake_handle(self, record):
-        captured.append(record)
-
-    # patch the logger class handle method globally
-    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
-
+def test_no_partial_weight0_override(create_tmp_simulation_config_file):
     from neurodamus import Neurodamus
-    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    
+    with pytest.raises(ConfigurationError, match="Partial Weight=0 override is not supported: Conn All->All"):
+        Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
-    assert not any(forbidden_message in str(r.getMessage()) for r in captured), (
-        f"Found forbidden warning: {forbidden_message}"
-    )
+
+
