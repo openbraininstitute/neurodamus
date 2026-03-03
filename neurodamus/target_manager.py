@@ -3,7 +3,6 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import lru_cache, reduce
-from itertools import pairwise
 from operator import or_
 
 import libsonata
@@ -592,8 +591,8 @@ class NodesetTarget:
         Returns:
             List of TargetPointList per local cell with section ids and positions.
         """
-        if section_local_ids is not None:
-            assert all(a < b for a, b in pairwise(section_local_ids)), (
+        if section_local_ids is not None and len(section_local_ids) > 1:
+            assert np.all(section_local_ids[:-1] < section_local_ids[1:]), (
                 f"section_local_ids should be strictly increasing. {section_local_ids}"
             )
             assert section_type != Sections.all, (
