@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import lru_cache, reduce
+from itertools import pairwise
 from operator import or_
 
 import libsonata
@@ -68,37 +69,6 @@ class TargetPointList:
                 f"sclst_ids has {len(self.sclst_ids)} elements. "
                 f"Expected all lists to have equal length."
             )
-
-    def matches(
-        self,
-        expected_gid: int,
-        expected_sclst_ids: list[int],
-        expected_xs: list[float],
-        *,
-        rtol: float = 1e-9,
-        atol: float = 1e-12,
-    ) -> bool:
-        """Compare section IDs and offsets against expected values.
-
-        Floats are compared with np.allclose for robustness.
-
-        Args:
-            expected_sclst_ids: expected list of section ids
-            expected_xs: expected list of offsets along sections
-            rtol: relative tolerance for offsets
-            atol: absolute tolerance for offsets
-
-        Returns:
-            True if section IDs match exactly and offsets are close.
-        """
-        self.validate()
-        if self.gid != expected_gid:
-            return False
-        if list(self.sclst_ids) != list(expected_sclst_ids):
-            return False
-        if len(self.x) != len(expected_xs):
-            return False
-        return np.allclose(self.x, expected_xs, rtol=rtol, atol=atol)
 
     def __len__(self) -> int:
         self.validate()
@@ -603,7 +573,7 @@ class NodesetTarget:
         cell_manager,
         section_type: Sections = Sections.soma,
         compartment_type: Compartments = Compartments.center,
-        section_names: set | None = None,
+        section_local_ids: list[int] | None = None,
     ) -> compat.List[TargetPointList]:
         """Return TargetPointLists for selected compartments of all local cells.
 
@@ -615,23 +585,38 @@ class NodesetTarget:
             cell_manager: cell manager providing access to cells.
             section_type: section category to extract.
             compartment_type: center or all segments.
-            section_names: optional set of section names to include.
+            section_local_ids: optional list of section local idxs. i.e.: soma[3] -> 3.
+                It needs to be strictly increasing. I cannot be in conjunction with
+                section_type.all since indexing does not coincide in that way
 
         Returns:
             List of TargetPointList per local cell with section ids and positions.
         """
+        if section_local_ids is not None:
+            assert all(a < b for a, b in pairwise(section_local_ids)), (
+                f"section_local_ids should be strictly increasing. {section_local_ids}"
+            )
+            assert section_type != Sections.all, (
+                "`section_type.all` is not compatible with `section_local_ids` ",
+                "filtering. Select a sectionList or do not try to filter by local_indexing",
+            )
+
         section_type_str = section_type.name
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
             point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
-            secs = getattr(cell.CellRef, section_type_str)
+            secs = list(getattr(cell.CellRef, section_type_str))
 
-            if section_names is not None:
-                secs = [sec for sec in secs if sec.name().split(".", 2)[1] in section_names]
+            nsecs = len(secs)
+            isecs = section_local_ids if section_local_ids is not None else range(nsecs)
 
-            for sec in secs:
+            for isec in isecs:
+                if isec >= nsecs:
+                    break
+                sec = secs[isec]
+
                 section_id = cell.get_section_id(sec)
                 if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)

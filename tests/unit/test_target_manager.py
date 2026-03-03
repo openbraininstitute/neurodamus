@@ -1,5 +1,6 @@
 import pytest
 import libsonata
+import numpy as np
 Sections = libsonata.SimulationConfig.Report.Sections
 Compartments = libsonata.SimulationConfig.Report.Compartments
 
@@ -20,7 +21,7 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
     tgt = n.target_manager.get_target("RingA")
     cell_manager = n.circuits.get_node_manager("RingA")
 
-    # List of test cases: (section_type, compartment_type, section_names, expected, check_names)
+    # List of test cases: (section_type, compartment_type, section_local_ids, expected, check_names)
     test_cases = [
         # default (center soma)
         (Sections.soma, Compartments.center, None,
@@ -40,30 +41,34 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
          None),
 
         # filter by section names
-        (Sections.all, Compartments.all, {"soma[0]", "dend[1]"},
-         [(0, [0, 2, 2], [0.5, 0.25, 0.75]),
-          (1, [0, 2, 2], [0.5, 0.25, 0.75]),
-          (2, [0, 2, 2], [0.5, 0.25, 0.75])],
-         {"soma[0]", "dend[1]"}),
+        (Sections.dend, Compartments.all, [1],
+         [(0, [2, 2], [ 0.25, 0.75]),
+          (1, [ 2, 2], [0.25, 0.75]),
+          (2, [2, 2], [0.25, 0.75])],
+         {"dend[1]"}),
 
-        # filter that produces empty points
-        (Sections.soma, Compartments.center, {"dend[0]"},
-         [(0, [], []), (1, [], []), (2, [], [])],
-         None),
+        # skip if section_local_id is not there
+        (Sections.dend, Compartments.all, [1],
+         [(0, [2, 2], [ 0.25, 0.75]),
+          (1, [2, 2], [ 0.25, 0.75]),
+          (2, [2, 2], [ 0.25, 0.75])],
+         {"dend[1]"}),
     ]
 
-    for section_type, compartment_type, section_names, expected, check_names in test_cases:
+    for section_type, compartment_type,  section_local_ids, expected, check_names in test_cases:
         pts = tgt.get_point_list(
             cell_manager=cell_manager,
             section_type=section_type,
             compartment_type=compartment_type,
-            section_names=section_names
+            section_local_ids= section_local_ids
         )
 
         assert len(pts) == len(expected)
 
         for pt, (exp_gid, exp_ids, exp_xs) in zip(pts, expected, strict=True):
-            assert pt.matches(exp_gid, exp_ids, exp_xs)
+            assert pt.gid == exp_gid
+            assert pt.sclst_ids == exp_ids
+            assert np.allclose(pt.x, exp_xs)
 
         if check_names:
             all_names = [sec_ref.sec.name() for pt in pts for sec_ref in pt.sclst]
@@ -71,3 +76,32 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
                 assert all(check_names in name for name in all_names)
             else:
                 assert all(any(req in name for req in check_names) for name in all_names)
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_get_point_list_invalid_section_local_ids(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    tgt = n.target_manager.get_target("RingA")
+    cell_manager = n.circuits.get_node_manager("RingA")
+
+    # 1) Not strictly increasing
+    with pytest.raises(AssertionError):
+        tgt.get_point_list(
+            cell_manager=cell_manager,
+            section_type=Sections.dend,
+            section_local_ids=[1, 1],
+        )
+
+    # 2) Incompatible with Sections.all
+    with pytest.raises(AssertionError):
+        tgt.get_point_list(
+            cell_manager=cell_manager,
+            section_type=Sections.all,
+            section_local_ids=[0],
+        )
