@@ -586,7 +586,7 @@ class NodesetTarget:
             section_type: section category to extract.
             compartment_type: center or all segments.
             section_local_ids: optional list of section local idxs. i.e.: soma[3] -> 3.
-                It needs to be strictly increasing. I cannot be in conjunction with
+                It needs to be strictly increasing. It cannot be in conjunction with
                 section_type.all since indexing does not coincide in that way
 
         Returns:
