@@ -180,13 +180,16 @@ class Connection(ConnectionBase):
 
     @classmethod
     def _init_hmod(cls):
+        cls.ConnUtils = Nd.ConnectionUtils()
+        cls._pc = Nd.pc
+
+    @classmethod
+    def _init_synapse_model_helpers(cls):
         if cls._AMPANMDA_Helper is not None:
             return
         h = Nd.require("AMPANMDAHelper", "GABAABHelper")
         cls._AMPANMDA_Helper = h.AMPANMDAHelper
         cls._GABAAB_Helper = h.GABAABHelper
-        cls.ConnUtils = h.ConnectionUtils()
-        cls._pc = Nd.pc
 
     def __init__(
         self,
@@ -488,6 +491,7 @@ class Connection(ConnectionBase):
             helper_cls = getattr(Nd.h, override_helper)
             add_params = (self._src_pop_id, self._dst_pop_id)
         else:
+            self._init_synapse_model_helpers()
             helper_cls = self._GABAAB_Helper if is_inh else self._AMPANMDA_Helper
             add_params = (self._src_pop_id, self._dst_pop_id)
 

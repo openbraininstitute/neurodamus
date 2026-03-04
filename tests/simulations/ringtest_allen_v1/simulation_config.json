@@ -18,14 +18,14 @@
         "source": "RingA",
         "target": "RingA",
         "weight": 1,
-        "modoverride": "exp2syn"
+        "modoverride": "Exp2Syn"
         },
         {
         "name": "point_biophysical",
         "source": "RingB",
         "target": "RingA",
         "weight": 1,
-        "modoverride": "exp2syn"
+        "modoverride": "Exp2Syn"
         }
     ]
 }

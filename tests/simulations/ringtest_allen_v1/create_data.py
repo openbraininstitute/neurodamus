@@ -3,14 +3,14 @@
 # dependencies = ['h5py', 'libsonata', 'numpy']
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
+import itertools as it
 import sys
 from pathlib import Path
-import itertools as it
 
 # Add path for local imports
 if __name__ == "__main__":
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import Edges, make_nodes, make_edges
+from utils import Edges, make_edges, make_nodes
 
 
 def make_v1_nodes():
@@ -86,8 +86,8 @@ def make_v1_edges():
         "afferent_section_id": 1,
         "afferent_section_pos": 0.75,
     }
-    make_edges(
-        filename="edges_BA.h5", edges=edges, wanted_attributes=wanted_attributes)
+    make_edges(filename="edges_BA.h5", edges=edges, wanted_attributes=wanted_attributes)
+
 
 make_v1_nodes()
 make_v1_edges()

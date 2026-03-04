@@ -17,14 +17,23 @@ build_common_ngv()
     cd $BUILD_DIR
     nrnivmodl -incflags "-DDISABLE_REPORTINGLIB" $MOD_DIR
 }
+build_allen_v1()
+{
+    cp -f $CORE_DIR/mod/*.mod $MOD_DIR
+    cd $BUILD_DIR
+    nrnivmodl -incflags "-DDISABLE_REPORTINGLIB" $MOD_DIR
+}
 
 set -euxo pipefail
 
 NGV_BUILD=false
+ALLEN_V1_BUILD=false
 remaining_args=""
 for arg in "$@"; do
     if [[ "$arg" == -ngv ]]; then
         NGV_BUILD=true
+    elif [[ "$arg" == -allen_v1 ]]; then
+        ALLEN_V1_BUILD=true
     else
         remaining_args="$remaining_args $arg" 
     fi
@@ -37,7 +46,10 @@ BUILD_DIR="$2"
 if [ $NGV_BUILD = true ]; then 
     LIBRARY_DIR=$BUILD_DIR/lib-ngv
     MOD_DIR=$BUILD_DIR/mods-ngv.tmp
-else 
+elif [ $ALLEN_V1_BUILD = true ]; then
+    LIBRARY_DIR=$BUILD_DIR/lib-allen-v1
+    MOD_DIR=$BUILD_DIR/mods-allen-v1.tmp
+else
     LIBRARY_DIR=$BUILD_DIR/lib
     MOD_DIR=$BUILD_DIR/mods.tmp
 fi
@@ -59,13 +71,20 @@ NEURODAMUS_MODELS_DIR=$BUILD_DIR/neurodamus-models
 if [ -d "$NEURODAMUS_MODELS_DIR" ]; then
     ( cd "$NEURODAMUS_MODELS_DIR" && git pull --quiet )
 else
-    git clone https://github.com/openbraininstitute/neurodamus-models.git $NEURODAMUS_MODELS_DIR --depth=1
+    git clone https://github.com/openbraininstitute/neurodamus-models.git -b weji/allen_v1 $NEURODAMUS_MODELS_DIR --depth=1
 fi
 
 #Build libs from mod files
 mkdir -p $MOD_DIR
 mkdir -p $LIBRARY_DIR
-if [ $NGV_BUILD = true ]; then build_common_ngv; else build_common; fi
+if [ $NGV_BUILD = true ]; then
+    build_common_ngv
+elif [ $ALLEN_V1_BUILD = true ]; then
+    build_allen_v1
+else
+    build_common
+fi
+
 ARCH=$(uname -m)
 if [ ! -f $ARCH/special ]; then
     echo "Error running nrnivmodl"
@@ -81,4 +100,8 @@ if [ -f "$ARCH/libcorenrnmech.$EXT" ]; then
     echo "export CORENEURONLIB=$LIBRARY_DIR/libcorenrnmech.$EXT" >> $BUILD_DIR/.envfile
 fi
 cp -f $CORE_DIR/hoc/*.hoc $LIBRARY_DIR
-cp -f $NEURODAMUS_MODELS_DIR/common/hoc/*.hoc $LIBRARY_DIR
+if [ $ALLEN_V1_BUILD = true ]; then
+    cp -f $NEURODAMUS_MODELS_DIR/Allen_V1/hoc/*.hoc $LIBRARY_DIR
+else
+    cp -f $NEURODAMUS_MODELS_DIR/common/hoc/*.hoc $LIBRARY_DIR
+fi

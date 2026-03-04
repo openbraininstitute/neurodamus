@@ -65,15 +65,11 @@ class _NeuronWrapper(_Neuron):
     def _load_nrnmechlibs(cls):
         """Loads the required mods for neurodamus to work
 
-        Two sets are required:
+        Two sets are checks:
           1. neurodamus mechanisms: "Extensions" for reports, edges, etc
             (built-in or exclusively from NRNMECH_LIB_PATH)
-          2. model mechanisms: synapse mechanisms, etc...
-            (built-in or coming from BGLIBPY_MOD_LIBRARY_PATH)
-
-        As so, the models may be combined in a library pointed by
-        NRNMECH_LIB_PATH which is searched first. Nevertheless
-        BGLIBPY_MOD_LIBRARY_PATH must exclusively contain model mechs
+          2. model mechanisms: BBP synapse mechanisms, print warnings if missing
+            (built-in or coming from NRNMECH_LIB_PATH)
 
         Env vars can also point to several libs separated by ':'
         """
@@ -94,17 +90,14 @@ class _NeuronWrapper(_Neuron):
                     logging.warning("Invalid entry in %s: %s", env_lib_path, libpath)
             return hasattr(cls._h, mech)
 
-        # DEV NOTE: model mods may together with core mods, so check for it first
-        # Two independent env vars are required since we want to support "special -python"
-        # which might not bring the model (support for split neurodamus) in which case
-        # we should load only the model libs pointed by BGLIBPY_MOD_LIBRARY_PATH.
-
         if not check_load_lib("SonataReport", "NRNMECH_LIB_PATH"):
             logging.error("Could not load neurodamus core mechs from NRNMECH_LIB_PATH")
             sys.exit(1)
-        if not check_load_lib("ProbAMPANMDA_EMS", "BGLIBPY_MOD_LIBRARY_PATH"):
-            logging.error("Could not load mod library from BGLIBPY_MOD_LIBRARY_PATH")
-            sys.exit(1)
+        if not check_load_lib("ProbAMPANMDA_EMS", ""):
+            logging.warning(
+                "Could not find BBP synapse models from NRNMECH_LIB_PATH,"
+                " are custom synapse models loaded instead?",
+            )
 
     @property
     def pc(self):
