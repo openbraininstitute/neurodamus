@@ -40,7 +40,7 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
           (2, [0, 1, 1, 2, 2], [0.5, 0.25, 0.75, 0.25, 0.75])],
          None),
 
-        # filter by section names
+        # filter by section_local_id
         (Sections.dend, Compartments.all, [1],
          [(0, [2, 2], [ 0.25, 0.75]),
           (1, [ 2, 2], [0.25, 0.75]),
@@ -48,11 +48,11 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
          {"dend[1]"}),
 
         # skip if section_local_id is not there
-        (Sections.dend, Compartments.all, [1],
-         [(0, [2, 2], [ 0.25, 0.75]),
-          (1, [2, 2], [ 0.25, 0.75]),
-          (2, [2, 2], [ 0.25, 0.75])],
-         {"dend[1]"}),
+        (Sections.dend, Compartments.all, [0, 1, 2],
+         [(0, [1, 1, 2, 2], [0.25, 0.75, 0.25, 0.75]),
+          (1, [1, 1, 2, 2], [0.25, 0.75, 0.25, 0.75]),
+          (2, [1, 1, 2, 2], [0.25, 0.75, 0.25, 0.75])],
+         {"dend[0]", "dend[1]"}),
     ]
 
     for section_type, compartment_type,  section_local_ids, expected, check_names in test_cases:

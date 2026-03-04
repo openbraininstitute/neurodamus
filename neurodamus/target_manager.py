@@ -601,7 +601,6 @@ class NodesetTarget:
                 f"section_local_ids should be strictly increasing. {section_local_ids}"
             )
 
-
         section_type_str = section_type.name
         point_lists = compat.List()
 
