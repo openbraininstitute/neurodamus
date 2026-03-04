@@ -61,7 +61,7 @@ class PointProcessSynSynapseReader(SonataReader):
 
 
 class PointConnection(Connection):
-    def add_synapses(self, target_manager, synapses_params, base_id=0):
+    def add_synapses(self, _target_manager, synapses_params, _base_id):
         """Adds synapses in bulk.
 
         Args:
@@ -73,7 +73,7 @@ class PointConnection(Connection):
         self._synapse_params = synapses_params
         assert n_synapses <= 1, "Allen PointConnection supports max. one synapse per connection"
 
-    def finalize(self, cell, base_seed=None, attach_src_cell=True, **kw):
+    def finalize(self, cell, _base_seed, attach_src_cell=True, **_kw):
         """Create netcons for point neuron connections
 
         Args:

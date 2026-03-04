@@ -20,6 +20,8 @@ build_common_ngv()
 build_allen_v1()
 {
     cp -f $CORE_DIR/mod/*.mod $MOD_DIR
+    cp -f $NEURODAMUS_MODELS_DIR/Allen_V1/mod/ProbGABAAB_EMS.mod $MOD_DIR
+    cp -f $NEURODAMUS_MODELS_DIR/Allen_V1/mod/vecevent.mod $MOD_DIR
     cd $BUILD_DIR
     nrnivmodl -incflags "-DDISABLE_REPORTINGLIB" $MOD_DIR
 }

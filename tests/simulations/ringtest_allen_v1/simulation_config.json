@@ -27,5 +27,23 @@
         "weight": 1,
         "modoverride": "Exp2Syn"
         }
-    ]
+    ],
+    "inputs": {
+        "RingA_spikes": {
+            "input_type": "spikes",
+            "module": "synapse_replay",
+            "delay": 0,
+            "duration": 100,
+            "spike_file": "replay_RingA.h5",
+            "node_set": "RingB"
+        },
+        "RingB_spikes": {
+            "input_type": "spikes",
+            "module": "synapse_replay",
+            "delay": 0,
+            "duration": 100,
+            "spike_file": "replay_RingB.h5",
+            "node_set": "RingA"
+        }
+    }
 }
