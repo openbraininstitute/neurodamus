@@ -42,12 +42,13 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
 
         # filter by section_local_id
         (Sections.dend, Compartments.all, [1],
-         [(0, [2, 2], [ 0.25, 0.75]),
+         [(0, [2, 2], [0.25, 0.75]),
           (1, [2, 2], [0.25, 0.75]),
           (2, [2, 2], [0.25, 0.75])],
          {"dend[1]"}),
 
         # skip if section_local_id is not there
+        # because the section list is too short
         (Sections.dend, Compartments.all, [0, 1, 2],
          [(0, [1, 1, 2, 2], [0.25, 0.75, 0.25, 0.75]),
           (1, [1, 1, 2, 2], [0.25, 0.75, 0.25, 0.75]),
