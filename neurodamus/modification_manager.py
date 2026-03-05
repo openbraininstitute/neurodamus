@@ -207,7 +207,7 @@ class BaseASTModification:
 
     @staticmethod
     def evaluate_numeric_rhs(node):
-        """Safely evaluate numeric right-hand side (no evaluation)."""
+        """Safely evaluate numeric right-hand side."""
         # Positive constants
         if isinstance(node, ast.Constant):
             return float(node.value)
@@ -222,33 +222,11 @@ class BaseASTModification:
 
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
-    @staticmethod
-    def resolve_dotted_attr(obj, dotted_name):
-        parts = dotted_name.split(".")
-        for p in parts[:-1]:
-            if hasattr(obj, p):
-                obj = getattr(obj, p)
-            else:
-                return obj, None
-        return obj, parts[-1]
-
 
 class BaseSectionModification(BaseASTModification):
     """Shared base class for section and section_list modifications."""
 
-    SECTION_MAP = {
-        # section_list type entries
-        "apical": libsonata.SimulationConfig.Report.Sections.apic,
-        "axonal": libsonata.SimulationConfig.Report.Sections.axon,
-        "basal": libsonata.SimulationConfig.Report.Sections.dend,
-        "somatic": libsonata.SimulationConfig.Report.Sections.soma,
-        "all": libsonata.SimulationConfig.Report.Sections.all,
-        # section type entries
-        "apic": libsonata.SimulationConfig.Report.Sections.apic,
-        "axon": libsonata.SimulationConfig.Report.Sections.axon,
-        "dend": libsonata.SimulationConfig.Report.Sections.dend,
-        "soma": libsonata.SimulationConfig.Report.Sections.soma,
-    }
+    SECTION_MAP = {}
 
     def get_allowed_entries(self):
         return ", ".join(sorted(self.SECTION_MAP))
@@ -514,18 +492,3 @@ class CompartmentSet(BaseASTModification):
                 napply += 1
 
         return napply
-
-    @staticmethod
-    def get_full_attr_name(node):
-        parts = []
-
-        while isinstance(node, ast.Attribute):
-            parts.append(node.attr)
-            node = node.value
-
-        if isinstance(node, ast.Name):
-            parts.append(node.id)
-        else:
-            raise ConfigurationError("Unsupported assignment target")
-
-        return ".".join(reversed(parts))
