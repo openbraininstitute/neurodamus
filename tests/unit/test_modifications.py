@@ -971,6 +971,40 @@ def test_modification_invalid_section_multiple_types(
         Neurodamus(sim_file_path)
 
 @pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic[0].gnabar_hh = 0"),
+        ("section", "soma(0)[0].gnabar_hh = 0"),
+    ],
+)
+def test_modification_wrong_sec_type_multiple_types(
+        ringtest_baseconfig, mod_type, section_configure
+):
+    """Test passing invalid syntax in section type."""
+
+    # Build modification dict dynamically
+    modification = {
+        "name": "invalid_section_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match=re.escape("Invalid syntax for section type"),
+    ):
+        Neurodamus(sim_file_path)
+
+@pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
         {
@@ -1025,6 +1059,42 @@ def test_modification_no_idx_section(create_tmp_simulation_config_file):
     """Test wrong syntax: non-indexed section."""
     with pytest.raises(
         ConfigurationError,
-        match=re.escape("Section must be indexed"),
+        match="Section must be indexed",
     ):
         Neurodamus(create_tmp_simulation_config_file)
+
+
+
+@pytest.mark.parametrize(
+    "section_configure, err_msg",
+    [
+        ("soma.gnabar_hh = 0", "Section must be indexed"),
+        ("soma[a].gnabar_hh = 0", "Section index must be constant"),
+    ],
+)
+def test_modification_wrong_idx_section(ringtest_baseconfig, section_configure, err_msg):
+    """Test passing invalid syntax in indexed sections."""
+
+    # Build modification dict dynamically
+    modification = {
+        "name": "invalid_section_test",
+        "type": "section",
+        "node_set": "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    # Write to temp JSON file
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match=err_msg,
+    ):
+        Neurodamus(sim_file_path)
+
+

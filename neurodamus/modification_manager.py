@@ -298,7 +298,7 @@ class SectionList(BaseSectionModification):
                 )
 
             if not isinstance(lhs.value, ast.Name):
-                raise ConfigurationError("Invalid section target")
+                raise ConfigurationError("Invalid syntax for section type")
 
             section_name = lhs.value.id
             attr_name = lhs.attr
@@ -393,24 +393,6 @@ class Section(BaseSectionModification):
 
         return napply
 
-    def get_target_cells(self, target, cell_manager, section_name):
-        section_type = self.get_section_type(section_name)
-
-        tpoints = target.get_point_list(
-            cell_manager,
-            section_type=section_type,
-            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
-        )
-
-        target_cells = set()
-        for tpoint_list in tpoints:
-            for sec in tpoint_list.sclst:
-                cell = sec.sec.cell()
-                target_cells.add(cell)
-                break
-
-        return target_cells
-
     @staticmethod
     def section_sanity_checks(lhs):
         if not isinstance(lhs, ast.Attribute):
@@ -422,7 +404,7 @@ class Section(BaseSectionModification):
         sub = lhs.value
 
         if not isinstance(sub.value, ast.Name):
-            raise ConfigurationError("Invalid section name")
+            raise ConfigurationError("Invalid syntax for section type")
 
         if not isinstance(sub.slice, ast.Constant):
             raise ConfigurationError("Section index must be constant")
