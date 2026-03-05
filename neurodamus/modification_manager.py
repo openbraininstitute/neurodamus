@@ -371,7 +371,6 @@ class Section(BaseSectionModification):
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for sec in self.iter_sections(target, cell_manager, section_type, [idx]):
-
                 if not hasattr(sec, attr_name):
                     continue
 
