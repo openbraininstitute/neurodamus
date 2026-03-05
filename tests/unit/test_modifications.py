@@ -474,7 +474,7 @@ def test_modification_section(create_tmp_simulation_config_file):
                             "name": "Ca_hotspot_dend[10]_manipulation",
                             "compartment_set": "csA",
                             "type": "compartment_set",
-                            "section_configure": "hh.gnabar = -3.0; cm = 2.0",
+                            "section_configure": "gnabar_hh = -3.0; cm = 2.0",
                         }
                     ]
                 },
@@ -503,9 +503,8 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
                 for seg in sec.allseg():
                     if hasattr(seg, "cm"):
                         assert np.isclose(seg.cm, 1.0)
-                    # "hh.gnabar" is equivalent to "gnabar_hh"
-                    if hasattr(seg, "hh.gnabar"):
-                        assert 0.0 < seg.hh.gnabar < 1.0
+                    if hasattr(seg, "gnabar_hh"):
+                        assert 0.0 < seg.gnabar_hh < 1.0
 
     n.enable_modifications()
 
@@ -513,10 +512,8 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
     cs = n.target_manager.get_compartment_set("csA")
     comp_set = list(cs.filtered_iter(cs.node_ids()))
 
-    # Matching segments for section-wise attributes (cm)
-    cs_section_hits = set()
-    # Matching segments for segment-specific attributes (hh.gnabar)
-    cs_segment_hits = set()
+    # Set of segments that will be modified
+    modif_segments = set()
 
     gid_to_manager = {}
     for cd in n.circuits.all_node_managers():
@@ -524,32 +521,51 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
             gid_to_manager[cell.gid] = cd
 
     for cl in comp_set:
-        cs_section_hits.add((cl.node_id, cl.section_id))
-
         section = gid_to_manager[cl.node_id].get_cell(cl.node_id).get_sec(cl.section_id)
         segment = section(cl.offset)
         # Segment node index should be unique for each segment in the circuit
         # The same segment can be obtained when indexing through different offsets,
         # depending on the number of segments (nsec)
         seg_nidx = segment.node_index()
-        cs_segment_hits.add((cl.node_id, cl.section_id, seg_nidx))
+        modif_segments.add((cl.node_id, cl.section_id, seg_nidx))
 
+    # We do a second pass on the sections, as compartments at the beginning/end may be modified:
+    # - For offset=0, it will take the value of the next compartment
+    # - For offset=1, it will take the value of the previous compartment
+    orig_modif_segments = modif_segments.copy()
+    for node_id, sec_id, node_idx in orig_modif_segments:
+        section = gid_to_manager[node_id].get_cell(node_id).get_sec(sec_id)
+        # We store the previous compartment for the next iteration, in case we:
+        # - need to add it
+        # - check it was modified
+        prev_comp = None
+        for seg in section.allseg():
+            if (node_id, sec_id, seg.node_index()) in orig_modif_segments:
+                if prev_comp is not None and np.isclose(prev_comp.x, 0.):
+                    # If current compartment is modified and previous compartment was 0
+                    modif_segments.add((node_id, sec_id, prev_comp.node_index()))
+
+            if np.isclose(seg.x, 1.):
+                # This is the last compartment, check if the previous one was modified
+                if prev_comp is not None and (
+                        (node_id, sec_id, prev_comp.node_index()) in orig_modif_segments
+                ):
+                    modif_segments.add((node_id, sec_id, seg.node_index()))
+            prev_comp = seg
+
+    # Check again all values after applying modifications
     for cd in n.circuits.all_node_managers():
         for cell in cd.cells:
-            for sec_id in set(cell.get_section_counts()):
-                sec = cell.get_sec(sec_id)
+            for sec in cell.CellRef.all:
+                sec_id = cell.get_section_id(sec)
                 for seg in sec.allseg():
-                    in_section = (cell.gid, sec_id) in cs_section_hits
-                    in_segment = (cell.gid, sec_id, seg.node_index()) in cs_segment_hits
+                    is_modif = (cell.gid, sec_id, seg.node_index()) in modif_segments
 
                     if hasattr(seg, "cm"):
-                        assert np.isclose(seg.cm, 2.) if in_section else np.isclose(seg.cm, 1.)
+                        assert np.isclose(seg.cm, 2.) if is_modif else np.isclose(seg.cm, 1.)
 
-                    if hasattr(seg, "hh.gnabar"):
-                        assert np.isclose(
-                            seg.hh.gnabar, -3.
-                        ) if in_segment else 0. < seg.hh.gnabar < 1.
-
+                    if hasattr(seg, "gnabar_hh"):
+                        assert np.isclose(seg.gnabar_hh, -3) if is_modif else 0 < seg.gnabar_hh < 1
 
 @pytest.mark.parametrize(
     "mod_type, target_param, target_name, section_configure, expected",
@@ -942,7 +958,8 @@ def test_modification_invalid_section_multiple_types(
         sim_file_path = f.name
 
     if mod_type == "section_list":
-        err_msg = "Unknown section type: soma. Allowed types are: all, apical, axonal, basal, somatic"
+        err_msg = \
+            "Unknown section type: soma. Allowed types are: all, apical, axonal, basal, somatic"
     else:
         err_msg = "Unknown section type: somatic. Allowed types are: apic, axon, dend, soma"
 

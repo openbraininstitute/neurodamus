@@ -325,6 +325,7 @@ class SectionList(BaseSectionModification):
                     continue
 
                 # Treat ast.Assign as default
+                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
                 new_value = rhs_value
 
                 if isinstance(stmt, ast.AugAssign):
@@ -395,6 +396,7 @@ class Section(BaseSectionModification):
                     continue
 
                 # Treat ast.Assign as default
+                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
                 new_value = rhs_value
 
                 if isinstance(stmt, ast.AugAssign):
@@ -492,6 +494,7 @@ class CompartmentSet(BaseASTModification):
                     continue
 
                 # Treat ast.Assign as default
+                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
                 new_value = rhs_value
 
                 if isinstance(stmt, ast.AugAssign):
