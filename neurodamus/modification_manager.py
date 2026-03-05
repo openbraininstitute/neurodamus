@@ -48,7 +48,7 @@ class ModificationManager:
         if not mod_t:
             raise ConfigurationError(f"Unknown Modification {mod_info.type}")
 
-        if isinstance(mod_info, libsonata.SimulationConfig.ModificationCompartmentSet):
+        if mod_info.type.name == "compartment_set":
             target_spec = TargetSpec(mod_info.compartment_set, None)
             target = self._target_manager.get_compartment_set(target_spec.name)
         else:
