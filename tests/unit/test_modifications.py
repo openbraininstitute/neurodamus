@@ -272,7 +272,7 @@ def test_error_unknown_modification():
         ConfigurationError,
         match="Unknown Modification",
     ):
-        mod_manager.interpret(target_spec="dummy", mod_info=mod_info)
+        mod_manager.interpret(mod_info=mod_info)
 
 
 @pytest.mark.parametrize(

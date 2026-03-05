@@ -27,6 +27,7 @@ import libsonata
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
+from .target_manager import TargetSpec
 from .utils.logging import log_verbose
 
 
@@ -41,15 +42,21 @@ class ModificationManager:
         self._target_manager = target_manager
         self._modifications = []
 
-    def interpret(self, target_spec, mod_info):
+    def interpret(self, mod_info):
         mod_t = self._mod_types.get(mod_info.type)
 
         if not mod_t:
             raise ConfigurationError(f"Unknown Modification {mod_info.type}")
+
         if isinstance(mod_info, libsonata.SimulationConfig.ModificationCompartmentSet):
+            target_spec = TargetSpec(mod_info.compartment_set, None)
             target = self._target_manager.get_compartment_set(target_spec.name)
         else:
+            target_spec = TargetSpec(mod_info.node_set, None)
             target = self._target_manager.get_target(target_spec)
+
+        logging.info(" * [MOD] %s: %s -> %s", mod_info.name, mod_info.type.name, target_spec)
+
         cell_manager = self._target_manager._cell_manager
         mod = mod_t(target, mod_info, cell_manager)
         self._modifications.append(mod)
