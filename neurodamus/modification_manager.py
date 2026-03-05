@@ -241,11 +241,12 @@ class BaseSectionModification(BaseASTModification):
             ) from err
 
     @staticmethod
-    def iter_sections(target, cell_manager, section_type):
+    def iter_sections(target, cell_manager, section_type, section_ids):
         tpoints = target.get_point_list(
             cell_manager,
             section_type=section_type,
             compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
+            section_local_ids=section_ids,
         )
 
         sections = set()
@@ -305,7 +306,7 @@ class SectionList(BaseSectionModification):
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.iter_sections(target, cell_manager, section_type):
+            for sec in self.iter_sections(target, cell_manager, section_type, None):
                 if not hasattr(sec, attr_name):
                     continue
 
@@ -364,18 +365,12 @@ class Section(BaseSectionModification):
             self.section_sanity_checks(lhs)
             sub = lhs.value
             section_name = sub.value.id
+            section_type = self.get_section_type(section_name)
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            target_cells = self.get_target_cells(target, cell_manager, section_name)
-
-            for cell in target_cells:
-                sec_list = getattr(cell, section_name)
-                if len(sec_list) <= idx:
-                    raise ValueError(f"{idx} array index out of range (length = {len(sec_list)})")
-
-                sec = sec_list[idx]
+            for sec in self.iter_sections(target, cell_manager, section_type, [idx]):
 
                 if not hasattr(sec, attr_name):
                     continue

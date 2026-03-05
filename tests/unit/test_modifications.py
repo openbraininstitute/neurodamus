@@ -992,13 +992,12 @@ def test_modification_invalid_section_multiple_types(
     ],
     indirect=True,
 )
-def test_modification_idx_oob_section(create_tmp_simulation_config_file):
-    """Test section index out of bounds."""
-    with pytest.raises(
-        ValueError,
-        match=re.escape("3 array index out of range (length = 1)"),
-    ):
-        Neurodamus(create_tmp_simulation_config_file)
+def test_modification_idx_oob_section(create_tmp_simulation_config_file, capsys):
+    """Test section index out of bounds: shouldn't crash, just warn about 0 modifications applied."""
+
+    Neurodamus(create_tmp_simulation_config_file)
+    captured = capsys.readouterr()
+    assert "section applied to zero sections" in captured.out
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
