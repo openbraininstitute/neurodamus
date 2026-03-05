@@ -572,28 +572,51 @@ class NodesetTarget:
         cell_manager,
         section_type: Sections = Sections.soma,
         compartment_type: Compartments = Compartments.center,
+        section_local_ids: list[int] | None = None,
     ) -> compat.List[TargetPointList]:
-        """Retrieve TargetPointLists containing compartments (based on section type and
-        compartment type) of any local cells on the cpu.
+        """Return TargetPointLists for selected compartments of all local cells.
+
+        Sections are filtered by section_type and optionally by section_names.
+        For each section, either the center (0.5) or all segment positions are
+        included depending on compartment_type.
 
         Args:
-            cell_manager: a cell manager or global cell manager
-            section_type: libsonata.SimulationConfig.Report.Sections
-            compartment_type: libsonata.SimulationConfig.Report.Compartments
+            cell_manager: cell manager providing access to cells.
+            section_type: section category to extract.
+            compartment_type: center or all segments.
+            section_local_ids: optional list of section local idxs. i.e.: soma[3] -> 3.
+                It needs to be strictly increasing. It cannot be in conjunction with
+                section_type.all since indexing does not coincide in that way
 
         Returns:
-            list of TargetPointList containing the compartment position
-            and retrieved section references
+            List of TargetPointList per local cell with section ids and positions.
         """
+        if section_local_ids is not None:
+            assert section_type != Sections.all, (
+                "`section_type.all` is not compatible with `section_local_ids` ",
+                "filtering. Select a sectionList or do not try to filter by local_indexing",
+            )
+        if section_local_ids is not None and len(section_local_ids) > 1:
+            assert np.all(section_local_ids[:-1] < section_local_ids[1:]), (
+                f"section_local_ids should be strictly increasing. {section_local_ids}"
+            )
+
         section_type_str = section_type.name
         point_lists = compat.List()
 
         for gid in self.get_local_gids():
             point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
-            secs = getattr(cell.CellRef, section_type_str)
+            secs = list(getattr(cell.CellRef, section_type_str))
 
-            for sec in secs:
+            nsecs = len(secs)
+            isecs = section_local_ids if section_local_ids is not None else range(nsecs)
+
+            for isec in isecs:
+                if isec >= nsecs:
+                    break
+                sec = secs[isec]
+
                 section_id = cell.get_section_id(sec)
                 if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
