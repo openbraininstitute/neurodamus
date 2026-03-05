@@ -39,6 +39,10 @@ jobs:
         run: |
           tox -e unit-mpi
 
+      - name: Run tox unit-allen-v1
+        run: |
+          tox -e unit-allen-v1
+
       - name: Upload baseline coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
@@ -72,6 +76,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: .coverage.unit-mpi
           flag-name: unit-mpi
+          parallel: true
+          fail-on-error: false
+
+      - name: Upload unit-allen-v1 coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: .coverage.unit-allen-v1
+          flag-name: unit-allen-v1
           parallel: true
           fail-on-error: false
 
