@@ -917,7 +917,7 @@ def test_modification_wrong_syntax_no_attr_multiple_types(
         sim_file_path = f.name
 
     if mod_type == "compartment_set":
-        err_msg = "target properties like "
+        err_msg = "target variables like "
     else:
         err_msg = "use syntax like "
 

@@ -481,13 +481,12 @@ class CompartmentSet(BaseASTModification):
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
-            if not isinstance(lhs, (ast.Name, ast.Attribute)):
+            if not isinstance(lhs, ast.Name):
                 raise ConfigurationError(
-                    "compartment_set modification must target properties like 'hh.gnabar' or "
-                    "'gnabar_hh'"
+                    "compartment_set modification must target variables like 'gnabar_hh'"
                 )
 
-            dotted_name = self.get_full_attr_name(lhs)
+            comp_attr = lhs.id
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for cl in target.filtered_iter(target.node_ids()):
@@ -495,9 +494,7 @@ class CompartmentSet(BaseASTModification):
                 sec = cell.get_sec(cl.section_id)
                 seg = sec(cl.offset)
 
-                obj, final_attr = self.resolve_dotted_attr(seg, dotted_name)
-
-                if final_attr is None or not hasattr(obj, final_attr):
+                if not hasattr(seg, comp_attr):
                     continue
 
                 # Treat ast.Assign as default
@@ -505,7 +502,7 @@ class CompartmentSet(BaseASTModification):
                 new_value = rhs_value
 
                 if isinstance(stmt, ast.AugAssign):
-                    current = getattr(obj, final_attr)
+                    current = getattr(seg, comp_attr)
                     op_type = type(stmt.op)
 
                     if op_type not in BaseASTModification.AUG_OPS:
@@ -513,7 +510,7 @@ class CompartmentSet(BaseASTModification):
 
                     new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
-                setattr(obj, final_attr, new_value)
+                setattr(seg, comp_attr, new_value)
                 napply += 1
 
         return napply
