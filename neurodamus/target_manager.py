@@ -617,13 +617,10 @@ class NodesetTarget:
                     break
                 sec = secs[isec]
 
-                try:
-                    section_id = cell.get_section_id(sec)
-                except Exception:  # noqa: BLE001
-                    if "axon" in str(sec):
-                        # Skip the ghost axon added in allen's circuit
-                        continue
-
+                # Note: certain external mophology may contain only 1 axon
+                # and 2nd axon is added by our emodel without index v(0.0001), e.g. allen v1
+                # An error would be raised at get_section_id for compartment report including axons
+                section_id = cell.get_section_id(sec)
                 if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
