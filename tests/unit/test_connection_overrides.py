@@ -493,6 +493,7 @@ def test_overriding_chain_warning(create_tmp_simulation_config_file, monkeypatch
     """Check that we print hte overriding chain warning"""
 
     required_messages = [
+    "Connection M->M2 takes part in overriding chain:",
     "M->M2  Mosaic -> Mosaic                                      Weight: 2.0      SpontMinis: -",
     "M->M1  Mosaic -> Mosaic                                      Weight: 1.0      SpontMinis: -",
     "M->M0  Mosaic -> Mosaic                                      Weight: 0.0      SpontMinis: -"
@@ -529,6 +530,8 @@ def test_overriding_chain_warning(create_tmp_simulation_config_file, monkeypatch
 def test_overriding_chain_warning2(create_tmp_simulation_config_file, monkeypatch):
     """Check that we print hte overriding chain warning (2)"""
     required_messages = [
+    "Connection A->B takes part in overriding chain:",
+    "Connection A->A takes part in overriding chain:",
     "A->B  RingA -> RingB                                         Weight: 1.0      SpontMinis: -",
     "M->M0  Mosaic -> Mosaic                                      Weight: 1.0      SpontMinis: -",
     "A->A  RingA -> RingA                                         Weight: 2.0      SpontMinis: -",
