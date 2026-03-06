@@ -197,7 +197,6 @@ def test_parse_connections(create_tmp_simulation_config_file):
     assert conn.spont_minis is None
     assert conn.modoverride is None
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
