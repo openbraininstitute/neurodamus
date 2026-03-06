@@ -42,7 +42,7 @@ size = comm.Get_size()
 )
 @pytest.mark.mpi(ranks=2)
 def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
-    ringtest_baseconfig, simulator, mod_type, target_param, target_name, section_configure, expected
+    ringtest_baseconfig, simulator, mod_type, target_param, target_name, section_configure, expected, mpi_ranks
 ):
     """
     Test condition modifications (section_list, section, and compartment_set) running NEURON and
