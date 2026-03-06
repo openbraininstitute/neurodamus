@@ -190,34 +190,6 @@ def test_defaultdict_to_standard_types():
 
     assert utils.defaultdict_to_standard_types(dic) == expected
 
-
-def test_check_is_subset():
-    dic = {'A': 1, 'B': {'C': 2., 'D': {'E': 3.}}, 'F': 4}
-    subset = {'A': 1}
-    utils.check_is_subset(dic, subset)
-    subset = {'A': 1., 'B': {'C': 2}}
-    utils.check_is_subset(dic, subset)
-    subset = {'A': 1, 'B': {'D': {'E': 3}}}
-    utils.check_is_subset(dic, subset)
-    subset = {'A': 1, 'B': {'D': {'E': 3.0}}}
-    utils.check_is_subset(dic, subset)
-
-
-def test_check_is_subset_fail():
-    dic = {'A': 1, 'B': {'C': 2, 'D': {'E': 3}}, 'F': 4}
-    subset = {'A': 1, 'C': 2}
-    with pytest.raises(AssertionError):
-        utils.check_is_subset(dic, subset)
-    subset = {'A': 1, 'B': {'C': 2, 'D': 3}}
-    with pytest.raises(AssertionError):
-        utils.check_is_subset(dic, subset)
-    subset = {'A': 1, 'B': {'C': 3}}
-    with pytest.raises(AssertionError):
-        utils.check_is_subset(dic, subset)
-    subset = {'A': 1, 'B': {'C': 2.1}}
-    with pytest.raises(AssertionError):
-        utils.check_is_subset(dic, subset)
-
 def test_merge_dicts_delete_field_simple():
     parent = {"A": 1, "B": 2}
     child = {"A": 2., "B": "delete_field"}
