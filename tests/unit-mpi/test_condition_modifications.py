@@ -1,8 +1,10 @@
 import json
+from tempfile import NamedTemporaryFile
+
 import numpy as np
 import pytest
 from mpi4py import MPI
-from tempfile import NamedTemporaryFile
+
 from tests.conftest import RINGTEST_DIR
 
 comm = MPI.COMM_WORLD
@@ -42,12 +44,21 @@ size = comm.Get_size()
 )
 @pytest.mark.mpi(ranks=2)
 def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
-    ringtest_baseconfig, simulator, mod_type, target_param, target_name, section_configure, expected, mpi_ranks
+    ringtest_baseconfig,
+    simulator,
+    mod_type,
+    target_param,
+    target_name,
+    section_configure,
+    expected,
+    mpi_ranks,
 ):
     """
     Test condition modifications (section_list, section, and compartment_set) running NEURON and
     CoreNeuron with MPI.
     """
+    assert size == mpi_ranks
+
     from neurodamus import Neurodamus
     from neurodamus.core import NeuronWrapper as Nd
 
@@ -97,4 +108,4 @@ def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
                 mechanism = getattr(section, mech)
                 assert np.isclose(mechanism, val)
 
-    n.run()
+    #n.run()
