@@ -73,7 +73,7 @@ NEURODAMUS_MODELS_DIR=$BUILD_DIR/neurodamus-models
 if [ -d "$NEURODAMUS_MODELS_DIR" ]; then
     ( cd "$NEURODAMUS_MODELS_DIR" && git pull --quiet )
 else
-    git clone https://github.com/openbraininstitute/neurodamus-models.git -b weji/allen_v1 $NEURODAMUS_MODELS_DIR --depth=1
+    git clone https://github.com/openbraininstitute/neurodamus-models.git $NEURODAMUS_MODELS_DIR --depth=1
 fi
 
 #Build libs from mod files

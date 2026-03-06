@@ -19,6 +19,13 @@ class ConnectionTypes(str, Enum):
     Exp2Syn = "Exp2Syn"
 
 
+NODE_TYPE_ENGINE_MAP = {
+    "astrocyte": "NGV",
+    "point_process": "AllenPoint",
+    "biophysical": "METype",
+}
+
+
 @dataclass
 class RunConfig:
     """Python-side mutable version of SimulationConfig.Run."""
@@ -166,19 +173,13 @@ class SonataConfig:
                         "h5v1"
                     ]
                     circuit_config["MorphologyType"] = "h5"
-            node_type_engine_dict = {
-                "astrocyte": "NGV",
-                "point_process": "AllenPoint",
-                "biophysical": "METype",
-            }
-            circuit_config["Engine"] = node_type_engine_dict.get(node_prop.type, "METype")
+            circuit_config["Engine"] = NODE_TYPE_ENGINE_MAP.get((node_prop.type), "METype")
             # Find inner connectivity
             # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
             # default set of connections. Even though nowadays we can potentially consider
             # all connectivity as projections, under certain circuitry, like NGV, order matters and
             # therefore we keep inner connectivity to ensure they are created in the same order,
             # respecting engine precedence
-            # For edges to be considered inner connectivity they must be named "default"
             for edge_config in network.get("edges") or []:
                 if "nrnPath" in circuit_config:
                     break  # Already found
