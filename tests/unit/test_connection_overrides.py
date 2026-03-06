@@ -418,15 +418,16 @@ def test_no_partial_weight0_override(create_tmp_simulation_config_file):
             "target_simulator": "NEURON",
             "node_set": "Mosaic",
             "connection_overrides": [
-                {"name": "All->All", "source": "Mosaic",
-                 "target": "Mosaic", "weight": 0},
-                {"name": "Delayed", "source": "Mosaic",
-                 "target": "Mosaic", "weight": 0.5, "delay": 10}
+                {"name": "A->A", "source": "RingA",
+                 "target": "RingA", "weight": 0},
+                {"name": "B->B", "source": "RingB",
+                 "target": "RingB", "weight": 0.5, "delay": 10}
             ],
         },
     },
 ], indirect=True)
-def test_no_forbidden_warning(create_tmp_simulation_config_file, monkeypatch):
+def test_weight0_not_overridden_warning(create_tmp_simulation_config_file, monkeypatch):
+
     forbidden_message = "The following connections with Weight=0 are not overridden,"
     captured = []
 
@@ -439,10 +440,9 @@ def test_no_forbidden_warning(create_tmp_simulation_config_file, monkeypatch):
     from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
-    assert not any(forbidden_message in str(r.getMessage()) for r in captured), (
+    assert any(forbidden_message in str(r.getMessage()) for r in captured), (
         f"Found forbidden warning: {forbidden_message}"
     )
-
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
