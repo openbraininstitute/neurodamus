@@ -104,15 +104,6 @@ def defaultdict_to_standard_types(obj):
         return obj.item()
     return obj
 
-def check_is_subset(dic, subset):
-    """Checks if subset is a subset of the original dict"""
-    try:
-        merged = merge_dicts(dic, subset)
-    except TypeError:
-        assert False
-    assert dic == merged
-
-
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
     """ Convenience function to retrieve gids, edges, and selection.
 

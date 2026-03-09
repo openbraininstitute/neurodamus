@@ -183,22 +183,19 @@ def test_parse_modifications(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_parse_connections(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
-    conn = SimConfig.connections["GABAB_erev"]
-    expected_conn = {
-        "Source": "Inhibitory",
-        "Destination": "Mosaic",
-        "Weight": 1.0,
-        "Delay": 0,
-        "SynDelayOverride": 0.5,
-        "SynapseConfigure": "%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77",
-        "NeuromodDtc": 100,
-        "NeuromodStrength": 0.75
-    }
+    conn = SimConfig.connections[0]
 
-    utils.check_is_subset(conn, expected_conn)
-    assert conn.get("SpontMins") is None
-    assert conn.get("Modoverride") is None
-
+    assert conn.name == "GABAB_erev"
+    assert conn.source == "Inhibitory"
+    assert conn.destination == "Mosaic"
+    assert conn.weight == 1.0
+    assert conn.delay == 0
+    assert conn.synapse_delay_override == 0.5
+    assert conn.synapse_configure == "%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77"
+    assert conn.neuromodulation_dtc == 100
+    assert conn.neuromodulation_strength == 0.75
+    assert conn.spont_minis is None
+    assert conn.modoverride is None
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -265,7 +262,7 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "Delay": 0.,
         "Duration": 10000.0
     }
-    utils.check_is_subset(SimConfig.stimuli[0], expected_input_hp)
+    assert SimConfig.stimuli[0] == utils.merge_dicts(SimConfig.stimuli[0], expected_input_hp)
 
     input_RSN = SimConfig.stimuli[1]
     expected_input_RSN = {
@@ -280,11 +277,11 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "SDPercent": 40.,
         "Dt": 0.25
     }
-    utils.check_is_subset(input_RSN, expected_input_RSN)
+    assert input_RSN == utils.merge_dicts(input_RSN, expected_input_RSN)
     assert input_RSN.get("Seed") is None
 
     expected_input_subthreshold = {
         "Pattern": "SubThreshold",
         "PercentLess": 50.0
     }
-    utils.check_is_subset(SimConfig.stimuli[2], expected_input_subthreshold)
+    assert SimConfig.stimuli[2] == utils.merge_dicts(SimConfig.stimuli[2], expected_input_subthreshold)
