@@ -107,7 +107,6 @@ def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
                 for idx, val in enumerate(values):
                     section = getattr(cell1, sec_type)[idx]
                     mechanism = getattr(section, mech)
-                    #print(f"checking {sec_type}.{mech} = {val} ([{idx}])")
                     assert np.isclose(mechanism, val)
 
     n.run()
