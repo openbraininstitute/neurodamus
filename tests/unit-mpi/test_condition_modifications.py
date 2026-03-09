@@ -87,25 +87,27 @@ def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
 
     n = Neurodamus(sim_file_path)
 
-    # Retrieve cells
-    cell0 = Nd._pc.gid2cell(0)
-    cell1 = Nd._pc.gid2cell(1)
+    # Check if the MPI rank has the cell
+    if n._pc.gid_exists(0):
+        # Cell 0 is not in the node_set/compartment_set, so it is not modified
+        cell0 = Nd._pc.gid2cell(0)
+        assert np.isclose(cell0.soma[0].gnabar_hh, 0.12)
+        assert np.isclose(cell0.dend[0].gnabar_hh, 0.12)
+        assert np.isclose(cell0.dend[1].gnabar_hh, 0.12)
 
-    # Cell 0 is not in the node_set/compartment_set, so it is not modified
-    assert np.isclose(cell0.soma[0].gnabar_hh, 0.12)
-    assert np.isclose(cell0.dend[0].gnabar_hh, 0.12)
-    assert np.isclose(cell0.dend[1].gnabar_hh, 0.12)
+    if n._pc.gid_exists(1):
+        # Cell 1 is modified
+        cell1 = Nd._pc.gid2cell(1)
+        for sec_type in expected:
+            # soma, dend
+            val_dict = expected[sec_type]
+            for mech in val_dict:
+                # gnabar_hh
+                values = val_dict[mech]
+                for idx, val in enumerate(values):
+                    section = getattr(cell1, sec_type)[idx]
+                    mechanism = getattr(section, mech)
+                    #print(f"checking {sec_type}.{mech} = {val} ([{idx}])")
+                    assert np.isclose(mechanism, val)
 
-    # Cell 1 is modified
-    for sec_type in expected:
-        # soma, dend
-        val_dict = expected[sec_type]
-        for mech in val_dict:
-            # gnabar_hh
-            values = val_dict[mech]
-            for idx, val in enumerate(values):
-                section = getattr(cell1, sec_type)[idx]
-                mechanism = getattr(section, mech)
-                assert np.isclose(mechanism, val)
-
-    #n.run()
+    n.run()
