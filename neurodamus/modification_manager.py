@@ -207,7 +207,7 @@ class BaseASTModification:
 
     @staticmethod
     def evaluate_numeric_rhs(node):
-        """Safely evaluate numeric right-hand side."""
+        """Safely convert numeric right-hand side."""
         # Positive constants
         if isinstance(node, ast.Constant):
             return float(node.value)
