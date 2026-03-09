@@ -124,3 +124,4 @@ Copyright (c) 2025-2026 Open Brain Institute
 
 .. substitutions
 .. |banner| image:: docs/img/neurodamus_banner_230701.png
+

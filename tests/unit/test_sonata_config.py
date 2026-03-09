@@ -183,22 +183,19 @@ def test_parse_modifications(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_parse_connections(create_tmp_simulation_config_file):
     SimConfig.init(create_tmp_simulation_config_file, {})
-    conn = SimConfig.connections["GABAB_erev"]
-    expected_conn = {
-        "Source": "Inhibitory",
-        "Destination": "Mosaic",
-        "Weight": 1.0,
-        "Delay": 0,
-        "SynDelayOverride": 0.5,
-        "SynapseConfigure": "%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77",
-        "NeuromodDtc": 100,
-        "NeuromodStrength": 0.75
-    }
+    conn = SimConfig.connections[0]
 
-    assert conn == utils.merge_dicts(conn, expected_conn)
-    assert conn.get("SpontMins") is None
-    assert conn.get("Modoverride") is None
-
+    assert conn.name == "GABAB_erev"
+    assert conn.source == "Inhibitory"
+    assert conn.destination == "Mosaic"
+    assert conn.weight == 1.0
+    assert conn.delay == 0
+    assert conn.synapse_delay_override == 0.5
+    assert conn.synapse_configure == "%s.e_GABAA = -82.0 tau_d_GABAB_ProbGABAAB_EMS = 77"
+    assert conn.neuromodulation_dtc == 100
+    assert conn.neuromodulation_strength == 0.75
+    assert conn.spont_minis is None
+    assert conn.modoverride is None
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {

@@ -4,13 +4,15 @@ Reference:
 https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connection-overrides
 """
 
+import logging
 
-
-import pytest
 import numpy as np
+import pytest
 from scipy.signal import find_peaks
 
 from tests import utils
+
+from neurodamus.core.configuration import ConfigurationError
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -93,7 +95,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
 
     nd.solve(3.0)
 
-    overrides[("RingA", "RingA")]["weight"] = 1005.1
+    overrides["RingA", "RingA"]["weight"] = 1005.1
     for src_pop, src_raw_gid, tgt_pop, tgt_raw_gid in connections:
         src_gid, tgt_gid, edges, selection = utils.get_edge_data(
             nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
@@ -279,9 +281,9 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     nd.run()
 
     peaks_pos = find_peaks(voltage_trace, prominence=0.3)[0]
-    np.testing.assert_allclose(peaks_pos, [ 15,  58, 125, 167, 272, 306, 388])
+    np.testing.assert_allclose(peaks_pos, [15, 58, 125, 167, 272, 306, 388])
 
-    ## debug: print the voltage_trage and the detected peaks
+    # debug: print the voltage_trage and the detected peaks
     # import matplotlib.pyplot as plt
     # trace = np.array(voltage_trace)
     # plt.figure()
@@ -293,6 +295,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     # plt.title("Spontaneous Minis Trace with Peaks")
     # plt.legend()
     # plt.show()
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -384,3 +387,166 @@ def test_override_globals(create_tmp_simulation_config_file):
 
     assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
     assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "All->All", "source": "Mosaic", "target": "Mosaic", "weight": 0},
+                {"name": "RingA->RingA", "source": "Mosaic",
+                 "target": "RingA", "weight": 0.1, "delay": 10},
+            ],
+        },
+    },
+], indirect=True)
+def test_no_partial_weight0_override(create_tmp_simulation_config_file):
+    from neurodamus import Neurodamus
+
+    with pytest.raises(ConfigurationError,
+                       match="Partial Weight=0 override is not supported: Conn All->All"):
+        Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "A->A", "source": "RingA",
+                 "target": "RingA", "weight": 0},
+                {"name": "B->B", "source": "RingB",
+                 "target": "RingB", "weight": 0.5, "delay": 10}
+            ],
+        },
+    },
+], indirect=True)
+def test_weight0_not_overridden_warning(create_tmp_simulation_config_file, monkeypatch):
+
+    forbidden_message = "The following connections with Weight=0 are not overridden,"
+    captured = []
+
+    def fake_handle(_self, record):
+        captured.append(record)
+
+    # patch the logger class handle method globally
+    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
+
+    from neurodamus import Neurodamus
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert any(forbidden_message in str(r.getMessage()) for r in captured), (
+        f"Found forbidden warning: {forbidden_message}"
+    )
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "All->All", "source": "Mosaic",
+                 "target": "Mosaic", "weight": 0.5, "delay": 10}
+            ],
+        },
+    },
+], indirect=True)
+def test_no_overriding_warning(create_tmp_simulation_config_file, monkeypatch):
+    forbidden_message = "Delayed connection All->All is not overriding any weight=0 Connection"
+    captured = []
+
+    def fake_handle(_self, record):
+        captured.append(record)
+
+    # patch the logger class handle method globally
+    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
+
+    from neurodamus import Neurodamus
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    assert any(forbidden_message in str(r.getMessage()) for r in captured), (
+        f"Found forbidden warning: {forbidden_message}"
+    )
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "M->M0", "source": "Mosaic", "target": "Mosaic", "weight": 0},
+                {"name": "M->M1", "source": "Mosaic", "target": "Mosaic", "weight": 1},
+                {"name": "M->M2", "source": "Mosaic", "target": "Mosaic", "weight": 2},
+            ],
+        },
+    },
+], indirect=True)
+def test_overriding_chain_warning(create_tmp_simulation_config_file, monkeypatch):
+    """Check that we print hte overriding chain warning"""
+
+    required_messages = [
+    "Connection M->M2 takes part in overriding chain:",
+    "M->M2  Mosaic -> Mosaic                                      Weight: 2.0      SpontMinis: -",
+    "M->M1  Mosaic -> Mosaic                                      Weight: 1.0      SpontMinis: -",
+    "(base) M->M0  Mosaic -> Mosaic                                      Weight: 0.0      SpontMinis: -"
+    ]
+    captured = []
+
+    def fake_handle(_self, record):
+        captured.append(record)
+
+    # patch the logger class handle method globally
+    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
+    from neurodamus import Neurodamus
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    captured = "\n".join(record.getMessage() for record in captured)
+
+    assert all(msg in captured for msg in required_messages)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "M->M0", "source": "Mosaic", "target": "Mosaic", "weight": 1},
+                {"name": "A->A", "source": "RingA", "target": "RingA", "weight": 2},
+                {"name": "A->B", "source": "RingA", "target": "RingB", "weight": 1}
+            ],
+        },
+    },
+], indirect=True)
+def test_overriding_chain_warning2(create_tmp_simulation_config_file, monkeypatch):
+    """Check that we print hte overriding chain warning (2)"""
+    required_messages = [
+    "Connection A->B takes part in overriding chain:",
+    "Connection A->A takes part in overriding chain:",
+    "A->B  RingA -> RingB                                         Weight: 1.0      SpontMinis: -",
+    "(base) M->M0  Mosaic -> Mosaic                                      Weight: 1.0      SpontMinis: -",
+    "A->A  RingA -> RingA                                         Weight: 2.0      SpontMinis: -",
+    "(base) M->M0  Mosaic -> Mosaic                                      Weight: 1.0      SpontMinis: -"]
+
+    captured = []
+
+    def fake_handle(_self, record):
+        captured.append(record)
+
+    # patch the logger class handle method globally
+    monkeypatch.setattr(logging.Logger, "handle", fake_handle)
+    from neurodamus import Neurodamus
+    Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    captured = "\n".join(record.getMessage() for record in captured)
+
+    assert all(msg in captured for msg in required_messages)
