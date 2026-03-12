@@ -65,7 +65,7 @@ class _NeuronWrapper(_Neuron):
     def _load_nrnmechlibs(cls):
         """Loads the required mods for neurodamus to work
 
-        Two sets are checks:
+        Two sets are checked:
           1. neurodamus mechanisms: "Extensions" for reports, edges, etc
             (built-in or exclusively from NRNMECH_LIB_PATH)
           2. model mechanisms: BBP synapse mechanisms, print warnings if missing

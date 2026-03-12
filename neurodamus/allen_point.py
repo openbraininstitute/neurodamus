@@ -35,14 +35,6 @@ class PointProcessConnParameters(SynapseParameters):
     This class defines parameters for allen's chemical connections by overriding
     `_fields` from `SynapseParameters`.
 
-    Notes:
-        - The field names are consistent with standard synapses for compatibility.
-        - `location` is computed using the HOC function `TargetManager.locationToPoint`
-          with `isec`, `offset`, and `ipt`.
-        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
-          `location = offset`.
-          and is later overwritten by the actual connection weight.
-
     The `_optional` and `_reserved` dictionaries are inherited from the base class.
     """
 
@@ -98,9 +90,8 @@ class PointConnection(Connection):
                     cell.CellRef.pointcell,
                     10,
                     self.syndelay_override or syn_params.delay,
-                    syn_params.weight,
+                    syn_params.weight * self.weight_factor,
                 )
-                nc.weight[0] = syn_params.weight * self.weight_factor
                 self._replay._store(vecstim, nc)
 
         return n_syns
@@ -124,14 +115,7 @@ class Exp2SynConnParameters(SynapseParameters):
     """Exp2Syn connection parameters.
 
     This class defines parameters for allen's chemical connections by overriding
-    `_fields` from `SynapseParameters`.
-
-    Notes:
-        - The field names are consistent with standard synapses for compatibility.
-        - `location` is computed using the HOC function `TargetManager.locationToPoint`
-          with `isec`, `offset`, and `ipt`.
-        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
-          `location = offset`.
+    `_fields` and `_optional` from `SynapseParameters`.
 
     The `_reserved` dictionaries are inherited from the base class.
     """

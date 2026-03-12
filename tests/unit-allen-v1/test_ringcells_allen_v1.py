@@ -41,7 +41,7 @@ def test_cell_states(capsys):
     netcon = nc_list[0]
     assert netcon.precell().hname() == "TestCell[0]"
     assert netcon.srcgid() == 0
-    npt.assert_allclose(netcon.weight[0], 100)
+    npt.assert_allclose(netcon.weight[0], 500)
     npt.assert_allclose(netcon.threshold, -30)
     npt.assert_allclose(netcon.delay, 3)
 
@@ -51,3 +51,4 @@ def test_cell_states(capsys):
     assert syns[1].srcgid() == 1002  # netcon in 1002->1000
     assert syns[2].srcgid() == -1  # netcon for synapse replay
     assert syns[2].pre().hname() == "VecStim[0]"
+    assert syns[2].weight[0] == 500

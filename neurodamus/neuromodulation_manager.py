@@ -125,15 +125,6 @@ class ModulationConnParameters(SynapseParameters):
     This class defines parameters for neuromodulatory connections by overriding
     `_fields` from `SynapseParameters`.
 
-    Notes:
-        - The field names are consistent with standard synapses for compatibility.
-        - `location` is computed using the HOC function `TargetManager.locationToPoint`
-          with `isec`, `offset`, and `ipt`.
-        - `ipt` is set to -1 (not read from data) to ensure `locationToPoint` sets
-          `location = offset`.
-        - `weight` is used as a placeholder for replay stimulation; it defaults to 1.0
-          and is later overwritten by the actual connection weight.
-
     The `_optional` and `_reserved` dictionaries are inherited from the base class.
     """
 
