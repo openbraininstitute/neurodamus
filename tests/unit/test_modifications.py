@@ -445,7 +445,7 @@ def test_modification_section(create_tmp_simulation_config_file):
     # setup sim config
     n.load_targets()
     n.create_cells()
-    n.create_synapses()
+    n.create_synapses() # Usually unnecessary without running the simulation
 
     soma = n._pc.gid2cell(1).soma[0].gnabar_hh
     dend = n._pc.gid2cell(1).dend[0].e_pas
@@ -492,7 +492,7 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
     # setup sim config
     n.load_targets()
     n.create_cells()
-    n.create_synapses()
+    n.create_synapses() # Usually unnecessary without running the simulation
 
     # Check values before applying modifications
     for cd in n.circuits.all_node_managers():
@@ -638,7 +638,7 @@ def test_modification_augassign_multiple_types(
     # setup sim config
     n.load_targets()
     n.create_cells()
-    n.create_synapses()
+    n.create_synapses() # Usually unnecessary without running the simulation
     n.enable_modifications()
 
     # Retrieve cells
