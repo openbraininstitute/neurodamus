@@ -6,7 +6,8 @@ which is usually translated from a SONATA config file done in sonata_config.py
 
 import pytest
 
-from ..conftest import RINGTEST_DIR
+from tests.conftest import RINGTEST_DIR
+
 from neurodamus.core.configuration import ConfigurationError, make_circuit_config
 from neurodamus.io.sonata_config import SonataConfig
 
@@ -31,7 +32,6 @@ def test_ringtest_circuitconf(create_tmp_simulation_config_file):
         "CellLibraryFile": str(RINGTEST_DIR / "nodes_A.h5"),
         "PopulationName": "RingA",
         "NodesetName": "Mosaic",
-        "Engine": "METype",
         "METypePath": str(RINGTEST_DIR / "hoc"),
         "MorphologyPath": str(RINGTEST_DIR / "morphologies/asc"),
         "MorphologyType": "asc",

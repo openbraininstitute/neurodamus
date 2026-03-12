@@ -19,13 +19,6 @@ class ConnectionTypes(str, Enum):
     Exp2Syn = "Exp2Syn"
 
 
-NODE_TYPE_ENGINE_MAP = {
-    "astrocyte": "NGV",
-    "point_process": "AllenPoint",
-    "biophysical": "METype",
-}
-
-
 @dataclass
 class RunConfig:
     """Python-side mutable version of SimulationConfig.Run."""
@@ -130,7 +123,6 @@ class SonataConfig:
                         "MorphologyPath": ...,
                         "MorphologyType": ...,
                         "METypePath": ...,
-                        "Engine": ...,
                         "nrnPath": ...,
                         "PopulationType": ...
                 }
@@ -173,7 +165,6 @@ class SonataConfig:
                         "h5v1"
                     ]
                     circuit_config["MorphologyType"] = "h5"
-            circuit_config["Engine"] = NODE_TYPE_ENGINE_MAP.get((node_prop.type), "METype")
             # Find inner connectivity
             # NOTE: Inner connectivity is a special kind of projection, and represents the circuit
             # default set of connections. Even though nowadays we can potentially consider
