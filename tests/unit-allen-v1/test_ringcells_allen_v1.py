@@ -3,17 +3,16 @@ from pathlib import Path
 import numpy.testing as npt
 
 from tests import utils
+from tests.conftest import ALLEN_V1_DIR
 
 from neurodamus import Neurodamus
 from neurodamus.utils.dump_cellstate import dump_cellstate
-
-SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest_allen_v1"
 
 
 def test_cell_states(capsys):
     from neurodamus.core import NeuronWrapper as Nd
 
-    sim_conf = str(SIM_DIR / "simulation_config.json")
+    sim_conf = str(ALLEN_V1_DIR / "simulation_config.json")
     n = Neurodamus(sim_conf)
 
     # 1. check warning msg about no BBP syn models
@@ -24,7 +23,7 @@ def test_cell_states(capsys):
     tgid = 0
     outputfile = "allen_v1_cellstate_" + str(tgid) + ".json"
     dump_cellstate(n._pc, Nd.cvode, tgid, outputfile)
-    reference = SIM_DIR / "reference" / outputfile
+    reference = ALLEN_V1_DIR / "reference" / outputfile
     utils.compare_json_files(Path(outputfile), reference)
 
     # 3. check netcons attach to the artificial point cell gid=1000
