@@ -6,6 +6,7 @@ import logging  # active only in rank 0 (init)
 import os
 import weakref
 from contextlib import contextmanager
+from functools import reduce
 from io import StringIO
 from pathlib import Path
 
@@ -159,22 +160,8 @@ class CellManagerBase(_CellManager):
         return np.array(self.local_nodes.gids(raw_gids=False))
 
     def _init_config(self, circuit_conf, pop):
-        if not pop:  # Last attempt to get pop name
-            pop = self._get_sonata_population_name(circuit_conf.CellLibraryFile)
-            logging.info(" -> Discovered node population name: %s", pop)
         self._population_name = pop
         self._local_nodes = SelectionNodeSet().register_global(pop)
-
-    @staticmethod
-    def _get_sonata_population_name(node_file):
-        import libsonata  # only for SONATA
-
-        pop_names = libsonata.NodeStorage(node_file).population_names
-        if len(pop_names) != 1:
-            raise ConfigurationError(
-                "Could not determine population name from sonata file circuit."
-            )
-        return next(iter(pop_names), None)
 
     def load_nodes(self, load_balancer=None, *, _loader=None, loader_opts=None):
         """Top-level loader of nodes."""
@@ -451,8 +438,6 @@ class GlobalCellManager(_CellManager):
     def getGidListForProcessor(self):
         def _hoc_append(vec_a, vec_b):
             return vec_a.append(vec_b)
-
-        from functools import reduce
 
         return reduce(_hoc_append, (man.getGidListForProcessor() for man in self._cell_managers))
 
