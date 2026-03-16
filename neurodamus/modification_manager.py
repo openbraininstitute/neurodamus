@@ -251,8 +251,7 @@ class BaseSectionModification(BaseASTModification):
 
         sections = set()
         for tpoint_list in tpoints:
-            for sc in tpoint_list.sclst:
-                sections.add(sc.sec)
+            sections.update(sc.sec for sc in tpoint_list.sclst)
 
         return sections
 
