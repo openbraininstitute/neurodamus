@@ -23,9 +23,8 @@ import ast
 import logging
 import operator
 
-from setuptools.namespaces import flatten
-
 import libsonata
+from setuptools.namespaces import flatten
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
@@ -45,6 +44,7 @@ class ModificationManager:
         self._modifications = []
 
     def interpret(self, mod_info):
+        """Interpret a modification entry and apply it to the corresponding target."""
         mod_t = self._mod_types.get(mod_info.type)
 
         if not mod_t:
@@ -65,6 +65,7 @@ class ModificationManager:
 
     @classmethod
     def register_type(cls, mod_class):
+        """Register a modification class by its MOD_TYPE."""
         cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
@@ -188,6 +189,7 @@ class BaseASTModification:
 
     @staticmethod
     def parse_assignments(config: str):
+        """Parse a config string into individual assignment statements and their targets."""
         tree = ast.parse(config)
         for stmt in tree.body:
             targets = BaseASTModification.assignment_targets(stmt)
@@ -201,6 +203,7 @@ class BaseASTModification:
 
     @staticmethod
     def assignment_targets(node):
+        """Extract assignment targets from an AST Assign or AugAssign node."""
         if isinstance(node, ast.Assign):
             return node.targets
         if isinstance(node, ast.AugAssign):
@@ -231,19 +234,20 @@ class BaseSectionModification(BaseASTModification):
     SECTION_TYPES = []
 
     def get_allowed_entries(self):
+        """Return a comma-separated string of allowed section type names."""
         return ", ".join(sorted(self.SECTION_TYPES))
 
     def get_section_type(self, name: str):
+        """Resolve a section type name, raising ConfigurationError if unknown."""
         if name in self.SECTION_TYPES:
             return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
 
         allowed = self.get_allowed_entries()
-        raise ConfigurationError(
-            f"Unknown section type: {name}. Allowed types are: {allowed}"
-        )
+        raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
 
     @staticmethod
-    def iter_sections(target, cell_manager, section_type, section_ids):
+    def get_section_list(target, cell_manager, section_type, section_ids):
+        """Collect sections of the given type from target cells, optionally filtered by sec IDs."""
         sections = []
 
         for gid in target.get_local_gids():
@@ -257,10 +261,10 @@ class BaseSectionModification(BaseASTModification):
         # In case we need to filter based on section_ids
         filtered_secs = []
         for gid_secs in sections:
-            for sec_id in section_ids:
-                # We silently skip section ids that are not present in the cell
-                if sec_id < len(gid_secs):
-                    filtered_secs.append(gid_secs[sec_id])
+            # We silently skip section ids that are not present in the cell
+            filtered_secs.extend(
+                gid_secs[sec_id] for sec_id in section_ids if sec_id < len(gid_secs)
+            )
 
         return filtered_secs
 
@@ -296,6 +300,7 @@ class SectionList(BaseSectionModification):
             )
 
     def apply_config(self, target, config, cell_manager):
+        """Parse and apply section_list modifications, returns the number of sections modified."""
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
@@ -313,7 +318,7 @@ class SectionList(BaseSectionModification):
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.iter_sections(target, cell_manager, section_type, None):
+            for sec in self.get_section_list(target, cell_manager, section_type, None):
                 if not hasattr(sec, attr_name):
                     continue
 
@@ -366,6 +371,7 @@ class Section(BaseSectionModification):
             )
 
     def apply_config(self, target, config, cell_manager):
+        """Parse and apply section modifications, returns the number of sections modified."""
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
@@ -377,7 +383,7 @@ class Section(BaseSectionModification):
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.iter_sections(target, cell_manager, section_type, [idx]):
+            for sec in self.get_section_list(target, cell_manager, section_type, [idx]):
                 if not hasattr(sec, attr_name):
                     continue
 
@@ -401,6 +407,7 @@ class Section(BaseSectionModification):
 
     @staticmethod
     def section_sanity_checks(lhs):
+        """Validate that the LHS of an assignment uses correct indexed section syntax."""
         if not isinstance(lhs, ast.Attribute):
             raise ConfigurationError("section modification must use syntax like soma[0].gnabar = 0")
 
@@ -439,6 +446,7 @@ class CompartmentSet(BaseASTModification):
             )
 
     def apply_config(self, target, config, cell_manager):
+        """Parse and apply compartment_set modif, returns the number of segments modified."""
         napply = 0
 
         for stmt, lhs in self.parse_assignments(config):
@@ -449,8 +457,6 @@ class CompartmentSet(BaseASTModification):
 
             comp_attr = lhs.id
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
-
-            local_gids = cell_manager.get_final_gids()
 
             for cl in target.filtered_iter(target.node_ids()):
                 cell = cell_manager.get_cell(cl.node_id)
