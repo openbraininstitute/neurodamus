@@ -461,6 +461,8 @@ class CompartmentSet(BaseASTModification):
             local_gids = cell_manager.get_final_gids()
 
             for cl in target.filtered_iter(target.node_ids()):
+                if cl.node_id not in local_gids:
+                    continue
                 cell = cell_manager.get_cell(cl.node_id)
                 sec = cell.get_sec(cl.section_id)
                 seg = sec(cl.offset)
