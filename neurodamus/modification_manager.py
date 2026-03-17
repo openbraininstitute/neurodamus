@@ -23,6 +23,8 @@ import ast
 import logging
 import operator
 
+from setuptools.namespaces import flatten
+
 import libsonata
 
 from .core import NeuronWrapper as Nd
@@ -226,34 +228,41 @@ class BaseASTModification:
 class BaseSectionModification(BaseASTModification):
     """Shared base class for section and section_list modifications."""
 
-    SECTION_MAP = {}
+    SECTION_TYPES = []
 
     def get_allowed_entries(self):
-        return ", ".join(sorted(self.SECTION_MAP))
+        return ", ".join(sorted(self.SECTION_TYPES))
 
     def get_section_type(self, name: str):
-        try:
-            return self.SECTION_MAP[name]
-        except KeyError as err:
-            allowed = self.get_allowed_entries()
-            raise ConfigurationError(
-                f"Unknown section type: {name}. Allowed types are: {allowed}"
-            ) from err
+        if name in self.SECTION_TYPES:
+            return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
+
+        allowed = self.get_allowed_entries()
+        raise ConfigurationError(
+            f"Unknown section type: {name}. Allowed types are: {allowed}"
+        )
 
     @staticmethod
     def iter_sections(target, cell_manager, section_type, section_ids):
-        tpoints = target.get_point_list(
-            cell_manager,
-            section_type=section_type,
-            compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
-            section_local_ids=section_ids,
-        )
+        sections = []
 
-        sections = set()
-        for tpoint_list in tpoints:
-            sections.update(sc.sec for sc in tpoint_list.sclst)
+        for gid in target.get_local_gids():
+            cell = cell_manager.get_cellref(gid)
+            secs = list(getattr(cell, section_type, []))
+            sections.append(secs)
 
-        return sections
+        if section_ids is None:
+            return flatten(sections)
+
+        # In case we need to filter based on section_ids
+        filtered_secs = []
+        for gid_secs in sections:
+            for sec_id in section_ids:
+                # We silently skip section ids that are not present in the cell
+                if sec_id < len(gid_secs):
+                    filtered_secs.append(gid_secs[sec_id])
+
+        return filtered_secs
 
 
 @ModificationManager.register_type
@@ -266,13 +275,13 @@ class SectionList(BaseSectionModification):
     Use case is modifying mechanism variables from config.
     """
 
-    SECTION_MAP = {
-        "apical": libsonata.SimulationConfig.Report.Sections.apic,
-        "axonal": libsonata.SimulationConfig.Report.Sections.axon,
-        "basal": libsonata.SimulationConfig.Report.Sections.dend,
-        "somatic": libsonata.SimulationConfig.Report.Sections.soma,
-        "all": libsonata.SimulationConfig.Report.Sections.all,
-    }
+    SECTION_TYPES = [
+        "apical",
+        "axonal",
+        "basal",
+        "somatic",
+        "all",
+    ]
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
 
@@ -337,11 +346,11 @@ class Section(BaseSectionModification):
     Use case is modifying mechanism variables from config.
     """
 
-    SECTION_MAP = {
-        "apic": libsonata.SimulationConfig.Report.Sections.apic,
-        "axon": libsonata.SimulationConfig.Report.Sections.axon,
-        "dend": libsonata.SimulationConfig.Report.Sections.dend,
-        "soma": libsonata.SimulationConfig.Report.Sections.soma,
+    SECTION_TYPES = {
+        "apic": "apical",
+        "axon": "axonal",
+        "dend": "basal",
+        "soma": "somatic",
     }
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
@@ -444,8 +453,6 @@ class CompartmentSet(BaseASTModification):
             local_gids = cell_manager.get_final_gids()
 
             for cl in target.filtered_iter(target.node_ids()):
-                if cl.node_id not in local_gids:
-                    continue
                 cell = cell_manager.get_cell(cl.node_id)
                 sec = cell.get_sec(cl.section_id)
                 seg = sec(cl.offset)
