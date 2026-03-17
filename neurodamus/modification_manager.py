@@ -458,6 +458,8 @@ class CompartmentSet(BaseASTModification):
             comp_attr = lhs.id
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
+            local_gids = cell_manager.get_final_gids()
+
             for cl in target.filtered_iter(target.node_ids()):
                 cell = cell_manager.get_cell(cl.node_id)
                 sec = cell.get_sec(cl.section_id)
