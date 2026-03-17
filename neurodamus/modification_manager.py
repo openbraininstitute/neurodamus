@@ -22,13 +22,15 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 import ast
 import logging
 import operator
+from collections.abc import Generator
 
 import libsonata
 from setuptools.namespaces import flatten
 
+from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
-from .target_manager import TargetSpec
+from .target_manager import NodesetTarget, TargetSpec
 from .utils.logging import log_verbose
 
 
@@ -188,7 +190,7 @@ class BaseASTModification:
     }
 
     @staticmethod
-    def parse_assignments(config: str):
+    def parse_assignments(config: str) -> Generator[tuple[ast.stmt, ast.expr], None, None]:
         """Parse a config string into individual assignment statements and their targets."""
         tree = ast.parse(config)
         for stmt in tree.body:
@@ -202,7 +204,7 @@ class BaseASTModification:
             yield stmt, targets[0]
 
     @staticmethod
-    def assignment_targets(node):
+    def assignment_targets(node: ast.stmt) -> list[ast.expr]:
         """Extract assignment targets from an AST Assign or AugAssign node."""
         if isinstance(node, ast.Assign):
             return node.targets
@@ -211,7 +213,7 @@ class BaseASTModification:
         raise ConfigurationError("section_configure must contain assignments only")
 
     @staticmethod
-    def evaluate_numeric_rhs(node):
+    def evaluate_numeric_rhs(node: ast.expr) -> float:
         """Safely convert numeric right-hand side."""
         # Positive constants
         if isinstance(node, ast.Constant):
@@ -233,11 +235,11 @@ class BaseSectionModification(BaseASTModification):
 
     SECTION_TYPES = []
 
-    def get_allowed_entries(self):
+    def get_allowed_entries(self) -> str:
         """Return a comma-separated string of allowed section type names."""
         return ", ".join(sorted(self.SECTION_TYPES))
 
-    def get_section_type(self, name: str):
+    def get_section_type(self, name: str) -> str:
         """Resolve a section type name, raising ConfigurationError if unknown."""
         if name in self.SECTION_TYPES:
             return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
@@ -246,7 +248,12 @@ class BaseSectionModification(BaseASTModification):
         raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
 
     @staticmethod
-    def get_section_list(target, cell_manager, section_type, section_ids):
+    def get_section_list(
+        target: NodesetTarget,
+        cell_manager: _CellManager,
+        section_type: str,
+        section_ids: list[int] | None,
+    ) -> list:
         """Collect sections of the given type from target cells, optionally filtered by sec IDs."""
         sections = []
 
@@ -289,7 +296,12 @@ class SectionList(BaseSectionModification):
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
 
-    def __init__(self, target, mod_info, cell_manager):
+    def __init__(
+        self,
+        target: NodesetTarget,
+        mod_info: libsonata.SimulationConfig.ModificationSectionList,
+        cell_manager: _CellManager,
+    ):
         napply = self.apply_config(target, mod_info.section_configure, cell_manager)
 
         log_verbose(f"Applied to {napply} sections")
@@ -299,7 +311,7 @@ class SectionList(BaseSectionModification):
                 "section_list applied to zero sections. Check section_configure for mistakes."
             )
 
-    def apply_config(self, target, config, cell_manager):
+    def apply_config(self, target: NodesetTarget, config: str, cell_manager: _CellManager) -> int:
         """Parse and apply section_list modifications, returns the number of sections modified."""
         napply = 0
 
@@ -360,7 +372,12 @@ class Section(BaseSectionModification):
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
 
-    def __init__(self, target, mod_info, cell_manager):
+    def __init__(
+        self,
+        target: NodesetTarget,
+        mod_info: libsonata.SimulationConfig.ModificationSection,
+        cell_manager: _CellManager,
+    ):
         napply = self.apply_config(target, mod_info.section_configure, cell_manager)
 
         log_verbose(f"Applied to {napply} sections")
@@ -370,7 +387,12 @@ class Section(BaseSectionModification):
                 "section applied to zero sections. Check section_configure for mistakes."
             )
 
-    def apply_config(self, target, config, cell_manager):
+    def apply_config(
+        self,
+        target: NodesetTarget,
+        config: str,
+        cell_manager: _CellManager,
+    ) -> int:
         """Parse and apply section modifications, returns the number of sections modified."""
         napply = 0
 
@@ -406,7 +428,9 @@ class Section(BaseSectionModification):
         return napply
 
     @staticmethod
-    def section_sanity_checks(lhs):
+    def section_sanity_checks(
+        lhs: ast.expr,
+    ) -> None:
         """Validate that the LHS of an assignment uses correct indexed section syntax."""
         if not isinstance(lhs, ast.Attribute):
             raise ConfigurationError("section modification must use syntax like soma[0].gnabar = 0")
@@ -435,7 +459,12 @@ class CompartmentSet(BaseASTModification):
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.compartment_set
 
-    def __init__(self, target, mod_info, cell_manager):
+    def __init__(
+        self,
+        target: libsonata.CompartmentSet,
+        mod_info: libsonata.SimulationConfig.ModificationCompartmentSet,
+        cell_manager: _CellManager,
+    ):
         napply = self.apply_config(target, mod_info.section_configure, cell_manager)
 
         log_verbose(f"Applied to {napply} segments")
@@ -445,7 +474,12 @@ class CompartmentSet(BaseASTModification):
                 "compartment_set applied to zero segments. Check section_configure for mistakes."
             )
 
-    def apply_config(self, target, config, cell_manager):
+    def apply_config(
+        self,
+        target: libsonata.CompartmentSet,
+        config: str,
+        cell_manager: _CellManager,
+    ) -> int:
         """Parse and apply compartment_set modif, returns the number of segments modified."""
         napply = 0
 
