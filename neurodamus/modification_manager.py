@@ -330,25 +330,27 @@ class SectionList(BaseSectionModification):
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.get_section_list(target, cell_manager, section_type, None):
-                if not hasattr(sec, attr_name):
-                    continue
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                for sec in getattr(cell, section_type, []):
+                    if not hasattr(sec, attr_name):
+                        continue
 
-                # Treat ast.Assign as default
-                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
-                new_value = rhs_value
+                    # Treat ast.Assign as default
+                    # parse_assignments already checked it is either ast.Assign or ast.AugAssign
+                    new_value = rhs_value
 
-                if isinstance(stmt, ast.AugAssign):
-                    current = getattr(sec, attr_name)
-                    op_type = type(stmt.op)
+                    if isinstance(stmt, ast.AugAssign):
+                        current = getattr(sec, attr_name)
+                        op_type = type(stmt.op)
 
-                    if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type}")
+                        if op_type not in BaseASTModification.AUG_OPS:
+                            raise ConfigurationError(f"Unsupported operator {op_type}")
 
-                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+                        new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
-                setattr(sec, attr_name, new_value)
-                napply += 1
+                    setattr(sec, attr_name, new_value)
+                    napply += 1
 
         return napply
 
