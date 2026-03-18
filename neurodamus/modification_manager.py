@@ -25,7 +25,6 @@ import operator
 from collections.abc import Generator
 
 import libsonata
-from setuptools.namespaces import flatten
 
 from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
@@ -263,7 +262,7 @@ class BaseSectionModification(BaseASTModification):
             sections.append(secs)
 
         if section_ids is None:
-            return flatten(sections)
+            return [sec for gid_secs in sections for sec in gid_secs]
 
         # In case we need to filter based on section_ids
         filtered_secs = []
