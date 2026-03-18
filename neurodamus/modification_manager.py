@@ -234,45 +234,13 @@ class BaseSectionModification(BaseASTModification):
 
     SECTION_TYPES = []
 
-    def get_allowed_entries(self) -> str:
-        """Return a comma-separated string of allowed section type names."""
-        return ", ".join(sorted(self.SECTION_TYPES))
-
     def get_section_type(self, name: str) -> str:
         """Resolve a section type name, raising ConfigurationError if unknown."""
         if name in self.SECTION_TYPES:
             return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
 
-        allowed = self.get_allowed_entries()
+        allowed = ", ".join(sorted(self.SECTION_TYPES))
         raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
-
-    @staticmethod
-    def get_section_list(
-        target: NodesetTarget,
-        cell_manager: _CellManager,
-        section_type: str,
-        section_ids: list[int] | None,
-    ) -> list:
-        """Collect sections of the given type from target cells, optionally filtered by sec IDs."""
-        sections = []
-
-        for gid in target.get_local_gids():
-            cell = cell_manager.get_cellref(gid)
-            secs = list(getattr(cell, section_type, []))
-            sections.append(secs)
-
-        if section_ids is None:
-            return [sec for gid_secs in sections for sec in gid_secs]
-
-        # In case we need to filter based on section_ids
-        filtered_secs = []
-        for gid_secs in sections:
-            # We silently skip section ids that are not present in the cell
-            filtered_secs.extend(
-                gid_secs[sec_id] for sec_id in section_ids if sec_id < len(gid_secs)
-            )
-
-        return filtered_secs
 
 
 @ModificationManager.register_type
@@ -329,25 +297,27 @@ class SectionList(BaseSectionModification):
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.get_section_list(target, cell_manager, section_type, None):
-                if not hasattr(sec, attr_name):
-                    continue
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                for sec in getattr(cell, section_type, []):
+                    if not hasattr(sec, attr_name):
+                        continue
 
-                # Treat ast.Assign as default
-                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
-                new_value = rhs_value
+                    # Treat ast.Assign as default
+                    # parse_assignments already checked it is either ast.Assign or ast.AugAssign
+                    new_value = rhs_value
 
-                if isinstance(stmt, ast.AugAssign):
-                    current = getattr(sec, attr_name)
-                    op_type = type(stmt.op)
+                    if isinstance(stmt, ast.AugAssign):
+                        current = getattr(sec, attr_name)
+                        op_type = type(stmt.op)
 
-                    if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type}")
+                        if op_type not in BaseASTModification.AUG_OPS:
+                            raise ConfigurationError(f"Unsupported operator {op_type}")
 
-                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+                        new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
-                setattr(sec, attr_name, new_value)
-                napply += 1
+                    setattr(sec, attr_name, new_value)
+                    napply += 1
 
         return napply
 
@@ -399,12 +369,18 @@ class Section(BaseSectionModification):
             self.section_sanity_checks(lhs)
             sub = lhs.value
             section_name = sub.value.id
-            section_type = self.get_section_type(section_name)
+            # this raises errors if the names or types are not expected
+            self.get_section_type(section_name)
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.get_section_list(target, cell_manager, section_type, [idx]):
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                secs = getattr(cell, section_name, None)
+                if secs is None or idx >= len(secs):
+                    continue
+                sec = secs[idx]
                 if not hasattr(sec, attr_name):
                     continue
 
