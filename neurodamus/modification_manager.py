@@ -402,12 +402,18 @@ class Section(BaseSectionModification):
             self.section_sanity_checks(lhs)
             sub = lhs.value
             section_name = sub.value.id
-            section_type = self.get_section_type(section_name)
+            # this raises errors if the names or types are not expected
+            self.get_section_type(section_name)
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for sec in self.get_section_list(target, cell_manager, section_type, [idx]):
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                secs = getattr(cell, section_name, None)
+                if secs is None or idx >= len(secs):
+                    continue
+                sec = secs[idx]
                 if not hasattr(sec, attr_name):
                     continue
 
