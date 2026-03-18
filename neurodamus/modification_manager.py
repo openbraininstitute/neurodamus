@@ -25,7 +25,6 @@ import operator
 from collections.abc import Generator
 
 import libsonata
-from setuptools.namespaces import flatten
 
 from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
@@ -235,45 +234,13 @@ class BaseSectionModification(BaseASTModification):
 
     SECTION_TYPES = []
 
-    def get_allowed_entries(self) -> str:
-        """Return a comma-separated string of allowed section type names."""
-        return ", ".join(sorted(self.SECTION_TYPES))
-
     def get_section_type(self, name: str) -> str:
         """Resolve a section type name, raising ConfigurationError if unknown."""
         if name in self.SECTION_TYPES:
             return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
 
-        allowed = self.get_allowed_entries()
+        allowed = ", ".join(sorted(self.SECTION_TYPES))
         raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
-
-    @staticmethod
-    def get_section_list(
-        target: NodesetTarget,
-        cell_manager: _CellManager,
-        section_type: str,
-        section_ids: list[int] | None,
-    ) -> list:
-        """Collect sections of the given type from target cells, optionally filtered by sec IDs."""
-        sections = []
-
-        for gid in target.get_local_gids():
-            cell = cell_manager.get_cellref(gid)
-            secs = list(getattr(cell, section_type, []))
-            sections.append(secs)
-
-        if section_ids is None:
-            return flatten(sections)
-
-        # In case we need to filter based on section_ids
-        filtered_secs = []
-        for gid_secs in sections:
-            # We silently skip section ids that are not present in the cell
-            filtered_secs.extend(
-                gid_secs[sec_id] for sec_id in section_ids if sec_id < len(gid_secs)
-            )
-
-        return filtered_secs
 
 
 @ModificationManager.register_type
