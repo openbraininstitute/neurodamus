@@ -242,6 +242,7 @@ class BaseSectionModification(BaseASTModification):
         allowed = ", ".join(sorted(self.SECTION_TYPES))
         raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
 
+
 @ModificationManager.register_type
 class SectionList(BaseSectionModification):
     """Perform one or more assignments involving section attributes,
