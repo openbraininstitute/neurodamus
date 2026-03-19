@@ -21,11 +21,15 @@ Also, when instantiated by the framework, __init__ is passed three arguments
 
 import ast
 import logging
+import operator
+from collections.abc import Generator
 
 import libsonata
 
+from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
+from .target_manager import NodesetTarget, TargetSpec
 from .utils.logging import log_verbose
 
 
@@ -40,18 +44,29 @@ class ModificationManager:
         self._target_manager = target_manager
         self._modifications = []
 
-    def interpret(self, target_spec, mod_info):
+    def interpret(self, mod_info):
+        """Interpret a modification entry and apply it to the corresponding target."""
         mod_t = self._mod_types.get(mod_info.type)
 
         if not mod_t:
             raise ConfigurationError(f"Unknown Modification {mod_info.type}")
-        target = self._target_manager.get_target(target_spec)
+
+        if mod_info.type.name == "compartment_set":
+            target_spec = TargetSpec(mod_info.compartment_set, None)
+            target = self._target_manager.get_compartment_set(target_spec.name)
+        else:
+            target_spec = TargetSpec(mod_info.node_set, None)
+            target = self._target_manager.get_target(target_spec)
+
+        logging.info(" * [MOD] %s: %s -> %s", mod_info.name, mod_info.type.name, target_spec)
+
         cell_manager = self._target_manager._cell_manager
         mod = mod_t(target, mod_info, cell_manager)
         self._modifications.append(mod)
 
     @classmethod
     def register_type(cls, mod_class):
+        """Register a modification class by its MOD_TYPE."""
         cls._mod_types[mod_class.MOD_TYPE] = mod_class
         return mod_class
 
@@ -161,3 +176,323 @@ class ConfigureAllSections:
         raise ConfigurationError(
             "section_configure must consist of one or more semicolon-separated assignments"
         )
+
+
+class BaseASTModification:
+    """Common AST parsing helpers for assignment-based modification configuration."""
+
+    AUG_OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+    }
+
+    @staticmethod
+    def parse_assignments(config: str) -> Generator[tuple[ast.stmt, ast.expr], None, None]:
+        """Parse a config string into individual assignment statements and their targets."""
+        tree = ast.parse(config)
+        for stmt in tree.body:
+            targets = BaseASTModification.assignment_targets(stmt)
+
+            if len(targets) != 1:
+                raise ConfigurationError(
+                    "Only single-target assignments are supported in section_configure"
+                )
+
+            yield stmt, targets[0]
+
+    @staticmethod
+    def assignment_targets(node: ast.stmt) -> list[ast.expr]:
+        """Extract assignment targets from an AST Assign or AugAssign node."""
+        if isinstance(node, ast.Assign):
+            return node.targets
+        if isinstance(node, ast.AugAssign):
+            return [node.target]
+        raise ConfigurationError("section_configure must contain assignments only")
+
+    @staticmethod
+    def evaluate_numeric_rhs(node: ast.expr) -> float:
+        """Safely convert numeric right-hand side."""
+        # Positive constants
+        if isinstance(node, ast.Constant):
+            return float(node.value)
+
+        # Negative constants
+        if (
+            isinstance(node, ast.UnaryOp)
+            and isinstance(node.op, ast.USub)
+            and isinstance(node.operand, ast.Constant)
+        ):
+            return -float(node.operand.value)
+
+        raise ConfigurationError("Only numeric constants are allowed in section_configure")
+
+
+class BaseSectionModification(BaseASTModification):
+    """Shared base class for section and section_list modifications."""
+
+    SECTION_TYPES = []
+
+    def get_section_type(self, name: str) -> str:
+        """Resolve a section type name, raising ConfigurationError if unknown."""
+        if name in self.SECTION_TYPES:
+            return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
+
+        allowed = ", ".join(sorted(self.SECTION_TYPES))
+        raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
+
+
+@ModificationManager.register_type
+class SectionList(BaseSectionModification):
+    """Perform one or more assignments involving section attributes,
+    for the sections in the list that have the referenced attributes.
+
+    Accepted syntax is of the style "apical.gbar_NaTg = 0", with semi-colon-separated assignments
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    SECTION_TYPES = [
+        "apical",
+        "axonal",
+        "basal",
+        "somatic",
+        "all",
+    ]
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
+
+    def __init__(
+        self,
+        target: NodesetTarget,
+        mod_info: libsonata.SimulationConfig.ModificationSectionList,
+        cell_manager: _CellManager,
+    ):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section_list applied to zero sections. Check section_configure for mistakes."
+            )
+
+    def apply_config(self, target: NodesetTarget, config: str, cell_manager: _CellManager) -> int:
+        """Parse and apply section_list modifications, returns the number of sections modified."""
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            if not isinstance(lhs, ast.Attribute):
+                raise ConfigurationError(
+                    "section_list modification must use syntax like apical.gbar = 0"
+                )
+
+            if not isinstance(lhs.value, ast.Name):
+                raise ConfigurationError("Invalid syntax for section type")
+
+            section_name = lhs.value.id
+            attr_name = lhs.attr
+            section_type = self.get_section_type(section_name)
+
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
+
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                for sec in getattr(cell, section_type, []):
+                    if not hasattr(sec, attr_name):
+                        continue
+
+                    # Treat ast.Assign as default
+                    # parse_assignments already checked it is either ast.Assign or ast.AugAssign
+                    new_value = rhs_value
+
+                    if isinstance(stmt, ast.AugAssign):
+                        current = getattr(sec, attr_name)
+                        op_type = type(stmt.op)
+
+                        if op_type not in BaseASTModification.AUG_OPS:
+                            raise ConfigurationError(f"Unsupported operator {op_type}")
+
+                        new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                    setattr(sec, attr_name, new_value)
+                    napply += 1
+
+        return napply
+
+
+@ModificationManager.register_type
+class Section(BaseSectionModification):
+    """Perform one or more assignments involving section attributes,
+    for the given section with the referenced attributes.
+
+    Accepted syntax is of the style "apic[10].gbar_KTst = 0", with semi-colon-separated assignments
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    SECTION_TYPES = {
+        "apic": "apical",
+        "axon": "axonal",
+        "dend": "basal",
+        "soma": "somatic",
+    }
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
+
+    def __init__(
+        self,
+        target: NodesetTarget,
+        mod_info: libsonata.SimulationConfig.ModificationSection,
+        cell_manager: _CellManager,
+    ):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} sections")
+
+        if napply == 0:
+            logging.warning(
+                "section applied to zero sections. Check section_configure for mistakes."
+            )
+
+    def apply_config(
+        self,
+        target: NodesetTarget,
+        config: str,
+        cell_manager: _CellManager,
+    ) -> int:
+        """Parse and apply section modifications, returns the number of sections modified."""
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            self.section_sanity_checks(lhs)
+            sub = lhs.value
+            section_name = sub.value.id
+            # this raises errors if the names or types are not expected
+            self.get_section_type(section_name)
+            idx = sub.slice.value
+            attr_name = lhs.attr
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
+
+            for gid in target.get_local_gids():
+                cell = cell_manager.get_cellref(gid)
+                secs = getattr(cell, section_name, None)
+                if secs is None or idx >= len(secs):
+                    continue
+                sec = secs[idx]
+                if not hasattr(sec, attr_name):
+                    continue
+
+                # Treat ast.Assign as default
+                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
+                new_value = rhs_value
+
+                if isinstance(stmt, ast.AugAssign):
+                    current = getattr(sec, attr_name)
+                    op_type = type(stmt.op)
+
+                    if op_type not in BaseASTModification.AUG_OPS:
+                        raise ConfigurationError(f"Unsupported operator {op_type}")
+
+                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                setattr(sec, attr_name, new_value)
+                napply += 1
+
+        return napply
+
+    @staticmethod
+    def section_sanity_checks(
+        lhs: ast.expr,
+    ) -> None:
+        """Validate that the LHS of an assignment uses correct indexed section syntax."""
+        if not isinstance(lhs, ast.Attribute):
+            raise ConfigurationError("section modification must use syntax like soma[0].gnabar = 0")
+
+        if not isinstance(lhs.value, ast.Subscript):
+            raise ConfigurationError("Section must be indexed")
+
+        sub = lhs.value
+
+        if not isinstance(sub.value, ast.Name):
+            raise ConfigurationError("Invalid syntax for section type")
+
+        if not isinstance(sub.slice, ast.Constant):
+            raise ConfigurationError("Section index must be constant")
+
+
+@ModificationManager.register_type
+class CompartmentSet(BaseASTModification):
+    """Perform one or more assignments involving compartment attributes on selected segments from
+    compartment set.
+
+    Accepted syntax is of the style "gbar_Ca_HVA2 = 1.5", with semi-colon-separated assignments
+
+    Use case is modifying mechanism variables from config.
+    """
+
+    MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.compartment_set
+
+    def __init__(
+        self,
+        target: libsonata.CompartmentSet,
+        mod_info: libsonata.SimulationConfig.ModificationCompartmentSet,
+        cell_manager: _CellManager,
+    ):
+        napply = self.apply_config(target, mod_info.section_configure, cell_manager)
+
+        log_verbose(f"Applied to {napply} segments")
+
+        if napply == 0:
+            logging.warning(
+                "compartment_set applied to zero segments. Check section_configure for mistakes."
+            )
+
+    def apply_config(
+        self,
+        target: libsonata.CompartmentSet,
+        config: str,
+        cell_manager: _CellManager,
+    ) -> int:
+        """Parse and apply compartment_set modif, returns the number of segments modified."""
+        napply = 0
+
+        for stmt, lhs in self.parse_assignments(config):
+            if not isinstance(lhs, ast.Name):
+                raise ConfigurationError(
+                    "compartment_set modification must target variables like 'gnabar_hh'"
+                )
+
+            comp_attr = lhs.id
+            rhs_value = self.evaluate_numeric_rhs(stmt.value)
+
+            local_gids = cell_manager.get_final_gids()
+
+            for cl in target.filtered_iter(target.node_ids()):
+                if cl.node_id not in local_gids:
+                    continue
+                cell = cell_manager.get_cell(cl.node_id)
+                sec = cell.get_sec(cl.section_id)
+                seg = sec(cl.offset)
+
+                if not hasattr(seg, comp_attr):
+                    continue
+
+                # Treat ast.Assign as default
+                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
+                new_value = rhs_value
+
+                if isinstance(stmt, ast.AugAssign):
+                    current = getattr(seg, comp_attr)
+                    op_type = type(stmt.op)
+
+                    if op_type not in BaseASTModification.AUG_OPS:
+                        raise ConfigurationError(f"Unsupported operator {op_type}")
+
+                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+                setattr(seg, comp_attr, new_value)
+                napply += 1
+
+        return napply
