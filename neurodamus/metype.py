@@ -144,6 +144,9 @@ class BaseCell:
                             f"The section_id {section_id} refers to a removed axon section "
                             f"(local index {idx})."
                         )
+                # Access via section_name (hoc object), not section_list,
+                # because the SectionList does not support [] without materializing.
+                # e.g. cell.soma[0], not cell.somatic[0]
                 return getattr(self._cellref, section_name)[idx]
             idx -= count
 
