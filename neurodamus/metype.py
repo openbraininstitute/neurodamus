@@ -18,9 +18,9 @@ class SectionIdError(Exception):
 class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
-    # (section_name, section_list) — ordered, single source of truth.
-    # section_name: name used in hoc section strings (e.g. "axon[0]", "soma[1]")
-    # section_list: SectionList attribute on the cell (e.g. "axonal", "somatic")
+    # (sec_type, sec_list) — ordered, single source of truth.
+    # sec_type: name used in hoc section strings (e.g. "axon[0]", "soma[1]")
+    # sec_list: SectionList attribute on the cell (e.g. "axonal", "somatic")
     #
     # The order matters: section ids are computed as offsets into this sequence.
     # The section list itself does not expose its length without materializing,
@@ -77,9 +77,9 @@ class BaseCell:
         if self._section_counts is None:
             self._section_counts = [
                 int(self._cellref.nSecAxonalOrig)
-                if name == "axon"
+                if sec_type == "axon"
                 else len(getattr(self._cellref, sec_list, []))
-                for name, sec_list in BaseCell.SECTION_TYPES
+                for sec_type, sec_list in BaseCell.SECTION_TYPES
             ]
         return self._section_counts
 
@@ -95,29 +95,27 @@ class BaseCell:
         if the axon was removed. The offsets are still calculated based on the
         original cell structure.
         """
-        section_name = str(section).rsplit(".", 1)[-1]
+        section_str = str(section).rsplit(".", 1)[-1]
         try:
-            section_type, index_str = section_name.rsplit("[", maxsplit=1)
+            sec_type, index_str = section_str.rsplit("[", maxsplit=1)
             local_idx = int(index_str.rstrip("]"))
             if local_idx < 0:
-                raise SectionIdError(f"Negative index {local_idx} in section name: {section_name}")
+                raise SectionIdError(f"Negative index {local_idx} in section name: {section_str}")
         except ValueError as e:
-            raise SectionIdError(f"Cannot parse section name: {section_name}") from e
+            raise SectionIdError(f"Cannot parse section name: {section_str}") from e
 
         offset = 0
-        for (hoc_obj, _), count in zip(
-            BaseCell.SECTION_TYPES, self.get_section_counts(), strict=True
-        ):
-            if hoc_obj == section_type:
+        for (st, _), count in zip(BaseCell.SECTION_TYPES, self.get_section_counts(), strict=True):
+            if st == sec_type:
                 if local_idx >= count:
                     raise SectionIdError(
-                        f"Index {local_idx} out of range for section type '{hoc_obj}'",
+                        f"Index {local_idx} out of range for section type '{st}'",
                         f"(count={count})",
                     )
                 return offset + local_idx
             offset += count
 
-        raise SectionIdError(f"Unknown section type in: {section_type}")
+        raise SectionIdError(f"Unknown section type in: {sec_type}")
 
     def get_sec(self, section_id):
         """Inverse of get_section_id. Given a global section_id, returns the section from the cell.
@@ -131,11 +129,11 @@ class BaseCell:
         calculated based on the original cell structure.
         """
         idx = section_id
-        for (section_name, _), count in zip(
+        for (sec_type, _), count in zip(
             BaseCell.SECTION_TYPES, self.get_section_counts(), strict=True
         ):
             if idx < count:
-                if section_name == "axon":
+                if sec_type == "axon":
                     len_current_axon = len(self._cellref.axonal)
                     if len_current_axon <= idx:
                         raise SectionIdError(
@@ -143,10 +141,10 @@ class BaseCell:
                             f"The section_id {section_id} refers to a removed axon section "
                             f"(local index {idx})."
                         )
-                # Access via section_name (hoc object), not section_list,
+                # Access via sec_type (hoc object), not sec_list,
                 # because the SectionList does not support [] without materializing.
                 # e.g. cell.soma[0], not cell.somatic[0]
-                return getattr(self._cellref, section_name)[idx]
+                return getattr(self._cellref, sec_type)[idx]
             idx -= count
 
         raise SectionIdError(f"Section ID {section_id} is out of bounds.")

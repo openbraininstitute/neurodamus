@@ -137,7 +137,7 @@ def test_section_counts_vs_stale_hoc_accessor(create_tmp_simulation_config_file)
     assert len(cell0._cellref.apical) == 0
     assert len(cell0._cellref.apic) == 1
     # get_section_counts must return the true (non-stale) length.
-    apic_idx = [name for name, _ in BaseCell.SECTION_TYPES].index("apic")
+    apic_idx = [sec_type for sec_type, _ in BaseCell.SECTION_TYPES].index("apic")
     assert cell0.get_section_counts()[apic_idx] == 0
 
 @pytest.mark.parametrize(

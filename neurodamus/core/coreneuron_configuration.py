@@ -23,11 +23,11 @@ class CompartmentMapping:
         return num_segments
 
     def process_section(
-        self, cell, section_name, section_list, num_electrodes, all_lfp_factors, section_offset
+        self, cell, sec_type, sec_list, num_electrodes, all_lfp_factors, section_offset
     ):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
-        section_attr = getattr(cell._cellref, section_list, None)
+        section_attr = getattr(cell._cellref, sec_list, None)
         if section_attr:
             for sec in section_attr:
                 section_id = cell.get_section_id(sec)
@@ -39,7 +39,7 @@ class CompartmentMapping:
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
         self.pc.nrnbbcore_register_mapping(
-            cell.gid, section_name, secvec, segvec, lfp_factors, num_electrodes
+            cell.gid, sec_type, secvec, segvec, lfp_factors, num_electrodes
         )
         return num_segments
 
@@ -56,11 +56,11 @@ class CompartmentMapping:
                 all_lfp_factors = lfp_manager.read_lfp_factors(activegid, pop_info)
 
             section_offset = 0
-            for section_name, section_list in BaseCell.SECTION_TYPES:
+            for sec_type, sec_list in BaseCell.SECTION_TYPES:
                 processed_segments = self.process_section(
                     cell,
-                    section_name,
-                    section_list,
+                    sec_type,
+                    sec_list,
                     num_electrodes,
                     all_lfp_factors,
                     section_offset,

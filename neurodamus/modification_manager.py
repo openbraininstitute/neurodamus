@@ -270,21 +270,21 @@ class SectionListModification(BaseASTModification):
             if not isinstance(lhs.value, ast.Name):
                 raise ConfigurationError("Invalid syntax for section type")
 
-            section_name = lhs.value.id
+            sec_list = lhs.value.id
             attr_name = lhs.attr
-            # Validate section type: accept section_list names and "all"
-            sec_list_names = [sl for _, sl in BaseCell.SECTION_TYPES]
-            if section_name != "all" and section_name not in sec_list_names:
-                allowed = ", ".join(["all", *sec_list_names])
+            # Validate: accept sec_list names and "all"
+            valid_sec_lists = [sl for _, sl in BaseCell.SECTION_TYPES]
+            if sec_list != "all" and sec_list not in valid_sec_lists:
+                allowed = ", ".join(["all", *valid_sec_lists])
                 raise ConfigurationError(
-                    f"Unknown section list: {section_name}. Allowed types are: {allowed}"
+                    f"Unknown section list: {sec_list}. Allowed types are: {allowed}"
                 )
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for gid in target.get_local_gids():
                 cell = cell_manager.get_cellref(gid)
-                for sec in getattr(cell, section_name, []):
+                for sec in getattr(cell, sec_list, []):
                     if not hasattr(sec, attr_name):
                         continue
 
@@ -346,13 +346,13 @@ class SectionModification(BaseASTModification):
         for stmt, lhs in self.parse_assignments(config):
             self.section_sanity_checks(lhs)
             sub = lhs.value
-            section_name = sub.value.id
-            # Validate section name against known types
-            sec_names = [name for name, _ in BaseCell.SECTION_TYPES]
-            if section_name not in sec_names:
-                allowed = ", ".join(sec_names)
+            sec_type = sub.value.id
+            # Validate sec_type against known types
+            valid_sec_types = [st for st, _ in BaseCell.SECTION_TYPES]
+            if sec_type not in valid_sec_types:
+                allowed = ", ".join(valid_sec_types)
                 raise ConfigurationError(
-                    f"Unknown section type: {section_name}. Allowed types are: {allowed}"
+                    f"Unknown section type: {sec_type}. Allowed types are: {allowed}"
                 )
             idx = sub.slice.value
             attr_name = lhs.attr
@@ -360,7 +360,7 @@ class SectionModification(BaseASTModification):
 
             for gid in target.get_local_gids():
                 cell = cell_manager.get_cellref(gid)
-                secs = getattr(cell, section_name, None)
+                secs = getattr(cell, sec_type, None)
                 if secs is None or idx >= len(secs):
                     continue
                 sec = secs[idx]
