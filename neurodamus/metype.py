@@ -38,9 +38,9 @@ class BaseCell:
         ("myelin", lambda c: len(getattr(c, "myelinated", []))),
     ]
 
-    # (hoc_obj_name, section_list_name) — ordered, single source of truth.
-    # hoc_obj_name:      name used in hoc section strings (e.g. "axon[0]", "soma[1]")
-    # section_list_name: SectionList attribute on the cell (e.g. "axonal", "somatic")
+    # (section_name, section_list) — ordered, single source of truth.
+    # section_name: name used in hoc section strings (e.g. "axon[0]", "soma[1]")
+    # section_list: SectionList attribute on the cell (e.g. "axonal", "somatic")
     _SECTION_TYPES = [
         ("soma", "somatic"),
         ("axon", "axonal"),
@@ -52,9 +52,9 @@ class BaseCell:
     ]
 
     # e.g. "axon" -> "axonal"
-    _hoc_obj_to_sec_list = dict(_SECTION_TYPES)
+    _SECTION_NAME_TO_LIST = dict(_SECTION_TYPES)
     # e.g. "axonal" -> "axon"
-    _sec_list_to_hoc_obj = {sec_list: hoc for hoc, sec_list in _SECTION_TYPES}
+    _SECTION_LIST_TO_NAME = {sec_list: name for name, sec_list in _SECTION_TYPES}
 
     __slots__ = ("_ccell", "_cellref", "_section_counts", "raw_gid")
 
@@ -145,19 +145,19 @@ class BaseCell:
         calculated based on the original cell structure.
         """
         idx = section_id
-        for (accessor, _), count in zip(
-            BaseCell._section_layout, self.get_section_counts(), strict=True
+        for (section_name, _), count in zip(
+            BaseCell._SECTION_TYPES, self.get_section_counts(), strict=True
         ):
             if idx < count:
-                len_current_axon = len(self._cellref.axonal)
-                if accessor == "axon" and len_current_axon <= idx:
-                    raise SectionIdError(
-                        f"The axon was removed ({count} -> {len_current_axon}). "
-                        f"The section_id {section_id} refers to a removed axon section "
-                        f"(local index {idx})."
-                    )
-                hobj = getattr(self._cellref, accessor)
-                return hobj[idx]
+                if section_name == "axon":
+                    len_current_axon = len(self._cellref.axonal)
+                    if len_current_axon <= idx:
+                        raise SectionIdError(
+                            f"The axon was removed ({count} -> {len_current_axon}). "
+                            f"The section_id {section_id} refers to a removed axon section "
+                            f"(local index {idx})."
+                        )
+                return getattr(self._cellref, section_name)[idx]
             idx -= count
 
         raise SectionIdError(f"Section ID {section_id} is out of bounds.")
