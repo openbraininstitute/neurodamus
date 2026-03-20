@@ -73,7 +73,7 @@ class ModificationManager:
 
 
 @ModificationManager.register_type
-class TTX:
+class TTXModification:
     """Applies sodium channel block to all sections of the cells in the given target
 
     Uses TTXDynamicsSwitch as in BGLibPy. Overrides HOC version, which is outdated
@@ -100,7 +100,7 @@ class TTX:
 
 
 @ModificationManager.register_type
-class ConfigureAllSections:
+class ConfigureAllSectionsModification:
     """Perform one or more assignments involving section attributes,
     for all sections that have all the referenced attributes.
 
