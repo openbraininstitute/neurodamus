@@ -75,13 +75,11 @@ class BaseCell:
         an instance __dict__ to store its value.
         """
         if self._section_counts is None:
-            counts = []
-            for hoc_obj, sec_list in BaseCell.SECTION_TYPES:
-                if hoc_obj == "axon":
-                    counts.append(int(self._cellref.nSecAxonalOrig))
-                else:
-                    counts.append(len(getattr(self._cellref, sec_list, [])))
-            self._section_counts = counts
+            self._section_counts = [
+                int(self._cellref.nSecAxonalOrig) if name == "axon"
+                else len(getattr(self._cellref, sec_list, []))
+                for name, sec_list in BaseCell.SECTION_TYPES
+            ]
         return self._section_counts
 
     def get_section_id(self, section):
