@@ -29,7 +29,7 @@ class BaseCell:
     # length rather than the current one. Section ids are assumed to be based on
     # the original length, which creates a numbering gap. If a section id falls
     # within that gap we raise an error, since the id is clearly invalid.
-    _SECTION_TYPES = [
+    SECTION_TYPES = [
         ("soma", "somatic"),
         ("axon", "axonal"),
         ("dend", "basal"),
@@ -38,11 +38,6 @@ class BaseCell:
         ("node", "nodal"),
         ("myelin", "myelinated"),
     ]
-
-    # e.g. "axon" -> "axonal"
-    _SECTION_NAME_TO_LIST = dict(_SECTION_TYPES)
-    # e.g. "axonal" -> "axon"
-    _SECTION_LIST_TO_NAME = {sec_list: name for name, sec_list in _SECTION_TYPES}
 
     __slots__ = ("_ccell", "_cellref", "_section_counts", "raw_gid")
 
@@ -68,7 +63,7 @@ class BaseCell:
         return Nd.NetCon(self._cellref, target_pp)
 
     def get_section_counts(self):
-        """Lazily compute and cache section counts, one per entry in _SECTION_TYPES.
+        """Lazily compute and cache section counts, one per entry in SECTION_TYPES.
 
         All section lists are treated as optional (getattr with fallback).
         The axon is special-cased: we use nSecAxonalOrig to preserve the
@@ -81,7 +76,7 @@ class BaseCell:
         """
         if self._section_counts is None:
             counts = []
-            for hoc_obj, sec_list in BaseCell._SECTION_TYPES:
+            for hoc_obj, sec_list in BaseCell.SECTION_TYPES:
                 if hoc_obj == "axon":
                     counts.append(int(self._cellref.nSecAxonalOrig))
                 else:
@@ -112,7 +107,7 @@ class BaseCell:
 
         offset = 0
         for (hoc_obj, _), count in zip(
-            BaseCell._SECTION_TYPES, self.get_section_counts(), strict=True
+            BaseCell.SECTION_TYPES, self.get_section_counts(), strict=True
         ):
             if hoc_obj == section_type:
                 if local_idx >= count:
@@ -139,7 +134,7 @@ class BaseCell:
         """
         idx = section_id
         for (section_name, _), count in zip(
-            BaseCell._SECTION_TYPES, self.get_section_counts(), strict=True
+            BaseCell.SECTION_TYPES, self.get_section_counts(), strict=True
         ):
             if idx < count:
                 if section_name == "axon":

@@ -273,8 +273,9 @@ class SectionListModification(BaseASTModification):
             section_name = lhs.value.id
             attr_name = lhs.attr
             # Validate section type: accept section_list names and "all"
-            if section_name != "all" and section_name not in BaseCell._SECTION_LIST_TO_NAME:
-                allowed = ", ".join(["all", *BaseCell._SECTION_LIST_TO_NAME])
+            sec_list_names = [sl for _, sl in BaseCell.SECTION_TYPES]
+            if section_name != "all" and section_name not in sec_list_names:
+                allowed = ", ".join(["all", *sec_list_names])
                 raise ConfigurationError(
                     f"Unknown section type: {section_name}. Allowed types are: {allowed}"
                 )
@@ -347,8 +348,9 @@ class SectionModification(BaseASTModification):
             sub = lhs.value
             section_name = sub.value.id
             # Validate section name against known types
-            if section_name not in BaseCell._SECTION_NAME_TO_LIST:
-                allowed = ", ".join(BaseCell._SECTION_NAME_TO_LIST)
+            sec_names = [name for name, _ in BaseCell.SECTION_TYPES]
+            if section_name not in sec_names:
+                allowed = ", ".join(sec_names)
                 raise ConfigurationError(
                     f"Unknown section type: {section_name}. Allowed types are: {allowed}"
                 )

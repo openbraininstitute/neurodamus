@@ -39,7 +39,7 @@ def test_get_section_id():
     - A mock cell is constructed with soma, axon, dend, and apic always present.
     - Optional sections (ais, node, myelin) are added conditionally based on the flags.
     - Section IDs are checked for correctness or failure (if the section is absent).
-    - Offsets are validated against the order defined in `_SECTION_TYPES`.
+    - Offsets are validated against the order defined in `SECTION_TYPES`.
 
     This ensures `get_section_id` correctly handles both presence and absence of
     sections and computes the global index accurately.
@@ -137,7 +137,7 @@ def test_section_counts_vs_stale_hoc_accessor(create_tmp_simulation_config_file)
     assert len(cell0._cellref.apical) == 0
     assert len(cell0._cellref.apic) == 1
     # get_section_counts must return the true (non-stale) length.
-    apic_idx = [name for name, _ in BaseCell._SECTION_TYPES].index("apic")
+    apic_idx = [name for name, _ in BaseCell.SECTION_TYPES].index("apic")
     assert cell0.get_section_counts()[apic_idx] == 0
 
 @pytest.mark.parametrize(
