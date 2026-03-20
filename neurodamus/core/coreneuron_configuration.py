@@ -2,6 +2,7 @@ from pathlib import Path
 
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
+from neurodamus.metype import BaseCell
 
 
 class CompartmentMapping:
@@ -21,10 +22,12 @@ class CompartmentMapping:
 
         return num_segments
 
-    def process_section(self, cell, section, num_electrodes, all_lfp_factors, section_offset):
+    def process_section(
+        self, cell, section_name, section_list, num_electrodes, all_lfp_factors, section_offset
+    ):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
-        section_attr = getattr(cell._cellref, section[0], None)
+        section_attr = getattr(cell._cellref, section_list, None)
         if section_attr:
             for sec in section_attr:
                 section_id = cell.get_section_id(sec)
@@ -36,20 +39,11 @@ class CompartmentMapping:
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
         self.pc.nrnbbcore_register_mapping(
-            cell.gid, section[1], secvec, segvec, lfp_factors, num_electrodes
+            cell.gid, section_name, secvec, segvec, lfp_factors, num_electrodes
         )
         return num_segments
 
     def register_mapping(self):
-        sections = [
-            ("somatic", "soma"),
-            ("axonal", "axon"),
-            ("basal", "dend"),
-            ("apical", "apic"),
-            ("AIS", "ais"),
-            ("nodal", "node"),
-            ("myelinated", "myelin"),
-        ]
         gidvec = self.cell_distributor.getGidListForProcessor()
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
@@ -62,9 +56,14 @@ class CompartmentMapping:
                 all_lfp_factors = lfp_manager.read_lfp_factors(activegid, pop_info)
 
             section_offset = 0
-            for section in sections:
+            for section_name, section_list in BaseCell.SECTION_TYPES:
                 processed_segments = self.process_section(
-                    cell, section, num_electrodes, all_lfp_factors, section_offset
+                    cell,
+                    section_name,
+                    section_list,
+                    num_electrodes,
+                    all_lfp_factors,
+                    section_offset,
                 )
                 section_offset += processed_segments
 
