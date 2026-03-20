@@ -76,7 +76,8 @@ class BaseCell:
         """
         if self._section_counts is None:
             self._section_counts = [
-                int(self._cellref.nSecAxonalOrig) if name == "axon"
+                int(self._cellref.nSecAxonalOrig)
+                if name == "axon"
                 else len(getattr(self._cellref, sec_list, []))
                 for name, sec_list in BaseCell.SECTION_TYPES
             ]
