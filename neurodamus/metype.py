@@ -38,6 +38,24 @@ class BaseCell:
         ("myelin", lambda c: len(getattr(c, "myelinated", []))),
     ]
 
+    # (hoc_obj_name, section_list_name) — ordered, single source of truth.
+    # hoc_obj_name:      name used in hoc section strings (e.g. "axon[0]", "soma[1]")
+    # section_list_name: SectionList attribute on the cell (e.g. "axonal", "somatic")
+    _SECTION_TYPES = [
+        ("soma", "somatic"),
+        ("axon", "axonal"),
+        ("dend", "basal"),
+        ("apic", "apical"),
+        ("ais", "AIS"),
+        ("node", "nodal"),
+        ("myelin", "myelinated"),
+    ]
+
+    # e.g. "axon" -> "axonal"
+    _hoc_obj_to_sec_list = dict(_SECTION_TYPES)
+    # e.g. "axonal" -> "axon"
+    _sec_list_to_hoc_obj = {sec_list: hoc for hoc, sec_list in _SECTION_TYPES}
+
     __slots__ = ("_ccell", "_cellref", "_section_counts", "raw_gid")
 
     def __init__(self):
@@ -62,15 +80,25 @@ class BaseCell:
         return Nd.NetCon(self._cellref, target_pp)
 
     def get_section_counts(self):
-        """Lazy set of the section counts for the cell."""
+        """Lazy computation of section counts, one per entry in _SECTION_TYPES.
+
+        All section lists are treated as optional (getattr with fallback).
+        The axon is special-cased: we use nSecAxonalOrig to preserve the
+        original count even after axon deletion.
+        """
         if self._section_counts is None:
-            self._section_counts = [i[1](self._cellref) for i in BaseCell._section_layout]
+            counts = []
+            for hoc_obj, sec_list in BaseCell._SECTION_TYPES:
+                if hoc_obj == "axon":
+                    counts.append(int(self._cellref.nSecAxonalOrig))
+                else:
+                    counts.append(len(getattr(self._cellref, sec_list, [])))
+            self._section_counts = counts
         return self._section_counts
 
     def get_section_id(self, section):
         """Calculate the global index of a given section within its cell.
 
-        :param cell: The cell instance containing the section of interest
         :param section: The specific section for which the index is required
         :return: The global index of the section, applicable for neuron mapping
 
@@ -90,13 +118,13 @@ class BaseCell:
             raise SectionIdError(f"Cannot parse section name: {section_name}") from e
 
         offset = 0
-        for (accessor, _), count in zip(
-            BaseCell._section_layout, self.get_section_counts(), strict=True
+        for (hoc_obj, _), count in zip(
+            BaseCell._SECTION_TYPES, self.get_section_counts(), strict=True
         ):
-            if accessor == section_type:
+            if hoc_obj == section_type:
                 if local_idx >= count:
                     raise SectionIdError(
-                        f"Index {local_idx} out of range for section type '{accessor}'",
+                        f"Index {local_idx} out of range for section type '{hoc_obj}'",
                         f"(count={count})",
                     )
                 return offset + local_idx
