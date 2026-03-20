@@ -230,22 +230,8 @@ class BaseASTModification:
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
 
-class BaseSectionModification(BaseASTModification):
-    """Shared base class for section and section_list modifications."""
-
-    SECTION_TYPES = []
-
-    def get_section_type(self, name: str) -> str:
-        """Resolve a section type name, raising ConfigurationError if unknown."""
-        if name in self.SECTION_TYPES:
-            return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
-
-        allowed = ", ".join(self.SECTION_TYPES)
-        raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
-
-
 @ModificationManager.register_type
-class SectionList(BaseSectionModification):
+class SectionList(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the sections in the list that have the referenced attributes.
 
@@ -253,8 +239,6 @@ class SectionList(BaseSectionModification):
 
     Use case is modifying mechanism variables from config.
     """
-
-    SECTION_TYPES = ["all", *BaseCell._SECTION_LIST_TO_NAME]
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
 
@@ -288,13 +272,18 @@ class SectionList(BaseSectionModification):
 
             section_name = lhs.value.id
             attr_name = lhs.attr
-            section_type = self.get_section_type(section_name)
+            # Validate section type: accept section_list names and "all"
+            if section_name != "all" and section_name not in BaseCell._SECTION_LIST_TO_NAME:
+                allowed = ", ".join(["all", *BaseCell._SECTION_LIST_TO_NAME])
+                raise ConfigurationError(
+                    f"Unknown section type: {section_name}. Allowed types are: {allowed}"
+                )
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for gid in target.get_local_gids():
                 cell = cell_manager.get_cellref(gid)
-                for sec in getattr(cell, section_type, []):
+                for sec in getattr(cell, section_name, []):
                     if not hasattr(sec, attr_name):
                         continue
 
@@ -318,7 +307,7 @@ class SectionList(BaseSectionModification):
 
 
 @ModificationManager.register_type
-class Section(BaseSectionModification):
+class Section(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the given section with the referenced attributes.
 
@@ -326,8 +315,6 @@ class Section(BaseSectionModification):
 
     Use case is modifying mechanism variables from config.
     """
-
-    SECTION_TYPES = BaseCell._SECTION_NAME_TO_LIST
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
 
@@ -359,8 +346,12 @@ class Section(BaseSectionModification):
             self.section_sanity_checks(lhs)
             sub = lhs.value
             section_name = sub.value.id
-            # this raises errors if the names or types are not expected
-            self.get_section_type(section_name)
+            # Validate section name against known types
+            if section_name not in BaseCell._SECTION_NAME_TO_LIST:
+                allowed = ", ".join(BaseCell._SECTION_NAME_TO_LIST)
+                raise ConfigurationError(
+                    f"Unknown section type: {section_name}. Allowed types are: {allowed}"
+                )
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
