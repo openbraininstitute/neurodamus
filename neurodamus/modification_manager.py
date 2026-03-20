@@ -231,7 +231,7 @@ class BaseASTModification:
 
 
 @ModificationManager.register_type
-class SectionList(BaseASTModification):
+class SectionListModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the sections in the list that have the referenced attributes.
 
@@ -307,7 +307,7 @@ class SectionList(BaseASTModification):
 
 
 @ModificationManager.register_type
-class Section(BaseASTModification):
+class SectionModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the given section with the referenced attributes.
 
@@ -404,7 +404,7 @@ class Section(BaseASTModification):
 
 
 @ModificationManager.register_type
-class CompartmentSet(BaseASTModification):
+class CompartmentSetModification(BaseASTModification):
     """Perform one or more assignments involving compartment attributes on selected segments from
     compartment set.
 
