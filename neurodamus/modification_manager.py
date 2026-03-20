@@ -29,6 +29,7 @@ import libsonata
 from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
+from .metype import BaseCell
 from .target_manager import NodesetTarget, TargetSpec
 from .utils.logging import log_verbose
 
@@ -239,7 +240,7 @@ class BaseSectionModification(BaseASTModification):
         if name in self.SECTION_TYPES:
             return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
 
-        allowed = ", ".join(sorted(self.SECTION_TYPES))
+        allowed = ", ".join(self.SECTION_TYPES)
         raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
 
 
@@ -253,13 +254,7 @@ class SectionList(BaseSectionModification):
     Use case is modifying mechanism variables from config.
     """
 
-    SECTION_TYPES = [
-        "apical",
-        "axonal",
-        "basal",
-        "somatic",
-        "all",
-    ]
+    SECTION_TYPES = ["all", *BaseCell._SECTION_LIST_TO_NAME]
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
 
@@ -332,12 +327,7 @@ class Section(BaseSectionModification):
     Use case is modifying mechanism variables from config.
     """
 
-    SECTION_TYPES = {
-        "apic": "apical",
-        "axon": "axonal",
-        "dend": "basal",
-        "soma": "somatic",
-    }
+    SECTION_TYPES = BaseCell._SECTION_NAME_TO_LIST
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
 
