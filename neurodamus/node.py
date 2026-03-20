@@ -867,9 +867,7 @@ class Node:
 
         mod_manager = ModificationManager(self._target_manager)
         for mod_info in SimConfig.modifications:
-            target_spec = TargetSpec(mod_info.node_set, None)
-            logging.info(" * [MOD] %s: %s -> %s", mod_info.name, mod_info.type.name, target_spec)
-            mod_manager.interpret(target_spec, mod_info)
+            mod_manager.interpret(mod_info)
 
     def write_and_get_population_offsets(self) -> tuple[dict, dict, dict]:
         """Retrieve population offsets from the circuit or restore them,
