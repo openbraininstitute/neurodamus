@@ -959,7 +959,7 @@ def test_modification_invalid_section_multiple_types(
 
     if mod_type == "section_list":
         err_msg = \
-            "Unknown section type: soma. Allowed types are: all, somatic, axonal, basal, apical, AIS, nodal, myelinated"
+            "Unknown section list: soma. Allowed types are: all, somatic, axonal, basal, apical, AIS, nodal, myelinated"
     else:
         err_msg = "Unknown section type: somatic. Allowed types are: soma, axon, dend, apic, ais, node, myelin"
 

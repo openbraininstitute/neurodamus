@@ -277,7 +277,7 @@ class SectionListModification(BaseASTModification):
             if section_name != "all" and section_name not in sec_list_names:
                 allowed = ", ".join(["all", *sec_list_names])
                 raise ConfigurationError(
-                    f"Unknown section type: {section_name}. Allowed types are: {allowed}"
+                    f"Unknown section list: {section_name}. Allowed types are: {allowed}"
                 )
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)

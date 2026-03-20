@@ -122,7 +122,6 @@ class BaseCell:
     def get_sec(self, section_id):
         """Inverse of get_section_id. Given a global section_id, returns the section from the cell.
 
-        :param cell: The cell instance used for offsets
         :param section_id: The global index of the section
         :return: Reference to the section in the cell
 
