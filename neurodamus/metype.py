@@ -18,29 +18,17 @@ class SectionIdError(Exception):
 class BaseCell:
     """Class representing an basic cell, e.g. an artificial cell"""
 
-    # List of (section_name, length_accessor) tuples. Each entry provides a name
-    # for random access to a section list and a callable that returns the current
-    # length of that list. We need the explicit length accessor because the
-    # section list object itself does not expose one without materializing the
-    # list, and the underlying hoc accessor may become stale, reporting an
-    # outdated length. Additionally, when the axon is deleted we want to report
-    # the original axon length rather than the current one. Section ids are
-    # assumed to be based on the original length, which creates a numbering gap.
-    # If a section id falls within that gap we raise an error, since the id is
-    # clearly invalid.
-    _section_layout = [
-        ("soma", lambda c: len(c.somatic)),
-        ("axon", lambda c: int(c.nSecAxonalOrig)),
-        ("dend", lambda c: len(c.basal)),
-        ("apic", lambda c: len(c.apical)),
-        ("ais", lambda c: len(getattr(c, "AIS", []))),
-        ("node", lambda c: len(getattr(c, "nodal", []))),
-        ("myelin", lambda c: len(getattr(c, "myelinated", []))),
-    ]
-
     # (section_name, section_list) — ordered, single source of truth.
     # section_name: name used in hoc section strings (e.g. "axon[0]", "soma[1]")
     # section_list: SectionList attribute on the cell (e.g. "axonal", "somatic")
+    #
+    # The order matters: section ids are computed as offsets into this sequence.
+    # The section list itself does not expose its length without materializing,
+    # and the underlying hoc accessor may become stale, reporting an outdated
+    # length. Additionally, when the axon is deleted we report the original axon
+    # length rather than the current one. Section ids are assumed to be based on
+    # the original length, which creates a numbering gap. If a section id falls
+    # within that gap we raise an error, since the id is clearly invalid.
     _SECTION_TYPES = [
         ("soma", "somatic"),
         ("axon", "axonal"),
@@ -80,11 +68,16 @@ class BaseCell:
         return Nd.NetCon(self._cellref, target_pp)
 
     def get_section_counts(self):
-        """Lazy computation of section counts, one per entry in _SECTION_TYPES.
+        """Lazily compute and cache section counts, one per entry in _SECTION_TYPES.
 
         All section lists are treated as optional (getattr with fallback).
         The axon is special-cased: we use nSecAxonalOrig to preserve the
         original count even after axon deletion.
+
+        Note: this is manually cached via _section_counts rather than using
+        @cached_property because the class uses __slots__ (for memory
+        efficiency across many cell instances), and cached_property requires
+        an instance __dict__ to store its value.
         """
         if self._section_counts is None:
             counts = []
