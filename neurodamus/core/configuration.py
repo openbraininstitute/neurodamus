@@ -12,6 +12,7 @@ from pathlib import Path
 
 import libsonata
 
+from . import EngineBase
 from ._shmutils import SHMUtil
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
@@ -602,15 +603,20 @@ def _validate_file_extension(path):
 
 @SimConfig.validator
 def _circuits(config: _SimConfig):
-    from . import EngineBase
+    POPULATION_TYPE_ENGINE_MAP = {
+        "astrocyte": EngineBase.get("NGV"),
+        "point_process": EngineBase.get("AllenPoint"),
+        "biophysical": EngineBase.get("METype"),
+    }
 
     circuit_configs = {}
 
     for name, circuit_info in config._simulation_config.Circuit.items():
-        log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine", "(default)"))
-        # Replace name by actual engine class
-        circuit_info["Engine"] = EngineBase.get(circuit_info["Engine"])
+        circuit_info["Engine"] = POPULATION_TYPE_ENGINE_MAP.get(
+            circuit_info["PopulationType"], EngineBase.get("METype")
+        )
 
+        log_verbose("CIRCUIT %s (%s)", name, circuit_info.get("Engine").__name__)
         circuit_info.setdefault("nrnPath", False)
         if config.cli_options.keep_axon and circuit_info["Engine"].__name__ == "METypeEngine":
             log_verbose("Keeping axons ENABLED")

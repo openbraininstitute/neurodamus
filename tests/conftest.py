@@ -31,6 +31,7 @@ V5_SONATA = SIM_DIR / "v5_sonata"
 PLATFORM_SYSTEM = platform.system()
 RINGTEST_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest"
 NGV_DIR = Path(__file__).parent.absolute() / "simulations" / "ngv"
+ALLEN_V1_DIR = Path(__file__).parent.absolute() / "simulations" / "ringtest_allen_v1"
 
 
 @pytest.fixture(scope="session")

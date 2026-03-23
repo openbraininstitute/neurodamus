@@ -77,7 +77,10 @@ EDGE_TYPES = [
     SonataAttribute("vasculature_section_id", type=int, prefix=True),
     SonataAttribute("vasculature_segment_id", type=int, prefix=True),
     SonataAttribute("neuromod_dtc", type=np.float32, prefix=True),
-    SonataAttribute("neuromod_strength", type=np.float32, prefix=True)
+    SonataAttribute("neuromod_strength", type=np.float32, prefix=True),
+    SonataAttribute("tau1", type=np.float32, prefix=True),
+    SonataAttribute("tau2", type=np.float32, prefix=True),
+    SonataAttribute("erev", type=np.float32, prefix=True)
 ]
 EDGE_TYPES = {attr.name: attr for attr in EDGE_TYPES}
 
