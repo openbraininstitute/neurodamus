@@ -12,11 +12,14 @@ from neurodamus.metype import BaseCell, Cell_V6, SectionIdError
 
 def _make_mock_cell():
     mock_cell_ref = Mock()
-    mock_cell_ref.soma = list(range(10))
-    mock_cell_ref.axon = [10, 11]
+    mock_cell_ref.somatic = list(range(10))
+    mock_cell_ref.soma = mock_cell_ref.somatic
+    mock_cell_ref.axonal = [10, 11]
+    mock_cell_ref.axon = mock_cell_ref.axonal
     mock_cell_ref.nSecAxonalOrig = 10
-    mock_cell_ref.dend = list(range(12, 22))
-    mock_cell_ref.apic = list(range(22, 32))
+    mock_cell_ref.basal = list(range(12, 22))
+    mock_cell_ref.dend = mock_cell_ref.basal
+    mock_cell_ref.apical = list(range(22, 32))
 
     mock_cell = BaseCell()
     mock_cell._cellref = mock_cell_ref
@@ -36,7 +39,7 @@ def test_get_section_id():
     - A mock cell is constructed with soma, axon, dend, and apic always present.
     - Optional sections (ais, node, myelin) are added conditionally based on the flags.
     - Section IDs are checked for correctness or failure (if the section is absent).
-    - Offsets are validated against the order defined in `_section_layout`.
+    - Offsets are validated against the order defined in `SECTION_TYPES`.
 
     This ensures `get_section_id` correctly handles both presence and absence of
     sections and computes the global index accurately.
@@ -44,15 +47,15 @@ def test_get_section_id():
     for flags in product([False, True], repeat=3):
         mock_cell = _make_mock_cell()
         if flags[0]:
-            mock_cell.CellRef.ais = list(range(32, 42))
+            mock_cell.CellRef.AIS = list(range(32, 42))
             mock_cell.CellRef.nSecLastAIS = 10
         if flags[1]:
             offset = flags[0] * 10
-            mock_cell.CellRef.node = list(range(32 + offset, 42 + offset))
+            mock_cell.CellRef.nodal = list(range(32 + offset, 42 + offset))
             mock_cell.CellRef.nSecNodal = 10
         if flags[2]:
             offset = flags[0] * 10 + flags[1] * 10
-            mock_cell.CellRef.myelin = list(range(32 + offset, 42 + offset))
+            mock_cell.CellRef.myelinated = list(range(32 + offset, 42 + offset))
             mock_cell.CellRef.nSecMyelinated = 10
         seal(mock_cell.CellRef)
 
@@ -106,6 +109,36 @@ def test_get_sec():
     with pytest.raises(SectionIdError):
         mock_cell.get_sec(1111)
 
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+        }
+    ],
+    indirect=True,
+)
+def test_section_counts_vs_stale_hoc_accessor(create_tmp_simulation_config_file):
+    """Verify that get_section_counts returns the correct length even when the
+    underlying hoc accessor is stale.
+
+    The hoc ``apical`` list may report a different length than the actual number
+    of apical sections (here 0 vs 1).  ``get_section_counts`` must reflect the
+    true count, not the stale hoc value.
+    """
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+    cell_manager = n.circuits.get_node_manager("RingA")
+    cell0 = next(iter(cell_manager.cells))
+    # The hoc accessor ``apic`` still reports 1 section, but the actual
+    # ``apical`` list is empty — the accessor is stale.
+    assert len(cell0._cellref.apical) == 0
+    assert len(cell0._cellref.apic) == 1
+    # get_section_counts must return the true (non-stale) length.
+    apic_idx = [sec_type for sec_type, _ in BaseCell.SECTION_TYPES].index("apic")
+    assert cell0.get_section_counts()[apic_idx] == 0
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",

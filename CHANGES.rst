@@ -2,6 +2,26 @@
 Change Log
 ==========
 
+Version 4.2.0
+=============
+**23 March 2026**
+
+*New Features*
+  * Add SEClamp voltage levels (#481)
+  * Implement support for condition:modification added to sonata-extension spec (#486)
+  * Add filtering based on ``section_local_ids`` for ``get_point_list`` (#490)
+
+*Improvements*
+  * SONATA spec update: change modifications from CamelCase to snake_case (#484)
+  * ``SonataConfig.parsedConnections`` rework (#447)
+  * Remove ``check_is_subset`` (#488)
+  * Rework of ``modification_manager.py``: unify section type definitions, rename modification classes for clarity (#499)
+
+*Bug Fixes*
+  * Fix offset 0-based (#487)
+  * Fix stale section counts in ``metype.py`` (#499)
+
+
 Version 4.1.0
 =============
 **12 February 2026**
