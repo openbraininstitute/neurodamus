@@ -29,6 +29,7 @@ import libsonata
 from .cell_distributor import _CellManager
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
+from .metype import BaseCell
 from .target_manager import NodesetTarget, TargetSpec
 from .utils.logging import log_verbose
 
@@ -72,7 +73,7 @@ class ModificationManager:
 
 
 @ModificationManager.register_type
-class TTX:
+class TTXModification:
     """Applies sodium channel block to all sections of the cells in the given target
 
     Uses TTXDynamicsSwitch as in BGLibPy. Overrides HOC version, which is outdated
@@ -99,7 +100,7 @@ class TTX:
 
 
 @ModificationManager.register_type
-class ConfigureAllSections:
+class ConfigureAllSectionsModification:
     """Perform one or more assignments involving section attributes,
     for all sections that have all the referenced attributes.
 
@@ -229,22 +230,8 @@ class BaseASTModification:
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
 
-class BaseSectionModification(BaseASTModification):
-    """Shared base class for section and section_list modifications."""
-
-    SECTION_TYPES = []
-
-    def get_section_type(self, name: str) -> str:
-        """Resolve a section type name, raising ConfigurationError if unknown."""
-        if name in self.SECTION_TYPES:
-            return name if isinstance(self.SECTION_TYPES, list) else self.SECTION_TYPES[name]
-
-        allowed = ", ".join(sorted(self.SECTION_TYPES))
-        raise ConfigurationError(f"Unknown section type: {name}. Allowed types are: {allowed}")
-
-
 @ModificationManager.register_type
-class SectionList(BaseSectionModification):
+class SectionListModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the sections in the list that have the referenced attributes.
 
@@ -252,14 +239,6 @@ class SectionList(BaseSectionModification):
 
     Use case is modifying mechanism variables from config.
     """
-
-    SECTION_TYPES = [
-        "apical",
-        "axonal",
-        "basal",
-        "somatic",
-        "all",
-    ]
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section_list
 
@@ -291,15 +270,21 @@ class SectionList(BaseSectionModification):
             if not isinstance(lhs.value, ast.Name):
                 raise ConfigurationError("Invalid syntax for section type")
 
-            section_name = lhs.value.id
+            sec_list = lhs.value.id
             attr_name = lhs.attr
-            section_type = self.get_section_type(section_name)
+            # Validate: accept sec_list names and "all"
+            valid_sec_lists = [sl for _, sl in BaseCell.SECTION_TYPES]
+            if sec_list != "all" and sec_list not in valid_sec_lists:
+                allowed = ", ".join(["all", *valid_sec_lists])
+                raise ConfigurationError(
+                    f"Unknown section list: {sec_list}. Allowed types are: {allowed}"
+                )
 
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for gid in target.get_local_gids():
                 cell = cell_manager.get_cellref(gid)
-                for sec in getattr(cell, section_type, []):
+                for sec in getattr(cell, sec_list, []):
                     if not hasattr(sec, attr_name):
                         continue
 
@@ -323,7 +308,7 @@ class SectionList(BaseSectionModification):
 
 
 @ModificationManager.register_type
-class Section(BaseSectionModification):
+class SectionModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
     for the given section with the referenced attributes.
 
@@ -331,13 +316,6 @@ class Section(BaseSectionModification):
 
     Use case is modifying mechanism variables from config.
     """
-
-    SECTION_TYPES = {
-        "apic": "apical",
-        "axon": "axonal",
-        "dend": "basal",
-        "soma": "somatic",
-    }
 
     MOD_TYPE = libsonata.SimulationConfig.ModificationBase.ModificationType.section
 
@@ -368,16 +346,21 @@ class Section(BaseSectionModification):
         for stmt, lhs in self.parse_assignments(config):
             self.section_sanity_checks(lhs)
             sub = lhs.value
-            section_name = sub.value.id
-            # this raises errors if the names or types are not expected
-            self.get_section_type(section_name)
+            sec_type = sub.value.id
+            # Validate sec_type against known types
+            valid_sec_types = [st for st, _ in BaseCell.SECTION_TYPES]
+            if sec_type not in valid_sec_types:
+                allowed = ", ".join(valid_sec_types)
+                raise ConfigurationError(
+                    f"Unknown section type: {sec_type}. Allowed types are: {allowed}"
+                )
             idx = sub.slice.value
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
             for gid in target.get_local_gids():
                 cell = cell_manager.get_cellref(gid)
-                secs = getattr(cell, section_name, None)
+                secs = getattr(cell, sec_type, None)
                 if secs is None or idx >= len(secs):
                     continue
                 sec = secs[idx]
@@ -423,7 +406,7 @@ class Section(BaseSectionModification):
 
 
 @ModificationManager.register_type
-class CompartmentSet(BaseASTModification):
+class CompartmentSetModification(BaseASTModification):
     """Perform one or more assignments involving compartment attributes on selected segments from
     compartment set.
 
