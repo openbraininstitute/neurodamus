@@ -5,10 +5,10 @@ import hashlib
 import logging  # active only in rank 0 (init)
 import os
 import weakref
+from collections import defaultdict
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import DefaultDict
 
 import memray
 import numpy as np
@@ -35,7 +35,7 @@ from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
-from .utils.logging import log_all, log_verbose
+from .utils.logging import log_verbose
 from .utils.memory import DryRunStats
 
 
@@ -310,9 +310,8 @@ class CellManagerBase(_CellManager):
         memory_dict = {}
         MAX_CELLS = 50
 
-
         # Batching metypes
-        metypes_cells = DefaultDict(list)
+        metypes_cells = defaultdict(list)
         for gid, cell_info in self._local_nodes.iter_cell_info():
             if cell_info is None:
                 continue
@@ -325,7 +324,7 @@ class CellManagerBase(_CellManager):
 
             n_cells = 0
             tmp_file = Path(f".tmp_{metype}.bin")
-            dst = memray.FileDestination(tmp_file, True, True)
+            dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
             with memray.Tracker(destination=dst, memory_interval_ms=10000):
                 for gid, cell_info in cells[:MAX_CELLS]:
                     cell = cell_type(gid, cell_info, self._circuit_conf)
