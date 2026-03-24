@@ -323,7 +323,7 @@ class CellManagerBase(_CellManager):
                 continue
 
             n_cells = 0
-            tmp_file = Path(f".tmp_{metype}.bin")
+            tmp_file = Path(f".tmp_{metype}_rank_{MPI.rank}.bin")
             dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
             with memray.Tracker(destination=dst, memory_interval_ms=10000):
                 for gid, cell_info in cells[:MAX_CELLS]:
