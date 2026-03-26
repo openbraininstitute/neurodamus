@@ -165,3 +165,22 @@ def test_lfp_reports(create_tmp_simulation_config_file):
     assert rep_config.file_name == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
 
     nd.run()
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {
+                "electrodes_file": "/nonexistent/path/lfp_file.h5"
+            },
+        }
+    },
+], indirect=True)
+def test_missing_electrodes_file(create_tmp_simulation_config_file):
+    """Test that a missing electrodes_file does not crash when reports are disabled."""
+    from neurodamus import Neurodamus
+
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    nd.run()
