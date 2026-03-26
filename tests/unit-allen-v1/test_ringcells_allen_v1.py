@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy.testing as npt
+import pytest
 
 from tests import utils
 from tests.conftest import ALLEN_V1_DIR
@@ -9,11 +10,19 @@ from neurodamus import Neurodamus
 from neurodamus.utils.dump_cellstate import dump_cellstate
 
 
-def test_cell_states(capsys):
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "src_dir": ALLEN_V1_DIR,
+        }
+    ],
+    indirect=True,
+)
+def test_cell_states(capsys, create_tmp_simulation_config_file):
     from neurodamus.core import NeuronWrapper as Nd
 
-    sim_conf = str(ALLEN_V1_DIR / "simulation_config.json")
-    n = Neurodamus(sim_conf)
+    n = Neurodamus(create_tmp_simulation_config_file)
 
     # 1. check warning msg about no BBP syn models
     captured = capsys.readouterr()
