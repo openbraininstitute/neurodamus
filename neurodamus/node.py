@@ -578,7 +578,7 @@ class Node:
             )
 
         lfp_weights_file = self._run_conf.lfp_weights_path
-        if lfp_weights_file:
+        if lfp_weights_file and self._run_conf.enable_reports:
             if SimConfig.use_coreneuron:
                 lfp_manager = self._circuits.global_manager._lfp_manager
                 cell_managers = self._circuits.global_manager._cell_managers
