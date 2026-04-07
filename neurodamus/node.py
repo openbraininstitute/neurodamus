@@ -510,19 +510,28 @@ class Node:
             else:
                 logging.warning("Cell memory usage file not found. Computing on-the-fly.")
             for circuit in self._sonata_circuits.values():
-                if circuit.get("PopulationType") == "biophysical":
-                    cell_distributor = CellDistributor(
-                        circuit, self._target_manager, self._run_conf
-                    )
-                    cell_distributor.load_nodes(
-                        None,
+                if circuit.get("PopulationType") == "biophysical" and compute_cell_memory_usage:
+                    cell_distributor = self._circuits.new_node_manager(
+                        circuit,
+                        self._target_manager,
+                        self._run_conf,
                         loader_opts={
                             "load_mode": "load_nodes_metype",
                             "dry_run_stats": self._dry_run_stats,
                         },
                     )
-                    if compute_cell_memory_usage:
-                        cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                    # Instantiate the circuit cells and synapses to evaluate complexities
+                    cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                    self._circuits.global_manager.finalize()
+                    SimConfig.update_connection_blocks(self._circuits.alias)
+                    self._create_synapse_manager(
+                        SynapseRuleManager,
+                        circuit,
+                        self._target_manager,
+                        dry_run_stats=self._dry_run_stats,
+                        get_conn_stats=True,
+                    )
+
             if compute_cell_memory_usage:
                 self._dry_run_stats.collect_all_mpi()
                 self._dry_run_stats.export_cell_memory_usage()
@@ -675,8 +684,9 @@ class Node:
         manager = self._circuits.get_create_edge_manager(
             ctype, src, dst, c_target, (conf, *args), **kwargs
         )
+        get_conn_stats = kwargs.get("get_conn_stats", SimConfig.dry_run)
         if manager.is_file_open:  # Base connectivity
-            manager.create_connections()
+            manager.create_connections(get_conn_stats=get_conn_stats)
 
     def _process_connection_configure(self, conn_conf):
         source_t = TargetSpec(conn_conf.source, None)

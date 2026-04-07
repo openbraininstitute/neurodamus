@@ -369,7 +369,7 @@ class ConnectionManagerBase:
         for pop in self.find_populations(population_ids):
             yield from pop.get_connections(post_gids, pre_gids)
 
-    def create_connections(self, src_target=None, dst_target=None):
+    def create_connections(self, src_target=None, dst_target=None, get_conn_stats=False):
         """Creates connections according to loaded parameters in 'Connection'
         blocks of the config in the currently active ConnectionSet.
 
@@ -402,7 +402,7 @@ class ConnectionManagerBase:
         ]
         if not matching_conns:
             logging.info("No matching Connection blocks. Loading all synapses...")
-            self.connect_all()
+            self.connect_all(get_conn_stats=get_conn_stats)
             return
 
         # if we have a single connect block with weight=0, skip synapse creation entirely
@@ -420,7 +420,9 @@ class ConnectionManagerBase:
             conn_dst = conn_conf.destination
             synapse_id = None
             modoverride = conn_conf.modoverride
-            self.connect_group(conn_src, conn_dst, synapse_id, modoverride)
+            self.connect_group(
+                conn_src, conn_dst, synapse_id, modoverride, get_conn_stats=get_conn_stats
+            )
 
     def configure_connections(self, conn_conf):
         """Configure-only circuit connections according to a config Connection block
@@ -454,13 +456,13 @@ class ConnectionManagerBase:
             f"Manager {self.__class__.__name__} doesn't implement delayed connections"
         )
 
-    def connect_all(self, weight_factor=1):
+    def connect_all(self, weight_factor=1, get_conn_stats=False):
         """For every gid access its synapse parameters and instantiate all synapses.
 
         Args:
             weight_factor: Factor to scale all netcon weights (default: 1)
         """
-        if SimConfig.dry_run:
+        if get_conn_stats:
             syn_count = self._get_conn_stats(None)
             log_all(VERBOSE_LOGLEVEL, "[Rank %d] Synapse count: %d", MPI.rank, syn_count)
             self._dry_run_stats.synapse_counts[self.CONNECTIONS_TYPE] += syn_count
@@ -479,7 +481,12 @@ class ConnectionManagerBase:
             self._add_synapses(cur_conn, syns_params, None, offset)
 
     def connect_group(
-        self, conn_source, conn_destination, synapse_type_restrict=None, mod_override=None
+        self,
+        conn_source,
+        conn_destination,
+        synapse_type_restrict=None,
+        mod_override=None,
+        get_conn_stats=False,
     ):
         """Instantiates pathway connections & synapses given src-dst
 
@@ -507,7 +514,7 @@ class ConnectionManagerBase:
             )
             return
 
-        if SimConfig.dry_run:
+        if get_conn_stats:
             syn_count = self._get_conn_stats(dst_target, src_target)
             log_all(VERBOSE_LOGLEVEL, "%s-> %s: %d", conn_pop.src_name, conn_destination, syn_count)
             self._dry_run_stats.synapse_counts[self.CONNECTIONS_TYPE] += syn_count
