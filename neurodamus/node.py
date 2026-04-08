@@ -531,11 +531,13 @@ class Node:
                 self._dry_run_stats.export_cell_memory_usage()
                 # reset since we instantiated
                 Nd.t = 0.0  # Reset time
-                self.clear_model()
 
             alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                 MPI.size, SimConfig.modelbuilding_steps
             )
+
+            self.clear_model()
+
         for pop, ranks in alloc.items():
             for rank, gids in ranks.items():
                 logging.debug("Population: %s, Rank: %s, Number of GIDs: %s", pop, rank, len(gids))
