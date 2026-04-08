@@ -27,7 +27,7 @@ def tmp_folder():
 def change_test_dir(monkeypatch, tmp_folder):
     """
     All tests in this file are using the same working directory, i.e tmp_folder
-    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
+    Because test_dry_run_dynamic_distribute requires cell_memory_usage.json generated in the previous test
     """
     monkeypatch.chdir(tmp_folder)
 
