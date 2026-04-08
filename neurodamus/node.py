@@ -608,7 +608,6 @@ class Node:
 
         if SimConfig.dry_run:
             self._dry_run_stats.collect_all_mpi()
-            self._dry_run_stats.export_cell_memory_usage()
             self._dry_run_stats.estimate_cell_memory()
 
         # Final bits after we have all cell managers
@@ -1893,6 +1892,7 @@ class Neurodamus(Node):
             self._dry_run_stats.display_node_suggestions()
             ranks = self._dry_run_stats.get_num_target_ranks(SimConfig.num_target_ranks)
             self._dry_run_stats.collect_all_mpi()
+            self._dry_run_stats.export_cell_memory_usage()
             try:
                 self._dry_run_stats.distribute_cells_with_validation(
                     ranks, SimConfig.modelbuilding_steps

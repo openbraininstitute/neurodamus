@@ -312,15 +312,29 @@ class DryRunStats:
 
     @run_only_rank0
     def export_cell_memory_usage(self):
+        data = {
+            "metype_memory": self.metype_memory,
+            "pop_metype_gids": {
+                pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
+                for pop, metype_gids in self.pop_metype_gids.items()
+            },
+            "metype_cell_syn_average": self.metype_cell_syn_average
+        }
         with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
-            json.dump(self.metype_memory, fp, sort_keys=True, indent=4)
+            json.dump(data, fp, sort_keys=True, indent=4)
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
         with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
-            self.metype_memory = json.load(fp)
+            data = json.load(fp)
+        if isinstance(data, dict) and "metype_memory" in data:
+            self.metype_memory = data["metype_memory"]
+            self.pop_metype_gids = data["pop_metype_gids"]
+            self.metype_cell_syn_average = data["metype_cell_syn_average"]
+        else:
+            self.metype_memory = data  # backward compat with old format
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose
@@ -483,7 +497,7 @@ class DryRunStats:
         # Prepare the memory usage for each METype
         metype_memory_usage = {}
         for metype, metype_mem in self.metype_memory.items():
-            syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average[metype])
+            syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average.get(metype, 0))
             metype_memory_usage[metype] = metype_mem + syns_mem
 
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
