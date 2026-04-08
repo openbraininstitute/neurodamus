@@ -7,6 +7,7 @@ from neurodamus.core._utils import run_only_rank0
 
 try:
     from mpi4py import MPI
+
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 except ImportError:
@@ -61,7 +62,7 @@ def sonata_config():
         },
         conditions={
             "v_init": -65,
-        }
+        },
     )
 
 
@@ -77,11 +78,9 @@ def ringtest_baseconfig():
             "tstop": 50,
         },
         node_set="Mosaic",
-        conditions={
-            "celsius": 35,
-            "v_init": -65
-        }
+        conditions={"celsius": 35, "v_init": -65},
     )
+
 
 @pytest.fixture
 def v5_sonata_config():
@@ -94,8 +93,7 @@ def v5_sonata_config():
 
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_path):
-    """change the working directory to tmp_path per test function automatically
-    """
+    """change the working directory to tmp_path per test function automatically"""
     monkeypatch.chdir(tmp_path)
 
 
@@ -103,39 +101,22 @@ def change_test_dir(monkeypatch, tmp_path):
 def copy_memory_files(change_test_dir):
     # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {
-    "metype_cell_syn_average": {
-        "MTYPE0-ETYPE0": 1.0,
-        "MTYPE0-ETYPE1": 1.0,
-        "MTYPE1-ETYPE1": 2.0,
-        "MTYPE2-ETYPE2": 1.0
-    },
-    "metype_memory": {
-        "MTYPE0-ETYPE0": 1007.23828125,
-        "MTYPE0-ETYPE1": 992.9140625,
-        "MTYPE1-ETYPE1": 990.9140625,
-        "MTYPE2-ETYPE2": 988.9140625
-    },
-        "pop_metype_gids": {
-        "RingA": {
-            "MTYPE0-ETYPE0": [
-                0
-            ],
-            "MTYPE1-ETYPE1": [
-                1
-            ],
-            "MTYPE2-ETYPE2": [
-                2
-            ]
+        "metype_cell_syn_average": {
+            "MTYPE0-ETYPE0": 1.0,
+            "MTYPE0-ETYPE1": 1.0,
+            "MTYPE1-ETYPE1": 2.0,
+            "MTYPE2-ETYPE2": 1.0,
         },
-        "RingB": {
-            "MTYPE0-ETYPE1": [
-                0
-            ],
-            "MTYPE1-ETYPE1": [
-                1
-            ]
-        }
-    }
+        "metype_memory": {
+            "MTYPE0-ETYPE0": 1007.23828125,
+            "MTYPE0-ETYPE1": 992.9140625,
+            "MTYPE1-ETYPE1": 990.9140625,
+            "MTYPE2-ETYPE2": 988.9140625,
+        },
+        "pop_metype_gids": {
+            "RingA": {"MTYPE0-ETYPE0": [0], "MTYPE1-ETYPE1": [1], "MTYPE2-ETYPE2": [2]},
+            "RingB": {"MTYPE0-ETYPE1": [0], "MTYPE1-ETYPE1": [1]},
+        },
     }
     with Path("cell_memory_usage.json").open("w") as f:
         json.dump(metypes_memory, f, indent=4)

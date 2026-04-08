@@ -318,7 +318,7 @@ class DryRunStats:
                 pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
                 for pop, metype_gids in self.pop_metype_gids.items()
             },
-            "metype_cell_syn_average": self.metype_cell_syn_average
+            "metype_cell_syn_average": self.metype_cell_syn_average,
         }
         with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
             json.dump(data, fp, sort_keys=True, indent=4)
@@ -497,7 +497,9 @@ class DryRunStats:
         # Prepare the memory usage for each METype
         metype_memory_usage = {}
         for metype, metype_mem in self.metype_memory.items():
-            syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average.get(metype, 0))
+            syns_mem = SynapseMemoryUsage.get_memory_usage(
+                self.metype_cell_syn_average.get(metype, 0)
+            )
             metype_memory_usage[metype] = metype_mem + syns_mem
 
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
