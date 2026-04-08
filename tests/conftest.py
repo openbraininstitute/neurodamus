@@ -109,10 +109,10 @@ def copy_memory_files(change_test_dir):
             "MTYPE2-ETYPE2": 1.0,
         },
         "metype_memory": {
-            "MTYPE0-ETYPE0": 1007.23828125,
-            "MTYPE0-ETYPE1": 992.9140625,
-            "MTYPE1-ETYPE1": 990.9140625,
-            "MTYPE2-ETYPE2": 988.9140625,
+            "MTYPE0-ETYPE0": 1000.0,
+            "MTYPE0-ETYPE1": 100.0,
+            "MTYPE1-ETYPE1": 200.0,
+            "MTYPE2-ETYPE2": 200.0,
         },
         "pop_metype_gids": {
             "RingA": {"MTYPE0-ETYPE0": [0], "MTYPE1-ETYPE1": [1], "MTYPE2-ETYPE2": [2]},

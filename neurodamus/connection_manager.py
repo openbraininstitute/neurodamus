@@ -516,7 +516,7 @@ class ConnectionManagerBase:
 
         if get_conn_stats:
             syn_count = self._get_conn_stats(dst_target, src_target)
-            log_all(VERBOSE_LOGLEVEL, "%s-> %s: %d", conn_pop.src_name, conn_destination, syn_count)
+            log_all(VERBOSE_LOGLEVEL, "%s-> %s: %d", conn_source, conn_destination, syn_count)
             self._dry_run_stats.synapse_counts[self.CONNECTIONS_TYPE] += syn_count
             return
 

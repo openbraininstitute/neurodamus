@@ -1,3 +1,4 @@
+import json
 import pytest
 import numpy as np
 import numpy.testing as npt
@@ -34,6 +35,7 @@ def fixed_memory_measurements():
 ], indirect=True)
 @pytest.mark.forked
 def test_dry_run_memory_use(create_tmp_simulation_config_file):
+    """Dry run, check the dry_run_stats property, and the content of export files """
     nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -49,6 +51,14 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
     assert nd._dry_run_stats.metype_counts == expected_metypes_count
     assert nd._dry_run_stats.suggested_nodes > 0
 
+    assert Path(nd._dry_run_stats._ALLOCATION_FILENAME +"_r2_c1.pkl.gz").exists()
+    assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
+
+    with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
+        dryrun_data = json.load(f)
+    assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
+    for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
+        assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
