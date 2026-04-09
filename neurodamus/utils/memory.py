@@ -329,12 +329,9 @@ class DryRunStats:
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
         with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
             data = json.load(fp)
-        if isinstance(data, dict) and "metype_memory" in data:
-            self.metype_memory = data["metype_memory"]
-            self.pop_metype_gids = data["pop_metype_gids"]
-            self.metype_cell_syn_average = data["metype_cell_syn_average"]
-        else:
-            self.metype_memory = data  # backward compat with old format
+        self.metype_memory = data["metype_memory"]
+        self.pop_metype_gids = data["pop_metype_gids"]
+        self.metype_cell_syn_average = data["metype_cell_syn_average"]
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose
