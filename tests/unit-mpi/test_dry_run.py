@@ -1,11 +1,12 @@
 import pytest
 import tempfile
 from mpi4py import MPI
-
+import json
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import PLATFORM_SYSTEM
 from neurodamus import Neurodamus
+from pathlib import Path
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -116,6 +117,50 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
     nd = Neurodamus(create_tmp_simulation_config_file, dry_run=False, lb_mode="Memory",
                      num_target_ranks=2)
     nd.run()
+
+    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
+                                                            + "_r2_c1.pkl.gz", 0)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+
+    # Test allocation
+    expected_allocation = [
+        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [0]}},
+        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [1]}}
+        ]
+    assert rank_allocation_standard == expected_allocation[rank]
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
+@pytest.mark.mpi(ranks=2)
+def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_ranks):
+    """test memory load balance mode, no allocation file, no cell_memory_usage.json
+    cell distribution (nd._dry_run_stats) on-the-fly by loading cells and synapses, just as dry-run"""
+
+    # delete allocation file first
+    Path("cell_memory_usage.json").unlink(missing_ok=True)
+    Path("allocation_r2_c1.pkl.gz").unlink(missing_ok=True)
+
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode="Memory")
+
+    expected_metypes_count = {
+        'MTYPE1-ETYPE1': 2, 'MTYPE0-ETYPE0': 1,
+        'MTYPE2-ETYPE2': 1, 'MTYPE0-ETYPE1': 1
+    }
+    assert nd._dry_run_stats.metype_counts == expected_metypes_count
+
+    assert Path("allocation_r2_c1.pkl.gz").exists()
+    assert Path("cell_memory_usage.json").exists()
+
+    # These attributes are gathered on rank0 only, so check on rank 0
+    if rank == 0:
+        with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
+            dryrun_data = json.load(f)
+        assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
+        for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
+            assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
                                                             + "_r2_c1.pkl.gz", 0)
