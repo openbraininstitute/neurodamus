@@ -99,8 +99,8 @@ synapse type and the total estimated memory usage of the simulation, including t
 memory overhead dictated by loading of libraries and data structures.
 
 The information on the cell and synapse memory usage is automatically saved in a file called
-``cell_memory_usage.json`` in the working directory. This JSON file contains three dictionaries:
-memory usage per cell metype in the circuit, cell gids grouped by metype, and the average number of synapses per cell for each cell type.
+``cell_memory_usage.json`` in the working directory. This JSON file contains two dictionaries:
+the memory usage of each cell metype in the circuit, and the gids of each cell metype.
 It is automatically loaded in any further execution of Neurodamus in dry run mode, in order to speed up the execution.
 Also the dry run mode generates thie allocation file ``allocation_r#_c#.pkl.gz``, which is a compressed pickle file, contains the information on the memory
 load balancing of the last dry run execution. This file in particular is used to distribute

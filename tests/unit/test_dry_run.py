@@ -56,8 +56,8 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
 
     with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
         dryrun_data = json.load(f)
-    assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
-    for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
+    assert dryrun_data.keys() == {"metype_memory", "pop_metype_gids"}
+    for key in {"metype_memory", "pop_metype_gids"}:
         assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

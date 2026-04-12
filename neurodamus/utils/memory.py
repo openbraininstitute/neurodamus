@@ -318,7 +318,6 @@ class DryRunStats:
                 pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
                 for pop, metype_gids in self.pop_metype_gids.items()
             },
-            "metype_cell_syn_average": self.metype_cell_syn_average,
         }
         with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
             json.dump(data, fp, sort_keys=True, indent=4)
@@ -331,7 +330,6 @@ class DryRunStats:
             data = json.load(fp)
         self.metype_memory = data["metype_memory"]
         self.pop_metype_gids = data["pop_metype_gids"]
-        self.metype_cell_syn_average = data["metype_cell_syn_average"]
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose

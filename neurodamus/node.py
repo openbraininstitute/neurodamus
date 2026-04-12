@@ -510,7 +510,7 @@ class Node:
             else:
                 logging.warning("Cell memory usage file not found. Computing on-the-fly.")
             for circuit in self._sonata_circuits.values():
-                if circuit.get("PopulationType") == "biophysical" and compute_cell_memory_usage:
+                if circuit.get("PopulationType") == "biophysical":
                     cell_distributor = self._circuits.new_node_manager(
                         circuit,
                         self._target_manager,
@@ -520,8 +520,11 @@ class Node:
                             "dry_run_stats": self._dry_run_stats,
                         },
                     )
-                    # Instantiate the circuit cells and synapses to evaluate complexities
-                    cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                    if compute_cell_memory_usage:
+                        # Compute memory usage per metype
+                        cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+
+                    # Compute synapse memory usage per metype
                     self._circuits.global_manager.finalize()
                     SimConfig.update_connection_blocks(self._circuits.alias)
                     self._create_synapse_manager(
@@ -532,16 +535,18 @@ class Node:
                         get_conn_stats=True,
                     )
 
+            # collect _dry_run_stats to rank0 before exporting and distribution
+            self._dry_run_stats.collect_all_mpi()
+
             if compute_cell_memory_usage:
-                self._dry_run_stats.collect_all_mpi()
                 self._dry_run_stats.export_cell_memory_usage()
-                # reset since we instantiated
-                Nd.t = 0.0  # Reset time
 
             alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                 MPI.size, SimConfig.modelbuilding_steps
             )
 
+            # reset since we instantiated
+            Nd.t = 0.0  # Reset time
             self.clear_model()
 
         for pop, ranks in alloc.items():

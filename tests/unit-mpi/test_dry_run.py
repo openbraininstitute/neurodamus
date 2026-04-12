@@ -158,8 +158,8 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     if rank == 0:
         with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
             dryrun_data = json.load(f)
-        assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
-        for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
+        assert dryrun_data.keys() == {"metype_memory", "pop_metype_gids"}
+        for key in {"metype_memory", "pop_metype_gids"}:
             assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
