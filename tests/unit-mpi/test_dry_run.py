@@ -32,9 +32,6 @@ def change_test_dir(monkeypatch, tmp_folder):
     """
     monkeypatch.chdir(tmp_folder)
 
-def is_subset(sub, main):
-    return set(sub).issubset(set(main))
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
@@ -73,22 +70,20 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
 
     # Test allocation
-    # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
-    # but neuron 2 can be in  either of the two
     if rank == 0:
-        assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [0, 2])
-        assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [0, 1])
+        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
-        assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [1, 2])
-        assert rank_allocation_standard['RingB'][(1, 0)] == [1]
+        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
+        assert rank_allocation_standard['RingB'][(1, 0)] == [0]
 
 
     # Test redistribution
     rank_alloc, _bucket_memory, _metype_memory_usage = nd._dry_run_stats.distribute_cells_with_validation(1, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
-        'RingA': {(0, 0): [0, 1, 2]},
-        'RingB': {(0, 0): [0, 1]}
+        'RingA': {(0, 0): [1, 0, 2]},
+        'RingB': {(0, 0): [1, 0]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -97,8 +92,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = [
         {
-            'RingA': {(0, 0): [0, 1, 2]},
-            'RingB': {(0, 0): [0, 1]}
+            'RingA': {(0, 0): [1, 0, 2]},
+            'RingB': {(0, 0): [1, 0]}
         },
         {
             'RingA': {},
@@ -124,8 +119,8 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
 
     # Test allocation
     expected_allocation = [
-        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [0]}},
-        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [1]}}
+        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [1]}},
+        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [0]}}
         ]
     assert rank_allocation_standard == expected_allocation[rank]
 
@@ -170,8 +165,8 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
     # but neuron 2 can be in  either of the two
     if rank == 0:
-        assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [0, 2])
-        assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [0, 1])
+        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
-        assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [1, 2])
-        assert rank_allocation_standard['RingB'][(1, 0)] == [1]
+        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
+        assert rank_allocation_standard['RingB'][(1, 0)] == [0]

@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import multiprocessing
+import operator
 import os
 import pickle  # noqa: S403
 from collections import Counter, defaultdict
@@ -497,6 +498,11 @@ class DryRunStats:
             )
             metype_memory_usage[metype] = metype_mem + syns_mem
 
+        # Sort by total memory
+        metype_memory_usage = dict(
+            sorted(metype_memory_usage.items(), key=operator.itemgetter(1), reverse=True)
+        )
+
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
             logging.debug("Assigning batch to bucket (%d, %d)", rank_id, cycle_id)
@@ -506,6 +512,7 @@ class DryRunStats:
             heapq.heappush(buckets, (total_memory, (rank_id, cycle_id)))
 
         # Loop over ALL the gids which would be instantiated, per metype
+        # in the order from the most memory consumer to the least
         for pop, metype_gids in self.pop_metype_gids.items():
             logging.info("Distributing cells of population %s", pop)
             rank_allocation = defaultdict(Vector)
@@ -517,8 +524,8 @@ class DryRunStats:
             buckets = [(0, (i, j)) for i in range(num_ranks) for j in range(cycles)]
             heapq.heapify(buckets)
 
-            for metype, gids in metype_gids.items():
-                total_mem_per_cell = metype_memory_usage[metype]
+            for metype, total_mem_per_cell in metype_memory_usage.items():
+                gids = metype_gids.get(metype, [])
 
                 for cell_id in gids:
                     batch.append(cell_id)
