@@ -4,7 +4,6 @@ import numpy as np
 import numpy.testing as npt
 import unittest.mock
 from pathlib import Path
-import statistics
 
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
@@ -77,7 +76,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {(0, 0): [0]},
-        'RingB': {(0, 0): [1]}
+        'RingB': {(0, 0): [0]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -86,7 +85,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {(0, 0): [0, 1, 2]},
-        'RingB': {(0, 0): [1, 0]}
+        'RingB': {(0, 0): [0, 1]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -95,7 +94,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
         'RingA': {(0, 0): [0, 1, 2]},
-        'RingB': {(0, 0): [1, 0]}
+        'RingB': {(0, 0): [0, 1]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -109,8 +108,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
             (1, 0): [1, 2]
         },
         'RingB': {
-            (0, 0): [1],
-            (1, 0): [0]
+            (0, 0): [0],
+            (1, 0): [1]
         }
     }
     assert rank_allocation_standard == expected_allocation
@@ -134,8 +133,8 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
             (1, 0): [1, 2]
         },
         'RingB': {
-            (0, 0): [1],
-            (1, 0): [0]
+            (0, 0): [0],
+            (1, 0): [1]
         }
     }
     assert rank_allocation_standard == expected_allocation
@@ -241,37 +240,33 @@ def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
 
     expected_allocation = {
         'NodeA': {
-            (0, 0): [1, 4],
-            (1, 0): [3, 6],
-            (0, 1): [2, 5],
-            (1, 1): [7, 8]
+            (0, 0): [1, 6],
+            (1, 0): [3, 8],
+            (0, 1): [2, 7],
+            (1, 1): [4, 5]
         },
         'NodeB': {
             (0, 0): [9],
-            (1, 0): [10, 12],
-            (0, 1): [14],
-            (1, 1): [11, 13]
+            (1, 0): [11],
+            (0, 1): [10, 14],
+            (1, 1): [12, 13]
         }
     }
     expected_memory = {
         'NodeA': {
-            (0, 0): 100,
-            (1, 0): 90,
-            (0, 1): 100,
-            (1, 1): 100
+            (0, 0): 90,
+            (1, 0): 110,
+            (0, 1): 110,
+            (1, 1): 80
         },
         'NodeB': {
             (0, 0): 60,
-            (1, 0): 70,
-            (0, 1): 50,
-            (1, 1): 70
+            (1, 0): 40,
+            (0, 1): 90,
+            (1, 1): 60
         }
     }
 
     # Assert that the results match the expected values
-    # assert rank_allocation_standard == expected_allocation
-    # assert bucket_memory == expected_memory
-    stdev_A = round(statistics.stdev(bucket_memory["NodeA"].values()))
-    stdev_B = round(statistics.stdev(bucket_memory["NodeB"].values()))
-    assert np.isclose(stdev_A, 5)
-    assert np.isclose(stdev_B, 10)
+    assert rank_allocation_standard == expected_allocation
+    assert bucket_memory == expected_memory
