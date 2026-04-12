@@ -493,9 +493,7 @@ class DryRunStats:
         # Prepare the memory usage for each METype
         metype_memory_usage = {}
         for metype, metype_mem in self.metype_memory.items():
-            syns_mem = SynapseMemoryUsage.get_memory_usage(
-                self.metype_cell_syn_average.get(metype, 0)
-            )
+            syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average[metype])
             metype_memory_usage[metype] = metype_mem + syns_mem
 
         # Sort by total memory
