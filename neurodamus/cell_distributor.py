@@ -26,8 +26,8 @@ from .core.configuration import (
     GlobalConfig,
     LoadBalanceMode,
     LogLevel,
-    SimConfig,
     MemoryTracker,
+    SimConfig,
 )
 from .core.nodeset import SelectionNodeSet
 from .io import cell_readers
