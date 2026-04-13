@@ -43,6 +43,14 @@ jobs:
         run: |
           tox -e unit-allen-v1
 
+      - name: Run tox unit-dryrun
+        run: |
+          tox -e unit-dryrun
+
+      - name: Run tox unit-dryrun-mpi
+        run: |
+          tox -e unit-dryrun-mpi
+
       - name: Upload baseline coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
