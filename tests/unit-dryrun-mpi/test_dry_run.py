@@ -124,8 +124,8 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
 
     # Test allocation
     expected_allocation = [
-        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [0]}},
-        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [1]}}
+        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [1]}},
+        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [0]}}
         ]
     assert rank_allocation_standard == expected_allocation[rank]
 
