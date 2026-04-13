@@ -65,6 +65,7 @@ def neurodamus(args=None):
         --dry-run               Dry-run simulation to estimate memory usage [default: False]
         --crash-test            Run the simulation with single section cells and single synapses
         --num-target-ranks=<number>  Number of ranks to target for dry-run load balancing
+        --memory-tracker=[rss, heap] Memory tracker for dry run and memory load balancing (default: rss)
         --coreneuron-direct-mode     Run CoreNeuron in direct memory mode transfered from Neuron,
                                      without writing model data to disk.
         --use-color=[ON, OFF]  If OFF, forces no color to be used in logs; [default: ON]

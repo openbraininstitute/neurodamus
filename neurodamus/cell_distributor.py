@@ -27,6 +27,7 @@ from .core.configuration import (
     LoadBalanceMode,
     LogLevel,
     SimConfig,
+    MemoryTracker,
 )
 from .core.nodeset import SelectionNodeSet
 from .io import cell_readers
@@ -35,7 +36,7 @@ from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
 from .utils.logging import log_verbose
-from .utils.memory import DryRunStats
+from .utils.memory import DryRunStats, get_mem_usage_kb
 
 
 class VirtualCellPopulation:
@@ -295,6 +296,7 @@ class CellManagerBase(_CellManager):
     @mpi_no_errors
     def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
+        The memory usage is estimated by the system RSS or Heap size measured by memray
 
         Args:
             cell_type: The cell type class
@@ -302,9 +304,12 @@ class CellManagerBase(_CellManager):
         """
         assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
-        import memray
 
-        logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
+        logging.info(
+            " > Dry run on cells... (%d in Rank 0) based on %s memory",
+            len(self._local_nodes),
+            SimConfig.memory_tracker.to_string(),
+        )
         cell_offset = self._local_nodes.offset
 
         memory_dict = {}
@@ -318,21 +323,34 @@ class CellManagerBase(_CellManager):
             metype = f"{cell_info.mtype}-{cell_info.etype}"
             metypes_cells[metype].append((gid, cell_info))
 
+        def _load_cells(cells, cell_type, cell_offset):
+            n_cells = 0
+            for gid, cell_info in cells[:MAX_CELLS]:
+                cell = cell_type(gid, cell_info, self._circuit_conf)
+                self._store_cell(gid + cell_offset, cell)
+                n_cells += 1
+            return n_cells
+
         for metype, cells in metypes_cells.items():
             if metype in skip_metypes:
                 continue
 
             n_cells = 0
-            tmp_file = Path(f".tmp_{metype}.bin")
-            dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
-            with memray.Tracker(destination=dst, memory_interval_ms=10000):
-                for gid, cell_info in cells[:MAX_CELLS]:
-                    cell = cell_type(gid, cell_info, self._circuit_conf)
-                    self._store_cell(gid + cell_offset, cell)
-                    n_cells += 1
-            reader = memray.FileReader(tmp_file)
-            peak_memory = reader.metadata.peak_memory / 1024
-            tmp_file.unlink()
+            if SimConfig.memory_tracker == MemoryTracker.HEAP:
+                import memray
+
+                tmp_file = Path(f".tmp_{metype}.bin")
+                dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
+                with memray.Tracker(destination=dst, memory_interval_ms=10000):
+                    n_cells = _load_cells(cells, cell_type, cell_offset)
+                reader = memray.FileReader(tmp_file)
+                peak_memory = reader.metadata.peak_memory / 1024
+                tmp_file.unlink()
+            else:
+                start_mem = get_mem_usage_kb()
+                n_cells = _load_cells(cells, cell_type, cell_offset)
+                peak_memory = get_mem_usage_kb() - start_mem
+
             memory_dict[metype] = max(0, peak_memory / n_cells)
 
         return memory_dict

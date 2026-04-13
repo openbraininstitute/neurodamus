@@ -78,6 +78,18 @@ class CellPermute(StrEnumBase):
     __default__ = UNPERMUTED
 
 
+class MemoryTracker(StrEnumBase):
+    RSS = 0
+    HEAP = 1
+
+    __mapping__ = [
+        ("rss", RSS),
+        ("heap", HEAP),
+    ]
+
+    __default__ = HEAP
+
+
 class CliOptions(ConfigT):
     cell_permute = None
     report_buffer_size = None
@@ -98,6 +110,7 @@ class CliOptions(ConfigT):
     keep_axon = False
     coreneuron_direct_mode = False
     crash_test = False
+    memory_tracker = None
 
     # Restricted Functionality support, mostly for testing
 
@@ -232,6 +245,7 @@ class _SimConfig:
     spike_threshold = -30
     dry_run = False
     num_target_ranks = None
+    memory_tracker = MemoryTracker.default()
     coreneuron_direct_mode = False
     crash_test_mode = False
     has_extracellular_stimulus = False
@@ -275,6 +289,7 @@ class _SimConfig:
         cls.dry_run = cls.cli_options.dry_run
         cls.crash_test_mode = cls.cli_options.crash_test
         cls.num_target_ranks = cls.cli_options.num_target_ranks
+        cls.memory_tracker = MemoryTracker.from_string(cls.cli_options.memory_tracker)
         # change simulator by request before validator and init hoc config
         if cls.cli_options.simulator:
             try:
