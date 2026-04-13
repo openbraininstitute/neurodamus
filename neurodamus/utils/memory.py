@@ -465,7 +465,7 @@ class DryRunStats:
 
     @run_only_rank0
     def distribute_cells(
-        self, num_ranks: int, cycles: int = 1, batch_size=10
+        self, num_ranks: int, cycles: int, batch_size: dict
     ) -> tuple[dict, dict, dict]:
         """Distributes cells across ranks and cycles based on their memory load.
 
@@ -475,7 +475,7 @@ class DryRunStats:
         Args:
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles to distribute cells over.
-            batch_size (int): The number of cells to assign to each bucket at a time.
+            batch_size (dict): The number of cells to assign to each bucket at a time per population
 
         Returns:
             bucket_allocation (dict): A dictionary where keys are tuples (pop, rank_id, cycle_id)

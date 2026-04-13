@@ -76,8 +76,8 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
         lb_mode = "memory"
 
     nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
-
-    if rank == 0:
+    cell_1000_rank = 1 if "memory" in lb_mode else 0
+    if rank == cell_1000_rank:
         cell_id = 1000
         manager = nd.circuits.get_node_manager("RingB")
         cell_ringB = manager.get_cell(cell_id)
@@ -97,9 +97,9 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
     spike_gids = np.array(ringA_spikes[1])
 
     # Combine spike information from all ranks
-    gathered_timestamps = comm.gather(timestamps, root=0)
-    gathered_gids = comm.gather(spike_gids, root=0)
-    if rank == 0:
+    gathered_timestamps = comm.gather(timestamps, root=cell_1000_rank)
+    gathered_gids = comm.gather(spike_gids, root=cell_1000_rank)
+    if rank == cell_1000_rank:
         timestamps = np.concatenate(gathered_timestamps)
         spike_gids = np.concatenate(gathered_gids)
 
