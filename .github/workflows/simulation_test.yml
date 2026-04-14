@@ -43,13 +43,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.10'
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.11'
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.12'
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.13'
           # test macOS with one python version due to the cache size limits
           - os: macOS-15
@@ -293,8 +293,8 @@ jobs:
       run: |
         tox -e scientific
 
-    - name: live debug session, comment out
-      if: failure()
-      uses: mxschmitt/action-tmate@v3
-      with:
-       timeout-minutes: 60  # or any other value you need
+    # - name: live debug session, comment out
+    #   if: failure()
+    #   uses: mxschmitt/action-tmate@v3
+    #   with:
+    #    timeout-minutes: 60  # or any other value you need
