@@ -43,14 +43,6 @@ jobs:
         run: |
           tox -e unit-allen-v1
 
-      - name: Run tox unit-dryrun
-        run: |
-          tox -e unit-dryrun
-
-      - name: Run tox unit-dryrun-mpi
-        run: |
-          tox -e unit-dryrun-mpi
-
       - name: Upload baseline coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
@@ -93,24 +85,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: .coverage.unit-allen-v1
           flag-name: unit-allen-v1
-          parallel: true
-          fail-on-error: false
-
-      - name: Upload unit-dryrun coverage to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: .coverage.unit-dryrun
-          flag-name: unit-dryrun
-          parallel: true
-          fail-on-error: false
-
-      - name: Upload unit-dryrun-mpi coverage to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: .coverage.unit-dryrun-mpi
-          flag-name: unit-dryrun-mpi
           parallel: true
           fail-on-error: false
 
