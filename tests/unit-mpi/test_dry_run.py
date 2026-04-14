@@ -65,7 +65,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
 def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
-    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2, memory_tracker="heap")
     nd.run()
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
@@ -143,7 +143,7 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     Path("cell_memory_usage.json").unlink(missing_ok=True)
     Path("allocation_r2_c1.pkl.gz").unlink(missing_ok=True)
 
-    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode="Memory")
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode="Memory", memory_tracker="heap")
 
     expected_metypes_count = {
         'MTYPE1-ETYPE1': 2, 'MTYPE0-ETYPE0': 1,
