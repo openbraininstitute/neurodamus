@@ -4,7 +4,7 @@ from mpi4py import MPI
 import json
 
 from tests.utils import defaultdict_to_standard_types
-from ..conftest import PLATFORM_SYSTEM
+from tests.conftest import PLATFORM_SYSTEM, RINGTEST_DIR
 from neurodamus import Neurodamus
 from pathlib import Path
 
@@ -32,12 +32,12 @@ def change_test_dir(monkeypatch, tmp_folder):
     """
     monkeypatch.chdir(tmp_folder)
 
-def is_subset(sub, main):
-    return set(sub).issubset(set(main))
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+        }
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
@@ -61,6 +61,9 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+        }
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
@@ -109,6 +112,9 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+        }
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
@@ -132,6 +138,9 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
+        }
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)

@@ -324,31 +324,28 @@ class CellManagerBase(_CellManager):
             metypes_cells[metype].append((gid, cell_info))
 
         def _load_cells(cells, cell_type, cell_offset):
-            n_cells = 0
             for gid, cell_info in cells[:MAX_CELLS]:
                 cell = cell_type(gid, cell_info, self._circuit_conf)
                 self._store_cell(gid + cell_offset, cell)
-                n_cells += 1
-            return n_cells
 
         for metype, cells in metypes_cells.items():
             if metype in skip_metypes:
                 continue
 
-            n_cells = 0
+            n_cells = len(cells[:MAX_CELLS])
             if SimConfig.memory_tracker == MemoryTracker.HEAP:
                 import memray
 
                 tmp_file = Path(f".tmp_{metype}.bin")
                 dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
                 with memray.Tracker(destination=dst, memory_interval_ms=10000):
-                    n_cells = _load_cells(cells, cell_type, cell_offset)
+                    _load_cells(cells, cell_type, cell_offset)
                 reader = memray.FileReader(tmp_file)
                 peak_memory = reader.metadata.peak_memory / 1024
                 tmp_file.unlink()
             else:
                 start_mem = get_mem_usage_kb()
-                n_cells = _load_cells(cells, cell_type, cell_offset)
+                _load_cells(cells, cell_type, cell_offset)
                 peak_memory = get_mem_usage_kb() - start_mem
 
             memory_dict[metype] = max(0, peak_memory / n_cells)
