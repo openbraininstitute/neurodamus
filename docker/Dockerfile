@@ -26,7 +26,7 @@ RUN apt-get --yes -qq update \
                       cmake \
                       wget \
                       vim \
-                      mpich libmpich-dev libhdf5-mpich-dev hdf5-tools \
+                      libopenmpi-dev openmpi-bin libhdf5-openmpi-dev hdf5-tools \
                       flex libfl-dev bison ninja-build libreadline-dev \
  && apt-get --yes -qq clean \
  && rm -rf /var/lib/apt/lists/* \
@@ -43,6 +43,8 @@ RUN source $USR_VENV/bin/activate \
 # Install libsonatareport
 RUN mkdir -p $WORKDIR \
  && cd $WORKDIR \
+ && export CC=$(which mpicc) \
+ && export CXX=$(which mpic++) \
  && git clone https://github.com/openbraininstitute/libsonatareport.git --recursive --depth 1 -b $LIBSONATAREPORT_TAG \
  && cmake -B rep_build -S libsonatareport -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DCMAKE_BUILD_TYPE=Release -DSONATA_REPORT_ENABLE_SUBMODULES=ON -DSONATA_REPORT_ENABLE_MPI=ON .. \
  && cmake --build rep_build --parallel \
@@ -69,7 +71,7 @@ RUN source $USR_VENV/bin/activate \
 # Build h5py with the local hdf5
 RUN source $USR_VENV/bin/activate \
  && pip install mpi4py \
- && ARCH=$(uname -m) CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/mpich HDF5_LIBDIR=/usr/lib/$ARCH-linux-gnu/hdf5/mpich \
+ && ARCH=$(uname -m) CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=/usr/include/hdf5/openmpi HDF5_LIBDIR=/usr/lib/$ARCH-linux-gnu/hdf5/openmpi \
     pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
 
 # Install neurodamus and prepare HOC_LIBRARY_PATH
