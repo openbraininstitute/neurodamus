@@ -99,7 +99,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
-        sudo apt-get install -y mpich libmpich-dev libhdf5-mpich-dev hdf5-tools flex libfl-dev bison ninja-build
+        sudo apt-get install -y libopenmpi-dev openmpi-bin libhdf5-openmpi-dev hdf5-tools flex libfl-dev bison ninja-build
 
     - name: Install macOS homebrew packages
       if: startsWith(matrix.os, 'macOS')
@@ -117,7 +117,7 @@ jobs:
         cache-name: cache-venv
       with:
         path: venv
-        key: ${{ matrix.os }}-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ steps.pyver.outputs.version }}
+        key: ${{ matrix.os }}-openmpi-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ steps.pyver.outputs.version }}
 
     - name: Upgrade pip and install base Python packages
       if: steps.cache-venv.outputs.cache-hit != 'true'
@@ -142,11 +142,13 @@ jobs:
         cache-name: cache-libsonatareport
       with:
         path: libsonatareport
-        key: ${{ matrix.os }}-libsonatareport-${{ env.LIBSONATA_REPORT_BRANCH }}-py${{ steps.pyver.outputs.version }}
+        key: ${{ matrix.os }}-openmpi-libsonatareport-${{ env.LIBSONATA_REPORT_BRANCH }}-py${{ steps.pyver.outputs.version }}
 
     - name: Install libsonatareport
       if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
       run: |
+        export CC=$(which mpicc)
+        export CXX=$(which mpic++)
         git clone --branch="${{ env.LIBSONATA_REPORT_BRANCH}}" https://github.com/openbraininstitute/libsonatareport.git --recursive --depth=1
         cd libsonatareport
         mkdir build && cd build
@@ -161,7 +163,7 @@ jobs:
         cache-name: cache-neuron
       with:
         path: nrn
-        key: ${{ matrix.os }}-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ steps.pyver.outputs.version }}
+        key: ${{ matrix.os }}-openmpi-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ steps.pyver.outputs.version }}
 
 
     - name: Install NEURON
@@ -201,8 +203,8 @@ jobs:
           export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
           export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
         else
-          export HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
-          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/mpich
+          export HDF5_INCLUDEDIR=/usr/include/hdf5/openmpi
+          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         fi
         # Upgrade setuptools again, to avoid build error from `project.license`
         # Neuron installed older setuptools but it doesn't work for h5py
