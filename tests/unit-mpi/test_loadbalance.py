@@ -75,7 +75,7 @@ def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_
         request.getfixturevalue("copy_memory_files")       
         lb_mode = "memory"
 
-    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode)
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode=lb_mode, memory_tracker="heap")
     cell_1000_rank = 1 if "memory" in lb_mode else 0
     if rank == cell_1000_rank:
         cell_id = 1000
