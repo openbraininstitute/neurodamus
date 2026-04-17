@@ -99,12 +99,15 @@ synapse type and the total estimated memory usage of the simulation, including t
 memory overhead dictated by loading of libraries and data structures.
 
 The information on the cell and synapse memory usage is automatically saved in a file called
-``cell_memory_usage.json`` in the working directory. This JSON file contains two dictionaries:
-the memory usage of each cell metype in the circuit, and the gids of each cell metype.
+``cell_memory_usage.json`` in the working directory. This JSON file contains three dictionaries:
+memory usage of each cell metype in the circuit, gids of each cell metype, and average number of synapses per cell for each cell metype.
 It is automatically loaded in any further execution of Neurodamus in dry run mode, in order to speed up the execution.
 Also the dry run mode generates thie allocation file ``allocation_r#_c#.pkl.gz``, which is a compressed pickle file, contains the information on the memory
 load balancing of the last dry run execution. This file in particular is used to distribute
 the cells in nodes and ranks when used with the ``--lb-mode=Memory`` flag.
+
+By default, memory usage is measured based on the RSS (Resident Set Size) of the Python process.
+Neurodamus also provides the CLI option ``--memory-tracker=heap`` to measure heap usage using `Memray <https://bloomberg.github.io/memray/overview.html>`_.
 
 Now let's see how a typical dry run based workflow works.
 

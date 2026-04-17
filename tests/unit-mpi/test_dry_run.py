@@ -57,6 +57,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
         }
         assert nd._dry_run_stats.metype_counts == expected_metypes_count
         assert nd._dry_run_stats.suggested_nodes > 0
+    assert nd._dry_run_stats.stats_preloaded == False
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -159,7 +160,7 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
         'MTYPE2-ETYPE2': 1, 'MTYPE0-ETYPE1': 1
     }
     assert nd._dry_run_stats.metype_counts == expected_metypes_count
-
+    assert nd._dry_run_stats.stats_preloaded == False
     assert Path("allocation_r2_c1.pkl.gz").exists()
     assert Path("cell_memory_usage.json").exists()
 
@@ -167,8 +168,8 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     if rank == 0:
         with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
             dryrun_data = json.load(f)
-        assert dryrun_data.keys() == {"metype_memory", "pop_metype_gids"}
-        for key in {"metype_memory", "pop_metype_gids"}:
+        assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
+        for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
             assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
@@ -179,8 +180,8 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
     # but neuron 2 can be in  either of the two
     if rank == 0:
-        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
+        assert rank_allocation_standard['RingA'][(0, 0)] == [0]
         assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
-        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
+        assert rank_allocation_standard['RingA'][(1, 0)] == [1, 2]
         assert rank_allocation_standard['RingB'][(1, 0)] == [0]

@@ -102,6 +102,12 @@ def change_test_dir(monkeypatch, tmp_path):
 def copy_memory_files(change_test_dir):
     # Fix values to ensure allocation memory (0,0)[1, 3] (1,0)[2]
     metypes_memory = {
+        "metype_cell_syn_average": {
+            "MTYPE0-ETYPE0": 1.0,
+            "MTYPE0-ETYPE1": 1.0,
+            "MTYPE1-ETYPE1": 2.0,
+            "MTYPE2-ETYPE2": 1.0
+        },
         "metype_memory": {
             "MTYPE0-ETYPE0": 1000.0,
             "MTYPE0-ETYPE1": 100.0,

@@ -504,13 +504,11 @@ class Node:
         else:
             logging.warning("Allocation file not found. Generating on-the-fly.")
 
-            compute_cell_memory_usage = not Path(DryRunStats._MEMORY_USAGE_FILENAME).exists()
-            if not compute_cell_memory_usage:
-                self._dry_run_stats.try_import_cell_memory_usage()
-            else:
+            self._dry_run_stats.try_import_cell_memory_usage()
+            if compute_cell_memory_usage := not self._dry_run_stats.stats_preloaded:
                 logging.warning("Cell memory usage file not found. Computing on-the-fly.")
             for circuit in self._sonata_circuits.values():
-                if circuit.get("PopulationType") == "biophysical":
+                if circuit.get("PopulationType") == "biophysical" and compute_cell_memory_usage:
                     cell_distributor = self._circuits.new_node_manager(
                         circuit,
                         self._target_manager,
@@ -520,9 +518,7 @@ class Node:
                             "dry_run_stats": self._dry_run_stats,
                         },
                     )
-                    if compute_cell_memory_usage:
-                        # Compute memory usage per metype
-                        cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                    cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
 
                     # Compute synapse memory usage per metype
                     self._circuits.global_manager.finalize()
@@ -534,12 +530,8 @@ class Node:
                         dry_run_stats=self._dry_run_stats,
                         get_conn_stats=True,
                     )
-
-            # collect _dry_run_stats to rank0 before exporting and distribution
-            self._dry_run_stats.collect_all_mpi()
-
-            if compute_cell_memory_usage:
-                self._dry_run_stats.export_cell_memory_usage()
+                    self._dry_run_stats.collect_all_mpi()
+                    self._dry_run_stats.export_cell_memory_usage()
 
             alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                 MPI.size, SimConfig.modelbuilding_steps
@@ -564,8 +556,6 @@ class Node:
         if SimConfig.dry_run:
             logging.info("Memory usage after inizialization:")
             print_mem_usage()
-            self._dry_run_stats = DryRunStats()
-            self._dry_run_stats.try_import_cell_memory_usage()
             loader_opts = {"dry_run_stats": self._dry_run_stats}
         else:
             loader_opts = {}
@@ -618,10 +608,6 @@ class Node:
                 cell_manager.finalize(dry_run_stats_obj=self._dry_run_stats)
             else:
                 cell_manager.finalize()
-
-        if SimConfig.dry_run:
-            self._dry_run_stats.collect_all_mpi()
-            self._dry_run_stats.estimate_cell_memory()
 
         # Final bits after we have all cell managers
         self._circuits.global_manager.finalize()
@@ -1626,9 +1612,12 @@ class Neurodamus(Node):
         if SimConfig.dry_run:
             if self._is_ngv_run:
                 raise Exception("Dry run not available for ngv circuit")
-            self.load_targets()
-            self.create_cells()
-            self.create_synapses()
+            self._dry_run_stats = DryRunStats()
+            self._dry_run_stats.try_import_cell_memory_usage()
+            if not self._dry_run_stats.stats_preloaded:
+                self.load_targets()
+                self.create_cells()
+                self.create_synapses()
             return
 
         if SimConfig.restore_coreneuron:
@@ -1899,11 +1888,13 @@ class Neurodamus(Node):
         """
         if SimConfig.dry_run:
             log_stage("============= DRY RUN (SKIP SIMULATION) =============")
+            if not self._dry_run_stats.stats_preloaded:
+                self._dry_run_stats.collect_all_mpi()
+                self._dry_run_stats.export_cell_memory_usage()
+            self._dry_run_stats.estimate_cell_memory()
             self._dry_run_stats.display_total()
             self._dry_run_stats.display_node_suggestions()
             ranks = self._dry_run_stats.get_num_target_ranks(SimConfig.num_target_ranks)
-            self._dry_run_stats.collect_all_mpi()
-            self._dry_run_stats.export_cell_memory_usage()
             try:
                 self._dry_run_stats.distribute_cells_with_validation(
                     ranks, SimConfig.modelbuilding_steps

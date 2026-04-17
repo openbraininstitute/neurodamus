@@ -53,11 +53,12 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
 
     assert Path(nd._dry_run_stats._ALLOCATION_FILENAME +"_r2_c1.pkl.gz").exists()
     assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
+    assert nd._dry_run_stats.stats_preloaded == False
 
     with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
         dryrun_data = json.load(f)
-    assert dryrun_data.keys() == {"metype_memory", "pop_metype_gids"}
-    for key in {"metype_memory", "pop_metype_gids"}:
+    assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
+    for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
         assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [

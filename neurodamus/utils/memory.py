@@ -231,6 +231,7 @@ class DryRunStats:
         self.synapse_counts = defaultdict(int)  # [syn_type -> count]
         self.suggested_nodes = 0
         self.synapse_memory_total = 0
+        self.stats_preloaded = False
         _, _, self.base_memory, _ = get_task_level_mem_usage()
 
     def __str__(self) -> str:
@@ -319,18 +320,25 @@ class DryRunStats:
                 pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
                 for pop, metype_gids in self.pop_metype_gids.items()
             },
+            "metype_cell_syn_average": self.metype_cell_syn_average,
         }
         with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
             json.dump(data, fp, sort_keys=True, indent=4)
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
+            self.stats_preloaded = False
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
         with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
             data = json.load(fp)
         self.metype_memory = data["metype_memory"]
-        self.pop_metype_gids = data["pop_metype_gids"]
+        self.pop_metype_gids = {
+            pop: {metype: np.array(gids, dtype="uint32") for metype, gids in metype_gids.items()}
+            for pop, metype_gids in data["pop_metype_gids"].items()
+        }
+        self.metype_cell_syn_average = Counter(data["metype_cell_syn_average"])
+        self.stats_preloaded = True
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose
