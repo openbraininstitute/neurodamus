@@ -87,7 +87,7 @@ class MemoryTracker(StrEnumBase):
         ("heap", HEAP),
     ]
 
-    __default__ = HEAP
+    __default__ = RSS
 
 
 class CliOptions(ConfigT):
