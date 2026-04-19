@@ -530,8 +530,15 @@ class Node:
                             dry_run_stats=self._dry_run_stats,
                             get_conn_stats=True,
                         )
-                        self._dry_run_stats.collect_all_mpi()
-                        self._dry_run_stats.export_cell_memory_usage()
+
+                # include projection edges
+                for pname, projection in SimConfig.projections.items():
+                    self._load_projections(
+                        pname, projection, dry_run_stats=self._dry_run_stats, get_conn_stats=True
+                    )
+
+                self._dry_run_stats.collect_all_mpi()
+                self._dry_run_stats.export_cell_memory_usage()
 
             alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                 MPI.size, SimConfig.modelbuilding_steps
@@ -676,9 +683,10 @@ class Node:
         manager = self._circuits.get_create_edge_manager(
             ctype, src, dst, c_target, (conf, *args), **kwargs
         )
-        get_conn_stats = kwargs.get("get_conn_stats", SimConfig.dry_run)
         if manager.is_file_open:  # Base connectivity
-            manager.create_connections(get_conn_stats=get_conn_stats)
+            manager.create_connections(
+                get_conn_stats=kwargs.get("get_conn_stats", SimConfig.dry_run)
+            )
 
     def _process_connection_configure(self, conn_conf):
         source_t = TargetSpec(conn_conf.source, None)
@@ -743,7 +751,11 @@ class Node:
                 logging.debug("Using connection manager: %s", conn_manager)
                 proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
-                conn_manager.create_connections(source_t.name, dest_t.name)
+                conn_manager.create_connections(
+                    source_t.name,
+                    dest_t.name,
+                    get_conn_stats=kw.get("get_conn_stats", SimConfig.dry_run),
+                )
 
     @mpi_no_errors
     @timeit(name="Enable Stimulus")

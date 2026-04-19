@@ -104,7 +104,7 @@ def copy_memory_files(change_test_dir):
     metypes_memory = {
         "metype_cell_syn_average": {
             "MTYPE0-ETYPE0": 1.0,
-            "MTYPE0-ETYPE1": 1.0,
+            "MTYPE0-ETYPE1": 2.0,
             "MTYPE1-ETYPE1": 2.0,
             "MTYPE2-ETYPE2": 1.0
         },
