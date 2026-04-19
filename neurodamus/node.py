@@ -505,33 +505,33 @@ class Node:
             logging.warning("Allocation file not found. Generating on-the-fly.")
 
             self._dry_run_stats.try_import_cell_memory_usage()
-            if compute_cell_memory_usage := not self._dry_run_stats.stats_preloaded:
+            if not self._dry_run_stats.stats_preloaded:
                 logging.warning("Cell memory usage file not found. Computing on-the-fly.")
-            for circuit in self._sonata_circuits.values():
-                if circuit.get("PopulationType") == "biophysical" and compute_cell_memory_usage:
-                    cell_distributor = self._circuits.new_node_manager(
-                        circuit,
-                        self._target_manager,
-                        self._run_conf,
-                        loader_opts={
-                            "load_mode": "load_nodes_metype",
-                            "dry_run_stats": self._dry_run_stats,
-                        },
-                    )
-                    cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
+                for circuit in self._sonata_circuits.values():
+                    if circuit.get("PopulationType") == "biophysical":
+                        cell_distributor = self._circuits.new_node_manager(
+                            circuit,
+                            self._target_manager,
+                            self._run_conf,
+                            loader_opts={
+                                "load_mode": "load_nodes_metype",
+                                "dry_run_stats": self._dry_run_stats,
+                            },
+                        )
+                        cell_distributor.finalize(dry_run_stats_obj=self._dry_run_stats)
 
-                    # Compute synapse memory usage per metype
-                    self._circuits.global_manager.finalize()
-                    SimConfig.update_connection_blocks(self._circuits.alias)
-                    self._create_synapse_manager(
-                        SynapseRuleManager,
-                        circuit,
-                        self._target_manager,
-                        dry_run_stats=self._dry_run_stats,
-                        get_conn_stats=True,
-                    )
-                    self._dry_run_stats.collect_all_mpi()
-                    self._dry_run_stats.export_cell_memory_usage()
+                        # Compute synapse memory usage per metype
+                        self._circuits.global_manager.finalize()
+                        SimConfig.update_connection_blocks(self._circuits.alias)
+                        self._create_synapse_manager(
+                            SynapseRuleManager,
+                            circuit,
+                            self._target_manager,
+                            dry_run_stats=self._dry_run_stats,
+                            get_conn_stats=True,
+                        )
+                        self._dry_run_stats.collect_all_mpi()
+                        self._dry_run_stats.export_cell_memory_usage()
 
             alloc, _, _ = self._dry_run_stats.distribute_cells_with_validation(
                 MPI.size, SimConfig.modelbuilding_steps
