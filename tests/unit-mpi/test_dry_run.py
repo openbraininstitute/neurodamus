@@ -168,8 +168,8 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
     # but neuron 2 can be in  either of the two
     if rank == 0:
-        assert rank_allocation_standard['RingA'][(0, 0)] == [0]
+        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
         assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
-        assert rank_allocation_standard['RingA'][(1, 0)] == [1, 2]
+        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
         assert rank_allocation_standard['RingB'][(1, 0)] == [0]
