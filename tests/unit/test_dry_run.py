@@ -53,7 +53,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
 
     assert Path(nd._dry_run_stats._ALLOCATION_FILENAME +"_r2_c1.pkl.gz").exists()
     assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
-    assert nd._dry_run_stats.stats_preloaded == False
+    assert not nd._dry_run_stats.stats_preloaded
 
     with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
         dryrun_data = json.load(f)
