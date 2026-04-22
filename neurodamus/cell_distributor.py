@@ -337,12 +337,14 @@ class CellManagerBase(_CellManager):
                 import memray
 
                 tmp_file = Path(f".tmp_{metype}.bin")
-                dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
-                with memray.Tracker(destination=dst, memory_interval_ms=10000):
-                    _load_cells(cells, cell_type, cell_offset)
-                reader = memray.FileReader(tmp_file)
-                peak_memory = reader.metadata.peak_memory / 1024
-                tmp_file.unlink()
+                try:
+                    dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
+                    with memray.Tracker(destination=dst, memory_interval_ms=10000):
+                        _load_cells(cells, cell_type, cell_offset)
+                    reader = memray.FileReader(tmp_file)
+                    peak_memory = reader.metadata.peak_memory / 1024
+                finally:
+                    tmp_file.unlink(missing_ok=True)
             else:
                 start_mem = get_mem_usage_kb()
                 _load_cells(cells, cell_type, cell_offset)
