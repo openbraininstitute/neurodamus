@@ -6,6 +6,7 @@ import json
 from tests.utils import defaultdict_to_standard_types
 from tests.conftest import PLATFORM_SYSTEM
 from neurodamus import Neurodamus
+from neurodamus.utils.memory import CellMemoryUsage
 from pathlib import Path
 
 comm = MPI.COMM_WORLD
@@ -152,13 +153,10 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
     assert Path("allocation_r2_c1.pkl.gz").exists()
     assert Path("cell_memory_usage.json").exists()
 
-    # These attributes are gathered on rank0 only, so check on rank 0
+    # These attributes are gathered on rank0 only, check on rank 0 cell_memory_usage.json
     if rank == 0:
-        with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
-            dryrun_data = json.load(f)
-        assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
-        for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
-            assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
+        dryrun_data = CellMemoryUsage.from_json(nd._dry_run_stats._MEMORY_USAGE_FILENAME)
+        assert dryrun_data == nd._dry_run_stats.cell_memory_usage
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
                                                             + "_r2_c1.pkl.gz", 0)

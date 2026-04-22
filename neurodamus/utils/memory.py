@@ -12,6 +12,7 @@ import operator
 import os
 import pickle  # noqa: S403
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -209,6 +210,40 @@ class SynapseMemoryUsage:
         return count * cls._synapse_memory_usage[synapse_type]
 
 
+@dataclass
+class CellMemoryUsage:
+    metype_memory: dict = field(default_factory=dict)
+    metype_cell_syn_average: Counter = field(default_factory=Counter)
+    pop_metype_gids: dict = field(default_factory=dict)
+
+    def to_json(self, filepath):
+        data = {
+            "metype_memory": self.metype_memory,
+            "metype_cell_syn_average": self.metype_cell_syn_average,
+            "pop_metype_gids": {
+                pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
+                for pop, metype_gids in self.pop_metype_gids.items()
+            },
+        }
+        with open(filepath, "w", encoding="utf-8") as fp:
+            json.dump(data, fp, sort_keys=True, indent=4)
+
+    @classmethod
+    def from_json(cls, filepath):
+        with open(filepath, encoding="utf-8") as fp:
+            data = json.load(fp)
+        return cls(
+            metype_memory=data["metype_memory"],
+            metype_cell_syn_average=Counter(data["metype_cell_syn_average"]),
+            pop_metype_gids={
+                pop: {
+                    metype: np.array(gids, dtype="uint32") for metype, gids in metype_gids.items()
+                }
+                for pop, metype_gids in data["pop_metype_gids"].items()
+            },
+        )
+
+
 class DryRunStats:
     _MEMORY_USAGE_FILENAME = "cell_memory_usage.json"
     _ALLOCATION_FILENAME = "allocation"
@@ -224,15 +259,37 @@ class DryRunStats:
         return defaultdict(float)
 
     def __init__(self) -> None:
-        self.metype_memory = {}
-        self.metype_cell_syn_average = Counter()
-        self.pop_metype_gids = {}
+        self.cell_memory_usage = CellMemoryUsage()
         self.metype_counts = Counter()
         self.synapse_counts = defaultdict(int)  # [syn_type -> count]
         self.suggested_nodes = 0
         self.synapse_memory_total = 0
         self.stats_preloaded = False
         _, _, self.base_memory, _ = get_task_level_mem_usage()
+
+    @property
+    def metype_memory(self):
+        return self.cell_memory_usage.metype_memory
+
+    @metype_memory.setter
+    def metype_memory(self, value):
+        self.cell_memory_usage.metype_memory = value
+
+    @property
+    def metype_cell_syn_average(self):
+        return self.cell_memory_usage.metype_cell_syn_average
+
+    @metype_cell_syn_average.setter
+    def metype_cell_syn_average(self, value):
+        self.cell_memory_usage.metype_cell_syn_average = value
+
+    @property
+    def pop_metype_gids(self):
+        return self.cell_memory_usage.pop_metype_gids
+
+    @pop_metype_gids.setter
+    def pop_metype_gids(self, value):
+        self.cell_memory_usage.pop_metype_gids = value
 
     def __str__(self) -> str:
         s = "DryRunStats:\n"
@@ -314,30 +371,14 @@ class DryRunStats:
 
     @run_only_rank0
     def export_cell_memory_usage(self):
-        data = {
-            "metype_memory": self.metype_memory,
-            "pop_metype_gids": {
-                pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
-                for pop, metype_gids in self.pop_metype_gids.items()
-            },
-            "metype_cell_syn_average": self.metype_cell_syn_average,
-        }
-        with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
-            json.dump(data, fp, sort_keys=True, indent=4)
+        self.cell_memory_usage.to_json(self._MEMORY_USAGE_FILENAME)
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
             self.stats_preloaded = False
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
-        with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
-            data = json.load(fp)
-        self.metype_memory = data["metype_memory"]
-        self.pop_metype_gids = {
-            pop: {metype: np.array(gids, dtype="uint32") for metype, gids in metype_gids.items()}
-            for pop, metype_gids in data["pop_metype_gids"].items()
-        }
-        self.metype_cell_syn_average = Counter(data["metype_cell_syn_average"])
+        self.cell_memory_usage = CellMemoryUsage.from_json(self._MEMORY_USAGE_FILENAME)
         self.stats_preloaded = True
 
     def collect_display_syn_counts(self):

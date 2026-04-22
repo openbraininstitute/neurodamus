@@ -8,6 +8,7 @@ from pathlib import Path
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
+from neurodamus.utils.memory import CellMemoryUsage
 
 class DummyNodeReader:
     """ Fake dummy class to mock the NodeReader class
@@ -55,11 +56,9 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
     assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
     assert not nd._dry_run_stats.stats_preloaded
 
-    with open(nd._dry_run_stats._MEMORY_USAGE_FILENAME) as f:
-        dryrun_data = json.load(f)
-    assert dryrun_data.keys() == {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}
-    for key in {"metype_cell_syn_average", "metype_memory", "pop_metype_gids"}:
-        assert dryrun_data[key] == getattr(nd._dry_run_stats, key)
+    # check on cell_memory_usage.json is exported correctly
+    dryrun_data = CellMemoryUsage.from_json(nd._dry_run_stats._MEMORY_USAGE_FILENAME)
+    assert dryrun_data == nd._dry_run_stats.cell_memory_usage
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
