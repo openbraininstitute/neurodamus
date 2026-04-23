@@ -553,12 +553,9 @@ class DryRunStats:
             syns_mem = SynapseMemoryUsage.get_memory_usage(self.metype_cell_syn_average[metype])
             metype_memory_usage[metype] = metype_mem + syns_mem
 
-        # Sort by total memory
-        metype_memory_usage = dict(
-            sorted(metype_memory_usage.items(), key=operator.itemgetter(1), reverse=True)
-        )
-
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
+            """Assigns a batch of cells to the bucket with the lowest total memory
+            via heapq.heappop and heapq.heappush"""
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
             logging.debug("Assigning batch to bucket (%d, %d)", rank_id, cycle_id)
             rank_allocation[rank_id, cycle_id].extend(batch)
@@ -566,8 +563,12 @@ class DryRunStats:
             rank_memory[rank_id, cycle_id] = total_memory
             heapq.heappush(buckets, (total_memory, (rank_id, cycle_id)))
 
+        # Sort metype by total memory
         # Loop over ALL the gids which would be instantiated, per metype
         # in the order from the most memory consumer to the least
+        metype_memory_usage = dict(
+            sorted(metype_memory_usage.items(), key=operator.itemgetter(1), reverse=True)
+        )
         for pop, metype_gids in self.pop_metype_gids.items():
             logging.info("Distributing cells of population %s", pop)
             rank_allocation = defaultdict(Vector)
