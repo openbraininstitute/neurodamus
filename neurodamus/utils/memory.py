@@ -555,7 +555,8 @@ class DryRunStats:
 
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
             """Assigns a batch of cells to the bucket with the lowest total memory
-            via heapq.heappop and heapq.heappush"""
+            via heapq.heappop and heapq.heappush
+            """
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
             logging.debug("Assigning batch to bucket (%d, %d)", rank_id, cycle_id)
             rank_allocation[rank_id, cycle_id].extend(batch)
