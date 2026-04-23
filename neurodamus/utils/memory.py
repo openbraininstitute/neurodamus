@@ -212,9 +212,19 @@ class SynapseMemoryUsage:
 
 @dataclass
 class CellMemoryUsage:
+    """Data class contains 3 dictionaries from dry-run estimate
+    where cells are grouped by their ME-type
+
+    metype_memory: memory usage per metype
+    metype_cell_syn_average: average number of synapses per cell for each metype
+    pop_metype_gids: gids of each cell metype per population
+    preloaded: whether data is preloaded from an json file
+    """
+
     metype_memory: dict = field(default_factory=dict)
     metype_cell_syn_average: Counter = field(default_factory=Counter)
     pop_metype_gids: dict = field(default_factory=dict)
+    preloaded: bool = field(default=False, compare=False)
 
     def to_json(self, filepath):
         data = {
@@ -241,6 +251,7 @@ class CellMemoryUsage:
                 }
                 for pop, metype_gids in data["pop_metype_gids"].items()
             },
+            preloaded=True,
         )
 
 
@@ -264,7 +275,6 @@ class DryRunStats:
         self.synapse_counts = defaultdict(int)  # [syn_type -> count]
         self.suggested_nodes = 0
         self.synapse_memory_total = 0
-        self.stats_preloaded = False
         _, _, self.base_memory, _ = get_task_level_mem_usage()
 
     @property
@@ -375,11 +385,9 @@ class DryRunStats:
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
-            self.stats_preloaded = False
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
         self.cell_memory_usage = CellMemoryUsage.from_json(self._MEMORY_USAGE_FILENAME)
-        self.stats_preloaded = True
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose

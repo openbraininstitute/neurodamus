@@ -54,7 +54,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
 
     assert Path(nd._dry_run_stats._ALLOCATION_FILENAME +"_r2_c1.pkl.gz").exists()
     assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
-    assert not nd._dry_run_stats.stats_preloaded
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
 
     # check on cell_memory_usage.json is exported correctly
     dryrun_data = CellMemoryUsage.from_json(nd._dry_run_stats._MEMORY_USAGE_FILENAME)

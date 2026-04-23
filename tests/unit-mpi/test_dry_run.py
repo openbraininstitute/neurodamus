@@ -55,7 +55,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
         }
         assert nd._dry_run_stats.metype_counts == expected_metypes_count
         assert nd._dry_run_stats.suggested_nodes > 0
-    assert not nd._dry_run_stats.stats_preloaded
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -149,7 +149,7 @@ def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_rank
         'MTYPE2-ETYPE2': 1, 'MTYPE0-ETYPE1': 1
     }
     assert nd._dry_run_stats.metype_counts == expected_metypes_count
-    assert not nd._dry_run_stats.stats_preloaded
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
     assert Path("allocation_r2_c1.pkl.gz").exists()
     assert Path("cell_memory_usage.json").exists()
 
