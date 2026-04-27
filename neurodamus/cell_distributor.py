@@ -5,6 +5,7 @@ import hashlib
 import logging  # active only in rank 0 (init)
 import os
 import weakref
+from collections import defaultdict
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
@@ -25,6 +26,7 @@ from .core.configuration import (
     GlobalConfig,
     LoadBalanceMode,
     LogLevel,
+    MemoryTracker,
     SimConfig,
 )
 from .core.nodeset import SelectionNodeSet
@@ -33,7 +35,7 @@ from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
-from .utils.logging import log_all, log_verbose
+from .utils.logging import log_verbose
 from .utils.memory import DryRunStats, get_mem_usage_kb
 
 
@@ -294,6 +296,7 @@ class CellManagerBase(_CellManager):
     @mpi_no_errors
     def _instantiate_cells_dry(self, cell_type, skip_metypes, **_opts):
         """Instantiates the subset of selected cells while measuring memory taken by each metype
+        The memory usage is estimated by the system RSS or Heap size measured by memray
 
         Args:
             cell_type: The cell type class
@@ -302,47 +305,52 @@ class CellManagerBase(_CellManager):
         assert cell_type is not None, "Undefined cell_type in Manager"
         Nd.execute("xopen_broadcast_ = 0")
 
-        logging.info(" > Dry run on cells... (%d in Rank 0)", len(self._local_nodes))
+        logging.info(
+            " > Dry run on cells... (%d in Rank 0) based on %s memory",
+            len(self._local_nodes),
+            SimConfig.memory_tracker.to_string(),
+        )
         cell_offset = self._local_nodes.offset
 
-        prev_metype = None
-        prev_memory = get_mem_usage_kb()
-        metype_n_cells = 0
         memory_dict = {}
         MAX_CELLS = 50
 
-        def store_metype_stats(metype, n_cells):
-            nonlocal prev_memory
-            end_memory = get_mem_usage_kb()
-            memory_allocated = end_memory - prev_memory
-            log_all(
-                logging.DEBUG,
-                " * METype %s: %.1f KiB averaged over %d cells",
-                metype,
-                memory_allocated / n_cells,
-                n_cells,
-            )
-            memory_dict[metype] = max(0, memory_allocated / n_cells)
-            prev_memory = end_memory
-
+        # Batching metypes
+        metypes_cells = defaultdict(list)
         for gid, cell_info in self._local_nodes.iter_cell_info():
             if cell_info is None:
                 continue
             metype = f"{cell_info.mtype}-{cell_info.etype}"
+            metypes_cells[metype].append((gid, cell_info))
+
+        def _load_cells(cells, cell_type, cell_offset):
+            for gid, cell_info in cells[:MAX_CELLS]:
+                cell = cell_type(gid, cell_info, self._circuit_conf)
+                self._store_cell(gid + cell_offset, cell)
+
+        for metype, cells in metypes_cells.items():
             if metype in skip_metypes:
                 continue
-            if prev_metype is not None and metype != prev_metype:
-                store_metype_stats(prev_metype, metype_n_cells)
-                metype_n_cells = 0
-            if metype_n_cells >= MAX_CELLS:
-                continue
-            cell = cell_type(gid, cell_info, self._circuit_conf)
-            self._store_cell(gid + cell_offset, cell)
-            prev_metype = metype
-            metype_n_cells += 1
 
-        if prev_metype is not None and metype_n_cells > 0:
-            store_metype_stats(prev_metype, metype_n_cells)
+            n_cells = len(cells[:MAX_CELLS])
+            if SimConfig.memory_tracker == MemoryTracker.HEAP:
+                import memray
+
+                tmp_file = Path(f".tmp_{metype}.bin")
+                try:
+                    dst = memray.FileDestination(tmp_file, overwrite=True, compress_on_exit=True)
+                    with memray.Tracker(destination=dst, memory_interval_ms=10000):
+                        _load_cells(cells, cell_type, cell_offset)
+                    reader = memray.FileReader(tmp_file)
+                    peak_memory = reader.metadata.peak_memory / 1024
+                finally:
+                    tmp_file.unlink(missing_ok=True)
+            else:
+                start_mem = get_mem_usage_kb()
+                _load_cells(cells, cell_type, cell_offset)
+                peak_memory = get_mem_usage_kb() - start_mem
+
+            memory_dict[metype] = max(0, peak_memory / n_cells)
 
         return memory_dict
 

@@ -8,9 +8,11 @@ import json
 import logging
 import math
 import multiprocessing
+import operator
 import os
 import pickle  # noqa: S403
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -208,6 +210,51 @@ class SynapseMemoryUsage:
         return count * cls._synapse_memory_usage[synapse_type]
 
 
+@dataclass
+class CellMemoryUsage:
+    """Data class contains 3 dictionaries from dry-run estimate
+    where cells are grouped by their ME-type
+
+    metype_memory: memory usage per metype
+    metype_cell_syn_average: average number of synapses per cell for each metype
+    pop_metype_gids: gids of each cell metype per population
+    preloaded: whether data is preloaded from an json file
+    """
+
+    metype_memory: dict = field(default_factory=dict)
+    metype_cell_syn_average: Counter = field(default_factory=Counter)
+    pop_metype_gids: dict = field(default_factory=dict)
+    preloaded: bool = field(default=False, compare=False)
+
+    def to_json(self, filepath):
+        data = {
+            "metype_memory": self.metype_memory,
+            "metype_cell_syn_average": self.metype_cell_syn_average,
+            "pop_metype_gids": {
+                pop: {metype: gids.tolist() for metype, gids in metype_gids.items()}
+                for pop, metype_gids in self.pop_metype_gids.items()
+            },
+        }
+        with open(filepath, "w", encoding="utf-8") as fp:
+            json.dump(data, fp, sort_keys=True, indent=4)
+
+    @classmethod
+    def from_json(cls, filepath):
+        with open(filepath, encoding="utf-8") as fp:
+            data = json.load(fp)
+        return cls(
+            metype_memory=data["metype_memory"],
+            metype_cell_syn_average=Counter(data["metype_cell_syn_average"]),
+            pop_metype_gids={
+                pop: {
+                    metype: np.array(gids, dtype="uint32") for metype, gids in metype_gids.items()
+                }
+                for pop, metype_gids in data["pop_metype_gids"].items()
+            },
+            preloaded=True,
+        )
+
+
 class DryRunStats:
     _MEMORY_USAGE_FILENAME = "cell_memory_usage.json"
     _ALLOCATION_FILENAME = "allocation"
@@ -223,14 +270,36 @@ class DryRunStats:
         return defaultdict(float)
 
     def __init__(self) -> None:
-        self.metype_memory = {}
-        self.metype_cell_syn_average = Counter()
-        self.pop_metype_gids = {}
+        self.cell_memory_usage = CellMemoryUsage()
         self.metype_counts = Counter()
         self.synapse_counts = defaultdict(int)  # [syn_type -> count]
         self.suggested_nodes = 0
         self.synapse_memory_total = 0
         _, _, self.base_memory, _ = get_task_level_mem_usage()
+
+    @property
+    def metype_memory(self):
+        return self.cell_memory_usage.metype_memory
+
+    @metype_memory.setter
+    def metype_memory(self, value):
+        self.cell_memory_usage.metype_memory = value
+
+    @property
+    def metype_cell_syn_average(self):
+        return self.cell_memory_usage.metype_cell_syn_average
+
+    @metype_cell_syn_average.setter
+    def metype_cell_syn_average(self, value):
+        self.cell_memory_usage.metype_cell_syn_average = value
+
+    @property
+    def pop_metype_gids(self):
+        return self.cell_memory_usage.pop_metype_gids
+
+    @pop_metype_gids.setter
+    def pop_metype_gids(self, value):
+        self.cell_memory_usage.pop_metype_gids = value
 
     def __str__(self) -> str:
         s = "DryRunStats:\n"
@@ -312,15 +381,13 @@ class DryRunStats:
 
     @run_only_rank0
     def export_cell_memory_usage(self):
-        with open(self._MEMORY_USAGE_FILENAME, "w", encoding="utf-8") as fp:
-            json.dump(self.metype_memory, fp, sort_keys=True, indent=4)
+        self.cell_memory_usage.to_json(self._MEMORY_USAGE_FILENAME)
 
     def try_import_cell_memory_usage(self):
         if not os.path.exists(self._MEMORY_USAGE_FILENAME):
             return
         logging.info("Loading memory usage from %s...", self._MEMORY_USAGE_FILENAME)
-        with open(self._MEMORY_USAGE_FILENAME, encoding="utf-8") as fp:
-            self.metype_memory = json.load(fp)
+        self.cell_memory_usage = CellMemoryUsage.from_json(self._MEMORY_USAGE_FILENAME)
 
     def collect_display_syn_counts(self):
         from .logging import log_verbose
@@ -456,7 +523,7 @@ class DryRunStats:
 
     @run_only_rank0
     def distribute_cells(
-        self, num_ranks: int, cycles: int = 1, batch_size=10
+        self, num_ranks: int, cycles: int, batch_size: dict
     ) -> tuple[dict, dict, dict]:
         """Distributes cells across ranks and cycles based on their memory load.
 
@@ -466,7 +533,7 @@ class DryRunStats:
         Args:
             num_ranks (int): The number of ranks.
             cycles (int): The number of cycles to distribute cells over.
-            batch_size (int): The number of cells to assign to each bucket at a time.
+            batch_size (dict): The number of cells to assign to each bucket at a time per population
 
         Returns:
             bucket_allocation (dict): A dictionary where keys are tuples (pop, rank_id, cycle_id)
@@ -487,6 +554,9 @@ class DryRunStats:
             metype_memory_usage[metype] = metype_mem + syns_mem
 
         def assign_cells_to_bucket(rank_allocation, rank_memory, batch, batch_memory):
+            """Assigns a batch of cells to the bucket with the lowest total memory
+            via heapq.heappop and heapq.heappush
+            """
             total_memory, (rank_id, cycle_id) = heapq.heappop(buckets)
             logging.debug("Assigning batch to bucket (%d, %d)", rank_id, cycle_id)
             rank_allocation[rank_id, cycle_id].extend(batch)
@@ -494,7 +564,12 @@ class DryRunStats:
             rank_memory[rank_id, cycle_id] = total_memory
             heapq.heappush(buckets, (total_memory, (rank_id, cycle_id)))
 
+        # Sort metype by total memory
         # Loop over ALL the gids which would be instantiated, per metype
+        # in the order from the most memory consumer to the least
+        metype_memory_usage = dict(
+            sorted(metype_memory_usage.items(), key=operator.itemgetter(1), reverse=True)
+        )
         for pop, metype_gids in self.pop_metype_gids.items():
             logging.info("Distributing cells of population %s", pop)
             rank_allocation = defaultdict(Vector)
@@ -506,8 +581,8 @@ class DryRunStats:
             buckets = [(0, (i, j)) for i in range(num_ranks) for j in range(cycles)]
             heapq.heapify(buckets)
 
-            for metype, gids in metype_gids.items():
-                total_mem_per_cell = metype_memory_usage[metype]
+            for metype, total_mem_per_cell in metype_memory_usage.items():
+                gids = metype_gids.get(metype, [])
 
                 for cell_id in gids:
                     batch.append(cell_id)

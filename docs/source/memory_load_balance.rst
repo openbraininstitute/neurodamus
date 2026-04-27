@@ -21,7 +21,7 @@ Dry Run
 
 This will run the simulation in dry-run mode and collect the memory usage data for
 each gid, for both cells and synapses.
-The data will be stored in the `memory_per_metype.json`, `cell_memory_usage,json` and
+The data will be stored in the `cell_memory_usage.json` and
 `allocation_rx_cy.pkl.gz` files in the cwd directory where x and y are respectively the number of
 ranks and cycles the simulation was balanced for.
 By default, the balance distribution will happen on the amount of nodes/ranks that the dry run suggests.

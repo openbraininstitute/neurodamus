@@ -1,11 +1,13 @@
 import pytest
 import tempfile
 from mpi4py import MPI
-
+import json
 
 from tests.utils import defaultdict_to_standard_types
-from ..conftest import PLATFORM_SYSTEM
+from tests.conftest import PLATFORM_SYSTEM
 from neurodamus import Neurodamus
+from neurodamus.utils.memory import CellMemoryUsage
+from pathlib import Path
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -27,16 +29,13 @@ def tmp_folder():
 def change_test_dir(monkeypatch, tmp_folder):
     """
     All tests in this file are using the same working directory, i.e tmp_folder
-    Because test_dynamic_distribute requires memory_per_metype.json generated in the previous test
+    Because test_dry_run_dynamic_distribute requires cell_memory_usage.json generated in the previous test
     """
     monkeypatch.chdir(tmp_folder)
 
-def is_subset(sub, main):
-    return set(sub).issubset(set(main))
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
-        "simconfig_fixture": "ringtest_baseconfig",
+        "simconfig_fixture": "ringtest_baseconfig"
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
@@ -56,15 +55,16 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file, mpi_ranks):
         }
         assert nd._dry_run_stats.metype_counts == expected_metypes_count
         assert nd._dry_run_stats.suggested_nodes > 0
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
-        "simconfig_fixture": "ringtest_baseconfig",
+        "simconfig_fixture": "ringtest_baseconfig"
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
 def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
-    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2, memory_tracker="heap")
     nd.run()
 
     rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
@@ -75,19 +75,19 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
     # but neuron 2 can be in  either of the two
     if rank == 0:
-        assert is_subset(rank_allocation_standard['RingA'][(0, 0)], [0, 2])
-        assert is_subset(rank_allocation_standard['RingB'][(0, 0)], [0, 1])
+        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
     elif rank == 1:
-        assert is_subset(rank_allocation_standard['RingA'][(1, 0)], [1, 2])
-        assert rank_allocation_standard['RingB'][(1, 0)] == [1]
+        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
+        assert rank_allocation_standard['RingB'][(1, 0)] == [0]
 
 
     # Test redistribution
     rank_alloc, _bucket_memory, _metype_memory_usage = nd._dry_run_stats.distribute_cells_with_validation(1, 1)
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = {
-        'RingA': {(0, 0): [0, 1, 2]},
-        'RingB': {(0, 0): [0, 1]}
+        'RingA': {(0, 0): [1, 0, 2]},
+        'RingB': {(0, 0): [1, 0]}
     }
     assert rank_allocation_standard == expected_allocation
 
@@ -96,8 +96,8 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
     rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
     expected_allocation = [
         {
-            'RingA': {(0, 0): [0, 1, 2]},
-            'RingB': {(0, 0): [0, 1]}
+            'RingA': {(0, 0): [1, 0, 2]},
+            'RingB': {(0, 0): [1, 0]}
         },
         {
             'RingA': {},
@@ -107,7 +107,7 @@ def test_dry_run_distribute_cells(create_tmp_simulation_config_file, mpi_ranks):
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
-        "simconfig_fixture": "ringtest_baseconfig",
+        "simconfig_fixture": "ringtest_baseconfig"
     },
 ], indirect=True)
 @pytest.mark.mpi(ranks=2)
@@ -123,7 +123,51 @@ def test_dry_run_dynamic_distribute(create_tmp_simulation_config_file, mpi_ranks
 
     # Test allocation
     expected_allocation = [
-        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [0]}},
-        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [1]}}
+        {'RingA': {(0, 0): [0]}, 'RingB': {(0, 0): [1]}},
+        {'RingA': {(1, 0): [1, 2]}, 'RingB': {(1, 0): [0]}}
         ]
     assert rank_allocation_standard == expected_allocation[rank]
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig"
+    },
+], indirect=True)
+@pytest.mark.mpi(ranks=2)
+def test_lb_mode_memory_from_scratch(create_tmp_simulation_config_file, mpi_ranks):
+    """test memory load balance mode, no allocation file, no cell_memory_usage.json
+    cell distribution (nd._dry_run_stats) on-the-fly by loading cells and synapses, just as dry-run"""
+
+    # delete allocation file first
+    Path("cell_memory_usage.json").unlink(missing_ok=True)
+    Path("allocation_r2_c1.pkl.gz").unlink(missing_ok=True)
+
+    nd = Neurodamus(create_tmp_simulation_config_file, lb_mode="Memory", memory_tracker="heap")
+
+    expected_metypes_count = {
+        'MTYPE1-ETYPE1': 2, 'MTYPE0-ETYPE0': 1,
+        'MTYPE2-ETYPE2': 1, 'MTYPE0-ETYPE1': 1
+    }
+    assert nd._dry_run_stats.metype_counts == expected_metypes_count
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
+    assert Path("allocation_r2_c1.pkl.gz").exists()
+    assert Path("cell_memory_usage.json").exists()
+
+    # These attributes are gathered on rank0 only, check on rank 0 cell_memory_usage.json
+    if rank == 0:
+        dryrun_data = CellMemoryUsage.from_json(nd._dry_run_stats._MEMORY_USAGE_FILENAME)
+        assert dryrun_data == nd._dry_run_stats.cell_memory_usage
+
+    rank_alloc = nd._dry_run_stats.import_allocation_stats(nd._dry_run_stats._ALLOCATION_FILENAME
+                                                            + "_r2_c1.pkl.gz", 0)
+    rank_allocation_standard = defaultdict_to_standard_types(rank_alloc)
+
+    # Test allocation
+    # RingA neuron 0 always in rank 0, neuron 1 always in rank 1
+    # but neuron 2 can be in  either of the two
+    if rank == 0:
+        assert rank_allocation_standard['RingA'][(0, 0)] == [1]
+        assert rank_allocation_standard['RingB'][(0, 0)] == [1]
+    elif rank == 1:
+        assert rank_allocation_standard['RingA'][(1, 0)] == [0, 2]
+        assert rank_allocation_standard['RingB'][(1, 0)] == [0]

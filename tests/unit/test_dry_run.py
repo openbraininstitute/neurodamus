@@ -1,3 +1,4 @@
+import json
 import pytest
 import numpy as np
 import numpy.testing as npt
@@ -7,6 +8,7 @@ from pathlib import Path
 from tests.utils import defaultdict_to_standard_types
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
+from neurodamus.utils.memory import CellMemoryUsage
 
 class DummyNodeReader:
     """ Fake dummy class to mock the NodeReader class
@@ -34,6 +36,7 @@ def fixed_memory_measurements():
 ], indirect=True)
 @pytest.mark.forked
 def test_dry_run_memory_use(create_tmp_simulation_config_file):
+    """Dry run, check the dry_run_stats property, and the content of export files """
     nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
     nd.run()
 
@@ -49,6 +52,13 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
     assert nd._dry_run_stats.metype_counts == expected_metypes_count
     assert nd._dry_run_stats.suggested_nodes > 0
 
+    assert Path(nd._dry_run_stats._ALLOCATION_FILENAME +"_r2_c1.pkl.gz").exists()
+    assert Path(nd._dry_run_stats._MEMORY_USAGE_FILENAME).exists()
+    assert not nd._dry_run_stats.cell_memory_usage.preloaded
+
+    # check on cell_memory_usage.json is exported correctly
+    dryrun_data = CellMemoryUsage.from_json(nd._dry_run_stats._MEMORY_USAGE_FILENAME)
+    assert dryrun_data == nd._dry_run_stats.cell_memory_usage
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -57,7 +67,7 @@ def test_dry_run_memory_use(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_dry_run_distribute_cells(create_tmp_simulation_config_file):
-    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2)
+    nd = Neurodamus(create_tmp_simulation_config_file,  dry_run=True, num_target_ranks=2, memory_tracker="heap")
     nd.run()
 
     # Test allocation
@@ -123,8 +133,8 @@ def test_dry_run_lb_mode_memory(create_tmp_simulation_config_file, copy_memory_f
             (1, 0): [1, 2]
         },
         'RingB': {
-            (0, 0): [0],
-            (1, 0): [1]
+            (0, 0): [1],
+            (1, 0): [0]
         }
     }
     assert rank_allocation_standard == expected_allocation
@@ -230,30 +240,30 @@ def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
 
     expected_allocation = {
         'NodeA': {
-            (0, 0): [1, 6],
-            (1, 0): [3, 8],
-            (0, 1): [2, 7],
-            (1, 1): [4, 5]
+            (0, 0): [1, 4],
+            (1, 0): [3, 6],
+            (0, 1): [2, 5],
+            (1, 1): [7, 8]
         },
         'NodeB': {
             (0, 0): [9],
-            (1, 0): [11],
-            (0, 1): [10, 14],
-            (1, 1): [12, 13]
+            (1, 0): [10, 12],
+            (0, 1): [14],
+            (1, 1): [11, 13]
         }
     }
     expected_memory = {
         'NodeA': {
-            (0, 0): 90,
-            (1, 0): 110,
-            (0, 1): 110,
-            (1, 1): 80
+            (0, 0): 100,
+            (1, 0): 90,
+            (0, 1): 100,
+            (1, 1): 100
         },
         'NodeB': {
             (0, 0): 60,
-            (1, 0): 40,
-            (0, 1): 90,
-            (1, 1): 60
+            (1, 0): 70,
+            (0, 1): 50,
+            (1, 1): 70
         }
     }
 
