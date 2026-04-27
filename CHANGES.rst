@@ -7,7 +7,7 @@ Version 4.2.1
 **27 April 2026**
 
 *New Features*
-  * Support Allen's V1 point neuron model
+  * Support Allen's V1 point neuron model (#422)
 
 *Improvements*
   * New CLI option to allow dry run and memeory load balancing based on heap memory (#507)
