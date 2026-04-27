@@ -2,6 +2,21 @@
 Change Log
 ==========
 
+Version 4.2.1
+=============
+**27 April 2026**
+
+*New Features*
+  * Support Allen's V1 point neuron model (#422)
+
+*Improvements*
+  * New CLI option to allow dry run and memeory load balancing based on heap memory (#507)
+  * Build neurodamus with openMPI in the integration CI workflow (#510)
+  * Pin NEURON to tag 9.0.1 instead of commit hash (#508)
+  * Skip LFP electrodes file loading when reports are disabled (#505)
+  * allen_v1 test follows ringtest paradigm (#504)
+
+
 Version 4.2.0
 =============
 **23 March 2026**
