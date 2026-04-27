@@ -29,8 +29,9 @@ requires-python=">=3.10"
 
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API
-full=['morphio', 'NEURON', 'memray']
+full=['morphio', 'NEURON']
 docs=['sphinx', 'sphinx-bluebrain-theme']
+dryrun=['memray']
 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
