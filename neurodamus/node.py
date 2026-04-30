@@ -337,20 +337,25 @@ class Node:
     def __init__(self, config_file, options: dict | None = None):
         """Creates a neurodamus executor
         Args:
-            config_file: A Sonata config file
+            config_file: A Sonata simulation config file path (str) or a
+                pre-built ``libsonata.SimulationConfig`` object.
             options: A dictionary of run options typically coming from cmd line
         """
         options = options or {}
-        assert isinstance(config_file, str), "`config_file` should be a string"
-        assert config_file, "`config_file` cannot be empty"
-
-        if config_file.endswith("BlueConfig"):
-            raise ConfigurationError(
-                "Legacy format BlueConfig is not supported, please migrate to SONATA config"
-            )
         import libsonata
 
-        conf = libsonata.SimulationConfig.from_file(config_file)
+        if isinstance(config_file, libsonata.SimulationConfig):
+            conf = config_file
+            config_file = None  # no file path available
+        else:
+            assert isinstance(config_file, str), "`config_file` should be a string or SimulationConfig"
+            assert config_file, "`config_file` cannot be empty"
+            if config_file.endswith("BlueConfig"):
+                raise ConfigurationError(
+                    "Legacy format BlueConfig is not supported, please migrate to SONATA config"
+                )
+            conf = libsonata.SimulationConfig.from_file(config_file)
+
         Nd.init(log_filename=conf.output.log_file, log_use_color=options.pop("use_color", True))
 
         # This is global initialization, happening once, regardless of number of
@@ -360,7 +365,7 @@ class Node:
         self._spike_vecs = []
         self._spike_populations = []
         Nd.execute("cvode = new CVode()")
-        SimConfig.init(config_file, options)
+        SimConfig.init(config_file or conf, options)
 
         if SimConfig.use_coreneuron:
             # Instantiate the CoreNEURON artificial cell object which is used to fill up
@@ -1605,7 +1610,8 @@ class Neurodamus(Node):
          * Activate reports if requested
 
         Args:
-            config_file: The simulation config recipe file
+            config_file: The simulation config recipe file path (str) or a
+                pre-built ``libsonata.SimulationConfig`` object.
             logging_level: (int) Redefine the global logging level.
                 0 - Only warnings / errors
                 1 - Info messages (default)
@@ -1638,8 +1644,11 @@ class Neurodamus(Node):
             self._instantiate_simulation()
 
         # Remove .SUCCESS file if exists
-        self._success_file = SimConfig.config_file + ".SUCCESS"
-        self._remove_file(self._success_file)
+        if isinstance(SimConfig.config_file, str):
+            self._success_file = SimConfig.config_file + ".SUCCESS"
+            self._remove_file(self._success_file)
+        else:
+            self._success_file = None
 
     # -
     def _build_single_model(self):
@@ -1927,8 +1936,11 @@ class Neurodamus(Node):
             self.run_all()
 
         # Create SUCCESS file if the simulation finishes successfully
-        self._touch_file(self._success_file)
-        logging.info("Finished! Creating .SUCCESS file: '%s'", self._success_file)
+        if self._success_file:
+            self._touch_file(self._success_file)
+            logging.info("Finished! Creating .SUCCESS file: '%s'", self._success_file)
+        else:
+            logging.info("Finished!")
 
         # Save seclamp holding currents for gap junction user corrections
         if (

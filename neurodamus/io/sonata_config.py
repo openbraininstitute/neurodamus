@@ -102,11 +102,25 @@ class SonataConfig:
         "_stable_inputs_order",
     )
 
-    def __init__(self, config_path):
-        self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
+    def __init__(self, config_path_or_obj):
+        """Initialize SonataConfig from a file path or a SimulationConfig object.
 
-        with open(config_path, encoding="utf-8") as fd:
-            if inputs := json.load(fd).get("inputs", None):
+        Args:
+            config_path_or_obj: Either a path (str) to a simulation config JSON
+                file, or a pre-built ``libsonata.SimulationConfig`` object.
+        """
+        if isinstance(config_path_or_obj, str):
+            self._sim_conf = libsonata.SimulationConfig.from_file(config_path_or_obj)
+            with open(config_path_or_obj, encoding="utf-8") as fd:
+                if inputs := json.load(fd).get("inputs", None):
+                    self._stable_inputs_order = tuple(inputs.keys())
+                else:
+                    self._stable_inputs_order = ()
+        else:
+            # Pre-built libsonata.SimulationConfig object
+            self._sim_conf = config_path_or_obj
+            expanded = json.loads(self._sim_conf.expanded_json)
+            if inputs := expanded.get("inputs", None):
                 self._stable_inputs_order = tuple(inputs.keys())
             else:
                 self._stable_inputs_order = ()
