@@ -285,3 +285,170 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "PercentLess": 50.0
     }
     assert SimConfig.stimuli[2] == utils.merge_dicts(SimConfig.stimuli[2], expected_input_subthreshold)
+
+
+def test_sonata_config_from_simulation_config_object():
+    """SonataConfig accepts a pre-built libsonata.SimulationConfig object."""
+    import json
+
+    config_dict = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "node_sets_file": str(RINGTEST_DIR / "nodesets.json"),
+        "node_set": "Mosaic",
+        "target_simulator": "NEURON",
+        "run": {
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        "conditions": {
+            "celsius": 35,
+            "v_init": -65,
+        },
+        "inputs": {
+            "first_input": {
+                "node_set": "Mosaic",
+                "input_type": "current_clamp",
+                "module": "linear",
+                "delay": 0,
+                "duration": 50,
+                "amp_start": 0.1,
+                "amp_end": 0.1,
+            },
+            "second_input": {
+                "node_set": "Mosaic",
+                "input_type": "current_clamp",
+                "module": "linear",
+                "delay": 0,
+                "duration": 50,
+                "amp_start": 0.2,
+                "amp_end": 0.2,
+            },
+        },
+    }
+
+    sim_conf = libsonata.SimulationConfig(json.dumps(config_dict), str(RINGTEST_DIR))
+
+    # Build SonataConfig from the object (no file on disk)
+    raw_conf = SonataConfig(sim_conf)
+
+    # Verify it parses identically to the file-based path
+    raw_conf_from_file = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
+
+    assert raw_conf.parsedRun.base_seed == raw_conf_from_file.parsedRun.base_seed
+    assert raw_conf.parsedRun.dt == raw_conf_from_file.parsedRun.dt
+    assert raw_conf.parsedRun.tstop == raw_conf_from_file.parsedRun.tstop
+    assert raw_conf.parsedRun.celsius == raw_conf_from_file.parsedRun.celsius
+    assert raw_conf.parsedRun.v_init == raw_conf_from_file.parsedRun.v_init
+    assert raw_conf.parsedRun.nodeset_name == raw_conf_from_file.parsedRun.nodeset_name
+    assert raw_conf.parsedRun.simulator == raw_conf_from_file.parsedRun.simulator
+
+    # Input order is preserved from the object
+    assert raw_conf._stable_inputs_order == ("first_input", "second_input")
+
+
+def test_sonata_config_from_object_input_order():
+    """Input order is preserved when SonataConfig is built from a SimulationConfig object."""
+    import json
+
+    config_dict = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "node_sets_file": str(RINGTEST_DIR / "nodesets.json"),
+        "node_set": "Mosaic",
+        "target_simulator": "NEURON",
+        "run": {
+            "random_seed": 1122,
+            "dt": 0.1,
+            "tstop": 50,
+        },
+        "conditions": {
+            "celsius": 35,
+            "v_init": -65,
+        },
+        "inputs": {
+            "hypamp_mosaic": {
+                "node_set": "200_L5_PCs",
+                "input_type": "current_clamp",
+                "module": "hyperpolarizing",
+                "delay": 0.0,
+                "duration": 10000.0,
+            },
+            "RelativeShotNoise_L5E_inject": {
+                "node_set": "200_L5_PCs",
+                "input_type": "current_clamp",
+                "module": "relative_shot_noise",
+                "delay": 0.0,
+                "duration": 1000.0,
+                "decay_time": 4.0,
+                "rise_time": 0.4,
+                "relative_skew": 0.63,
+                "mean_percent": 70.0,
+                "sd_percent": 40.0,
+            },
+            "subthreshould_mosaic": {
+                "module": "subthreshold",
+                "input_type": "current_clamp",
+                "delay": 0.0,
+                "duration": 30000.0,
+                "node_set": "Mosaic",
+                "percent_less": 50.0,
+            },
+        },
+    }
+
+    sim_conf = libsonata.SimulationConfig(json.dumps(config_dict), str(RINGTEST_DIR))
+    raw_conf = SonataConfig(sim_conf)
+
+    assert raw_conf._stable_inputs_order == (
+        "hypamp_mosaic",
+        "RelativeShotNoise_L5E_inject",
+        "subthreshould_mosaic",
+    )
+
+    stimuli = raw_conf.parsedInputs
+    assert stimuli[0]["Pattern"] == "Hyperpolarizing"
+    assert stimuli[0]["Duration"] == 10000.0
+    assert stimuli[1]["Pattern"] == "RelativeShotNoise"
+    assert stimuli[1]["Duration"] == 1000.0
+    assert stimuli[2]["Pattern"] == "SubThreshold"
+    assert stimuli[2]["PercentLess"] == 50.0
+
+
+def test_sonata_config_from_object_no_inputs():
+    """SimulationConfig object without inputs produces empty input order."""
+    import json
+
+    config_dict = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "node_sets_file": str(RINGTEST_DIR / "nodesets.json"),
+        "run": {
+            "random_seed": 1,
+            "dt": 0.025,
+            "tstop": 10,
+        },
+    }
+
+    sim_conf = libsonata.SimulationConfig(json.dumps(config_dict), str(RINGTEST_DIR))
+    raw_conf = SonataConfig(sim_conf)
+
+    assert raw_conf._stable_inputs_order == ()
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+    },
+], indirect=True)
+def test_neurodamus_accepts_simulation_config_object(create_tmp_simulation_config_file):
+    """Neurodamus can be initialised with a libsonata.SimulationConfig object."""
+    from neurodamus import Neurodamus
+
+    # Build a SimulationConfig object from the same file the fixture wrote
+    sim_conf = libsonata.SimulationConfig.from_file(create_tmp_simulation_config_file)
+
+    # Pass the object, not the path
+    nd = Neurodamus(sim_conf, disable_reports=True)
+
+    assert len(nd.circuits.node_managers) > 0
+    assert SimConfig.config_file is None
+    assert SimConfig.simulation_config_dir == sim_conf.base_path

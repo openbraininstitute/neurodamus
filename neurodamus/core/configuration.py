@@ -262,28 +262,17 @@ class _SimConfig:
         from . import NeuronWrapper as Nd
 
         Nd.init()
-
-        import libsonata
-        if isinstance(config_file, libsonata.SimulationConfig):
-            sim_conf = config_file
-            config_file = None  # no file path
-        else:
-            sim_conf = None
-            if not os.path.isfile(config_file):
-                raise ConfigurationError("Config file not found: " + config_file)
-
+        if not os.path.isfile(config_file):
+            raise ConfigurationError("Config file not found: " + config_file)
         logging.info("Initializing Simulation Configuration and Validation")
 
-        log_verbose("ConfigFile: %s", config_file or "<SimulationConfig object>")
+        log_verbose("ConfigFile: %s", config_file)
         log_verbose("CLI Options: %s", cli_options)
         cls.config_file = config_file
-        cls._config_parser = cls._init_config_parser(config_file, sim_conf)
+        cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        if config_file is not None:
-            cls.simulation_config_dir = str(Path(config_file).resolve().parent)
-        else:
-            cls.simulation_config_dir = sim_conf.base_path
+        cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
             "SimulationConfigDir using directory of simulation config file: %s",
             cls.simulation_config_dir,
@@ -380,24 +369,7 @@ class _SimConfig:
         return str(outdir)
 
     @classmethod
-    def _init_config_parser(cls, config_file, sim_conf=None):
-        """Build a SonataConfig from a file path or a pre-built SimulationConfig.
-
-        Args:
-            config_file: Path to the simulation config JSON, or None when
-                *sim_conf* is provided.
-            sim_conf: An already-constructed ``libsonata.SimulationConfig``
-                object.  When given, *config_file* is ignored.
-        """
-        if sim_conf is not None:
-            try:
-                config_parser = SonataConfig(sim_conf)
-            except Exception as e:
-                raise ConfigurationError(
-                    "Failed to initialize SonataConfig from SimulationConfig object"
-                ) from e
-            return config_parser
-
+    def _init_config_parser(cls, config_file):
         if not config_file.endswith(".json"):
             raise ConfigurationError(
                 "Invalid configuration file format. The configuration file must be a .json file."
