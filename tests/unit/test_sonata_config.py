@@ -303,3 +303,23 @@ def test_sonata_config_from_simulation_config_object():
     assert raw_conf.parsedRun.base_seed == 1
     assert raw_conf.parsedRun.dt == 0.025
     assert raw_conf.parsedRun.tstop == 10
+
+
+def test_neurodamus_accepts_simulation_config_object():
+    """Neurodamus can be initialised with a libsonata.SimulationConfig object."""
+    import json
+    from neurodamus import Neurodamus
+
+    config_dict = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "node_sets_file": str(RINGTEST_DIR / "nodesets.json"),
+        "node_set": "Mosaic",
+        "target_simulator": "NEURON",
+        "run": {"random_seed": 1122, "dt": 0.1, "tstop": 50},
+        "conditions": {"celsius": 35, "v_init": -65},
+    }
+
+    sim_conf = libsonata.SimulationConfig(json.dumps(config_dict), str(RINGTEST_DIR))
+    nd = Neurodamus(sim_conf, disable_reports=True)
+
+    assert len(nd.circuits.node_managers) > 0
