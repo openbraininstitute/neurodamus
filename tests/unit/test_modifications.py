@@ -2,6 +2,7 @@ import json
 import re
 from tempfile import NamedTemporaryFile
 
+import libsonata
 import numpy as np
 import pytest
 
@@ -697,10 +698,7 @@ def test_modification_wrong_target_multiple_types(
     else:
         error_message = "Could not find 'node_set' in 'modification 0'"
 
-    with pytest.raises(
-        Exception,
-        match=error_message,
-    ):
+    with pytest.raises(libsonata.SonataError, match=error_message):
         Neurodamus(sim_file_path)
 
 @pytest.mark.parametrize(
