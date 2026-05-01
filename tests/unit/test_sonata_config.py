@@ -285,3 +285,21 @@ def test_parse_inputs(create_tmp_simulation_config_file):
         "PercentLess": 50.0
     }
     assert SimConfig.stimuli[2] == utils.merge_dicts(SimConfig.stimuli[2], expected_input_subthreshold)
+
+
+def test_sonata_config_from_simulation_config_object():
+    """SonataConfig accepts a pre-built libsonata.SimulationConfig object."""
+    import json
+
+    config_dict = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "node_sets_file": str(RINGTEST_DIR / "nodesets.json"),
+        "run": {"random_seed": 1, "dt": 0.025, "tstop": 10},
+    }
+
+    sim_conf = libsonata.SimulationConfig(json.dumps(config_dict), str(RINGTEST_DIR))
+    raw_conf = SonataConfig(sim_conf)
+
+    assert raw_conf.parsedRun.base_seed == 1
+    assert raw_conf.parsedRun.dt == 0.025
+    assert raw_conf.parsedRun.tstop == 10
