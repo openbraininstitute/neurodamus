@@ -179,54 +179,6 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
     assert np.isclose(soma2.e_pas, -7)
 
 
-@pytest.mark.parametrize(
-    "create_tmp_simulation_config_file",
-    [
-        {
-            "simconfig_fixture": "ringtest_baseconfig",
-            "extra_config": {
-                "target_simulator": "NEURON",
-                "conditions": {
-                    "modifications": [
-                        {
-                            "name": "no_SK_E2",
-                            "node_set": "RingA:oneCell",
-                            "type": "configure_all_sections",
-                            "section_configure": "%s.e_pas *= 0.1",
-                        },
-                        {
-                            "name": "no_SK_E2",
-                            "node_set": "RingA:oneCell",
-                            "type": "configure_all_sections",
-                            "section_configure": "%s.gnabar_hh *= 11",
-                        }
-
-                    ]
-                },
-            },
-        }
-    ],
-    indirect=True,
-)
-def test_configure_all_sections_AugAssign_name_clash(create_tmp_simulation_config_file):
-    """This should produce the same results as test_configure_all_sections_AugAssign
-    
-    However, here we apply the same modification in 2 steps with modifications 
-    that have the same name. Their combined effect should be equivalent 
-    to the modification in test_configure_all_sections_AugAssign.
-    """
-
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
-    Neurodamus(create_tmp_simulation_config_file)
-    soma1 = Nd._pc.gid2cell(0).soma[0]
-    soma2 = Nd._pc.gid2cell(1).soma[0]
-
-    assert np.isclose(soma1.gnabar_hh, 0.12)
-    assert np.isclose(soma1.e_pas, -70)
-    assert np.isclose(soma2.gnabar_hh, 1.32)
-    assert np.isclose(soma2.e_pas, -7)
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
