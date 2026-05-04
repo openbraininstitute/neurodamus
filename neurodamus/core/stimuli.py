@@ -1,4 +1,5 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
+FOO = []
 
 import logging
 
@@ -597,8 +598,20 @@ class ElectrodeSource:
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")
             # Neuron vector play without interpolation, continuous=0
-            e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 0)
-            self.segment_potentials.append(e_ext_vec)
+            if 1:
+                e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 0)
+                self.segment_potentials.append(e_ext_vec)
+            else:
+                stim = Nd.h.efield(segment)
+                stim.phase = 0
+                stim.frequency = 100
+                stim.X = displacement[0] * 50
+                stim.Y = displacement[1] * -25
+                stim.Z = displacement[2] * 75
+                Nd.h.setpointer(segment.extracellular._ref_e, 'e_ext', stim)
+                FOO.append(stim)
+
+
 
         self.cleanup()
 

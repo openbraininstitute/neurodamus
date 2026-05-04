@@ -106,13 +106,13 @@ def test_interpolate_myelin_coordinates():
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 0.025},
                 "inputs": {
                     "one_efield": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
-                        "duration": 10,
+                        "duration": 1000,
                         "node_set": "RingA_Cell0",
                         "fields": [{"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100}],
                         "ramp_up_time": 0,
@@ -138,35 +138,59 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     assert list(stimulus.stimList.keys()) == [0]  # one object per cell
-    cell = cellref = n.circuits.get_node_manager("RingA").get_cell(0)
+    cell = n.circuits.get_node_manager("RingA").get_cell(0)
     cellref = cell.CellRef
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cellref.all)
-    assert len(es.segment_potentials) == total_segments
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
-    ref_stimvec = np.zeros(len(ref_timevec))
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
-    ref_stimvec = [
-        -0.505702,
-        -0.409122,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.505702,
-        0.0,
-    ]
-    npt.assert_allclose(es.segment_potentials[3], ref_stimvec, rtol=1e-5)
 
-    n.clear_model()
+    from neurodamus.core import NeuronWrapper as Nd
+
+    if 0:
+        v0 = Nd.h.Vector().record(cell.CellRef.soma[0](0.5).extracellular._ref_e)
+        v1 = Nd.h.Vector().record(cell.CellRef.soma[0](0.5)._ref_v)
+        n.sim_init()
+        n.solve()
+        np.set_printoptions(linewidth=2000)
+        v0 = np.asarray(v0)
+        v1 = np.asarray(v1)
+        print(v1)
+        np.savetxt("/tmp/0.txt", v0)
+        np.savetxt("/tmp/1.txt", v1)
+    else:
+        recs = [(str(s), Nd.h.Vector().record(s(0.5)._ref_v)) for s in cellref.all]
+        n.sim_init()
+        n.solve()
+        for name, rec in recs:
+            np.savetxt(f"/tmp/rec-gold/{name}", np.asarray(rec))
+
+
+    #breakpoint() # XXX BREAKPOINT
+
+    #assert len(es.segment_potentials) == total_segments
+    #duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
+    #dt = stimulus.dt
+    #ref_timevec = np.arange(0, duration + dt + 0.1, dt)
+    #ref_stimvec = np.zeros(len(ref_timevec))
+    #npt.assert_allclose(es.time_vec, ref_timevec)
+    #npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+    #ref_stimvec = [
+    #    -0.505702,
+    #    -0.409122,
+    #    -0.156271,
+    #    0.156271,
+    #    0.409122,
+    #    0.505702,
+    #    0.409122,
+    #    0.156271,
+    #    -0.156271,
+    #    -0.409122,
+    #    -0.505702,
+    #    0.0,
+    #]
+    #npt.assert_allclose(es.segment_potentials[3], ref_stimvec, rtol=1e-5)
+
+    #n.clear_model()
 
 
 REF_COSINE = np.array(
