@@ -93,24 +93,19 @@ class SonataConfig:
         "_circuit_conf",  # libsonata.CircuitConfig
         "_circuits",
         "_sim_conf",  # libsonata.SimulationConfig
-        # Currently, the `inputs` of a simulation_config is a json object,
-        # which is unordered; however, the order of stimuli matter, so try and
-        # recover the order defined in the json file: this assumes that `json.load`
-        # keeps it; *which is not guaranteed* see the discussion:
-        # https://github.com/openbraininstitute/neurodamus/issues/217#issuecomment-2827930163
-        # the SONATA specification should be updated to be a list
-        "_stable_inputs_order",
     )
 
-    def __init__(self, config_path):
-        self._sim_conf = libsonata.SimulationConfig.from_file(config_path)
+    def __init__(self, config_path_or_obj: str | libsonata.SimulationConfig):
+        """Initialize SonataConfig from a file path or a SimulationConfig object.
 
-        with open(config_path, encoding="utf-8") as fd:
-            if inputs := json.load(fd).get("inputs", None):
-                self._stable_inputs_order = tuple(inputs.keys())
-            else:
-                self._stable_inputs_order = ()
-
+        Args:
+            config_path_or_obj: Path to a SONATA simulation config JSON file,
+                or a pre-built ``libsonata.SimulationConfig`` object.
+        """
+        if isinstance(config_path_or_obj, str):
+            self._sim_conf = libsonata.SimulationConfig.from_file(config_path_or_obj)
+        else:
+            self._sim_conf = config_path_or_obj
         self._circuit_conf = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuits = self._extract_circuits_info()
 
@@ -342,7 +337,7 @@ class SonataConfig:
         # TODO: loop over self._sim_conf.inputs() list after updating SONATA SPEC and libsonata API,
         # The order of stimulus injection could lead to minor difference on the results
         # so need to preserve it as in the config file
-        for name in self._stable_inputs_order:
+        for name in self._sim_conf.list_input_names:
             stimulus = self._translate_dict(item_translation, self._sim_conf.input(name))
             self._adapt_libsonata_fields(stimulus)
             stimulus["Pattern"] = module_translation.get(

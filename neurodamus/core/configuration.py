@@ -261,18 +261,24 @@ class _SimConfig:
         # Import these objects scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
 
-        Nd.init()
-        if not os.path.isfile(config_file):
-            raise ConfigurationError("Config file not found: " + config_file)
-        logging.info("Initializing Simulation Configuration and Validation")
+        if isinstance(config_file, str):
+            if not Path(config_file).is_file():
+                raise ConfigurationError("Config file not found: " + config_file)
+            cls.config_file = config_file
+            cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
+        else:
+            cls.config_file = None
+            cls.simulation_config_dir = config_file.base_path
 
-        log_verbose("ConfigFile: %s", config_file)
-        log_verbose("CLI Options: %s", cli_options)
-        cls.config_file = config_file
         cls._config_parser = cls._init_config_parser(config_file)
+
+        use_color = (cli_options or {}).pop("use_color", True)
+        log_file = cls._config_parser._sim_conf.output.log_file
+        Nd.init(log_filename=log_file, log_use_color=use_color)
+
+        logging.info("Initializing Simulation Configuration and Validation")
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
             "SimulationConfigDir using directory of simulation config file: %s",
             cls.simulation_config_dir,
@@ -370,16 +376,11 @@ class _SimConfig:
 
     @classmethod
     def _init_config_parser(cls, config_file):
-        if not config_file.endswith(".json"):
+        if isinstance(config_file, str) and not config_file.endswith(".json"):
             raise ConfigurationError(
                 "Invalid configuration file format. The configuration file must be a .json file."
             )
-        try:
-            config_parser = SonataConfig(config_file)
-        except Exception as e:
-            msg = f"Failed to initialize SonataConfig with {config_file}"
-            raise ConfigurationError(msg) from e
-        return config_parser
+        return SonataConfig(config_file)
 
     @classmethod
     def _init_hoc_config_objs(cls):
