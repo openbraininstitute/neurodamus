@@ -262,7 +262,7 @@ class _SimConfig:
         from . import NeuronWrapper as Nd
 
         if isinstance(config_file, str):
-            if not os.path.isfile(config_file):
+            if not Path(config_file).is_file():
                 raise ConfigurationError("Config file not found: " + config_file)
             cls.config_file = config_file
             cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
