@@ -334,8 +334,9 @@ class Node:
     _default_population = "All"
     """The default population name for e.g. Reports."""
 
-    def __init__(self, config_path_or_obj: str | libsonata.SimulationConfig,
-                 options: dict | None = None):
+    def __init__(
+        self, config_path_or_obj: str | libsonata.SimulationConfig, options: dict | None = None
+    ):
         """Creates a neurodamus executor
 
         Args:
@@ -1594,8 +1595,9 @@ class Node:
 class Neurodamus(Node):
     """A high level interface to Neurodamus"""
 
-    def __init__(self, config_path_or_obj: str | libsonata.SimulationConfig,
-                 logging_level=None, **user_opts):
+    def __init__(
+        self, config_path_or_obj: str | libsonata.SimulationConfig, logging_level=None, **user_opts
+    ):
         """Creates and initializes a neurodamus run node
 
         As part of Initiazation it calls:
