@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -7,12 +8,10 @@ import libsonata
 from tests import utils
 from tests.conftest import RINGTEST_DIR
 
-import libsonata
-
 from neurodamus.core.configuration import SimConfig
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import setup_logging
-import libsonata
+from neurodamus import Neurodamus
 
 
 def test_parse_base():
@@ -289,7 +288,6 @@ def test_parse_inputs(create_tmp_simulation_config_file):
 
 def test_sonata_config_from_simulation_config_object():
     """SonataConfig accepts a libsonata.SimulationConfig instance."""
-    import json
 
     config_dict = {
         "network": str(RINGTEST_DIR / "circuit_config.json"),
@@ -307,8 +305,6 @@ def test_sonata_config_from_simulation_config_object():
 
 def test_neurodamus_accepts_simulation_config_object():
     """Neurodamus can be initialised with a libsonata.SimulationConfig object."""
-    import json
-    from neurodamus import Neurodamus
 
     config_dict = {
         "network": str(RINGTEST_DIR / "circuit_config.json"),

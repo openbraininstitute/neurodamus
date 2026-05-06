@@ -348,10 +348,6 @@ class Node:
 
         if isinstance(config_path_or_obj, str):
             assert config_path_or_obj, "`config_path_or_obj` cannot be empty"
-            if config_path_or_obj.endswith("BlueConfig"):
-                raise ConfigurationError(
-                    "Legacy format BlueConfig is not supported, please migrate to SONATA config"
-                )
 
         # This is global initialization, happening once, regardless of number of
         # cycles
