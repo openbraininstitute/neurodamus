@@ -189,13 +189,13 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
                 "conditions": {
                     "modifications": [
                         {
-                            "name": "no_SK_E2",
+                            "name": "no_SK_E2_pas",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
                             "section_configure": "%s.e_pas *= 0.1",
                         },
                         {
-                            "name": "no_SK_E2",
+                            "name": "no_SK_E2_hh",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
                             "section_configure": "%s.gnabar_hh *= 11",
