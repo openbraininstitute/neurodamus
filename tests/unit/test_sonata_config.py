@@ -21,7 +21,7 @@ def test_parse_base():
     assert raw_conf.parsedRun.base_seed == 1122
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -37,8 +37,8 @@ def test_parse_base():
         }
     },
 ], indirect=True)
-def test_parse_run(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_run(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
     # RNGSettings in hoc correctly initialized from Sonata
     assert SimConfig.rng_info.getGlobalSeed() == 1122
     assert SimConfig.rng_info.getStimulusSeed() == 42
@@ -56,7 +56,7 @@ def test_parse_run(create_tmp_simulation_config_file):
     assert SimConfig.run_conf.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.soma
     assert SimConfig.run_conf.extracellular_calcium == 1.2
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -71,15 +71,15 @@ def test_parse_run(create_tmp_simulation_config_file):
         }
     },
 ], indirect=True)
-def test_extracellular_calcium_warning(create_tmp_simulation_config_file, caplog):
+def test_extracellular_calcium_warning(create_tmp_simulation_config, caplog):
     setup_logging.logging_initted = True
     with caplog.at_level(logging.WARNING):
-        SimConfig.init(create_tmp_simulation_config_file, {})
+        SimConfig.init(create_tmp_simulation_config, {})
         assert ("Value of cao_CR_GluSynapse (2.0) is not the same as extracellular_calcium (1.2)"
                 in caplog.text)
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -95,8 +95,8 @@ def test_extracellular_calcium_warning(create_tmp_simulation_config_file, caplog
         }
     },
 ], indirect=True)
-def test_parse_conditions(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_conditions(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
 
     cond = SimConfig._simulation_config.parsedConditions
     assert cond.randomize_gaba_rise_time == False
@@ -105,7 +105,7 @@ def test_parse_conditions(create_tmp_simulation_config_file):
     assert SimConfig.run_conf.spike_location == libsonata.SimulationConfig.Conditions.SpikeLocation.AIS
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -116,8 +116,8 @@ def test_parse_conditions(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_parse_seeds(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_seeds(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
     assert SimConfig.rng_info.getGlobalSeed() == 12345
     assert SimConfig.rng_info.getStimulusSeed() == 1122
     assert SimConfig.rng_info.getIonChannelSeed() == 0
@@ -125,7 +125,7 @@ def test_parse_seeds(create_tmp_simulation_config_file):
     assert SimConfig.rng_info.getSynapseSeed() == 0
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -147,8 +147,8 @@ def test_parse_seeds(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_parse_modifications(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_modifications(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
     assert list(mod.name for mod in SimConfig.modifications) == ["no_SK_E2", "applyTTX"]  # order preserved
 
     ttx_mod = SimConfig.modifications[1]
@@ -162,7 +162,7 @@ def test_parse_modifications(create_tmp_simulation_config_file):
     assert configure_all_sections_mod.section_configure == "%s.gSK_E2bar_SK_E2 = 0"
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -181,8 +181,8 @@ def test_parse_modifications(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_parse_connections(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_connections(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
     conn = SimConfig.connections[0]
 
     assert conn.name == "GABAB_erev"
@@ -197,7 +197,7 @@ def test_parse_connections(create_tmp_simulation_config_file):
     assert conn.spont_minis is None
     assert conn.modoverride is None
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -209,14 +209,14 @@ def test_parse_connections(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_parse_ouput(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_ouput(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
     # output section
     assert SimConfig.run_conf.spikes_file == "spikes.h5"
     assert SimConfig.run_conf.spikes_sort_order == libsonata.SimulationConfig.Output.SpikesSortOrder.by_time
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -252,8 +252,8 @@ def test_parse_ouput(create_tmp_simulation_config_file):
         }
     }
 ], indirect=True)
-def test_parse_inputs(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_parse_inputs(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
 
     expected_input_hp = {
         "Pattern": "Hyperpolarizing",

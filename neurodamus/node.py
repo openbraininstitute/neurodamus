@@ -346,13 +346,16 @@ class Node:
         """
         options = options or {}
 
-        if isinstance(config_path_or_obj, str):
-            assert config_path_or_obj, "`config_path_or_obj` cannot be empty"
+        sim_config_obj, config_file = self._get_simulation_config(config_path_or_obj)
+        Nd.init(
+            log_filename=sim_config_obj.output.log_file,
+            log_use_color=options.pop("use_color", True),
+        )
 
         # This is global initialization, happening once, regardless of number of
         # cycles
-        SimConfig.init(config_path_or_obj, options)
         log_stage("Setting up Neurodamus configuration")
+        SimConfig.init(sim_config_obj, options, config_file=config_file)
 
         self._pc = Nd.pc
         self._spike_vecs = []
@@ -383,6 +386,35 @@ class Node:
         self._dry_run_stats = None
 
         self._reset()
+
+    @staticmethod
+    def _get_simulation_config(config_path_or_obj):
+        """Resolve a path or SimulationConfig object into a validated SimulationConfig.
+
+        Args:
+            config_path_or_obj: Path to a SONATA simulation config JSON file,
+                or a ``libsonata.SimulationConfig`` instance.
+
+        Returns:
+            Tuple of (SimulationConfig object, config file path or None)
+        """
+        if isinstance(config_path_or_obj, str):
+            if not config_path_or_obj:
+                raise ConfigurationError("`config_path_or_obj` cannot be empty")
+            if not config_path_or_obj.endswith(".json"):
+                raise ConfigurationError(
+                    "Invalid configuration file format."
+                    " The configuration file must be a .json file."
+                )
+            if not Path(config_path_or_obj).is_file():
+                raise ConfigurationError("Config file not found: " + config_path_or_obj)
+            return libsonata.SimulationConfig.from_file(config_path_or_obj), config_path_or_obj
+        if isinstance(config_path_or_obj, libsonata.SimulationConfig):
+            return config_path_or_obj, None
+        raise ConfigurationError(
+            f"Invalid config_path_or_obj type: {type(config_path_or_obj)}. "
+            "Expected a file path (str) or libsonata.SimulationConfig."
+        )
 
     def _reset(self):
         """Resets internal state for a new simulation cycle.
