@@ -281,7 +281,7 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     nd.run()
 
     peaks_pos = find_peaks(voltage_trace, prominence=0.3)[0]
-    np.testing.assert_allclose(peaks_pos, [ 15,  58, 125, 167, 272, 306, 388])
+    np.testing.assert_allclose(peaks_pos, [15, 58, 125, 167, 272, 306, 388])
 
     # debug: print the voltage_trage and the detected peaks
     # import matplotlib.pyplot as plt
