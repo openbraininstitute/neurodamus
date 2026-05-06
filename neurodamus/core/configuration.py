@@ -265,8 +265,10 @@ class _SimConfig:
         Args:
             sim_config: A ``libsonata.SimulationConfig`` instance.
             cli_options: A dictionary of CLI options.
-            config_file: The original config file path, or None if a
-                SimulationConfig object was passed directly.
+            config_file: The original config file path (e.g.
+                ``"simulation_config.json"``), or None if ``sim_config``
+                was built from a JSON string via
+                ``libsonata.SimulationConfig(json_str, base_path)``.
         """
         # Import scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
