@@ -341,7 +341,7 @@ class Node:
 
         Args:
             config_path_or_obj: Path to a SONATA simulation config JSON file,
-                or a pre-built ``libsonata.SimulationConfig`` object.
+                or a ``libsonata.SimulationConfig`` instance.
             options: A dictionary of run options typically coming from cmd line
         """
         options = options or {}
@@ -1609,7 +1609,7 @@ class Neurodamus(Node):
 
         Args:
             config_path_or_obj: Path to a SONATA simulation config JSON file,
-                or a pre-built ``libsonata.SimulationConfig`` object.
+                or a ``libsonata.SimulationConfig`` instance.
             logging_level: (int) Redefine the global logging level.
                 0 - Only warnings / errors
                 1 - Info messages (default)

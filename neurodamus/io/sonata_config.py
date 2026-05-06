@@ -100,7 +100,7 @@ class SonataConfig:
 
         Args:
             config_path_or_obj: Path to a SONATA simulation config JSON file,
-                or a pre-built ``libsonata.SimulationConfig`` object.
+                or a ``libsonata.SimulationConfig`` instance.
         """
         if isinstance(config_path_or_obj, str):
             self._sim_conf = libsonata.SimulationConfig.from_file(config_path_or_obj)

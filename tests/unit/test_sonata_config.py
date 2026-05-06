@@ -288,7 +288,7 @@ def test_parse_inputs(create_tmp_simulation_config_file):
 
 
 def test_sonata_config_from_simulation_config_object():
-    """SonataConfig accepts a pre-built libsonata.SimulationConfig object."""
+    """SonataConfig accepts a libsonata.SimulationConfig instance."""
     import json
 
     config_dict = {
