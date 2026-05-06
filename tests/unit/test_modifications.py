@@ -180,6 +180,56 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
     assert np.isclose(soma2.e_pas, -7)
 
 
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_fixture": "ringtest_baseconfig",
+            "extra_config": {
+                "target_simulator": "NEURON",
+                "conditions": {
+                    "modifications": [
+                        {
+                            "name": "scale_gnabar",
+                            "node_set": "RingA:oneCell",
+                            "type": "configure_all_sections",
+                            "section_configure": "%s.gnabar_hh *= 10",
+                        },
+                        {
+                            "name": "offset_gnabar",
+                            "node_set": "RingA:oneCell",
+                            "type": "configure_all_sections",
+                            "section_configure": "%s.gnabar_hh += 1",
+                        }
+                    ]
+                },
+            },
+        }
+    ],
+    indirect=True,
+)
+def test_configure_all_sections_two_modifications_same_variable_ordered(
+    create_tmp_simulation_config_file,
+):
+    """Two separate modifications on the same variable are both applied in declaration order.
+
+    gnabar_hh starts at 0.12 for cell 1 (RingA:oneCell).
+    First modification: *= 10 -> 1.2
+    Second modification: += 1 -> 2.2
+    If order were reversed the result would be (0.12 + 1) * 10 = 11.2.
+    """
+
+    from neurodamus.core import NeuronWrapper as Nd
+
+    Neurodamus(create_tmp_simulation_config_file)
+    soma1 = Nd._pc.gid2cell(0).soma[0]
+    soma2 = Nd._pc.gid2cell(1).soma[0]
+
+    # Cell 0 not in target, unchanged
+    assert np.isclose(soma1.gnabar_hh, 0.12)
+    # Cell 1: 0.12 * 10 + 1 = 2.2
+    assert np.isclose(soma2.gnabar_hh, 2.2)
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
