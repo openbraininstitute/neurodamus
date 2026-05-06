@@ -273,7 +273,6 @@ class _SimConfig:
 
         # Ensure NEURON is initialized (no-op if already done by Node)
         Nd.init()
-
         cls.config_file = config_file
         cls.simulation_config_dir = (
             str(Path(config_file).resolve().parent) if config_file else sim_config.base_path
