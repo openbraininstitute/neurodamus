@@ -189,13 +189,13 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
                 "conditions": {
                     "modifications": [
                         {
-                            "name": "no_SK_E2",
+                            "name": "no_SK_E2_epas",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
                             "section_configure": "%s.e_pas *= 0.1",
                         },
                         {
-                            "name": "no_SK_E2",
+                            "name": "no_SK_E2_gnabar",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
                             "section_configure": "%s.gnabar_hh *= 11",
@@ -210,10 +210,9 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
 )
 def test_configure_all_sections_AugAssign_name_clash(create_tmp_simulation_config_file):
     """This should produce the same results as test_configure_all_sections_AugAssign
-    
-    However, here we apply the same modification in 2 steps with modifications 
-    that have the same name. Their combined effect should be equivalent 
-    to the modification in test_configure_all_sections_AugAssign.
+
+    However, here we apply the same modification in 2 steps. Their combined effect
+    should be equivalent to the modification in test_configure_all_sections_AugAssign.
     """
 
     # NeuronWrapper needs to be imported at function level
