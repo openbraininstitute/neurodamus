@@ -15,7 +15,8 @@ from neurodamus import Neurodamus
 
 
 def test_parse_base():
-    raw_conf = SonataConfig(str(RINGTEST_DIR / "simulation_config.json"))
+    sim_conf = libsonata.SimulationConfig.from_file(str(RINGTEST_DIR / "simulation_config.json"))
+    raw_conf = SonataConfig(sim_conf)
     assert raw_conf._sim_conf.run.random_seed == 1122
     assert raw_conf.parsedRun.base_seed == 1122
 

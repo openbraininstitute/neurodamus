@@ -5,6 +5,7 @@ which is usually translated from a SONATA config file done in sonata_config.py
 """
 
 import pytest
+import libsonata
 
 from tests.conftest import RINGTEST_DIR
 
@@ -25,7 +26,7 @@ def test_ringtest_circuitconf(create_tmp_simulation_config_file):
     """
     test the usual flow: read a sonata config file and convert it to CircuitConfig
     """
-    config_parser = SonataConfig(create_tmp_simulation_config_file)
+    config_parser = SonataConfig(libsonata.SimulationConfig.from_file(create_tmp_simulation_config_file))
     circuit_dict = config_parser.Circuit.get("RingA")
     circuit_conf = make_circuit_config(circuit_dict)
     assert circuit_conf.as_dict() == {

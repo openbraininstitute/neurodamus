@@ -351,8 +351,8 @@ class Node:
 
         # This is global initialization, happening once, regardless of number of
         # cycles
-        log_stage("Setting up Neurodamus configuration")
         SimConfig.init(config_path_or_obj, options)
+        log_stage("Setting up Neurodamus configuration")
 
         self._pc = Nd.pc
         self._spike_vecs = []

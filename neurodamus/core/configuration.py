@@ -261,25 +261,35 @@ class _SimConfig:
         # Import these objects scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
 
+        # 1. Resolve to a libsonata.SimulationConfig object
         if isinstance(config_file, str):
+            if not config_file.endswith(".json"):
+                raise ConfigurationError(
+                    "Invalid configuration file format."
+                    " The configuration file must be a .json file."
+                )
             if not Path(config_file).is_file():
                 raise ConfigurationError("Config file not found: " + config_file)
             cls.config_file = config_file
-            cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
+            cls.simulation_config_dir = str(Path(config_file).resolve().parent)
+            sim_config_obj = libsonata.SimulationConfig.from_file(config_file)
         elif isinstance(config_file, libsonata.SimulationConfig):
             cls.config_file = None
             cls.simulation_config_dir = config_file.base_path
+            sim_config_obj = config_file
         else:
             raise ConfigurationError(
                 f"Invalid config_file type: {type(config_file)}. "
                 "Expected a file path (str) or libsonata.SimulationConfig."
             )
 
-        cls._config_parser = cls._init_config_parser(config_file)
-
+        # 2. Set up logging (before any parsing that may log)
         use_color = (cli_options or {}).pop("use_color", True)
-        log_file = cls._config_parser._sim_conf.output.log_file
+        log_file = sim_config_obj.output.log_file
         Nd.init(log_filename=log_file, log_use_color=use_color)
+
+        # 3. Parse the full config (now logging is available)
+        cls._config_parser = SonataConfig(sim_config_obj)
 
         logging.info("Initializing Simulation Configuration and Validation")
         cls._parsed_run = cls._config_parser.parsedRun
@@ -378,14 +388,6 @@ class _SimConfig:
         if create:
             outdir.mkdir(parents=True, exist_ok=True)
         return str(outdir)
-
-    @classmethod
-    def _init_config_parser(cls, config_file):
-        if isinstance(config_file, str) and not config_file.endswith(".json"):
-            raise ConfigurationError(
-                "Invalid configuration file format. The configuration file must be a .json file."
-            )
-        return SonataConfig(config_file)
 
     @classmethod
     def _init_hoc_config_objs(cls):

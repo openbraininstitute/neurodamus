@@ -95,17 +95,13 @@ class SonataConfig:
         "_sim_conf",  # libsonata.SimulationConfig
     )
 
-    def __init__(self, config_path_or_obj: str | libsonata.SimulationConfig):
-        """Initialize SonataConfig from a file path or a SimulationConfig object.
+    def __init__(self, sim_config: libsonata.SimulationConfig):
+        """Initialize SonataConfig from a SimulationConfig instance.
 
         Args:
-            config_path_or_obj: Path to a SONATA simulation config JSON file,
-                or a ``libsonata.SimulationConfig`` instance.
+            sim_config: A ``libsonata.SimulationConfig`` instance.
         """
-        if isinstance(config_path_or_obj, str):
-            self._sim_conf = libsonata.SimulationConfig.from_file(config_path_or_obj)
-        else:
-            self._sim_conf = config_path_or_obj
+        self._sim_conf = sim_config
         self._circuit_conf = libsonata.CircuitConfig.from_file(self._sim_conf.network)
         self._circuits = self._extract_circuits_info()
 
