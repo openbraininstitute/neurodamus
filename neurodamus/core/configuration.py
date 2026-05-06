@@ -284,6 +284,8 @@ class _SimConfig:
         cls._config_parser = SonataConfig(sim_config)
 
         logging.info("Initializing Simulation Configuration and Validation")
+        log_verbose("ConfigFile: %s", config_file)
+        log_verbose("CLI Options: %s", cli_options)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
         log_verbose(
