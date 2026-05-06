@@ -266,9 +266,14 @@ class _SimConfig:
                 raise ConfigurationError("Config file not found: " + config_file)
             cls.config_file = config_file
             cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
-        else:
+        elif isinstance(config_file, libsonata.SimulationConfig):
             cls.config_file = None
             cls.simulation_config_dir = config_file.base_path
+        else:
+            raise ConfigurationError(
+                f"Invalid config_file type: {type(config_file)}. "
+                "Expected a file path (str) or libsonata.SimulationConfig."
+            )
 
         cls._config_parser = cls._init_config_parser(config_file)
 
