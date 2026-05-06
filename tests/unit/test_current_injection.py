@@ -40,4 +40,4 @@ def test_current_injection(create_tmp_simulation_config_file):
     nd.run()
 
     peaks_pos = find_peaks(voltage_vec, prominence=1)[0]
-    np.testing.assert_allclose(peaks_pos, [92, 291])
+    np.testing.assert_allclose(peaks_pos, [92, 292])

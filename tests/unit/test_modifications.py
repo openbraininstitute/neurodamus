@@ -350,7 +350,13 @@ def test_error_wrong_invalid_operation(create_tmp_simulation_config_file):
                             "name": "scale_soma",
                             "node_set": "Mosaic",
                             "type": "section_list",
-                            "section_configure": "somatic.gnabar_hh = 0; basal.gnabar_hh = 0",
+                            "section_configure": "somatic.gnabar_hh = 0",
+                        },
+                        {
+                            "name": "scale_dend",
+                            "node_set": "Mosaic",
+                            "type": "section_list",
+                            "section_configure": "basal.gnabar_hh = 0",
                         }
                     ]
                 },
@@ -375,7 +381,8 @@ def test_modification_section_list(create_tmp_simulation_config_file):
     """
     A test of performing section_list with a short simulation.
     Without the modification, there are spikes with the given stimulus.
-    After applying apical.gnabar_hh = 0, the expected outcome is 0 spikes.
+    After applying gnabar_hh = 0 on somatic and basal sections,
+    the expected outcome is 0 spikes.
     """
 
     # NeuronWrapper needs to be imported at function level
@@ -428,7 +435,13 @@ def test_modification_section_list(create_tmp_simulation_config_file):
                             "name": "no_SK_E2",
                             "node_set": "RingA:oneCell",
                             "type": "section",
-                            "section_configure": "soma[0].gnabar_hh = 11; dend[0].e_pas = 0.1",
+                            "section_configure": "soma[0].gnabar_hh = 11",
+                        },
+                        {
+                            "name": "no_SK_E2_dend",
+                            "node_set": "RingA:oneCell",
+                            "type": "section",
+                            "section_configure": "dend[0].e_pas = 0.1",
                         }
                     ]
                 },
@@ -438,7 +451,7 @@ def test_modification_section_list(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_modification_section(create_tmp_simulation_config_file):
-    """Test the augmented assignment (*=) and multiple assignments for configure_all_sections"""
+    """Test the augmented assignment (*=) and multiple assignments for section modification"""
 
     n = Node(create_tmp_simulation_config_file)
 
@@ -574,20 +587,20 @@ def test_modification_compartment_set(create_tmp_simulation_config_file):
             "section_list",
             "node_set",
             "RingA:oneCell",
-            "somatic.gnabar_hh *= 2.; basal.gnabar_hh += 1.; somatic.Ra -= 50.; basal.Ra /= 10.",
+            "somatic.gnabar_hh *= 2.; somatic.Ra -= 50.",
             {
                 "soma": {"gnabar_hh": [0.24], "Ra": [50.]},
-                "dend": {"gnabar_hh": [1.12, 1.12], "Ra": [10., 10.]}
+                "dend": {"gnabar_hh": [0.12, 0.12], "Ra": [100., 100.]}
             }
          ),
         (
             "section",
             "node_set",
             "RingA:oneCell",
-            "soma[0].gnabar_hh *= 2.; dend[0].gnabar_hh += 1.; soma[0].Ra -= 50.; dend[1].Ra /= 10.",
+            "soma[0].gnabar_hh *= 2.; soma[0].Ra -= 50.",
             {
                 "soma": {"gnabar_hh": [0.24], "Ra": [50.]},
-                "dend": {"gnabar_hh": [1.12, 0.12], "Ra": [100., 10.]}
+                "dend": {"gnabar_hh": [0.12, 0.12], "Ra": [100., 100.]}
             }
         ),
         (
@@ -958,10 +971,15 @@ def test_modification_invalid_section_multiple_types(
         sim_file_path = f.name
 
     if mod_type == "section_list":
-        err_msg = \
-            "Unknown section list: soma. Allowed types are: all, somatic, axonal, basal, apical, AIS, nodal, myelinated"
+        err_msg = (
+            "Unknown section list: soma. Allowed types are: "
+            "all, somatic, axonal, basal, apical, AIS, nodal, myelinated"
+        )
     else:
-        err_msg = "Unknown section type: somatic. Allowed types are: soma, axon, dend, apic, ais, node, myelin"
+        err_msg = (
+            "Unknown section type: somatic. Allowed types are: "
+            "soma, axon, dend, apic, ais, node, myelin"
+        )
 
     with pytest.raises(
         ConfigurationError,
@@ -1027,7 +1045,7 @@ def test_modification_wrong_sec_type_multiple_types(
     indirect=True,
 )
 def test_modification_idx_oob_section(create_tmp_simulation_config_file, capsys):
-    """Test section index out of bounds: shouldn't crash, just warn about 0 modifications applied."""
+    """Test section index out of bounds: no crash, just warn about 0 modifications applied."""
 
     Neurodamus(create_tmp_simulation_config_file)
     captured = capsys.readouterr()
@@ -1098,3 +1116,129 @@ def test_modification_wrong_idx_section(ringtest_baseconfig, section_configure, 
         Neurodamus(sim_file_path)
 
 
+
+
+@pytest.mark.parametrize(
+    "section_configure, err_msg",
+    [
+        (
+            "somatic.gnabar_hh = 0; basal.gnabar_hh = 0",
+            "All statements in a section_list modification must use the same section type",
+        ),
+        (
+            "somatic.gnabar_hh *= 2.; basal.Ra /= 10.",
+            "All statements in a section_list modification must use the same section type",
+        ),
+    ],
+)
+def test_modification_section_list_mixed_lists(ringtest_baseconfig, section_configure, err_msg):
+    """Test error when section_list modification mixes different section types."""
+
+    modification = {
+        "name": "mixed_lists_test",
+        "type": "section_list",
+        "node_set": "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match=err_msg,
+    ):
+        Neurodamus(sim_file_path)
+
+
+@pytest.mark.parametrize(
+    "section_configure, err_msg",
+    [
+        (
+            "soma[0].gnabar_hh = 0; dend[0].e_pas = 0",
+            "All statements in a section modification must reference the same section",
+        ),
+        (
+            "soma[0].gnabar_hh = 0; soma[1].gnabar_hh = 0",
+            "All statements in a section modification must reference the same section",
+        ),
+    ],
+)
+def test_modification_section_mixed_sections(ringtest_baseconfig, section_configure, err_msg):
+    """Test error when section modification mixes different sections."""
+
+    modification = {
+        "name": "mixed_sections_test",
+        "type": "section",
+        "node_set": "Mosaic",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    with pytest.raises(
+        ConfigurationError,
+        match=err_msg,
+    ):
+        Neurodamus(sim_file_path)
+
+
+@pytest.mark.parametrize(
+    "mod_type, section_configure",
+    [
+        ("section_list", "somatic.gnabar_hh = 0; somatic.gSK_E2bar_SK_E2 = 0"),
+        ("section", "soma[0].gnabar_hh = 0; soma[0].gSK_E2bar_SK_E2 = 0"),
+        ("compartment_set", "gnabar_hh = 0; gSK_E2bar_SK_E2 = 0"),
+    ],
+)
+def test_modification_all_attrs_condition(
+    ringtest_baseconfig, capsys, mod_type, section_configure
+):
+    """Test that modifications only apply when ALL referenced attributes exist.
+
+    gnabar_hh exists on the sections but gSK_E2bar_SK_E2 does not.
+    Because the ALL condition is not met, no section/segment should be modified,
+    and gnabar_hh must remain at its original value.
+    """
+    from neurodamus.core import NeuronWrapper as Nd
+
+    modification = {
+        "name": "all_attrs_test",
+        "type": mod_type,
+        "node_set": "Mosaic",
+        "compartment_set": "csA",
+        "section_configure": section_configure,
+    }
+
+    modif_config = ringtest_baseconfig
+    modif_config["conditions"]["modifications"] = [modification]
+
+    if mod_type == "compartment_set":
+        cs_path = str(RINGTEST_DIR) + "/compartment_sets.json"
+        modif_config["compartment_sets_file"] = cs_path
+
+    with NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(modif_config, f, indent=2)
+        sim_file_path = f.name
+
+    Neurodamus(sim_file_path)
+
+    # gnabar_hh should NOT have been modified (ALL condition not met)
+    cell = Nd._pc.gid2cell(1)
+    assert cell.soma[0].gnabar_hh > 0
+
+    # Warning about zero modifications should have been emitted
+    captured = capsys.readouterr()
+    if mod_type == "compartment_set":
+        assert f"{mod_type} applied to zero segments" in captured.out
+    else:
+        assert f"{mod_type} applied to zero sections" in captured.out

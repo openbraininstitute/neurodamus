@@ -229,13 +229,37 @@ class BaseASTModification:
 
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
+    @staticmethod
+    def apply_parsed_assignments(obj, parsed: list[tuple[ast.stmt, str, float]]) -> None:
+        """Apply a list of parsed assignments to an object (section or segment).
+
+        Args:
+            obj: The NEURON section or segment to modify.
+            parsed: List of (stmt, attr_name, rhs_value) tuples from the first pass.
+        """
+        for stmt, attr_name, rhs_value in parsed:
+            new_value = rhs_value
+
+            if isinstance(stmt, ast.AugAssign):
+                current = getattr(obj, attr_name)
+                op_type = type(stmt.op)
+
+                if op_type not in BaseASTModification.AUG_OPS:
+                    raise ConfigurationError(f"Unsupported operator {op_type}")
+
+                new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
+
+            setattr(obj, attr_name, new_value)
+
 
 @ModificationManager.register_type
 class SectionListModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
-    for the sections in the list that have the referenced attributes.
+    for the sections in the list that have all the referenced attributes.
 
-    Accepted syntax is of the style "apical.gbar_NaTg = 0", with semi-colon-separated assignments
+    Accepted syntax is of the style "apical.gbar_NaTg = 0; apical.cm = 1",
+    with semi-colon-separated assignments. All statements must use the same
+    section type.
 
     Use case is modifying mechanism variables from config.
     """
@@ -259,7 +283,10 @@ class SectionListModification(BaseASTModification):
 
     def apply_config(self, target: NodesetTarget, config: str, cell_manager: _CellManager) -> int:
         """Parse and apply section_list modifications, returns the number of sections modified."""
-        napply = 0
+        # First pass: parse all assignments, validate syntax, and collect all referenced attributes
+        parsed = []
+        all_attrs = set()
+        common_sec_type = None
 
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, ast.Attribute):
@@ -280,29 +307,29 @@ class SectionListModification(BaseASTModification):
                     f"Unknown section list: {sec_list}. Allowed types are: {allowed}"
                 )
 
+            # Enforce all statements use the same section type
+            if common_sec_type is None:
+                common_sec_type = sec_list
+            elif sec_list != common_sec_type:
+                raise ConfigurationError(
+                    f"All statements in a section_list modification must use the same "
+                    f"section type. Found '{sec_list}' but expected '{common_sec_type}'."
+                )
+
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
+            all_attrs.add(attr_name)
+            parsed.append((stmt, attr_name, rhs_value))
 
-            for gid in target.get_local_gids():
-                cell = cell_manager.get_cellref(gid)
-                for sec in getattr(cell, sec_list, []):
-                    if not hasattr(sec, attr_name):
-                        continue
+        # Second pass: apply only to sections that have ALL referenced attributes
+        napply = 0
+        for gid in target.get_local_gids():
+            cell = cell_manager.get_cellref(gid)
+            for sec in getattr(cell, common_sec_type, []):
+                if not all(hasattr(sec, attr) for attr in all_attrs):
+                    continue
 
-                    # Treat ast.Assign as default
-                    # parse_assignments already checked it is either ast.Assign or ast.AugAssign
-                    new_value = rhs_value
-
-                    if isinstance(stmt, ast.AugAssign):
-                        current = getattr(sec, attr_name)
-                        op_type = type(stmt.op)
-
-                        if op_type not in BaseASTModification.AUG_OPS:
-                            raise ConfigurationError(f"Unsupported operator {op_type}")
-
-                        new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                    setattr(sec, attr_name, new_value)
-                    napply += 1
+                self.apply_parsed_assignments(sec, parsed)
+                napply += 1
 
         return napply
 
@@ -310,9 +337,11 @@ class SectionListModification(BaseASTModification):
 @ModificationManager.register_type
 class SectionModification(BaseASTModification):
     """Perform one or more assignments involving section attributes,
-    for the given section with the referenced attributes.
+    for the given section with all the referenced attributes.
 
-    Accepted syntax is of the style "apic[10].gbar_KTst = 0", with semi-colon-separated assignments
+    Accepted syntax is of the style "apic[10].gbar_KTst = 0; apic[10].gbar_NaTg = 0",
+    with semi-colon-separated assignments. All statements must reference the same
+    specific section (same type and index).
 
     Use case is modifying mechanism variables from config.
     """
@@ -341,7 +370,11 @@ class SectionModification(BaseASTModification):
         cell_manager: _CellManager,
     ) -> int:
         """Parse and apply section modifications, returns the number of sections modified."""
-        napply = 0
+        # First pass: parse all assignments, validate syntax, and collect all referenced attributes
+        parsed = []
+        all_attrs = set()
+        common_sec_type = None
+        common_idx = None
 
         for stmt, lhs in self.parse_assignments(config):
             self.section_sanity_checks(lhs)
@@ -358,30 +391,33 @@ class SectionModification(BaseASTModification):
             attr_name = lhs.attr
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
 
-            for gid in target.get_local_gids():
-                cell = cell_manager.get_cellref(gid)
-                secs = getattr(cell, sec_type, None)
-                if secs is None or idx >= len(secs):
-                    continue
-                sec = secs[idx]
-                if not hasattr(sec, attr_name):
-                    continue
+            # Enforce all statements reference the same section
+            if common_sec_type is None:
+                common_sec_type = sec_type
+                common_idx = idx
+            elif sec_type != common_sec_type or idx != common_idx:
+                raise ConfigurationError(
+                    f"All statements in a section modification must reference the same "
+                    f"section. Found '{sec_type}[{idx}]' but expected "
+                    f"'{common_sec_type}[{common_idx}]'."
+                )
 
-                # Treat ast.Assign as default
-                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
-                new_value = rhs_value
+            all_attrs.add(attr_name)
+            parsed.append((stmt, attr_name, rhs_value))
 
-                if isinstance(stmt, ast.AugAssign):
-                    current = getattr(sec, attr_name)
-                    op_type = type(stmt.op)
+        # Second pass: apply only to sections that have ALL referenced attributes
+        napply = 0
+        for gid in target.get_local_gids():
+            cell = cell_manager.get_cellref(gid)
+            secs = getattr(cell, common_sec_type, None)
+            if secs is None or common_idx >= len(secs):
+                continue
+            sec = secs[common_idx]
+            if not all(hasattr(sec, attr) for attr in all_attrs):
+                continue
 
-                    if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type}")
-
-                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                setattr(sec, attr_name, new_value)
-                napply += 1
+            self.apply_parsed_assignments(sec, parsed)
+            napply += 1
 
         return napply
 
@@ -407,10 +443,12 @@ class SectionModification(BaseASTModification):
 
 @ModificationManager.register_type
 class CompartmentSetModification(BaseASTModification):
-    """Perform one or more assignments involving compartment attributes on selected segments from
-    compartment set.
+    """Perform one or more assignments involving compartment attributes,
+    for the given compartments with all the referenced attributes.
 
-    Accepted syntax is of the style "gbar_Ca_HVA2 = 1.5", with semi-colon-separated assignments
+
+    Accepted syntax is of the style "gbar_Ca_HVA2 = 1.5; gbar_NaTg = 0",
+    with semi-colon-separated assignments.
 
     Use case is modifying mechanism variables from config.
     """
@@ -439,7 +477,9 @@ class CompartmentSetModification(BaseASTModification):
         cell_manager: _CellManager,
     ) -> int:
         """Parse and apply compartment_set modif, returns the number of segments modified."""
-        napply = 0
+        # First pass: parse all assignments, validate syntax, and collect all referenced attributes
+        parsed = []
+        all_attrs = set()
 
         for stmt, lhs in self.parse_assignments(config):
             if not isinstance(lhs, ast.Name):
@@ -449,33 +489,24 @@ class CompartmentSetModification(BaseASTModification):
 
             comp_attr = lhs.id
             rhs_value = self.evaluate_numeric_rhs(stmt.value)
+            all_attrs.add(comp_attr)
+            parsed.append((stmt, comp_attr, rhs_value))
 
-            local_gids = cell_manager.get_final_gids()
+        # Second pass: apply only to segments that have ALL referenced attributes
+        napply = 0
+        local_gids = cell_manager.get_final_gids()
 
-            for cl in target.filtered_iter(target.node_ids()):
-                if cl.node_id not in local_gids:
-                    continue
-                cell = cell_manager.get_cell(cl.node_id)
-                sec = cell.get_sec(cl.section_id)
-                seg = sec(cl.offset)
+        for cl in target.filtered_iter(target.node_ids()):
+            if cl.node_id not in local_gids:
+                continue
+            cell = cell_manager.get_cell(cl.node_id)
+            sec = cell.get_sec(cl.section_id)
+            seg = sec(cl.offset)
 
-                if not hasattr(seg, comp_attr):
-                    continue
+            if not all(hasattr(seg, attr) for attr in all_attrs):
+                continue
 
-                # Treat ast.Assign as default
-                # parse_assignments already checked it is either ast.Assign or ast.AugAssign
-                new_value = rhs_value
-
-                if isinstance(stmt, ast.AugAssign):
-                    current = getattr(seg, comp_attr)
-                    op_type = type(stmt.op)
-
-                    if op_type not in BaseASTModification.AUG_OPS:
-                        raise ConfigurationError(f"Unsupported operator {op_type}")
-
-                    new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
-
-                setattr(seg, comp_attr, new_value)
-                napply += 1
+            self.apply_parsed_assignments(seg, parsed)
+            napply += 1
 
         return napply
