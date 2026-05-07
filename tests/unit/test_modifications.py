@@ -196,6 +196,12 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
                             "section_configure": "%s.gnabar_hh *= 10",
                         },
                         {
+                            "name": "scale_e_pas",
+                            "node_set": "RingA:oneCell",
+                            "type": "configure_all_sections",
+                            "section_configure": "%s.e_pas *= 0.1",
+                        },
+                        {
                             "name": "offset_gnabar",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
@@ -211,12 +217,16 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
 def test_configure_all_sections_two_modifications_same_variable_ordered(
     create_tmp_simulation_config_file,
 ):
-    """Two separate modifications on the same variable are both applied in declaration order.
+    """Multiple modifications on the same sections are applied in declaration order.
 
-    gnabar_hh starts at 0.12 for cell 1 (RingA:oneCell).
-    First modification: *= 10 -> 1.2
-    Second modification: += 1 -> 2.2
-    If order were reversed the result would be (0.12 + 1) * 10 = 11.2.
+    Also verifies that a modification on a different variable (e_pas) does not
+    interfere with the two modifications on gnabar_hh.
+
+    gnabar_hh starts at 0.12, e_pas at -70 for cell 1 (RingA:oneCell).
+    1. gnabar_hh *= 10 -> 1.2
+    2. e_pas *= 0.1    -> -7.0
+    3. gnabar_hh += 1  -> 2.2
+    If gnabar_hh order were reversed the result would be (0.12 + 1) * 10 = 11.2.
     """
 
     from neurodamus.core import NeuronWrapper as Nd
@@ -227,8 +237,11 @@ def test_configure_all_sections_two_modifications_same_variable_ordered(
 
     # Cell 0 not in target, unchanged
     assert np.isclose(soma1.gnabar_hh, 0.12)
-    # Cell 1: 0.12 * 10 + 1 = 2.2
+    assert np.isclose(soma1.e_pas, -70)
+    # Cell 1: gnabar_hh = 0.12 * 10 + 1 = 2.2
     assert np.isclose(soma2.gnabar_hh, 2.2)
+    # Cell 1: e_pas = -70 * 0.1 = -7.0
+    assert np.isclose(soma2.e_pas, -7.0)
 
 
 @pytest.mark.parametrize(
