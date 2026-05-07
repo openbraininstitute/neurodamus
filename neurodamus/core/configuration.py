@@ -205,7 +205,6 @@ class LoadBalanceMode(Enum):
 class _SimConfig:
     """A class initializing several HOC config objects and proxying to simConfig"""
 
-    config_file = None
     cli_options = None
     run_conf = None
     output_root = None
@@ -257,34 +256,24 @@ class _SimConfig:
     cell_requirements = property(lambda self: self._cell_requirements)
 
     @classmethod
-    def init(
-        cls, sim_config: libsonata.SimulationConfig, cli_options, config_file: str | None = None
-    ):
+    def init(cls, sim_config: libsonata.SimulationConfig, cli_options):
         """Initialize the simulation configuration.
 
         Args:
             sim_config: A ``libsonata.SimulationConfig`` instance.
             cli_options: A dictionary of CLI options.
-            config_file: The original config file path (e.g.
-                ``"simulation_config.json"``), or None if ``sim_config``
-                was built from a JSON string via
-                ``libsonata.SimulationConfig(json_str, base_path)``.
         """
         # Import scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
 
         # Ensure NEURON is initialized (no-op if already done by Node)
         Nd.init()
-        cls.config_file = config_file
-        cls.simulation_config_dir = (
-            str(Path(config_file).resolve().parent) if config_file else sim_config.base_path
-        )
+        cls.simulation_config_dir = sim_config.base_path
 
         # Parse the full config
         cls._config_parser = SonataConfig(sim_config)
 
         logging.info("Initializing Simulation Configuration and Validation")
-        log_verbose("ConfigFile: %s", config_file)
         log_verbose("CLI Options: %s", cli_options)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me

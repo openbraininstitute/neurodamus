@@ -355,7 +355,9 @@ class Node:
         # This is global initialization, happening once, regardless of number of
         # cycles
         log_stage("Setting up Neurodamus configuration")
-        SimConfig.init(sim_config_obj, options, config_file=config_file)
+        SimConfig.init(sim_config_obj, options)
+
+        self._config_file = config_file
 
         self._pc = Nd.pc
         self._spike_vecs = []
@@ -1670,7 +1672,7 @@ class Neurodamus(Node):
             self._instantiate_simulation()
 
         # Remove .SUCCESS file if exists
-        self._success_file = SimConfig.config_file + ".SUCCESS" if SimConfig.config_file else None
+        self._success_file = self._config_file + ".SUCCESS" if self._config_file else None
         if self._success_file:
             self._remove_file(self._success_file)
 
