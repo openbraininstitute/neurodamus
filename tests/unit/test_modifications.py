@@ -2,6 +2,7 @@ import json
 import re
 from tempfile import NamedTemporaryFile
 
+import libsonata
 import numpy as np
 import pytest
 
@@ -189,18 +190,23 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
                 "conditions": {
                     "modifications": [
                         {
-                            "name": "no_SK_E2",
+                            "name": "scale_gnabar",
+                            "node_set": "RingA:oneCell",
+                            "type": "configure_all_sections",
+                            "section_configure": "%s.gnabar_hh *= 10",
+                        },
+                        {
+                            "name": "scale_e_pas",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
                             "section_configure": "%s.e_pas *= 0.1",
                         },
                         {
-                            "name": "no_SK_E2",
+                            "name": "offset_gnabar",
                             "node_set": "RingA:oneCell",
                             "type": "configure_all_sections",
-                            "section_configure": "%s.gnabar_hh *= 11",
+                            "section_configure": "%s.gnabar_hh += 1",
                         }
-
                     ]
                 },
             },
@@ -208,25 +214,35 @@ def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
     ],
     indirect=True,
 )
-def test_configure_all_sections_AugAssign_name_clash(create_tmp_simulation_config_file):
-    """This should produce the same results as test_configure_all_sections_AugAssign
-    
-    However, here we apply the same modification in 2 steps with modifications 
-    that have the same name. Their combined effect should be equivalent 
-    to the modification in test_configure_all_sections_AugAssign.
+def test_configure_all_sections_two_modifications_same_variable_ordered(
+    create_tmp_simulation_config_file,
+):
+    """Multiple modifications on the same sections are applied in declaration order.
+
+    Also verifies that a modification on a different variable (e_pas) does not
+    interfere with the two modifications on gnabar_hh.
+
+    gnabar_hh starts at 0.12, e_pas at -70 for cell 1 (RingA:oneCell).
+    1. gnabar_hh *= 10 -> 1.2
+    2. e_pas *= 0.1    -> -7.0
+    3. gnabar_hh += 1  -> 2.2
+    If gnabar_hh order were reversed the result would be (0.12 + 1) * 10 = 11.2.
     """
 
-    # NeuronWrapper needs to be imported at function level
     from neurodamus.core import NeuronWrapper as Nd
 
     Neurodamus(create_tmp_simulation_config_file)
     soma1 = Nd._pc.gid2cell(0).soma[0]
     soma2 = Nd._pc.gid2cell(1).soma[0]
 
+    # Cell 0 not in target, unchanged
     assert np.isclose(soma1.gnabar_hh, 0.12)
     assert np.isclose(soma1.e_pas, -70)
-    assert np.isclose(soma2.gnabar_hh, 1.32)
-    assert np.isclose(soma2.e_pas, -7)
+    # Cell 1: gnabar_hh = 0.12 * 10 + 1 = 2.2
+    assert np.isclose(soma2.gnabar_hh, 2.2)
+    # Cell 1: e_pas = -70 * 0.1 = -7.0
+    assert np.isclose(soma2.e_pas, -7.0)
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -745,10 +761,7 @@ def test_modification_wrong_target_multiple_types(
     else:
         error_message = "Could not find 'node_set' in 'modification 0'"
 
-    with pytest.raises(
-        Exception,
-        match=error_message,
-    ):
+    with pytest.raises(libsonata.SonataError, match=error_message):
         Neurodamus(sim_file_path)
 
 @pytest.mark.parametrize(

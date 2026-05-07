@@ -205,7 +205,6 @@ class LoadBalanceMode(Enum):
 class _SimConfig:
     """A class initializing several HOC config objects and proxying to simConfig"""
 
-    config_file = None
     cli_options = None
     run_conf = None
     output_root = None
@@ -257,22 +256,27 @@ class _SimConfig:
     cell_requirements = property(lambda self: self._cell_requirements)
 
     @classmethod
-    def init(cls, config_file, cli_options):
-        # Import these objects scope-level to avoid cross module dependency
+    def init(cls, sim_config: libsonata.SimulationConfig, cli_options):
+        """Initialize the simulation configuration.
+
+        Args:
+            sim_config: A ``libsonata.SimulationConfig`` instance.
+            cli_options: A dictionary of CLI options.
+        """
+        # Import scope-level to avoid cross module dependency
         from . import NeuronWrapper as Nd
 
+        # Ensure NEURON is initialized (no-op if already done by Node)
         Nd.init()
-        if not os.path.isfile(config_file):
-            raise ConfigurationError("Config file not found: " + config_file)
-        logging.info("Initializing Simulation Configuration and Validation")
+        cls.simulation_config_dir = sim_config.base_path
 
-        log_verbose("ConfigFile: %s", config_file)
+        # Parse the full config
+        cls._config_parser = SonataConfig(sim_config)
+
+        logging.info("Initializing Simulation Configuration and Validation")
         log_verbose("CLI Options: %s", cli_options)
-        cls.config_file = config_file
-        cls._config_parser = cls._init_config_parser(config_file)
         cls._parsed_run = cls._config_parser.parsedRun
         cls._simulation_config = cls._config_parser  # Please refactor me
-        cls.simulation_config_dir = os.path.dirname(os.path.abspath(config_file))
         log_verbose(
             "SimulationConfigDir using directory of simulation config file: %s",
             cls.simulation_config_dir,
@@ -367,19 +371,6 @@ class _SimConfig:
         if create:
             outdir.mkdir(parents=True, exist_ok=True)
         return str(outdir)
-
-    @classmethod
-    def _init_config_parser(cls, config_file):
-        if not config_file.endswith(".json"):
-            raise ConfigurationError(
-                "Invalid configuration file format. The configuration file must be a .json file."
-            )
-        try:
-            config_parser = SonataConfig(config_file)
-        except Exception as e:
-            msg = f"Failed to initialize SonataConfig with {config_file}"
-            raise ConfigurationError(msg) from e
-        return config_parser
 
     @classmethod
     def _init_hoc_config_objs(cls):

@@ -3,6 +3,8 @@ import pytest
 import platform
 from pathlib import Path
 
+import libsonata
+
 from neurodamus.core._utils import run_only_rank0
 
 try:
@@ -171,6 +173,32 @@ def _is_valid_relative_path(filepath: str):
     )
 
 
+@pytest.fixture
+def create_tmp_simulation_config(request):
+    """Create a simulation config file in tmp_path and return a SimulationConfig object.
+
+    The JSON file is still written to disk for debugging purposes.
+
+    Sources (in order of priority):
+        1. simconfig_fixture in request: fixture's name (str)
+        2. or simconfig_data in request: dict
+        3. or copy of simconfig_file in request, and attach relative paths to src_dir
+    Updates the config file with extra_config.
+    Returns a libsonata.SimulationConfig instance.
+    """
+    try:
+        tmp_path = request.getfixturevalue("mpi_tmp_path")
+    except pytest.FixtureLookupError:
+        tmp_path = request.getfixturevalue("tmp_path")
+    params = request.param
+    sim_config_data = None
+    if "simconfig_fixture" in params:
+        sim_config_data = request.getfixturevalue(params.get("simconfig_fixture"))
+    config_file = _create_simulation_config_file(params, tmp_path, sim_config_data)
+    return libsonata.SimulationConfig.from_file(config_file)
+
+
+# Keep the old fixture for tests that need the file path (e.g. Neurodamus/Node entry points)
 @pytest.fixture
 def create_tmp_simulation_config_file(request):
     """create simulation config file in tmp_path from
