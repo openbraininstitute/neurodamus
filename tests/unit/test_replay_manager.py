@@ -115,7 +115,7 @@ def test_error_replay_format():
         SpikeManager("out.dat")
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+@pytest.mark.parametrize("create_tmp_simulation_config", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
@@ -133,8 +133,8 @@ def test_error_replay_format():
     },
 ], indirect=True)
 @pytest.mark.forked
-def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config_file):
-    SimConfig.init(create_tmp_simulation_config_file, {})
+def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config):
+    SimConfig.init(create_tmp_simulation_config, {})
 
     assert len(SimConfig.stimuli) == 1
     spikes_replay = SimConfig.stimuli[0]
