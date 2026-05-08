@@ -1,5 +1,5 @@
-# https://bbpteam.epfl.ch/project/spaces/display/BGLIB/Neurodamus
-# Copyright 2005-2021 Blue Brain Project, EPFL. All rights reserved.
+# Copyright 2005-2024 Blue Brain Project, EPFL. All rights reserved.
+# Copyright 2025-2026 Open Brain Institute. All rights reserved.
 """Implements applying modifications that mimic experimental manipulations
 
 New Modification classes must be registered, using the appropriate decorator.
