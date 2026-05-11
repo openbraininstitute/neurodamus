@@ -230,13 +230,24 @@ class BaseASTModification:
         raise ConfigurationError("Only numeric constants are allowed in section_configure")
 
     @staticmethod
-    def apply_parsed_assignments(obj, parsed: list[tuple[ast.stmt, str, float]]) -> None:
+    def apply_parsed_assignments(
+        obj, parsed: list[tuple[ast.stmt, str, float]], all_attrs: set[str]
+    ) -> bool:
         """Apply a list of parsed assignments to an object (section or segment).
+
+        Only applies if the object possesses all referenced attributes.
 
         Args:
             obj: The NEURON section or segment to modify.
             parsed: List of (stmt, attr_name, rhs_value) tuples from the first pass.
+            all_attrs: Set of all attribute names referenced across all assignments.
+
+        Returns:
+            True if the assignments were applied, False if the object was skipped.
         """
+        if not all(hasattr(obj, attr) for attr in all_attrs):
+            return False
+
         for stmt, attr_name, rhs_value in parsed:
             new_value = rhs_value
 
@@ -250,6 +261,8 @@ class BaseASTModification:
                 new_value = BaseASTModification.AUG_OPS[op_type](current, rhs_value)
 
             setattr(obj, attr_name, new_value)
+
+        return True
 
 
 @ModificationManager.register_type
@@ -325,11 +338,8 @@ class SectionListModification(BaseASTModification):
         for gid in target.get_local_gids():
             cell = cell_manager.get_cellref(gid)
             for sec in getattr(cell, common_sec_type, []):
-                if not all(hasattr(sec, attr) for attr in all_attrs):
-                    continue
-
-                self.apply_parsed_assignments(sec, parsed)
-                napply += 1
+                if self.apply_parsed_assignments(sec, parsed, all_attrs):
+                    napply += 1
 
         return napply
 
@@ -413,11 +423,8 @@ class SectionModification(BaseASTModification):
             if secs is None or common_idx >= len(secs):
                 continue
             sec = secs[common_idx]
-            if not all(hasattr(sec, attr) for attr in all_attrs):
-                continue
-
-            self.apply_parsed_assignments(sec, parsed)
-            napply += 1
+            if self.apply_parsed_assignments(sec, parsed, all_attrs):
+                napply += 1
 
         return napply
 
@@ -503,10 +510,7 @@ class CompartmentSetModification(BaseASTModification):
             sec = cell.get_sec(cl.section_id)
             seg = sec(cl.offset)
 
-            if not all(hasattr(seg, attr) for attr in all_attrs):
-                continue
-
-            self.apply_parsed_assignments(seg, parsed)
-            napply += 1
+            if self.apply_parsed_assignments(seg, parsed, all_attrs):
+                napply += 1
 
         return napply
