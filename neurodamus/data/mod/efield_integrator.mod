@@ -5,6 +5,7 @@ NEURON {
     POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
     RANGE delay, duration, ramp_up, ramp_down
     RANGE displacementX, displacementY, displacementZ
+    RANGE enabled
 }
 
 PARAMETER {
@@ -25,10 +26,13 @@ ASSIGNED {
     displacementX
     displacementY
     displacementZ
+    enabled
 }
 
 INITIAL {
-    e_ext = 0
+    if( enabled ) {
+        e_ext = 0
+    }
 }
 
 PROCEDURE add_electrode_source() {
@@ -117,7 +121,7 @@ VERBATIM
            } else {
                _lfactor = 1;
            }
-	   _lefield_accum += rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
+	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
        }
     } else {
       //fprintf( stderr, "outside time window [%lf, %lf]\n", delay, delay+duration );
@@ -143,8 +147,9 @@ VERBATIM
     //fprintf( stderr, "t %lf %lf\n", t, _lefield_accum );
 #endif
 ENDVERBATIM
-
-    e_ext = efield_accum
+    if( enabled ) {
+        e_ext = efield_accum
+    }
 }
 
 : currently, extracellular stimulus is not supported by coreneuron, so will
