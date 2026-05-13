@@ -4,6 +4,7 @@ NEURON {
     :POINTER delay, duration, ramp_up, ramp_down, nfields : TODO: vectors will have size = nElectrodeSource
     POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
     RANGE delay, duration, ramp_up, ramp_down
+    RANGE displacementX, displacementY, displacementZ
 }
 
 PARAMETER {
@@ -21,6 +22,9 @@ ASSIGNED {
     X
     Y
     Z
+    displacementX
+    displacementY
+    displacementZ
 }
 
 INITIAL {
@@ -33,12 +37,13 @@ PROCEDURE add_electrode_source() {
     : vectors for n fields: x, y, z, freq, phase,
     
 VERBATIM
+#ifndef CORENEURON_BUILD
     delay = *getarg(1);
     duration = *getarg(2);
     ramp_up = *getarg(3);
     ramp_down = *getarg(4);
 
-    fprintf( stderr, "add electrode source [%lf %lf]\n", delay, delay + duration );
+    //fprintf( stderr, "add electrode source [%lf %lf]\n", delay, delay + duration );
 
     // copy data into locally managed vectors rather than storing pointer
     //  the idea is to put all data into a single vector and track offsets
@@ -75,6 +80,7 @@ VERBATIM
             vector_vec(vfreq)[i] = vector_vec(argfreq)[i];
         }
     }
+#endif
 ENDVERBATIM
 }
 
@@ -85,19 +91,33 @@ BEFORE BREAKPOINT {
     :    for each field
     :       in time window? compute contribution factor and apply to segment's e_ref via pointer
 VERBATIM
+#ifndef CORENEURON_BUILD
     int i, size;
+    double rufactor=1, rdfactor=1;
 
-    if( delay < t && t < delay+duration  ) {
+    if( delay < t && t < delay+duration+ramp_up+ramp_down ) {
        auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
        auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
        auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
        auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
        auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
 
+       // TODO: if in a ramp up/down window, then scale further
+       if( delay < t && t < delay+ramp_up ) {
+           rufactor = (t-delay) / ramp_up;
+       }
+       if( delay + ramp_up + duration < t && t < delay+duration+ramp_up+ramp_down ) {
+           rdfactor = (t-(delay+ramp_up+duration)) / ramp_down;
+       }
+
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
-           _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * t + vector_vec(vphase)[i] );
-	   _lefield_accum += vector_vec(vX)[i]*_lfactor + vector_vec(vY)[i]*_lfactor + vector_vec(vZ)[i]*_lfactor;
+           if( vector_vec(vfreq)[i] == 0 ) { //constant field
+               _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * t + vector_vec(vphase)[i] );
+           } else {
+               _lfactor = 1;
+           }
+	   _lefield_accum += rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
        }
     } else {
       //fprintf( stderr, "outside time window [%lf, %lf]\n", delay, delay+duration );
@@ -121,6 +141,7 @@ VERBATIM
     }
 */
     //fprintf( stderr, "t %lf %lf\n", t, _lefield_accum );
+#endif
 ENDVERBATIM
 
     e_ext = efield_accum

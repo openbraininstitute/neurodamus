@@ -518,12 +518,16 @@ class ElectrodeSource:
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
         # for delay, add cur_t as the first point, then advance cur_t
-        if delay > 0:
-            self.time_vec.append(self._cur_t)
-            self._cur_t = delay
-        self.efields = self.add_cosines()  # np.array, E_x, E_y, E_z vectors varied by time
+        #if delay > 0:
+        #    self.time_vec.append(self._cur_t)
+        #    self._cur_t = delay
+
+        # for nmodl impl, we will pass data to a PointProcess, once we have gathered all info and computed segment displacements
+        #self.efields = self.add_cosines()  # np.array, E_x, E_y, E_z vectors varied by time
+
         self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
-        self.segment_potentials = []  # potentials that are applied to segment.extracellular._ref_e
+        #self.segment_potentials = []  # potentials that are applied to segment.extracellular._ref_e
+        self.segment_efield_integrators = []
 
     def delay(self, duration):
         """Increments the ref time so that the next created signal is delayed"""
@@ -593,12 +597,33 @@ class ElectrodeSource:
         """Apply potentials to segment.extracellular._ref_e"""
         for segment, displacement in self.segment_displacements.items():
             section = segment.sec
-            e_ext_vec = Nd.h.Vector(self.compute_potentials(displacement))
+            #e_ext_vec = Nd.h.Vector(self.compute_potentials(displacement))
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")
+
+            # convert field data into multiple hoc vectors - can probably do this earlier and once; but can optimize later
+            freqVec = Nd.h.Vector(len(self.fields))
+            phaseVec = Nd.h.Vector(len(self.fields))
+            xVec = Nd.h.Vector(len(self.fields))
+            yVec = Nd.h.Vector(len(self.fields))
+            zVec = Nd.h.Vector(len(self.fields))
+            for fieldIndex, field in enumerate(self.fields):
+                freqVec.x[fieldIndex] = field.get("Frequency", 0)
+                phaseVec.x[fieldIndex] = field.get("Phase", 0)
+                xVec.x[fieldIndex] = field.get("Ex", 0)
+                yVec.x[fieldIndex] = field.get("Ey", 0)
+                zVec.x[fieldIndex] = field.get("Ez", 0)
+            efi = Nd.h.EFieldIntegrator( segment )
+            Nd.h.setpointer( segment.extracellular._ref_e, 'e_ext', efi )
+            efi.displacementX = displacement[0]
+            efi.displacementY = displacement[1]
+            efi.displacementZ = displacement[2]
+            efi.add_electrode_source( self._delay, self.duration, self.ramp_up_time, self.ramp_down_time, xVec, yVec, zVec, phaseVec, freqVec )
+            self.segment_efield_integrators.append( efi )
+
             # Neuron vector play without interpolation, continuous=0
-            e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 0)
-            self.segment_potentials.append(e_ext_vec)
+            #e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 0)
+            #self.segment_potentials.append(e_ext_vec)
 
         self.cleanup()
 
@@ -612,17 +637,7 @@ class ElectrodeSource:
         1. combine the time_vec
         2. combine efields E_x/y/z, if the time overlaps, should be summed
         """
-        assert np.isclose(self.dt, other.dt), "multiple extracellular stimuli must have common dt"
-        combined_time_vec, self.efields = self._combine_time_efields(
-            self.time_vec.as_numpy(),
-            self.efields,
-            other.time_vec.as_numpy(),
-            other.efields,
-            self._delay > 0,
-            other._delay > 0,
-            self.dt,
-        )
-        self.time_vec = Nd.h.Vector(combined_time_vec)
+        logging.warning("Multiple ElectrodeSource not support with nmodl")
         return self
 
     @staticmethod
