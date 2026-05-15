@@ -8,7 +8,7 @@ from scipy.signal import find_peaks
 from tests.conftest import RINGTEST_DIR
 from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
 
-from neurodamus import Neurodamus, Node
+from neurodamus import Neurodamus
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
@@ -106,7 +106,7 @@ def test_interpolate_myelin_coordinates():
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 10},
                 "inputs": {
                     "one_efield": {
                         "input_type": "extracellular_stimulation",
@@ -128,13 +128,11 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check time_vec of stimulus, no ramp_up_time and ramp_down_time
-    3. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    2. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
     """
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     assert list(stimulus.stimList.keys()) == [0]  # one object per cell
@@ -144,53 +142,52 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cellref.all)
     assert len(es.segment_efield_integrators) == total_segments
-    '''
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
-    ref_stimvec = np.zeros(len(ref_timevec))
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+
+    soma_seg = cellref.soma[0](0.5)
+    dend_seg = cellref.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    rec_soma = Nd.Vector()
+    rec_soma.record(soma_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
     ref_stimvec = [
-        -0.505702,
-        -0.409122,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.505702,
-        0.0,
+        0,
+        -0.4809515,
+        -0.2972444,
+        0,
+        0.2972444,
+        0.4809515,
+        0.4809515,
+        0.2972444,
+        0,
+        -0.2972444,
+        -0.4809515,
     ]
-    npt.assert_allclose(es.segment_potentials[3], ref_stimvec, rtol=1e-5)
-    '''
-    n.clear_model()
+    npt.assert_allclose(rec_dend, ref_stimvec, atol=1e-9)
+    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
 
 REF_COSINE = np.array(
     [
-        -0.0,
-        -0.204561,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.505702,
-        -0.409122,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.337135,
-        0.136374,
-        0.0,
-        0.0,
+        0,
+        -0.08015859,
+        -0.1486222,
+        0,
+        0.2972444,
+        0.4809515,
+        0.4809515,
+        0.2972444,
+        0,
+        -0.2972444,
+        -0.4809515,
+        -0.4809515,
+        -0.2972444,
+        0,
+        0.26008885,
+        0.3005947,
+        0.18035683,
+        0.03715555,
     ]
 )
 
@@ -202,7 +199,7 @@ REF_COSINE = np.array(
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 17},
                 "inputs": {
                     "one_efield": {
                         "input_type": "extracellular_stimulation",
@@ -224,14 +221,12 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     """
     A cosinusoid field with ramp up and down
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check time_vec of the stimlus, should include ramp_up_time and ramp_down_time
-    3. check potentials of 1st segment should be 0 (soma),
+    2. check potentials of 1st segment should be 0 (soma),
     and a cosine wave with 3 ramp up steps and 4 ramp down steps for 4th segment
     """
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -240,22 +235,25 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     assert isinstance(es, ElectrodeSource)
     total_segments = sum(sec.nseg for sec in cell.all)
     assert len(es.segment_efield_integrators) == total_segments
-    '''
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
-    ref_stimvec = np.zeros(len(ref_timevec))
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
-    npt.assert_allclose(es.segment_potentials[3], REF_COSINE, rtol=1e-5)
-    '''
-    n.clear_model()
+
+    soma_seg = cell.soma[0](0.5)
+    dend_seg = cell.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    rec_soma = Nd.Vector()
+    rec_soma.record(soma_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(rec_dend, REF_COSINE, atol=1e-9)
+    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
 
 REF_CONSTANT = np.array(
     [
         -0.0,
-        -0.482168,
+        -0.160722,
+        -0.4821677,
+        -0.8036128,
         -0.964335,
         -0.964335,
         -0.964335,
@@ -266,13 +264,10 @@ REF_CONSTANT = np.array(
         -0.964335,
         -0.964335,
         -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.64289,
-        -0.321445,
-        -0.0,
-        0.0,
+        -0.843793,
+        -0.60271,
+        -0.361626,
+        -0.120542,
     ]
 )
 
@@ -284,7 +279,7 @@ REF_CONSTANT = np.array(
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 17},
                 "inputs": {
                     "one_efield": {
                         "input_type": "extracellular_stimulation",
@@ -306,14 +301,12 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     """
     A constant field when frequency = 0
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check time_vec of stimulus, should include ramp_up_time and ramp_down_time
-    3. check potential of 1st segment should be 0 (soma),
+    2. check potential of 1st segment should be 0 (soma),
     and a constant vec for 4th segment including ramp up and down
     """
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    from neurodamus.core import NeuronWrapper as Nd
+
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -321,16 +314,17 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     total_segments = sum(sec.nseg for sec in cell.all)
     assert len(es.segment_efield_integrators) == total_segments
-    '''
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    ref_timevec = np.arange(0, duration + dt + 0.1, dt)
-    ref_stimvec = np.zeros(len(ref_timevec))
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
-    npt.assert_allclose(es.segment_potentials[3], REF_CONSTANT, rtol=1e-6)
-    '''
-    n.clear_model()
+
+    soma_seg = cell.soma[0](0.5)
+    dend_seg = cell.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    rec_soma = Nd.Vector()
+    rec_soma.record(soma_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(rec_dend, REF_CONSTANT, atol=1e-6)
+    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
 
 @pytest.mark.parametrize(
@@ -340,7 +334,7 @@ def test_one_constant_field(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 17},
                 "inputs": {
                     "ex_efields": {
                         "input_type": "extracellular_stimulation",
@@ -365,17 +359,14 @@ def test_two_fields(create_tmp_simulation_config_file):
     """
     Two fields that should be summed together cosine + constant fields
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check time_vec of stimulus, should include ramp_up_time and ramp_down_time
-    3. check potential of 1st segment should be 0 (soma),
+    2. check potential of 1st segment should be 0 (soma),
        for 4th segment the sum of the cosine fields and constant fields
-    4. check an extracellar mechanism is added to each segment
-    5. check the long/unused vectors of ElectrodeSource object are cleaned at the end
+    3. check an extracellar mechanism is added to each segment
+    4. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
+    from neurodamus.core import NeuronWrapper as Nd
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -383,22 +374,21 @@ def test_two_fields(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     total_segments = sum(sec.nseg for sec in cell.all)
     assert len(es.segment_efield_integrators) == total_segments
-    '''
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    ref_timevec = np.arange(0, duration + dt + 1, dt)
-    ref_stimvec = np.zeros(len(ref_timevec))
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
-    npt.assert_allclose(es.segment_potentials[3], REF_COSINE + REF_CONSTANT, rtol=1e-5)
-    '''
+
+    soma_seg = cell.soma[0](0.5)
+    dend_seg = cell.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    rec_soma = Nd.Vector()
+    rec_soma.record(soma_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+    npt.assert_allclose(rec_dend, REF_COSINE + REF_CONSTANT, atol=1e-6)
+    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
 
-    assert es.efields is None
     assert es.segment_displacements is None
-
-    n.clear_model()
 
 
 @pytest.mark.parametrize(
@@ -408,7 +398,7 @@ def test_two_fields(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 22},
                 "inputs": {
                     "ex_efields": {
                         "input_type": "extracellular_stimulation",
@@ -433,27 +423,24 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     """
     Check the delay is applied correctly into the stimulus segment_potentials and time_vec
     """
+    from neurodamus.core import NeuronWrapper as Nd
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)
-    '''
-    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
-    ref_stimvec = np.zeros(len(ref_timevec))
-    es = stimulus.stimList[0]
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(es.segment_potentials[0], ref_stimvec)
+
+    cell_manager = n.circuits.get_node_manager("RingA")
+    cell = cell_manager.get_cellref(0)
+    dend_seg = cell.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
     npt.assert_allclose(
-        es.segment_potentials[3], np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5
+        rec_dend, np.concatenate([np.zeros(int(delay / dt)), REF_COSINE + REF_CONSTANT]), atol=1e-6
     )
-    '''
-    n.clear_model()
 
 
 @pytest.mark.parametrize(
@@ -463,7 +450,7 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 22},
                 "inputs": {
                     "ex_efields": {
                         "input_type": "extracellular_stimulation",
@@ -489,32 +476,26 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     """
     Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
     """
+    from neurodamus.core import NeuronWrapper as Nd
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
     dt = stimulus.dt
     delay = stimulus.delay
     npt.assert_approx_equal(delay, 5)
-    '''
-    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
-    ref_stimvec = np.zeros(len(ref_timevec))
-    es = stimulus.stimList[0]
-    seg_stimuli = list(es.segment_potentials)
-    soma_stim_vec = seg_stimuli[0]
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = seg_stimuli[3]
+
+    cell_manager = n.circuits.get_node_manager("RingA")
+    cell = cell_manager.get_cellref(0)
+    dend_seg = cell.dend[0](0.25)
+    rec_dend = Nd.Vector()
+    rec_dend.record(dend_seg.extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
     npt.assert_allclose(
-        dend_stim_vec,
-        np.append(0, REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT),
-        rtol=1e-6,
+        rec_dend,
+        np.concatenate([np.zeros(int(delay / dt)), REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT]),
+        atol=1e-5,
     )
-    '''
-    n.clear_model()
 
 
 @pytest.mark.parametrize(
