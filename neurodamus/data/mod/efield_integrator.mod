@@ -112,7 +112,7 @@ VERBATIM
            rufactor = (t-delay) / ramp_up;
        }
        if( delay + ramp_up + duration < t && t < delay+duration+ramp_up+ramp_down ) {
-           rdfactor = (t-(delay+ramp_up+duration)) / ramp_down;
+           rdfactor = 1 - (t-(delay+ramp_up+duration)) / ramp_down;
        }
 
        size = vector_capacity(vX);
