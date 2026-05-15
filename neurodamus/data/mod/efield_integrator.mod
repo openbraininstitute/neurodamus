@@ -89,7 +89,7 @@ ENDVERBATIM
 }
 
 BEFORE BREAKPOINT {
-    LOCAL c, factor, efield_accum
+    LOCAL factor, efield_accum
 
     : for each electrode source (pending)
     :    for each field
@@ -98,6 +98,7 @@ VERBATIM
 #ifndef CORENEURON_BUILD
     int i, size;
     double rufactor=1, rdfactor=1;
+    _lefield_accum = 0;
 
     if( delay < t && t < delay+duration+ramp_up+ramp_down ) {
        auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
@@ -116,11 +117,7 @@ VERBATIM
 
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
-           if( vector_vec(vfreq)[i] == 0 ) { //constant field
-               _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * t + vector_vec(vphase)[i] );
-           } else {
-               _lfactor = 1;
-           }
+           _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
 	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
        }
     } else {
