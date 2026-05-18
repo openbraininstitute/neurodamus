@@ -47,8 +47,6 @@ VERBATIM
     ramp_up = *getarg(3);
     ramp_down = *getarg(4);
 
-    //fprintf( stderr, "add electrode source [%lf %lf]\n", delay, delay + duration );
-
     // copy data into locally managed vectors rather than storing pointer
     //  the idea is to put all data into a single vector and track offsets
 
@@ -62,7 +60,7 @@ VERBATIM
     size = vector_capacity(argX);
     if( _p_phase != nullptr ) {
         fprintf( stderr, "support for multiple ElectrodeSource info not implemented yet\n" );
-        //vector_resize( vphase, vector_capacity(vec) );
+        //TODO: vector_resize( vphase, vector_capacity(vec) );
     } else {
         _p_X = vector_new1(size);
         _p_Y = vector_new1(size);
@@ -120,11 +118,9 @@ VERBATIM
            _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
 	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
        }
-    } else {
-      //fprintf( stderr, "outside time window [%lf, %lf]\n", delay, delay+duration );
     }
     
-/* Adapting to multiple ElectrodeSources
+/* TODO: Adapting to multiple ElectrodeSources
     int i, size;
     double delay_item, dur_item;
     auto *vdelay = *reinterpret_cast<IvocVect**>(&delay);
@@ -141,7 +137,6 @@ VERBATIM
         }
     }
 */
-    //fprintf( stderr, "t %lf %lf\n", t, _lefield_accum );
 #endif
 ENDVERBATIM
     if( enabled ) {
