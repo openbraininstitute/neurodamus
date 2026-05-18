@@ -33,8 +33,17 @@ on:
         required: false
 
 env:
-  NEURON_COMMIT_ID: '9.0.1'
+  LIBSONATAREPORT_COMMIT: 2.0.0 
+  LIBSONATA_COMMIT: v0.1.35
+  NEURODAMUS_COMMIT: 4.2.1
+  NEURODAMUS_MODELS_COMMIT: 1a3b8f98fbabefb34f255c1fe63f7d7a4422223f
+  NEURON_COMMIT: 9.0.1
   RDMAV_FORK_SAFE: '1'
+  BUILD_DIR: ${{ github.workspace }}/cache/build
+  INSTALL_DIR: /opt/obi
+  CMAKE_BUILD_TYPE: RelWithDebugInfo
+  SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
+  UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
 
 jobs:
   simulation:
@@ -43,258 +52,217 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
-            python-version: '3.10'
-          - os: ubuntu-22.04
-            python-version: '3.11'
-          - os: ubuntu-22.04
-            python-version: '3.12'
-          - os: ubuntu-22.04
+          #- os: ubuntu-latest
+          #  python-version: '3.10'
+          #- os: ubuntu-22.04
+          #  python-version: '3.11'
+          #- os: ubuntu-22.04
+          #  python-version: '3.12'
+          - os: ubuntu-latest
             python-version: '3.13'
-          # test macOS with one python version due to the cache size limits
-          - os: macOS-15
-            python-version: '3.12'
+          ## test macOS with one python version due to the cache size limits
+          #- os: macOS-15
+          #  python-version: '3.12'
       fail-fast: false
 
     steps:
-    - name: Setup Python
-      uses: actions/setup-python@v6
+    #- name: Get Python patch version
+    #  id: pyver
+    #  run: echo "version=$(python -c 'import platform; print(platform.python_version())')" >> $GITHUB_OUTPUT
+    - name: Install uv
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Get Python patch version
-      id: pyver
-      run: echo "version=$(python -c 'import platform; print(platform.python_version())')" >> $GITHUB_OUTPUT
+        version: "0.11.14"
 
     - name: Checkout neurodamus repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
+        path: neurodamus
+      #  ref: ${{ github.event.pull_request.head.sha }}
+      #  fetch-depth: 0
 
-    - name: Get latest tags
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
-        LIBSONATA_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonata/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-        echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
-        LIBSONATA_REPORT_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonatareport/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-        echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-        NEURODAMUS_MODELS_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/neurodamus-models/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-        echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
+    #- name: Get latest tags
+    #  env:
+    #    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  run: |
+    #    echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
+    #    LIBSONATA_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonata/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
+    #    echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
+    #    LIBSONATA_REPORT_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonatareport/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
+    #    echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
+    #    NEURODAMUS_MODELS_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/neurodamus-models/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
+    #    echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
 
-    - name: Get HEAD commit message and look for branches
-      run: |
-        COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-        echo $COMMIT_MESSAGE
-        NEURON_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'NEURON_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-        if [[ ! -z $NEURON_BRANCH ]]; then echo "NEURON_BRANCH=$NEURON_BRANCH" >> $GITHUB_ENV; fi
-        LIBSONATA_REPORT_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_REPORT_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-        if [[ ! -z $LIBSONATA_REPORT_BRANCH ]]; then echo "LIBSONATA_REPORT_BRANCH=$LIBSONATA_REPORT_BRANCH" >> $GITHUB_ENV; fi
-        LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-        if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
+    #- name: Get HEAD commit message and look for branches
+    #  run: |
+    #    COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+    #    echo $COMMIT_MESSAGE
+    #    NEURON_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'NEURON_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
+    #    if [[ ! -z $NEURON_BRANCH ]]; then echo "NEURON_BRANCH=$NEURON_BRANCH" >> $GITHUB_ENV; fi
+    #    LIBSONATA_REPORT_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_REPORT_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
+    #    if [[ ! -z $LIBSONATA_REPORT_BRANCH ]]; then echo "LIBSONATA_REPORT_BRANCH=$LIBSONATA_REPORT_BRANCH" >> $GITHUB_ENV; fi
+    #    LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
+    #    if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libopenmpi-dev openmpi-bin libhdf5-openmpi-dev hdf5-tools flex libfl-dev bison ninja-build
+        apt-get --yes -qq update \
+        && apt-get --yes -qq upgrade \
+        && source ci/scripts/install-apt-dependencies.sh \
+        && install-apt-dependencies \
+        && apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
 
-    - name: Install macOS homebrew packages
-      if: startsWith(matrix.os, 'macOS')
-      run: |
-        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
-        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
-        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
-        brew unlink fmt
-        echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
-
-    - name: Cache python virtual env
-      id: cache-venv
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-venv
-      with:
-        path: venv
-        key: ${{ matrix.os }}-openmpi-libsonata-${{ env.LIBSONATA_BRANCH }}-py${{ steps.pyver.outputs.version }}
+    #- name: Setup Python
+    #  uses: actions/setup-python@v6
+    #  with:
+    #    python-version: ${{ matrix.python-version }}
 
     - name: Upgrade pip and install base Python packages
-      if: steps.cache-venv.outputs.cache-hit != 'true'
       run: |
-        python -m venv venv
-        . ./venv/bin/activate
-        python -m pip install --upgrade pip setuptools
-        pip install cython numpy wheel pkgconfig
+        uv venv --clear --python ${{ matrix.python-version }} venv \
+        && source venv/bin/activate \
+        && uv pip install --upgrade pip cmake ninja tox pytest pytest-coverage \
+        && MPICC=mpicc uv pip install --no-binary=mpi4py mpi4py \
+        && uv pip list
 
-    - name: Add virtual environment to PATH
-      run: echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
-
-    - name: Install libsonata from source
-      if: steps.cache-venv.outputs.cache-hit != 'true'
-      run: |
-        CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
-
-    - name: Cache libsonatareport
-      id: cache-libsonatareport
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-libsonatareport
+    - name: sccache build cache
+      id: cache-sccache
+      uses: actions/cache@v5
       with:
-        path: libsonatareport
-        key: ${{ matrix.os }}-openmpi-libsonatareport-${{ env.LIBSONATA_REPORT_BRANCH }}-py${{ steps.pyver.outputs.version }}
+        path: ${{ github.workspace }}/cache
+        key: sccache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: sccache-${{ runner.os }}-
 
-    - name: Install libsonatareport
-      if: steps.cache-libsonatareport.outputs.cache-hit != 'true'
+    - name: Install sccache
       run: |
-        export CC=$(which mpicc)
-        export CXX=$(which mpic++)
-        git clone --branch="${{ env.LIBSONATA_REPORT_BRANCH}}" https://github.com/openbraininstitute/libsonatareport.git --recursive --depth=1
-        cd libsonatareport
-        mkdir build && cd build
-        cmake -DCMAKE_INSTALL_PREFIX=$(pwd)/install -DCMAKE_BUILD_TYPE=Release -DSONATA_REPORT_ENABLE_SUBMODULES=ON -DSONATA_REPORT_ENABLE_MPI=ON ..
-        cmake --build . --parallel
-        cmake --build . --target install
-
-    - name: Cache NEURON
-      id: cache-neuron
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-neuron
-      with:
-        path: nrn
-        key: ${{ matrix.os }}-openmpi-neuron-${{ env.NEURON_BRANCH }}-${{ env.NEURON_COMMIT_ID }}-py${{ steps.pyver.outputs.version }}
-
-
-    - name: Install NEURON
-      if: steps.cache-neuron.outputs.cache-hit != 'true'
-      run: |
-        export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
-        if [[ ${{ env.NEURON_BRANCH }} == 'master' ]]; then
-          git clone --branch=${{ env.NEURON_BRANCH }} https://github.com/neuronsimulator/nrn.git
-          cd nrn
-          git checkout ${{ env.NEURON_COMMIT_ID }}
-          cd ..
-        else
-          git clone --branch=${{ env.NEURON_BRANCH }} https://github.com/neuronsimulator/nrn.git --depth=1
-        fi
-        python -m pip install --upgrade pip -r nrn/nrn_requirements.txt
-        cmake -B nrn/build -S nrn -G Ninja \
-          -DPYTHON_EXECUTABLE=$(which python) \
-          -DCMAKE_INSTALL_PREFIX=$(pwd)/nrn/build/install \
-          -DNRN_ENABLE_MPI=ON \
-          -DNRN_ENABLE_INTERVIEWS=OFF \
-          -DNRN_ENABLE_CORENEURON=ON \
-          -DCMAKE_C_COMPILER=gcc \
-          -DCMAKE_CXX_COMPILER=g++ \
-          -DCORENRN_ENABLE_REPORTING=ON \
-          -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR
-        cmake --build nrn/build --parallel
-        cmake --build nrn/build --target install
-
-    - name: Install mpi4py
-      if: steps.cache-venv.outputs.cache-hit != 'true'
-      run: |
-        MPICC=mpicc pip install --no-binary=mpi4py mpi4py
+        mkdir -p ${{ github.workspace }}/cache \
+        && source ci/scripts/install-sccache.sh \
+        && install-sccache
 
     - name: Build h5py with the local hdf5
       run: |
-        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-          export HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
-          export HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
-        else
-          export HDF5_INCLUDEDIR=/usr/include/hdf5/openmpi
-          export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        fi
-        # Upgrade setuptools again, to avoid build error from `project.license`
-        # Neuron installed older setuptools but it doesn't work for h5py
-        python -m pip install --upgrade pip setuptools
-        CC="mpicc" HDF5_MPI="ON" HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR HDF5_LIBDIR=$HDF5_LIBDIR \
-          pip install --no-cache-dir --no-binary=h5py h5py --no-build-isolation
+        source ci/scripts/install-h5py.sh \
+        && source venv/bin/activate \
+        && PIP='uv pip' install-h5py
+
+    - name: Install libsonatareport
+      run: |
+        source ci/scripts/build-libsonatareport.sh \
+        && source venv/bin/activate \
+        && build-libsonatareport $LIBSONATAREPORT_COMMIT
+
+    - name: Install libsonata
+      run: |
+        source ci/scripts/build-libsonata.sh \
+        && source venv/bin/activate \
+        && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
+        
+    - name: Install neuron
+      run: |
+        source ci/scripts/build-neuron.sh \
+        && source venv/bin/activate \
+        && PIP='uv pip' build-neuron $NEURON_COMMIT
 
     - name: Install neurodamus
       run: |
-        pip install .[full]
+        venv/bin/pip install .
 
-    - name: Build neocortex models
+    - name: Install neurodamus-models
       run: |
-        export SONATAREPORT_DIR=$(pwd)/libsonatareport/build/install
-        export PATH=$(pwd)/nrn/build/install/bin:$PATH
-        # Clone neurodamus-models repository
-        git clone --branch=${{ env.NEURODAMUS_MODELS_BRANCH }} https://github.com/openbraininstitute/neurodamus-models.git
-        # Build neocortex model
-        DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
-        cmake -B neurodamus-models/build -S neurodamus-models/ \
-          -DCMAKE_INSTALL_PREFIX=$PWD/neurodamus-models/install \
-          -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
-          -DCMAKE_PREFIX_PATH=$SONATAREPORT_DIR \
-          -DNEURODAMUS_CORE_DIR=${DATADIR} \
-          -DNEURODAMUS_MECHANISMS=neocortex \
-          -DNEURODAMUS_NCX_V5=ON
-        cmake --build neurodamus-models/build
-        cmake --install neurodamus-models/build
-        echo "NEURODAMUS_NEOCORTEX_ROOT=$(pwd)/neurodamus-models/install" >> $GITHUB_ENV;
+        source ci/scripts/build-neurodamus-models.sh \
+        && source venv/bin/activate \
+        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
-    - name: load neocortex model
+    - name: Make env
       run: |
-        export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
-        export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-        export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
-        if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
-          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
-        else
-          export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-          export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
-        fi
-        export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
+        source ci/scripts/make-env.sh \
+        && source venv/bin/activate \
+        && make-env
 
-        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
-        echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
-        echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
-        echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
-        echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
+    #- name: Install macOS homebrew packages
+    #  if: startsWith(matrix.os, 'macOS')
+    #  run: |
+    #    brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+    #    brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+    #    # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+    #    brew unlink fmt
+    #    echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
+    #
+    #- name: Install libsonata from source
+    #  if: steps.cache-venv.outputs.cache-hit != 'true'
+    #  run: |
+    #    CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
-        which special
+    #- name: load neocortex model
+    #  run: |
+    #    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
+    #    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
+    #    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
+    #    if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+    #      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
+    #      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
+    #    else
+    #      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
+    #      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+    #    fi
+    #    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 
-        # launch simulation with NEURON
-        cd tests/simulations/usecase3/
-        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
-        ls reporting/*.h5
-        # launch simulation with CORENEURON
-        mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
-        ls reporting_coreneuron/*.h5
+    #    echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
+    #    echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
+    #    echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
+    #    echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
+    #    echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
 
-    - name: Install test dependencies
+    #    which special
+
+    #    # launch simulation with NEURON
+    #    cd tests/simulations/usecase3/
+    #    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
+    #    ls reporting/*.h5
+    #    # launch simulation with CORENEURON
+    #    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
+    #    ls reporting_coreneuron/*.h5
+
+    - name: Install deps
       run: |
-        python -m pip install --upgrade pip tox
+        source venv/bin/activate \
+        && uv pip install pytest-forked pandas matplotlib pytest-isolate-mpi
 
-    - name: unit
-      run: |
-        tox -e unit
+    #- name: unit
+    #  run: |
+    #    export NEURON_INIT_MPI=0 \
+    #    && source $INSTALL_DIR/env-neocortex.sh \
+    #    && pytest -x --cov=neurodamus --cov-report=term-missing --forked tests/unit
 
-    - name: unit-ngv-mpi
-      run: |
-        tox -e unit-ngv-mpi
+    #- name: unit-ngv-mpi
+    #  run: |
+    #    source $INSTALL_DIR/env-neocortex.sh \
+    #    && tox -e unit-ngv-mpi
 
     - name: unit-mpi
       run: |
-        tox -e unit-mpi
+        export NEURON_INIT_MPI=1 \
+        && export RDMAV_FORK_SAFE=1
+        && source $INSTALL_DIR/env-neocortex.sh \
+        && pytest --forked tests/integration-e2e/
 
-    - name: baseline
-      run: |
-        tox -e baseline
-      
     - name: integration-e2e
       run: |
-        tox -e integration-e2e
+        export NEURON_INIT_MPI=1 \
+        && export RDMAV_FORK_SAFE=1
+        && source $INSTALL_DIR/env-neocortex.sh \
+        pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
 
     - name: scientific
       run: |
-        tox -e scientific
+        export NEURON_INIT_MPI=1 \
+        && export RDMAV_FORK_SAFE=1
+        && source $INSTALL_DIR/env-neocortex.sh \
+        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
 
-    # - name: live debug session, comment out
-    #   if: failure()
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #    timeout-minutes: 60  # or any other value you need
+    ## - name: live debug session, comment out
+    ##   if: failure()
+    ##   uses: mxschmitt/action-tmate@v3
+    ##   with:
+    ##    timeout-minutes: 60  # or any other value you need

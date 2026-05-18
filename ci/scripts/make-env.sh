@@ -8,6 +8,7 @@ make-env() {
     local NEURODAMUS_NEOCORTEX_ROOT=$INSTALL_DIR/neurodamus-models
 
     cat > $INSTALL_DIR/env-neocortex.sh << _EOF
+    export NEURODAMUS_NEOCORTEX_ROOT=$NEURODAMUS_NEOCORTEX_ROOT
     source $VIRTUAL_ENV/bin/activate
     export NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON
     export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc

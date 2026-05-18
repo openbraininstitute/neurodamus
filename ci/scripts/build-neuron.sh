@@ -34,9 +34,9 @@ build-neuron() {
     $PIP install tomli tomli_w
     python3 $NRN/packaging/python/change_name.py $NRN/pyproject.toml neuron
 
-
+    #XXX
+      #-DPYTHON_EXECUTABLE=`which python3`
     local CMAKE_ARGS=(
-      -DPYTHON_EXECUTABLE=`which python3`
       -DNRN_ENABLE_MPI_DYNAMIC=OFF
       -DNRN_ENABLE_MPI=ON
       -DNRN_ENABLE_RX3D=OFF

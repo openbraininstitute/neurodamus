@@ -6,7 +6,7 @@
 # PIP='uv pip' build-libsonata v0.1.35
 
 build-libsonata() {
-    pre
+    pre || true
 
     : "${PIP:?PIP is not set}"
 
@@ -14,7 +14,7 @@ build-libsonata() {
 
     local LIBSONATA=$BUILD_DIR/libsonata
 
-    git clone --filter=blob:none \
+    [[ -e $LIBSONATA ]] || git clone --filter=blob:none \
         https://github.com/openbraininstitute/libsonata \
         $LIBSONATA
 
@@ -40,4 +40,8 @@ build-libsonata() {
     CMAKE_GENERATOR=Ninja \
     SONATA_BUILD_TYPE=$CMAKE_BUILD_TYPE \
     $PIP -v install $LIBSONATA
+
+    if [[ -n $SCCACHE_DIR ]]; then
+        sccache --show-stats
+    fi
 }

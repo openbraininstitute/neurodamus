@@ -10,10 +10,10 @@ build-libsonatareport() {
     local LIBSONATAREPORT=$BUILD_DIR/libsonatareport/
     local LIBSONATAREPORT_BUILD=$LIBSONATAREPORT/build
 
-    git clone --filter=blob:none \
-        https://github.com/openbraininstitute/libsonatareport.git \
-        $LIBSONATAREPORT
-
+    [[ -e $LIBSONATAREPORT ]] || \
+        git clone --filter=blob:none \
+            https://github.com/openbraininstitute/libsonatareport.git \
+            $LIBSONATAREPORT
 
     (cd $LIBSONATAREPORT && \
         git fetch --depth 1 origin $COMMIT &&
@@ -29,6 +29,7 @@ build-libsonatareport() {
         -DSONATA_REPORT_ENABLE_MPI=ON
         -DSONATA_REPORT_ENABLE_TEST=OFF
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+        -DMPI_CXX_SKIP_MPICXX=ON
     )
 
     if [[ -n $SCCACHE_DIR ]]; then
