@@ -74,11 +74,12 @@ def test_interpolate_myelin_coordinates():
     ],
     indirect=True,
 )
-def test_one_field_noramp(create_tmp_simulation_config_file):
+def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     """
     One cosinusoid field without ramp
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    2. check the reference potentials against the cosine function
+    3. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
     """
     from neurodamus.core import NeuronWrapper as Nd
 
@@ -101,7 +102,39 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     rec_soma.record(soma_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    ref_stimvec = [
+
+    dt = es.dt
+    duration = es.duration
+    efi = es.segment_efield_integrators[3]
+    max_potential = 1e3 * (
+        efi.displacementX * es.fields[0]["Ex"]
+        + efi.displacementY * es.fields[0]["Ey"]
+        + efi.displacementZ * es.fields[0]["Ez"]
+    )  # from mV to V
+
+    def f_cos(t):
+        return max_potential * np.cos(
+            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
+        )
+
+    # original reference with vec.play with time points at every dt
+    ref_stimvec_vecplay = [
+        -0.505702,
+        -0.409122,
+        -0.156271,
+        0.156271,
+        0.409122,
+        0.505702,
+        0.409122,
+        0.156271,
+        -0.156271,
+        -0.409122,
+        -0.505702,
+        0.0,
+    ]
+    t_vecplay = np.arange(0, duration + 1, dt)
+    # current reference with efield_integrator.mod at very t+dt/2 w.r.t BEFORE_BREAKPOINT
+    ref_stimvec_mod = [
         0,
         -0.4809515,
         -0.2972444,
@@ -114,7 +147,14 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
         -0.2972444,
         -0.4809515,
     ]
-    npt.assert_allclose(rec_dend, ref_stimvec, atol=1e-9)
+    t_beforebreakpoint = np.arange(0.5, duration, dt)
+
+    # check the references against the cosine function
+    npt.assert_allclose(f_cos(t_beforebreakpoint), ref_stimvec_mod[1:], atol=1e-9)
+    npt.assert_allclose(f_cos(t_vecplay), ref_stimvec_vecplay[:-1], atol=1e-6)
+
+    # check the actually segment.extracellular._ref_e against the current reference
+    npt.assert_allclose(rec_dend, ref_stimvec_mod, atol=1e-9)
     npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
 
@@ -167,11 +207,12 @@ REF_COSINE = np.array(
     ],
     indirect=True,
 )
-def test_one_field_withramp(create_tmp_simulation_config_file):
+def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     """
     A cosinusoid field with ramp up and down
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check potentials of 1st segment should be 0 (soma),
+    2. check the reference potentials against the cosine function with ramping
+    3. check potentials of 1st segment should be 0 (soma),
     and a cosine wave with 3 ramp up steps and 4 ramp down steps for 4th segment
     """
     from neurodamus.core import NeuronWrapper as Nd
@@ -196,6 +237,38 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     n.run()
     npt.assert_allclose(rec_dend, REF_COSINE, atol=1e-9)
     npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
+
+    dt = es.dt
+    duration = es.duration
+    ramp_up_time = es.ramp_up_time
+    ramp_down_time = es.ramp_down_time
+    efi = es.segment_efield_integrators[3]
+    max_potential = 1e3 * (
+        efi.displacementX * es.fields[0]["Ex"]
+        + efi.displacementY * es.fields[0]["Ey"]
+        + efi.displacementZ * es.fields[0]["Ez"]
+    )  # from mV to V
+
+    def f_cos(t):
+        return max_potential * np.cos(
+            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
+        )
+
+    t_beforebreakpoint = np.arange(0.5, duration + ramp_up_time + ramp_down_time, dt)
+
+    # check the references against the cosine function
+    def make_ramp_envelope(t_vec):
+        envelope = np.ones(len(t_vec))
+        envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
+        envelope = np.where(
+            t_vec > ramp_up_time + duration,
+            1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
+            envelope,
+        )
+        return envelope
+
+    ramping_mod = make_ramp_envelope(t_beforebreakpoint)
+    npt.assert_allclose(f_cos(t_beforebreakpoint) * ramping_mod, REF_COSINE[1:], atol=1e-6)
 
 
 REF_CONSTANT = np.array(
