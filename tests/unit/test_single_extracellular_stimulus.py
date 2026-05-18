@@ -147,7 +147,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
         -0.2972444,
         -0.4809515,
     ]
-    t_beforebreakpoint = np.arange(0.5, duration, dt)
+    t_beforebreakpoint = np.arange(dt / 2, duration, dt)
 
     # check the references against the cosine function
     npt.assert_allclose(f_cos(t_beforebreakpoint), ref_stimvec_mod[1:], atol=1e-9)
@@ -254,7 +254,7 @@ def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
             2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
         )
 
-    t_beforebreakpoint = np.arange(0.5, duration + ramp_up_time + ramp_down_time, dt)
+    t_beforebreakpoint = np.arange(dt / 2, duration + ramp_up_time + ramp_down_time, dt)
 
     # check the references against the cosine function
     def make_ramp_envelope(t_vec):
