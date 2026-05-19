@@ -536,16 +536,16 @@ class ElectrodeSource:
 
             # convert field data into multiple hoc vectors
             freq_vector = Nd.h.Vector(len(self.fields))
-            phaseVec = Nd.h.Vector(len(self.fields))
-            xVec = Nd.h.Vector(len(self.fields))
-            yVec = Nd.h.Vector(len(self.fields))
-            zVec = Nd.h.Vector(len(self.fields))
+            phase_vector = Nd.h.Vector(len(self.fields))
+            x_vec = Nd.h.Vector(len(self.fields))
+            y_vec = Nd.h.Vector(len(self.fields))
+            z_vec = Nd.h.Vector(len(self.fields))
             for fieldIndex, field in enumerate(self.fields):
-                freq_vector.x[fieldIndex] = field.get("Frequency", 0)
-                phaseVec.x[fieldIndex] = field.get("Phase", 0)
-                xVec.x[fieldIndex] = field.get("Ex", 0)
-                yVec.x[fieldIndex] = field.get("Ey", 0)
-                zVec.x[fieldIndex] = field.get("Ez", 0)
+                freq_vector.x[fieldIndex] = field["Frequency"]
+                phase_vector.x[fieldIndex] = field["Phase"]
+                x_vec.x[fieldIndex] = field["Ex"]
+                y_vec.x[fieldIndex] = field["Ey"]
+                z_vec.x[fieldIndex] = field["Ez"]
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1
@@ -557,10 +557,10 @@ class ElectrodeSource:
                 self.duration,
                 self.ramp_up_time,
                 self.ramp_down_time,
-                xVec,
-                yVec,
-                zVec,
-                phaseVec,
+                x_vec,
+                y_vec,
+                z_vec,
+                phase_vector,
                 freq_vector,
             )
             self.segment_efield_integrators.append(efi)
