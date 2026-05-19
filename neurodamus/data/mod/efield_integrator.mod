@@ -5,7 +5,7 @@ NEURON {
     POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
     RANGE delay, duration, ramp_up, ramp_down
     RANGE displacementX, displacementY, displacementZ
-    RANGE enabled
+    RANGE enabled  : set when pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
 }
 
 PARAMETER {
@@ -29,7 +29,7 @@ ASSIGNED {
     displacementX
     displacementY
     displacementZ
-    enabled : set when pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
+    enabled
 }
 
 INITIAL {
@@ -94,7 +94,7 @@ BEFORE BREAKPOINT {
 VERBATIM
 #ifndef CORENEURON_BUILD
     int i, size;
-    double rufactor=1, rdfactor=1;
+    double ramp_factor=1;
     _lefield_accum = 0;
 
 /* TODO: Adapting to multiple ElectrodeSources */
@@ -107,16 +107,16 @@ VERBATIM
 
        // TODO: if in a ramp up/down window, then scale further
        if( delay < t && t < delay+ramp_up ) {
-           rufactor = (t-delay) / ramp_up;
+           ramp_factor = (t-delay) / ramp_up;
        }
        if( delay+ramp_up+duration < t && t < delay+duration+ramp_up+ramp_down ) {
-           rdfactor = 1 - (t-(delay+ramp_up+duration)) / ramp_down;
+           ramp_factor = 1 - (t-(delay+ramp_up+duration)) / ramp_down;
        }
 
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
-	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i] * wavefactor + displacementY * vector_vec(vY)[i] * wavefactor + displacementZ * vector_vec(vZ)[i] * wavefactor);
+	   _lefield_accum += 1e3 * ramp_factor * (displacementX * vector_vec(vX)[i] * wavefactor + displacementY * vector_vec(vY)[i] * wavefactor + displacementZ * vector_vec(vZ)[i] * wavefactor);
        }
     }
 #endif
