@@ -540,12 +540,12 @@ class ElectrodeSource:
             x_vec = Nd.h.Vector(len(self.fields))
             y_vec = Nd.h.Vector(len(self.fields))
             z_vec = Nd.h.Vector(len(self.fields))
-            for fieldIndex, field in enumerate(self.fields):
-                freq_vector.x[fieldIndex] = field["Frequency"]
-                phase_vector.x[fieldIndex] = field["Phase"]
-                x_vec.x[fieldIndex] = field["Ex"]
-                y_vec.x[fieldIndex] = field["Ey"]
-                z_vec.x[fieldIndex] = field["Ez"]
+            for i, field in enumerate(self.fields):
+                freq_vector.x[i] = field["Frequency"]
+                phase_vector.x[i] = field["Phase"]
+                x_vec.x[i] = field["Ex"]
+                y_vec.x[i] = field["Ey"]
+                z_vec.x[i] = field["Ez"]
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1

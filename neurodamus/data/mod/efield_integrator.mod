@@ -1,7 +1,7 @@
 NEURON {
     POINT_PROCESS EFieldIntegrator
     POINTER e_ext
-    :POINTER delay, duration, ramp_up, ramp_down, nfields : TODO: vectors will have size = nElectrodeSource
+    :POINTER delay, duration, ramp_up, ramp_down : TODO: add nfields vector and vectors will have size = nElectrodeSource
     POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
     RANGE delay, duration, ramp_up, ramp_down
     RANGE displacementX, displacementY, displacementZ
@@ -21,7 +21,6 @@ ASSIGNED {
     duration
     ramp_up
     ramp_down
-    nfields
     phase
     frequency
     X
@@ -110,14 +109,14 @@ VERBATIM
        if( delay < t && t < delay+ramp_up ) {
            rufactor = (t-delay) / ramp_up;
        }
-       if( delay + ramp_up + duration < t && t < delay+duration+ramp_up+ramp_down ) {
+       if( delay+ramp_up+duration < t && t < delay+duration+ramp_up+ramp_down ) {
            rdfactor = 1 - (t-(delay+ramp_up+duration)) / ramp_down;
        }
 
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
-	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]* wavefactor + displacementY * vector_vec(vY)[i]*wavefactor + displacementZ * vector_vec(vZ)[i]*wavefactor);
+	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i] * wavefactor + displacementY * vector_vec(vY)[i] * wavefactor + displacementZ * vector_vec(vZ)[i] * wavefactor);
        }
     }
 #endif
