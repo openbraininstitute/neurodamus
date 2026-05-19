@@ -116,82 +116,82 @@ jobs:
         && source venv/bin/activate \
         && PIP='uv pip' build-neuron $NEURON_COMMIT
 
-    - name: Install neurodamus
-      run: |
-        venv/bin/pip install .
-
-    - name: Install neurodamus-models
-      run: |
-        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
-        && source venv/bin/activate \
-        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
-
-    - name: Make env
-      run: |
-        source $BASE_DIR/ci/scripts/make-env.sh \
-        && source venv/bin/activate \
-        && make-env
-
-    #- name: Install macOS homebrew packages
-    #  if: startsWith(matrix.os, 'macOS')
+    #- name: Install neurodamus
     #  run: |
-    #    brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
-    #    brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
-    #    # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
-    #    brew unlink fmt
-    #    echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
-    #
-    #- name: Install libsonata from source
-    #  if: steps.cache-venv.outputs.cache-hit != 'true'
+    #    venv/bin/pip install $BASE_DIR
+
+    #- name: Install neurodamus-models
     #  run: |
-    #    CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
+    #    source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
+    #    && source venv/bin/activate \
+    #    && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
-    #- name: load neocortex model
+    #- name: Make env
     #  run: |
-    #    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
-    #    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-    #    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
-    #    if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-    #      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
-    #      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
-    #    else
-    #      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-    #      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
-    #    fi
-    #    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
+    #    source $BASE_DIR/ci/scripts/make-env.sh \
+    #    && source venv/bin/activate \
+    #    && make-env
 
-    #    echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
-    #    echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
-    #    echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
-    #    echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
-    #    echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
+    ##- name: Install macOS homebrew packages
+    ##  if: startsWith(matrix.os, 'macOS')
+    ##  run: |
+    ##    brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+    ##    brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+    ##    # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+    ##    brew unlink fmt
+    ##    echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
+    ##
+    ##- name: Install libsonata from source
+    ##  if: steps.cache-venv.outputs.cache-hit != 'true'
+    ##  run: |
+    ##    CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
 
-    #    which special
+    ##- name: load neocortex model
+    ##  run: |
+    ##    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
+    ##    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
+    ##    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
+    ##    if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
+    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
+    ##    else
+    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
+    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+    ##    fi
+    ##    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 
-    #    # launch simulation with NEURON
-    #    cd tests/simulations/usecase3/
-    #    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
-    #    ls reporting/*.h5
-    #    # launch simulation with CORENEURON
-    #    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
-    #    ls reporting_coreneuron/*.h5
+    ##    echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
+    ##    echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
+    ##    echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
+    ##    echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
+    ##    echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
 
-    - name: Install testing deps
-      run: |
-        source venv/bin/activate \
-        && uv pip install pytest-forked pandas
+    ##    which special
 
-    - name: integration-e2e
-      run: |
-        export NEURON_INIT_MPI=1 \
-        && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
+    ##    # launch simulation with NEURON
+    ##    cd tests/simulations/usecase3/
+    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
+    ##    ls reporting/*.h5
+    ##    # launch simulation with CORENEURON
+    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
+    ##    ls reporting_coreneuron/*.h5
 
-    - name: scientific
-      run: |
-        export NEURON_INIT_MPI=1 \
-        && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+    #- name: Install testing deps
+    #  run: |
+    #    source venv/bin/activate \
+    #    && uv pip install pytest-forked pandas
+
+    #- name: integration-e2e
+    #  run: |
+    #    export NEURON_INIT_MPI=1 \
+    #    && source $INSTALL_DIR/env-neocortex.sh \
+    #    pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
+
+    #- name: scientific
+    #  run: |
+    #    export NEURON_INIT_MPI=1 \
+    #    && source $INSTALL_DIR/env-neocortex.sh \
+    #    pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
 
     ## - name: live debug session, comment out
     ##   if: failure()
