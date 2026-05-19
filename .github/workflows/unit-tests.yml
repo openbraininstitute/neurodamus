@@ -1,4 +1,4 @@
-name: neurodamus build and test
+name: neurodamus unit test and coverage
 on:
   pull_request:
     branches:

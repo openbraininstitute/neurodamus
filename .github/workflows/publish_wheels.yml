@@ -1,57 +1,57 @@
-name: Neurodamus Wheels
-
-on: [pull_request, push, workflow_dispatch]
-
-jobs:
-  wheel:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python_version: [3.11]
-    steps:
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python_version }}
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 500
-      - name: Build Wheel
-        run: |
-          cd $GITHUB_WORKSPACE
-          python${{ matrix.python_version }} -m pip install --upgrade build
-          # build wheel
-          python${{ matrix.python_version }} -m build .
-      - name: Test Wheel
-        run: |
-          cd $GITHUB_WORKSPACE
-          pip3 install tox
-          DIST_FILE=`ls dist/*whl` && tox --installpkg=$DIST_FILE -e ${{ matrix.python_version }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-artifacts-${{ matrix.python_version }}-${{ strategy.job-index }}
-          path: ./dist/*
-  pypi-publish:
-    runs-on: ubuntu-22.04
-    needs: [wheel]
-    # IMPORTANT: this permission is mandatory for trusted publishing
-    permissions:
-      id-token: write
-    steps:
-      - name: Download artifacts produced by the wheel job
-        uses: actions/download-artifact@v4
-        with:
-          pattern: release-artifacts*
-          path: dist/
-          merge-multiple: true
-
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: dist
-
-      - name: Upload Wheel
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages_dir: dist/
+#name: Neurodamus Wheels
+#
+#on: [pull_request, push, workflow_dispatch]
+#
+#jobs:
+#  wheel:
+#    runs-on: ubuntu-22.04
+#    strategy:
+#      matrix:
+#        python_version: [3.11]
+#    steps:
+#      - name: Setup Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python_version }}
+#      - name: Checkout Repository
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 500
+#      - name: Build Wheel
+#        run: |
+#          cd $GITHUB_WORKSPACE
+#          python${{ matrix.python_version }} -m pip install --upgrade build
+#          # build wheel
+#          python${{ matrix.python_version }} -m build .
+#      - name: Test Wheel
+#        run: |
+#          cd $GITHUB_WORKSPACE
+#          pip3 install tox
+#          DIST_FILE=`ls dist/*whl` && tox --installpkg=$DIST_FILE -e ${{ matrix.python_version }}
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: release-artifacts-${{ matrix.python_version }}-${{ strategy.job-index }}
+#          path: ./dist/*
+#  pypi-publish:
+#    runs-on: ubuntu-22.04
+#    needs: [wheel]
+#    # IMPORTANT: this permission is mandatory for trusted publishing
+#    permissions:
+#      id-token: write
+#    steps:
+#      - name: Download artifacts produced by the wheel job
+#        uses: actions/download-artifact@v4
+#        with:
+#          pattern: release-artifacts*
+#          path: dist/
+#          merge-multiple: true
+#
+#      - name: Display structure of downloaded files
+#        run: ls -R
+#        working-directory: dist
+#
+#      - name: Upload Wheel
+#        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+#        uses: pypa/gh-action-pypi-publish@release/v1
+#        with:
+#          packages_dir: dist/

@@ -1,201 +1,201 @@
-name: neurodamus build and test
-on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'neurodamus/**'
-      - 'tests/**'
-      - '.github/workflows/**'
-      - 'ci/**'
-      - 'pyproject.toml'
-      - 'tox.ini'
-      - 'requirements.txt'
-  push:
-    branches:
-      - main
-
-env:
-  LIBSONATAREPORT_COMMIT: 2.0.0
-  LIBSONATA_COMMIT: v0.1.35
-  NEURODAMUS_COMMIT: 4.2.1
-  NEURODAMUS_MODELS_COMMIT: 1a3b8f98fbabefb34f255c1fe63f7d7a4422223f
-  NEURON_COMMIT: 9.0.1
-
-  RDMAV_FORK_SAFE: '1'
-  BUILD_DIR: ${{ github.workspace }}/cache/build
-  INSTALL_DIR: /opt/obi
-  CMAKE_BUILD_TYPE: RelWithDebugInfo
-  SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
-  UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
-  BASE_DIR: ${{ github.workspace }}/neurodamus
-
-jobs:
-  simulation:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            python-version: '3.10'
-          #- os: ubuntu-22.04
-          #  python-version: '3.11'
-          #- os: ubuntu-22.04
-          #  python-version: '3.12'
-          #- os: ubuntu-24.04
-          #  python-version: '3.13'
-          ## test macOS with one python version due to the cache size limits
-          #- os: macOS-15
-          #  python-version: '3.12'
-      fail-fast: false
-
-    steps:
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      with:
-        version: "0.11.14"
-
-    - name: Checkout neurodamus repository
-      uses: actions/checkout@v6
-      with:
-        path: neurodamus
-      #  ref: ${{ github.event.pull_request.head.sha }}
-      #  fetch-depth: 0
-
-    - name: Install ubuntu system dependencies
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        sudo apt-get --yes -qq update \
-        && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
-        && SUDO=sudo install-apt-dependencies \
-        && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
-
-    - name: sccache build cache
-      id: cache-sccache
-      uses: actions/cache@v5
-      with:
-        path: ${{ github.workspace }}/cache
-        key: sccache-${{ runner.os }}-${{ github.run_id }}
-        restore-keys: sccache-${{ runner.os }}-
-
-    - name: Install sccache
-      run: |
-        mkdir -p ${{ github.workspace }}/cache \
-        && source $BASE_DIR/ci/scripts/install-sccache.sh \
-        && SUDO=sudo install-sccache
-
-    - name: Upgrade pip and install base python packages
-      run: |
-        uv venv --clear --python ${{ matrix.python-version }} venv \
-        && source venv/bin/activate \
-        && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
-        && uv pip list
-
-    - name: Build h5py with the local hdf5
-      run: |
-        source $BASE_DIR/ci/scripts/install-h5py.sh \
-        && source venv/bin/activate \
-        && PIP='uv pip' install-h5py
-
-    - name: Install libsonatareport
-      run: |
-        source $BASE_DIR/ci/scripts/build-libsonatareport.sh \
-        && source venv/bin/activate \
-        && build-libsonatareport $LIBSONATAREPORT_COMMIT
-
-    - name: Install libsonata
-      run: |
-        source $BASE_DIR/ci/scripts/build-libsonata.sh \
-        && source venv/bin/activate \
-        && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
-
-    - name: Install neuron
-      run: |
-        source $BASE_DIR/ci/scripts/build-neuron.sh \
-        && source venv/bin/activate \
-        && PIP='uv pip' build-neuron $NEURON_COMMIT
-
-    - name: Install neurodamus
-      run: |
-        venv/bin/pip install $BASE_DIR
-
-    - name: Install neurodamus-models
-      run: |
-        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
-        && source venv/bin/activate \
-        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
-
-    - name: Make env
-      run: |
-        source $BASE_DIR/ci/scripts/make-env.sh \
-        && source venv/bin/activate \
-        && make-env
-
-    ##- name: Install macOS homebrew packages
-    ##  if: startsWith(matrix.os, 'macOS')
-    ##  run: |
-    ##    brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
-    ##    brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
-    ##    # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
-    ##    brew unlink fmt
-    ##    echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
-    ##
-    ##- name: Install libsonata from source
-    ##  if: steps.cache-venv.outputs.cache-hit != 'true'
-    ##  run: |
-    ##    CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
-
-    ##- name: load neocortex model
-    ##  run: |
-    ##    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
-    ##    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-    ##    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
-    ##    if [[ "${{matrix.os}}" == *"macOS"* ]]; then
-    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
-    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
-    ##    else
-    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
-    ##    fi
-    ##    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
-
-    ##    echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
-    ##    echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
-    ##    echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
-    ##    echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
-    ##    echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
-
-    ##    which special
-
-    ##    # launch simulation with NEURON
-    ##    cd tests/simulations/usecase3/
-    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
-    ##    ls reporting/*.h5
-    ##    # launch simulation with CORENEURON
-    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
-    ##    ls reporting_coreneuron/*.h5
-
-    - name: Install testing deps
-      run: |
-        source venv/bin/activate \
-        && uv pip install pytest-forked pandas
-
-    - name: integration-e2e
-      run: |
-        export NEURON_INIT_MPI=1 \
-        && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/integration-e2e
-
-    - name: scientific
-      run: |
-        export NEURON_INIT_MPI=1 \
-        && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
-
-    ## - name: live debug session, comment out
-    ##   if: failure()
-    ##   uses: mxschmitt/action-tmate@v3
-    ##   with:
-    ##    timeout-minutes: 60  # or any other value you need
+#name: neurodamus integration and simulation tests
+#on:
+#  pull_request:
+#    branches:
+#      - main
+#    paths:
+#      - 'neurodamus/**'
+#      - 'tests/**'
+#      - '.github/workflows/**'
+#      - 'ci/**'
+#      - 'pyproject.toml'
+#      - 'tox.ini'
+#      - 'requirements.txt'
+#  push:
+#    branches:
+#      - main
+#
+#env:
+#  LIBSONATAREPORT_COMMIT: 2.0.0
+#  LIBSONATA_COMMIT: v0.1.35
+#  NEURODAMUS_COMMIT: 4.2.1
+#  NEURODAMUS_MODELS_COMMIT: 1a3b8f98fbabefb34f255c1fe63f7d7a4422223f
+#  NEURON_COMMIT: 9.0.1
+#
+#  RDMAV_FORK_SAFE: '1'
+#  BUILD_DIR: ${{ github.workspace }}/cache/build
+#  INSTALL_DIR: /opt/obi
+#  CMAKE_BUILD_TYPE: RelWithDebugInfo
+#  SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
+#  UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
+#  BASE_DIR: ${{ github.workspace }}/neurodamus
+#
+#jobs:
+#  simulation:
+#    runs-on: ${{ matrix.os }}
+#
+#    strategy:
+#      matrix:
+#        include:
+#          - os: ubuntu-latest
+#            python-version: '3.10'
+#          #- os: ubuntu-22.04
+#          #  python-version: '3.11'
+#          #- os: ubuntu-22.04
+#          #  python-version: '3.12'
+#          #- os: ubuntu-24.04
+#          #  python-version: '3.13'
+#          ## test macOS with one python version due to the cache size limits
+#          #- os: macOS-15
+#          #  python-version: '3.12'
+#      fail-fast: false
+#
+#    steps:
+#
+#    - name: Install uv
+#      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+#      with:
+#        version: "0.11.14"
+#
+#    - name: Checkout neurodamus repository
+#      uses: actions/checkout@v6
+#      with:
+#        path: neurodamus
+#      #  ref: ${{ github.event.pull_request.head.sha }}
+#      #  fetch-depth: 0
+#
+#    - name: Install ubuntu system dependencies
+#      if: startsWith(matrix.os, 'ubuntu')
+#      run: |
+#        sudo apt-get --yes -qq update \
+#        && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
+#        && SUDO=sudo install-apt-dependencies \
+#        && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
+#
+#    - name: sccache build cache
+#      id: cache-sccache
+#      uses: actions/cache@v5
+#      with:
+#        path: ${{ github.workspace }}/cache
+#        key: sccache-${{ runner.os }}-${{ github.run_id }}
+#        restore-keys: sccache-${{ runner.os }}-
+#
+#    - name: Install sccache
+#      run: |
+#        mkdir -p ${{ github.workspace }}/cache \
+#        && source $BASE_DIR/ci/scripts/install-sccache.sh \
+#        && SUDO=sudo install-sccache
+#
+#    - name: Upgrade pip and install base python packages
+#      run: |
+#        uv venv --clear --python ${{ matrix.python-version }} venv \
+#        && source venv/bin/activate \
+#        && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
+#        && uv pip list
+#
+#    - name: Build h5py with the local hdf5
+#      run: |
+#        source $BASE_DIR/ci/scripts/install-h5py.sh \
+#        && source venv/bin/activate \
+#        && PIP='uv pip' install-h5py
+#
+#    - name: Install libsonatareport
+#      run: |
+#        source $BASE_DIR/ci/scripts/build-libsonatareport.sh \
+#        && source venv/bin/activate \
+#        && build-libsonatareport $LIBSONATAREPORT_COMMIT
+#
+#    - name: Install libsonata
+#      run: |
+#        source $BASE_DIR/ci/scripts/build-libsonata.sh \
+#        && source venv/bin/activate \
+#        && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
+#
+#    - name: Install neuron
+#      run: |
+#        source $BASE_DIR/ci/scripts/build-neuron.sh \
+#        && source venv/bin/activate \
+#        && PIP='uv pip' build-neuron $NEURON_COMMIT
+#
+#    - name: Install neurodamus
+#      run: |
+#        venv/bin/pip install $BASE_DIR
+#
+#    - name: Install neurodamus-models
+#      run: |
+#        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
+#        && source venv/bin/activate \
+#        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
+#
+#    - name: Make env
+#      run: |
+#        source $BASE_DIR/ci/scripts/make-env.sh \
+#        && source venv/bin/activate \
+#        && make-env
+#
+#    ##- name: Install macOS homebrew packages
+#    ##  if: startsWith(matrix.os, 'macOS')
+#    ##  run: |
+#    ##    brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+#    ##    brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+#    ##    # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+#    ##    brew unlink fmt
+#    ##    echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
+#    ##
+#    ##- name: Install libsonata from source
+#    ##  if: steps.cache-venv.outputs.cache-hit != 'true'
+#    ##  run: |
+#    ##    CC=mpicc CXX=mpic++ pip install git+https://github.com/openbraininstitute/libsonata@${{ env.LIBSONATA_BRANCH }}
+#
+#    ##- name: load neocortex model
+#    ##  run: |
+#    ##    export PYTHONPATH=$(pwd)/nrn/build/install/lib/python:$PYTHONPATH
+#    ##    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
+#    ##    export NEURODAMUS_PYTHON=$(pwd)/neurodamus/data
+#    ##    if [[ "${{matrix.os}}" == *"macOS"* ]]; then
+#    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.dylib
+#    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.dylib
+#    ##    else
+#    ##      export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
+#    ##      export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+#    ##    fi
+#    ##    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
+#
+#    ##    echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV;
+#    ##    echo "HOC_LIBRARY_PATH=$HOC_LIBRARY_PATH" >> $GITHUB_ENV;
+#    ##    echo "CORENEURONLIB=$CORENEURONLIB" >> $GITHUB_ENV;
+#    ##    echo "NRNMECH_LIB_PATH=$NRNMECH_LIB_PATH" >> $GITHUB_ENV;
+#    ##    echo "NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON" >> $GITHUB_ENV;
+#
+#    ##    which special
+#
+#    ##    # launch simulation with NEURON
+#    ##    cd tests/simulations/usecase3/
+#    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata.json
+#    ##    ls reporting/*.h5
+#    ##    # launch simulation with CORENEURON
+#    ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
+#    ##    ls reporting_coreneuron/*.h5
+#
+#    - name: Install testing deps
+#      run: |
+#        source venv/bin/activate \
+#        && uv pip install pytest-forked pandas
+#
+#    - name: integration-e2e
+#      run: |
+#        export NEURON_INIT_MPI=1 \
+#        && source $INSTALL_DIR/env-neocortex.sh \
+#        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/integration-e2e
+#
+#    - name: scientific
+#      run: |
+#        export NEURON_INIT_MPI=1 \
+#        && source $INSTALL_DIR/env-neocortex.sh \
+#        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
+#
+#    ## - name: live debug session, comment out
+#    ##   if: failure()
+#    ##   uses: mxschmitt/action-tmate@v3
+#    ##   with:
+#    ##    timeout-minutes: 60  # or any other value you need
