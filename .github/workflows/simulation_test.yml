@@ -116,21 +116,21 @@ jobs:
         && source venv/bin/activate \
         && PIP='uv pip' build-neuron $NEURON_COMMIT
 
-    #- name: Install neurodamus
-    #  run: |
-    #    venv/bin/pip install $BASE_DIR
+    - name: Install neurodamus
+      run: |
+        venv/bin/pip install $BASE_DIR
 
-    #- name: Install neurodamus-models
-    #  run: |
-    #    source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
-    #    && source venv/bin/activate \
-    #    && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
+    - name: Install neurodamus-models
+      run: |
+        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
+        && source venv/bin/activate \
+        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
-    #- name: Make env
-    #  run: |
-    #    source $BASE_DIR/ci/scripts/make-env.sh \
-    #    && source venv/bin/activate \
-    #    && make-env
+    - name: Make env
+      run: |
+        source $BASE_DIR/ci/scripts/make-env.sh \
+        && source venv/bin/activate \
+        && make-env
 
     ##- name: Install macOS homebrew packages
     ##  if: startsWith(matrix.os, 'macOS')
