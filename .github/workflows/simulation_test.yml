@@ -58,17 +58,14 @@ jobs:
 
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
-      #with:
-      #  path: neurodamus
+      with:
+        path: neurodamus
       #  ref: ${{ github.event.pull_request.head.sha }}
       #  fetch-depth: 0
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        pwd \
-        && ls \
-        && ls neurodamus \
         sudo apt-get --yes -qq update \
         && sudo apt-get --yes -qq upgrade \
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
