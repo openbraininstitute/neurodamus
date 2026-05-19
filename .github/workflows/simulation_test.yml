@@ -28,6 +28,7 @@ env:
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
+  BASE_DIR: ${{ github.workspace }}/neurodamus
 
 jobs:
   simulation:
@@ -57,17 +58,20 @@ jobs:
 
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
-      with:
-        path: neurodamus
+      #with:
+      #  path: neurodamus
       #  ref: ${{ github.event.pull_request.head.sha }}
       #  fetch-depth: 0
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
+        pwd \
+        && ls \
+        && ls neurodamus \
         sudo apt-get --yes -qq update \
         && sudo apt-get --yes -qq upgrade \
-        && source ci/scripts/install-apt-dependencies.sh \
+        && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
 
@@ -82,7 +86,7 @@ jobs:
     - name: Install sccache
       run: |
         mkdir -p ${{ github.workspace }}/cache \
-        && source ci/scripts/install-sccache.sh \
+        && source $BASE_DIR/ci/scripts/install-sccache.sh \
         && install-sccache
 
     - name: Upgrade pip and install base python packages
@@ -94,25 +98,25 @@ jobs:
 
     - name: Build h5py with the local hdf5
       run: |
-        source ci/scripts/install-h5py.sh \
+        source $BASE_DIR/ci/scripts/install-h5py.sh \
         && source venv/bin/activate \
         && PIP='uv pip' install-h5py
 
     - name: Install libsonatareport
       run: |
-        source ci/scripts/build-libsonatareport.sh \
+        source $BASE_DIR/ci/scripts/build-libsonatareport.sh \
         && source venv/bin/activate \
         && build-libsonatareport $LIBSONATAREPORT_COMMIT
 
     - name: Install libsonata
       run: |
-        source ci/scripts/build-libsonata.sh \
+        source $BASE_DIR/ci/scripts/build-libsonata.sh \
         && source venv/bin/activate \
         && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
         
     - name: Install neuron
       run: |
-        source ci/scripts/build-neuron.sh \
+        source $BASE_DIR/ci/scripts/build-neuron.sh \
         && source venv/bin/activate \
         && PIP='uv pip' build-neuron $NEURON_COMMIT
 
@@ -122,13 +126,13 @@ jobs:
 
     - name: Install neurodamus-models
       run: |
-        source ci/scripts/build-neurodamus-models.sh \
+        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
         && source venv/bin/activate \
         && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
     - name: Make env
       run: |
-        source ci/scripts/make-env.sh \
+        source $BASE_DIR/ci/scripts/make-env.sh \
         && source venv/bin/activate \
         && make-env
 
