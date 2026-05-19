@@ -37,20 +37,21 @@ jobs:
     strategy:
       matrix:
         include:
-          #- os: ubuntu-latest
-          #  python-version: '3.10'
+          - os: ubuntu-latest
+            python-version: '3.10'
           #- os: ubuntu-22.04
           #  python-version: '3.11'
           #- os: ubuntu-22.04
           #  python-version: '3.12'
-          - os: ubuntu-24.04
-            python-version: '3.13'
+          #- os: ubuntu-24.04
+          #  python-version: '3.13'
           ## test macOS with one python version due to the cache size limits
           #- os: macOS-15
           #  python-version: '3.12'
       fail-fast: false
 
     steps:
+
     - name: Install uv
       uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
@@ -109,7 +110,7 @@ jobs:
         source $BASE_DIR/ci/scripts/build-libsonata.sh \
         && source venv/bin/activate \
         && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
-        
+
     - name: Install neuron
       run: |
         source $BASE_DIR/ci/scripts/build-neuron.sh \
