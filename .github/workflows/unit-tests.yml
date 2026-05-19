@@ -41,6 +41,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
       with:
@@ -54,7 +55,9 @@ jobs:
     - name: Install dependencies
       run: |
         uv tool install --with tox-uv-bare tox
-        uv tool install coverage
+        # required for coveralls
+        python -m pip install  coverage
+
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -143,5 +146,4 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
-        carryforward: "baseline,unit"
         fail-on-error: false
