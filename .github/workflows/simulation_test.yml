@@ -1,8 +1,5 @@
 name: neurodamus build and test
 on:
-  schedule:
-    # every evening at 20:00 UTC
-    - cron: '0 20 * * *'
   pull_request:
     branches:
       - main
@@ -17,20 +14,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      NEURON_BRANCH:
-        description: 'NEURON branch to use'
-        required: false
-      LIBSONATA_REPORT_BRANCH:
-        description: 'libsonatareport branch to use'
-        required: false
-      LIBSONATA_BRANCH:
-        description: 'libsonata branch to use'
-        required: false
-      NEURODAMUS_MODELS_BRANCH:
-        description: 'neurodamus-models branch to use'
-        required: false
 
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0 
@@ -38,6 +21,7 @@ env:
   NEURODAMUS_COMMIT: 4.2.1
   NEURODAMUS_MODELS_COMMIT: 1a3b8f98fbabefb34f255c1fe63f7d7a4422223f
   NEURON_COMMIT: 9.0.1
+
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
   INSTALL_DIR: /opt/obi
@@ -58,7 +42,7 @@ jobs:
           #  python-version: '3.11'
           #- os: ubuntu-22.04
           #  python-version: '3.12'
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python-version: '3.13'
           ## test macOS with one python version due to the cache size limits
           #- os: macOS-15
@@ -66,9 +50,6 @@ jobs:
       fail-fast: false
 
     steps:
-    #- name: Get Python patch version
-    #  id: pyver
-    #  run: echo "version=$(python -c 'import platform; print(platform.python_version())')" >> $GITHUB_OUTPUT
     - name: Install uv
       uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
@@ -81,29 +62,6 @@ jobs:
       #  ref: ${{ github.event.pull_request.head.sha }}
       #  fetch-depth: 0
 
-    #- name: Get latest tags
-    #  env:
-    #    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #  run: |
-    #    echo "NEURON_BRANCH=${{ inputs.NEURON_BRANCH || github.event.inputs.NEURON_BRANCH || 'master' }}" >> $GITHUB_ENV
-    #    LIBSONATA_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonata/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-    #    echo "LIBSONATA_BRANCH=${{ inputs.LIBSONATA_BRANCH || github.event.inputs.LIBSONATA_BRANCH || '$LIBSONATA_LATEST' }}" >> $GITHUB_ENV
-    #    LIBSONATA_REPORT_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/libsonatareport/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-    #    echo "LIBSONATA_REPORT_BRANCH=${{ inputs.LIBSONATA_REPORT_BRANCH || github.event.inputs.LIBSONATA_REPORT_BRANCH || '$LIBSONATA_REPORT_LATEST' }}" >> $GITHUB_ENV
-    #    NEURODAMUS_MODELS_LATEST=$(curl --request GET --url https://api.github.com/repos/openbraininstitute/neurodamus-models/tags --header "Authorization: Bearer $GH_TOKEN" | jq -r '.[0].name')
-    #    echo "NEURODAMUS_MODELS_BRANCH=${{ inputs.NEURODAMUS_MODELS_BRANCH || github.event.inputs.NEURODAMUS_MODELS_BRANCH || '$NEURODAMUS_MODELS_LATEST' }}" >> $GITHUB_ENV
-
-    #- name: Get HEAD commit message and look for branches
-    #  run: |
-    #    COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-    #    echo $COMMIT_MESSAGE
-    #    NEURON_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'NEURON_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-    #    if [[ ! -z $NEURON_BRANCH ]]; then echo "NEURON_BRANCH=$NEURON_BRANCH" >> $GITHUB_ENV; fi
-    #    LIBSONATA_REPORT_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_REPORT_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-    #    if [[ ! -z $LIBSONATA_REPORT_BRANCH ]]; then echo "LIBSONATA_REPORT_BRANCH=$LIBSONATA_REPORT_BRANCH" >> $GITHUB_ENV; fi
-    #    LIBSONATA_BRANCH=$(echo $COMMIT_MESSAGE | grep -Po 'LIBSONATA_BRANCH=\K[0-9a-zA-Z/_.\-]*' || true)
-    #    if [[ ! -z $LIBSONATA_BRANCH ]]; then echo "LIBSONATA_BRANCH=$LIBSONATA_BRANCH" >> $GITHUB_ENV; fi
-
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
@@ -112,19 +70,6 @@ jobs:
         && source ci/scripts/install-apt-dependencies.sh \
         && install-apt-dependencies \
         && apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
-
-    #- name: Setup Python
-    #  uses: actions/setup-python@v6
-    #  with:
-    #    python-version: ${{ matrix.python-version }}
-
-    - name: Upgrade pip and install base Python packages
-      run: |
-        uv venv --clear --python ${{ matrix.python-version }} venv \
-        && source venv/bin/activate \
-        && uv pip install --upgrade pip cmake ninja tox pytest pytest-coverage \
-        && MPICC=mpicc uv pip install --no-binary=mpi4py mpi4py \
-        && uv pip list
 
     - name: sccache build cache
       id: cache-sccache
@@ -139,6 +84,13 @@ jobs:
         mkdir -p ${{ github.workspace }}/cache \
         && source ci/scripts/install-sccache.sh \
         && install-sccache
+
+    - name: Upgrade pip and install base python packages
+      run: |
+        uv venv --clear --python ${{ matrix.python-version }} venv \
+        && source venv/bin/activate \
+        && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
+        && uv pip list
 
     - name: Build h5py with the local hdf5
       run: |
@@ -224,40 +176,20 @@ jobs:
     #    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
     #    ls reporting_coreneuron/*.h5
 
-    - name: Install deps
+    - name: Install testing deps
       run: |
         source venv/bin/activate \
-        && uv pip install pytest-forked pandas matplotlib pytest-isolate-mpi
-
-    #- name: unit
-    #  run: |
-    #    export NEURON_INIT_MPI=0 \
-    #    && source $INSTALL_DIR/env-neocortex.sh \
-    #    && pytest -x --cov=neurodamus --cov-report=term-missing --forked tests/unit
-
-    #- name: unit-ngv-mpi
-    #  run: |
-    #    source $INSTALL_DIR/env-neocortex.sh \
-    #    && tox -e unit-ngv-mpi
-
-    - name: unit-mpi
-      run: |
-        export NEURON_INIT_MPI=1 \
-        && export RDMAV_FORK_SAFE=1
-        && source $INSTALL_DIR/env-neocortex.sh \
-        && pytest --forked tests/integration-e2e/
+        && uv pip install pytest-forked pandas
 
     - name: integration-e2e
       run: |
         export NEURON_INIT_MPI=1 \
-        && export RDMAV_FORK_SAFE=1
         && source $INSTALL_DIR/env-neocortex.sh \
         pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
 
     - name: scientific
       run: |
         export NEURON_INIT_MPI=1 \
-        && export RDMAV_FORK_SAFE=1
         && source $INSTALL_DIR/env-neocortex.sh \
         pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
 
