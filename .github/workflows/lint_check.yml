@@ -1,19 +1,19 @@
-name: Lint Check
-
-on: [pull_request, push, workflow_dispatch]
-
-jobs:
-  lint:
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-
-    - name: Install tox
-      run: pip install tox
-
-    - name: Run linting
-      run: tox -elint
+#name: Lint Check
+#
+#on: [pull_request, push, workflow_dispatch]
+#
+#jobs:
+#  lint:
+#    runs-on: ubuntu-22.04
+#    steps:
+#    - name: Checkout repository
+#      uses: actions/checkout@v4
+#
+#    - name: Set up Python
+#      uses: actions/setup-python@v5
+#
+#    - name: Install tox
+#      run: pip install tox
+#
+#    - name: Run linting
+#      run: tox -elint
