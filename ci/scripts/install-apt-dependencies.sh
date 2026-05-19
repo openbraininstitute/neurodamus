@@ -1,5 +1,7 @@
+# if sudo is needed, set SUDO=sudo
+
 install-apt-dependencies() {
-    apt-get install --yes \
+    $SUDO apt-get install --yes \
         --no-install-suggests \
         --no-install-recommends \
         g++ \

@@ -65,11 +65,11 @@ jobs:
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        apt-get --yes -qq update \
-        && apt-get --yes -qq upgrade \
+        sudo apt-get --yes -qq update \
+        && sudo apt-get --yes -qq upgrade \
         && source ci/scripts/install-apt-dependencies.sh \
-        && install-apt-dependencies \
-        && apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
+        && SUDO=sudo install-apt-dependencies \
+        && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
 
     - name: sccache build cache
       id: cache-sccache
