@@ -176,22 +176,22 @@ jobs:
     ##    mpirun -np 2 special -mpi -python $NEURODAMUS_PYTHON/init.py --configFile=simulation_sonata_coreneuron.json
     ##    ls reporting_coreneuron/*.h5
 
-    #- name: Install testing deps
-    #  run: |
-    #    source venv/bin/activate \
-    #    && uv pip install pytest-forked pandas
+    - name: Install testing deps
+      run: |
+        source venv/bin/activate \
+        && uv pip install pytest-forked pandas
 
-    #- name: integration-e2e
-    #  run: |
-    #    export NEURON_INIT_MPI=1 \
-    #    && source $INSTALL_DIR/env-neocortex.sh \
-    #    pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
+    - name: integration-e2e
+      run: |
+        export NEURON_INIT_MPI=1 \
+        && source $INSTALL_DIR/env-neocortex.sh \
+        pytest -s -x --forked --durations=5 --durations-min=15 tests/integration-e2e
 
-    #- name: scientific
-    #  run: |
-    #    export NEURON_INIT_MPI=1 \
-    #    && source $INSTALL_DIR/env-neocortex.sh \
-    #    pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
+    - name: scientific
+      run: |
+        export NEURON_INIT_MPI=1 \
+        && source $INSTALL_DIR/env-neocortex.sh \
+        pytest -s -x --forked --durations=5 --durations-min=15 tests/scientific
 
     ## - name: live debug session, comment out
     ##   if: failure()
