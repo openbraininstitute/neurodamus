@@ -67,7 +67,6 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get --yes -qq update \
-        && sudo apt-get --yes -qq upgrade \
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
@@ -83,8 +82,8 @@ jobs:
     - name: Install sccache
       run: |
         mkdir -p ${{ github.workspace }}/cache \
-        && SUDO=sudo source $BASE_DIR/ci/scripts/install-sccache.sh \
-        && install-sccache
+        && source $BASE_DIR/ci/scripts/install-sccache.sh \
+        && SUDO=sudo install-sccache
 
     - name: Upgrade pip and install base python packages
       run: |
