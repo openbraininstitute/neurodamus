@@ -878,10 +878,8 @@ class SpatiallyUniformEField(BaseStim):
             gid = target_point_list.gid
             if gid in self.stimList:
                 # Consolidate with existing stimulus - not yet supported in mod impl
-                logging.error(
-                    "Support for multiple ElectrodeSources in nmodl impl not yet supported."
-                )
-                # TODO: update iadd method to allow: self.stimList[gid] += es
+                # TODO: update iadd method to allow: self.stimList[gid] += es; raise error for now
+                self.stimList[gid] += es
             else:
                 # Add new stimulus
                 self.stimList[gid] = es

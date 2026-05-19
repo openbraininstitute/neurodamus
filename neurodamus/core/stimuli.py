@@ -2,6 +2,7 @@
 
 import logging
 
+from .configuration import ConfigurationError
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
 
@@ -534,13 +535,13 @@ class ElectrodeSource:
                 section.insert("extracellular")
 
             # convert field data into multiple hoc vectors
-            freqVec = Nd.h.Vector(len(self.fields))
+            freq_vector = Nd.h.Vector(len(self.fields))
             phaseVec = Nd.h.Vector(len(self.fields))
             xVec = Nd.h.Vector(len(self.fields))
             yVec = Nd.h.Vector(len(self.fields))
             zVec = Nd.h.Vector(len(self.fields))
             for fieldIndex, field in enumerate(self.fields):
-                freqVec.x[fieldIndex] = field.get("Frequency", 0)
+                freq_vector.x[fieldIndex] = field.get("Frequency", 0)
                 phaseVec.x[fieldIndex] = field.get("Phase", 0)
                 xVec.x[fieldIndex] = field.get("Ex", 0)
                 yVec.x[fieldIndex] = field.get("Ey", 0)
@@ -560,7 +561,7 @@ class ElectrodeSource:
                 yVec,
                 zVec,
                 phaseVec,
-                freqVec,
+                freq_vector,
             )
             self.segment_efield_integrators.append(efi)
 
@@ -574,4 +575,5 @@ class ElectrodeSource:
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""
         logging.error("Multiple ElectrodeSource not supported with nmodl")
-        return self
+        raise ConfigurationError("Support for multiple ElectrodeSources pending")
+        # return self

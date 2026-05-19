@@ -11,6 +11,10 @@ NEURON {
 PARAMETER {
 }
 
+UNITS {
+    PI = (pi) (1)
+}
+
 ASSIGNED {
     e_ext (mV)
     delay
@@ -26,7 +30,7 @@ ASSIGNED {
     displacementX
     displacementY
     displacementZ
-    enabled
+    enabled : set when pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
 }
 
 INITIAL {
@@ -39,7 +43,7 @@ PROCEDURE add_electrode_source() {
     : receive data elements for an ElectrodeSource
     : delay, duration, ramp_up_time, ramp_down_time
     : vectors for n fields: x, y, z, freq, phase,
-    
+
 VERBATIM
 #ifndef CORENEURON_BUILD
     delay = *getarg(1);
@@ -47,17 +51,13 @@ VERBATIM
     ramp_up = *getarg(3);
     ramp_down = *getarg(4);
 
-    // copy data into locally managed vectors rather than storing pointer
-    //  the idea is to put all data into a single vector and track offsets
-
-    int i, size;
     auto* argX = vector_arg(5);
     auto* argY = vector_arg(6);
     auto* argZ = vector_arg(7);
     auto* argphase = vector_arg(8);
     auto* argfreq = vector_arg(9);
 
-    size = vector_capacity(argX);
+    int size = vector_capacity(argX);
     if( _p_phase != nullptr ) {
         fprintf( stderr, "support for multiple ElectrodeSource info not implemented yet\n" );
         //TODO: vector_resize( vphase, vector_capacity(vec) );
@@ -73,8 +73,8 @@ VERBATIM
         auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
         auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
         auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
-    
-        for( i=0; i<size; i++ ) {
+
+        for( int i=0; i<size; i++ ) {
             vector_vec(vX)[i] = vector_vec(argX)[i];
             vector_vec(vY)[i] = vector_vec(argY)[i];
             vector_vec(vZ)[i] = vector_vec(argZ)[i];
@@ -87,7 +87,7 @@ ENDVERBATIM
 }
 
 BEFORE BREAKPOINT {
-    LOCAL factor, efield_accum
+    LOCAL efield_accum
 
     : for each electrode source (pending)
     :    for each field
@@ -98,6 +98,7 @@ VERBATIM
     double rufactor=1, rdfactor=1;
     _lefield_accum = 0;
 
+/* TODO: Adapting to multiple ElectrodeSources */
     if( delay < t && t < delay+duration+ramp_up+ramp_down ) {
        auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
        auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
@@ -115,28 +116,10 @@ VERBATIM
 
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
-           _lfactor = cos(2 * 3.141592654 * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
-	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]*_lfactor + displacementY * vector_vec(vY)[i]*_lfactor + displacementZ * vector_vec(vZ)[i]*_lfactor);
+           double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
+	   _lefield_accum += 1e3 * rufactor * rdfactor * (displacementX * vector_vec(vX)[i]* wavefactor + displacementY * vector_vec(vY)[i]*wavefactor + displacementZ * vector_vec(vZ)[i]*wavefactor);
        }
     }
-    
-/* TODO: Adapting to multiple ElectrodeSources
-    int i, size;
-    double delay_item, dur_item;
-    auto *vdelay = *reinterpret_cast<IvocVect**>(&delay);
-    auto *vdur = *reinterpret_cast<IvocVect**>(&duration);
-
-    size = vector_capacity(vdelay);
-    for( i=0; i<size; i++ ) {
-        delay_item = vector_vec(vdelay)[i];
-        dur_item = vector_vec(vdur)[i];
-        if( delay_item < t && t < delay_item + dur_item ) {
-            // for each field
-                //as above
-            // end for each field
-        }
-    }
-*/
 #endif
 ENDVERBATIM
     if( enabled ) {
