@@ -22,11 +22,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python-version: '3.10'
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.11'
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             python-version: '3.12'
           - os: ubuntu-24.04
             python-version: '3.13'
@@ -44,8 +44,6 @@ jobs:
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
       with:
-        path: neurodamus
-        ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
     - name: Install uv
@@ -139,15 +137,11 @@ jobs:
         parallel: true
         fail-on-error: false
 
-  finish:
-    if: ${{ always() }}
-    needs: coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Finalize Coveralls parallel build
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
-          carryforward: "baseline,unit"
-          fail-on-error: false
+    - name: Finalize Coveralls parallel build
+      if: startsWith(matrix.python-version, '3.10')
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
+        carryforward: "baseline,unit"
+        fail-on-error: false
