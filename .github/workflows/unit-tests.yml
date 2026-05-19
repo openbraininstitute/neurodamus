@@ -41,7 +41,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
       with:
@@ -55,8 +54,12 @@ jobs:
     - name: Install dependencies
       run: |
         uv tool install --with tox-uv-bare tox
+        uv tool install coverage
+        which coverage
+        cat $GITHUB_PATH
         # required for coveralls
-        python -m pip install  coverage
+        python3 -m pip install --user --break-system-packages coverage
+        which coverage
 
 
     - name: Install ubuntu system dependencies
@@ -70,25 +73,9 @@ jobs:
       run: |
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
 
-    - name: Run tox unit
+    - name: Run tox baseline
       run: |
-        tox -e unit
-
-    - name: Run tox unit-mpi
-      run: |
-        export OMPI_ALLOW_RUN_AS_ROOT=1
-        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-        tox -e unit-mpi
-
-    - name: Run tox unit-ngv-mpi
-      run: |
-        export OMPI_ALLOW_RUN_AS_ROOT=1
-        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-        tox -e unit-ngv-mpi
-
-    - name: Run tox unit-allen-v1
-      run: |
-        tox -e unit-allen-v1
+        tox -e baseline
 
     - name: Upload baseline coverage to Coveralls
       if: startsWith(matrix.python-version, '3.10')
@@ -100,6 +87,10 @@ jobs:
         parallel: true
         fail-on-error: false
 
+    - name: Run tox unit
+      run: |
+        tox -e unit
+
     - name: Upload unit coverage to Coveralls
       if: startsWith(matrix.python-version, '3.10')
       uses: coverallsapp/github-action@v2
@@ -109,6 +100,12 @@ jobs:
         flag-name: unit
         parallel: true
         fail-on-error: false
+
+    - name: Run tox unit-mpi
+      run: |
+        export OMPI_ALLOW_RUN_AS_ROOT=1
+        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+        tox -e unit-mpi
 
     - name: Upload unit-mpi coverage to Coveralls
       if: startsWith(matrix.python-version, '3.10')
@@ -120,6 +117,12 @@ jobs:
         parallel: true
         fail-on-error: false
 
+    - name: Run tox unit-ngv-mpi
+      run: |
+        export OMPI_ALLOW_RUN_AS_ROOT=1
+        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+        tox -e unit-ngv-mpi
+
     - name: Upload unit-ngv-mpi coverage to Coveralls
       if: startsWith(matrix.python-version, '3.10')
       uses: coverallsapp/github-action@v2
@@ -129,6 +132,10 @@ jobs:
         flag-name: unit-ngv-mpi
         parallel: true
         fail-on-error: false
+
+    - name: Run tox unit-allen-v1
+      run: |
+        tox -e unit-allen-v1
 
     - name: Upload unit-allen-v1 coverage to Coveralls
       if: startsWith(matrix.python-version, '3.10')
