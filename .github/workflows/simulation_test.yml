@@ -83,7 +83,7 @@ jobs:
     - name: Install sccache
       run: |
         mkdir -p ${{ github.workspace }}/cache \
-        && source $BASE_DIR/ci/scripts/install-sccache.sh \
+        && SUDO=sudo source $BASE_DIR/ci/scripts/install-sccache.sh \
         && install-sccache
 
     - name: Upgrade pip and install base python packages
