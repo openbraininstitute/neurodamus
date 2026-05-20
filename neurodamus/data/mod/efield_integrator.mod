@@ -74,9 +74,9 @@ VERBATIM
         auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
 
         for( int i=0; i<size; i++ ) {
-            vector_vec(vX)[i] = vector_vec(argX)[i];
-            vector_vec(vY)[i] = vector_vec(argY)[i];
-            vector_vec(vZ)[i] = vector_vec(argZ)[i];
+            vector_vec(vX)[i] = displacementX *vector_vec(argX)[i];
+            vector_vec(vY)[i] = displacementY * vector_vec(argY)[i];
+            vector_vec(vZ)[i] = displacementZ * vector_vec(argZ)[i];
             vector_vec(vphase)[i] = vector_vec(argphase)[i];
             vector_vec(vfreq)[i] = vector_vec(argfreq)[i];
         }
@@ -116,7 +116,7 @@ VERBATIM
        size = vector_capacity(vX);
        for( i=0; i<size; i++ ) {
            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
-	   _lefield_accum += 1e3 * ramp_factor * (displacementX * vector_vec(vX)[i] * wavefactor + displacementY * vector_vec(vY)[i] * wavefactor + displacementZ * vector_vec(vZ)[i] * wavefactor);
+	   _lefield_accum += 1e3 * ramp_factor * (vector_vec(vX)[i] * wavefactor + vector_vec(vY)[i] * wavefactor + vector_vec(vZ)[i] * wavefactor);
        }
     }
 #endif
