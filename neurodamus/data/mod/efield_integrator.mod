@@ -74,7 +74,7 @@ VERBATIM
         auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
 
         for( int i=0; i<size; i++ ) {
-            vector_vec(vX)[i] = displacementX *vector_vec(argX)[i];
+            vector_vec(vX)[i] = displacementX * vector_vec(argX)[i];
             vector_vec(vY)[i] = displacementY * vector_vec(argY)[i];
             vector_vec(vZ)[i] = displacementZ * vector_vec(argZ)[i];
             vector_vec(vphase)[i] = vector_vec(argphase)[i];
