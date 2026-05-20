@@ -87,6 +87,7 @@ jobs:
         flag-name: baseline
         parallel: true
         fail-on-error: false
+        debug: true
 
     #- name: Run tox unit
     #  run: |
