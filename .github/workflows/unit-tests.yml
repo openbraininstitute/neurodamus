@@ -69,10 +69,7 @@ jobs:
 
     - name: Run tox baseline
       run: |
-        pwd
         tox -e baseline
-        ls -al
-        coverage xml --data-file .coverage.baseline -o /tmp/58i4tar7coverage.xml
 
     - name: Upload baseline coverage to Coveralls
       if: startsWith(matrix.python-version, '3.12')

@@ -1,4 +1,4 @@
-ARG UV_VERSION=latest
+ARG UV_VERSION=0.11.15
 ARG PYTHON_VERSION=3.12
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
@@ -12,9 +12,7 @@ ARG NEURODAMUS_COMMIT=4.2.1
 ARG NEURODAMUS_MODELS_COMMIT=1a3b8f98fbabefb34f255c1fe63f7d7a4422223f
 ARG NEURON_COMMIT=9.0.1
 
-ENV EXEC_USER=exec
 ENV USER_VENV_NAME=user_venv
-ENV REPOSITORY_NAME=user_repo
 
 ENV INSTALL_DIR=/opt/obi
 ENV BUILD_DIR=/tmp
@@ -29,8 +27,6 @@ ENV UV_LINK_MODE=copy \
 
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workspace
-
-RUN echo 'Acquire::http::Proxy "http://192.168.1.161:3142";' > /etc/apt/apt.conf.d/00cacher
 
 RUN --mount=type=bind,source=ci/scripts/install-apt-dependencies.sh,target=/tmp/install-apt-dependencies.sh \
     apt-get --yes -qq update \
