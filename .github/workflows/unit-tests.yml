@@ -55,11 +55,6 @@ jobs:
       run: |
         uv tool install --with tox-uv-bare tox
         uv tool install 'coverage[toml]'
-        which coverage
-        cat $GITHUB_PATH
-        # required for coveralls
-        python3 -m pip install --user --break-system-packages coverage
-        which coverage
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -80,7 +75,7 @@ jobs:
         coverage xml --data-file .coverage.baseline -o /tmp/58i4tar7coverage.xml
 
     - name: Upload baseline coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.10')
+      if: startsWith(matrix.python-version, '3.12')
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
