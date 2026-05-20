@@ -54,7 +54,7 @@ jobs:
     - name: Install dependencies
       run: |
         uv tool install --with tox-uv-bare tox
-        uv tool install coverage
+        uv tool install 'coverage[toml]'
         which coverage
         cat $GITHUB_PATH
         # required for coveralls
