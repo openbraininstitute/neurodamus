@@ -549,9 +549,7 @@ class ElectrodeSource:
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1
-            efi.displacementX = displacement[0]
-            efi.displacementY = displacement[1]
-            efi.displacementZ = displacement[2]
+            efi.set_displacement( Nd.h.Vector(displacement) )
             efi.add_electrode_source(
                 self._delay,
                 self.duration,

@@ -5,7 +5,7 @@ NEURON {
     POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
     RANGE delay, duration, ramp_up, ramp_down
     RANGE displacementX, displacementY, displacementZ
-    RANGE enabled  : set when pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
+    RANGE enabled  : set when e_ext pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
 }
 
 PARAMETER {
@@ -36,6 +36,17 @@ INITIAL {
     if( enabled ) {
         e_ext = 0
     }
+}
+
+PROCEDURE set_displacement() {
+VERBATIM
+#ifndef CORENEURON_BUILD
+    auto* argdisp = vector_arg(1);
+    displacementX = vector_vec(argdisp)[0];
+    displacementY = vector_vec(argdisp)[1];
+    displacementZ = vector_vec(argdisp)[2];
+#endif
+ENDVERBATIM
 }
 
 PROCEDURE add_electrode_source() {
