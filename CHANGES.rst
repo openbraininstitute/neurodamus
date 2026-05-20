@@ -8,10 +8,8 @@ Version 4.2.2
 
 *Improvements*
   * For Extracellular stimulus, switch from using vector.play to a PointProcess which computes the contribution during runtime, avoiding big memory allocation (#521)
-  * adapt to new libsonata (#517)
-
-*Bug Fixes*
   * Update condition modification implementation to match the spec (#519)
+  * adapt to new libsonata (#517)
 
 Version 4.2.1
 =============
