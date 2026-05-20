@@ -2,6 +2,17 @@
 Change Log
 ==========
 
+Version 4.2.2
+=============
+**20 May 2026**
+
+*Improvements*
+  * For Extracellular stimulus, switch from using vector.play to a PointProcess which computes the contribution during runtime, avoiding big memory allocation (#521)
+  * adapt to new libsonata (#517)
+
+*Bug Fixes*
+  * Update condition modification implementation to match the spec (#519)
+
 Version 4.2.1
 =============
 **27 April 2026**
