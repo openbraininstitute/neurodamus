@@ -867,13 +867,11 @@ class SpatiallyUniformEField(BaseStim):
         # apply stim to each point in target_points
         for target_point_list in target_points:
             es = ElectrodeSource(
-                base_amp=0,
                 delay=self.delay,
                 duration=self.duration,
                 fields=self.fields,
                 ramp_up_time=self.ramp_up_time,
                 ramp_down_time=self.ramp_down_time,
-                dt=self.dt,
             )
             gid = target_point_list.gid
             if gid in self.stimList:

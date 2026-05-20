@@ -103,18 +103,19 @@ def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
 
-    dt = es.dt
-    duration = es.duration
+    dt = Nd.dt
+    assert len(es.fields) == 1
+    duration = es.fields[0].duration
     efi = es.segment_efield_integrators[3]
     max_potential = 1e3 * (
-        efi.displacementX * es.fields[0]["Ex"]
-        + efi.displacementY * es.fields[0]["Ey"]
-        + efi.displacementZ * es.fields[0]["Ez"]
+        efi.displacementX * es.fields[0].ex
+        + efi.displacementY * es.fields[0].ey
+        + efi.displacementZ * es.fields[0].ez
     )  # from mV to V
 
     def f_cos(t):
         return max_potential * np.cos(
-            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
+            2 * np.pi * es.fields[0].frequency / 1000 * t + es.fields[0].phase
         )
 
     # original reference with vec.play with time points at every dt
@@ -238,20 +239,20 @@ def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     npt.assert_allclose(rec_dend, REF_COSINE, atol=1e-9)
     npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
-    dt = es.dt
-    duration = es.duration
-    ramp_up_time = es.ramp_up_time
-    ramp_down_time = es.ramp_down_time
+    dt = Nd.dt
+    duration = es.fields[0].duration
+    ramp_up_time = es.fields[0].ramp_up_time
+    ramp_down_time = es.fields[0].ramp_down_time
     efi = es.segment_efield_integrators[3]
     max_potential = 1e3 * (
-        efi.displacementX * es.fields[0]["Ex"]
-        + efi.displacementY * es.fields[0]["Ey"]
-        + efi.displacementZ * es.fields[0]["Ez"]
+        efi.displacementX * es.fields[0].ex
+        + efi.displacementY * es.fields[0].ey
+        + efi.displacementZ * es.fields[0].ez
     )  # from mV to V
 
     def f_cos(t):
         return max_potential * np.cos(
-            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
+            2 * np.pi * es.fields[0].frequency / 1000 * t + es.fields[0].phase
         )
 
     t_beforebreakpoint = np.arange(dt / 2, duration + ramp_up_time + ramp_down_time, dt)
