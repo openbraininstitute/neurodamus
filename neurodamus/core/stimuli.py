@@ -2,8 +2,7 @@
 
 import logging
 
-import numpy as np
-
+from .configuration import ConfigurationError
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
 
@@ -517,13 +516,8 @@ class ElectrodeSource:
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        # for delay, add cur_t as the first point, then advance cur_t
-        if delay > 0:
-            self.time_vec.append(self._cur_t)
-            self._cur_t = delay
-        self.efields = self.add_cosines()  # np.array, E_x, E_y, E_z vectors varied by time
         self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
-        self.segment_potentials = []  # potentials that are applied to segment.extracellular._ref_e
+        self.segment_efield_integrators = []
 
     def delay(self, duration):
         """Increments the ref time so that the next created signal is delayed"""
@@ -533,72 +527,41 @@ class ElectrodeSource:
         self._cur_t += duration
         return self
 
-    def add_cosines(self):
-        """Add multiple cosinusoidal signals
-        Returns: a list of cosine signal vectors
-        """
-        total_duration = self.duration + self.ramp_up_time + self.ramp_down_time
-        tvec = Nd.h.Vector()
-        tvec.indgen(self._cur_t, self._cur_t + total_duration, self.dt)
-        self.time_vec.append(tvec)
-        self.delay(total_duration)
-        # add last time point: the next step after duration to revert signal back to base_amp
-        self.time_vec.append(self._cur_t + self.dt)
-        res_x = Nd.h.Vector(len(self.time_vec))
-        res_y = Nd.h.Vector(len(self.time_vec))
-        res_z = Nd.h.Vector(len(self.time_vec))
-        for field in self.fields:
-            vec = Nd.h.Vector(len(tvec))
-            freq = field.get("Frequency", 0)
-            phase = field.get("Phase", 0)
-            Ex = field["Ex"]
-            Ey = field["Ey"]
-            Ez = field["Ez"]
-            vec.sin(freq, phase + np.pi / 2, self.dt)
-            self.apply_ramp(vec, self.dt)
-            if self._delay > 0:
-                # for delay, insert base_amp for the 1st point
-                vec.insrt(0, self._base_amp)
-            vec.append(self._base_amp)  # add last point
-            res_x.add(vec.c().mul(Ex))
-            res_y.add(vec.c().mul(Ey))
-            res_z.add(vec.c().mul(Ez))
-
-        return np.array([res_x, res_y, res_z])
-
-    def compute_potentials(self, displacement_vec):
-        return np.dot(displacement_vec, self.efields) * 1e3  # Converts from V to mV
-
-    def apply_ramp(self, signal_vec, step):
-        """Apply signal ramp up and down
-        Args:
-            signal_vec: the signal vector to apply ramp, type hoc Vector
-            step: time step
-        """
-        ramp_up_number = int(
-            self.ramp_up_time / step
-        )  # Number of time points during the ramp-up window
-        ramp_down_number = int(
-            self.ramp_down_time / step
-        )  # Number of time points during the ramp-down window
-
-        if ramp_up_number > 0:
-            ramp_up = np.linspace(0, 1, ramp_up_number)
-            signal_vec[:ramp_up_number] *= ramp_up
-        if ramp_down_number > 0:
-            ramp_down = np.linspace(1, 0, ramp_down_number)
-            signal_vec[-ramp_down_number:] *= ramp_down
-
     def apply_segment_potentials(self):
         """Apply potentials to segment.extracellular._ref_e"""
         for segment, displacement in self.segment_displacements.items():
             section = segment.sec
-            e_ext_vec = Nd.h.Vector(self.compute_potentials(displacement))
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")
-            # Neuron vector play without interpolation, continuous=0
-            e_ext_vec.play(segment.extracellular._ref_e, self.time_vec, 0)
-            self.segment_potentials.append(e_ext_vec)
+
+            # convert field data into multiple hoc vectors
+            freq_vector = Nd.h.Vector(len(self.fields))
+            phase_vector = Nd.h.Vector(len(self.fields))
+            x_vec = Nd.h.Vector(len(self.fields))
+            y_vec = Nd.h.Vector(len(self.fields))
+            z_vec = Nd.h.Vector(len(self.fields))
+            for i, field in enumerate(self.fields):
+                freq_vector.x[i] = field["Frequency"]
+                phase_vector.x[i] = field["Phase"]
+                x_vec.x[i] = field["Ex"]
+                y_vec.x[i] = field["Ey"]
+                z_vec.x[i] = field["Ez"]
+            efi = Nd.h.EFieldIntegrator(segment)
+            Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
+            efi.enabled = 1
+            efi.set_displacement(Nd.h.Vector(displacement))
+            efi.add_electrode_source(
+                self._delay,
+                self.duration,
+                self.ramp_up_time,
+                self.ramp_down_time,
+                x_vec,
+                y_vec,
+                z_vec,
+                phase_vector,
+                freq_vector,
+            )
+            self.segment_efield_integrators.append(efi)
 
         self.cleanup()
 
@@ -608,86 +571,7 @@ class ElectrodeSource:
         self.segment_displacements = None
 
     def __iadd__(self, other):
-        """Combined with another ElectrodeSource object
-        1. combine the time_vec
-        2. combine efields E_x/y/z, if the time overlaps, should be summed
-        """
-        assert np.isclose(self.dt, other.dt), "multiple extracellular stimuli must have common dt"
-        combined_time_vec, self.efields = self._combine_time_efields(
-            self.time_vec.as_numpy(),
-            self.efields,
-            other.time_vec.as_numpy(),
-            other.efields,
-            self._delay > 0,
-            other._delay > 0,
-            self.dt,
-        )
-        self.time_vec = Nd.h.Vector(combined_time_vec)
-        return self
-
-    @staticmethod
-    def _combine_time_efields(t1_vec, efields1, t2_vec, efields2, is_delay1, is_delay2, dt):
-        """Combine time and efields vectors from 2 ElectrodeSource objects.
-        In case of delay, the 1st element of the time-efields vectors should be removed,
-        and the delay time is always divisible by dt
-
-        Args:
-            t1_vec, t2_vec : numpy arrays of size n_timepoints, always ordered
-            efields1, efields2: shape (3, n_timepoints) for Ex, Ey, Ez
-            is_delay1 : if the stimulus 1 has delay
-            is_delay2 : if the stimulus 2 has delay
-        Returns: np.array, the combined time and efields vectors
-        """
-        if is_delay1:
-            t1_vec = t1_vec[1:]
-            efields1 = efields1[:, 1:]  # Remove first column for all 3 rows
-        if is_delay2:
-            t2_vec = t2_vec[1:]
-            efields2 = efields2[:, 1:]
-
-        # Convert time -> integer ticks
-        t1_ticks = np.round(t1_vec / dt).astype(np.int64)
-        t2_ticks = np.round(t2_vec / dt).astype(np.int64)
-
-        if not (t1_ticks[-1] < t2_ticks[0] or t2_ticks[-1] < t1_ticks[0]):
-            # Range overlap or exact continuous, exact union of time_ticks
-            combined_time_ticks = np.union1d(t1_ticks, t2_ticks)
-            # Stepwise amplitude lookup (vectorized)
-            idx1_left = (
-                np.searchsorted(t1_ticks, combined_time_ticks, side="right") - 1
-            )  # idx=-1 for not existing points smaller than t1_ticks
-            idx1_right = np.searchsorted(
-                t1_ticks, combined_time_ticks, side="left"
-            )  # idx=len(vec) for not existing points larger than t1_ticks
-            mask1 = idx1_left == idx1_right  # find the common existing points
-            idx2_left = np.searchsorted(t2_ticks, combined_time_ticks, side="right") - 1
-            idx2_right = np.searchsorted(t2_ticks, combined_time_ticks, side="left")
-            mask2 = idx2_left == idx2_right
-
-            combined_efields = np.zeros((len(efields1), len(combined_time_ticks)), dtype=float)
-            combined_efields[:, mask1] += efields1[:, idx1_left[mask1]]
-            combined_efields[:, mask2] += efields2[:, idx2_left[mask2]]
-
-        # Non-overlapping: concatenate
-        elif t1_ticks[-1] < t2_ticks[0]:
-            combined_time_ticks = np.concatenate((t1_ticks, t2_ticks))
-            combined_efields = np.concatenate((efields1, efields2), axis=1)
-        else:
-            combined_time_ticks = np.concatenate((t2_ticks, t1_ticks))
-            combined_efields = np.concatenate((efields2, efields1), axis=1)
-
-        # Convert ticks -> float time
-        combined_time_vec = combined_time_ticks.astype(float) * dt
-
-        if combined_time_vec[0] > 0:
-            # in case of delay add back t=0 stim=0
-            combined_time_vec = np.concatenate([[0.0], combined_time_vec])
-            combined_efields = np.concatenate(
-                [np.zeros((combined_efields.shape[0], 1)), combined_efields], axis=1
-            )
-
-        assert combined_efields.shape[1] == len(combined_time_vec), (
-            "Time and efield length mismatch"
-        )
-
-        return combined_time_vec, combined_efields
+        """Combined with another ElectrodeSource object"""
+        logging.error("Multiple ElectrodeSource not supported with nmodl")
+        raise ConfigurationError("Support for multiple ElectrodeSources pending")
+        # return self

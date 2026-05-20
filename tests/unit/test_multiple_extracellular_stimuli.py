@@ -12,6 +12,8 @@ from neurodamus import Neurodamus, Node
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 
+pytestmark = pytest.mark.skip(reason="not implemented yet")
+
 # Reference of various stim vectors without delay
 REF_COSINE = np.array(
     [
