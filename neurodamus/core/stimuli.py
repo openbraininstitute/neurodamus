@@ -555,9 +555,9 @@ class ElectrodeSource:
             for i, field in enumerate(self.fields):
                 freq_vector.x[i] = field.frequency
                 phase_vector.x[i] = field.phase
-                x_vec.x[i] = field.ex
-                y_vec.x[i] = field.ey
-                z_vec.x[i] = field.ez
+                x_vec.x[i] = field.ex * displacement[0]
+                y_vec.x[i] = field.ey * displacement[1]
+                z_vec.x[i] = field.ez * displacement[2]
                 delay_vec.x[i] = field.delay
                 duration_vec.x[i] = field.duration
                 rup_vec.x[i] = field.ramp_up_time
@@ -565,7 +565,6 @@ class ElectrodeSource:
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1
-            efi.set_displacement(Nd.h.Vector(displacement))
             efi.add_electrode_source(
                 delay_vec,
                 duration_vec,

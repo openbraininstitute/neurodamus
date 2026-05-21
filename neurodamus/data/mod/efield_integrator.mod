@@ -2,7 +2,6 @@ NEURON {
     POINT_PROCESS EFieldIntegrator
     POINTER e_ext
     POINTER phase, frequency, X, Y, Z, delay, duration, ramp_up, ramp_down
-    RANGE displacementX, displacementY, displacementZ
     RANGE enabled  : set when e_ext pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
 }
 
@@ -24,9 +23,6 @@ ASSIGNED {
     X
     Y
     Z
-    displacementX
-    displacementY
-    displacementZ
     enabled
 }
 
@@ -34,17 +30,6 @@ INITIAL {
     if( enabled ) {
         e_ext = 0
     }
-}
-
-PROCEDURE set_displacement() {
-VERBATIM
-#ifndef CORENEURON_BUILD
-    auto* argdisp = vector_arg(1);
-    displacementX = vector_vec(argdisp)[0];
-    displacementY = vector_vec(argdisp)[1];
-    displacementZ = vector_vec(argdisp)[2];
-#endif
-ENDVERBATIM
 }
 
 PROCEDURE add_electrode_source() {
@@ -85,9 +70,9 @@ VERBATIM
     auto *vramp_down = *reinterpret_cast<IvocVect**>(&_p_ramp_down);
 
     for( int i=0; i<size; i++ ) {
-        vector_vec(vX)[i] = displacementX * vector_vec(argX)[i];
-        vector_vec(vY)[i] = displacementY * vector_vec(argY)[i];
-        vector_vec(vZ)[i] = displacementZ * vector_vec(argZ)[i];
+        vector_vec(vX)[i] = vector_vec(argX)[i];
+        vector_vec(vY)[i] = vector_vec(argY)[i];
+        vector_vec(vZ)[i] = vector_vec(argZ)[i];
         vector_vec(vphase)[i] = vector_vec(argphase)[i];
         vector_vec(vfreq)[i] = vector_vec(argfreq)[i];
         vector_vec(vdelay)[i] = vector_vec(argdelay)[i];
@@ -99,12 +84,19 @@ VERBATIM
 ENDVERBATIM
 }
 
+FUNCTION get_potential_amplitude(i) {
+VERBATIM
+    int idx = (int)_li;
+    auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
+    auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
+    auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
+    _lget_potential_amplitude = vector_vec(vX)[idx] + vector_vec(vY)[idx] + vector_vec(vZ)[idx];
+ENDVERBATIM
+}
+
 BEFORE BREAKPOINT {
     LOCAL efield_accum
 
-    : for each electrode source (pending)
-    :    for each field
-    :       in time window? compute contribution factor and apply to segment's e_ref via pointer
 VERBATIM
 #ifndef CORENEURON_BUILD
     int i, size;
@@ -136,7 +128,7 @@ VERBATIM
                 ramp_factor = 1 - (t - (cur_delay + cur_ramp_up + cur_duration)) / cur_ramp_down;
             }
             double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i] );
-	        _lefield_accum += 1e3 * ramp_factor * (vector_vec(vX)[i] * wavefactor + vector_vec(vY)[i] * wavefactor + vector_vec(vZ)[i] * wavefactor);
+	        _lefield_accum += 1e3 * ramp_factor * get_potential_amplitude(i) * wavefactor;
         }
     }
 #endif
