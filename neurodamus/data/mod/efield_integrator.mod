@@ -1,9 +1,7 @@
 NEURON {
     POINT_PROCESS EFieldIntegrator
     POINTER e_ext
-    :POINTER delay, duration, ramp_up, ramp_down : TODO: add nfields vector and vectors will have size = nElectrodeSource
-    POINTER phase, frequency, X, Y, Z           : TODO: will have size = sum(nFields for each ElectrodeSource)
-    RANGE delay, duration, ramp_up, ramp_down
+    POINTER phase, frequency, X, Y, Z, delay, duration, ramp_up, ramp_down
     RANGE displacementX, displacementY, displacementZ
     RANGE enabled  : set when e_ext pointer is assigned, this prevents mcomplex calculation to access unassigned e_ext reference
 }
@@ -51,16 +49,14 @@ ENDVERBATIM
 
 PROCEDURE add_electrode_source() {
     : receive data elements for an ElectrodeSource
-    : delay, duration, ramp_up_time, ramp_down_time
-    : vectors for n fields: x, y, z, freq, phase,
+    : vectors for n fields: delay, duration, ramp_up_time, ramp_down_time, x, y, z, freq, phase,
 
 VERBATIM
 #ifndef CORENEURON_BUILD
-    delay = *getarg(1);
-    duration = *getarg(2);
-    ramp_up = *getarg(3);
-    ramp_down = *getarg(4);
-
+    auto* argdelay = vector_arg(1);
+    auto* argduration = vector_arg(2);
+    auto* argramp_up = vector_arg(3);
+    auto* argramp_down = vector_arg(4);
     auto* argX = vector_arg(5);
     auto* argY = vector_arg(6);
     auto* argZ = vector_arg(7);
@@ -68,29 +64,36 @@ VERBATIM
     auto* argfreq = vector_arg(9);
 
     int size = vector_capacity(argX);
-    if( _p_phase != nullptr ) {
-        fprintf( stderr, "support for multiple ElectrodeSource info not implemented yet\n" );
-        //TODO: vector_resize( vphase, vector_capacity(vec) );
-    } else {
-        _p_X = vector_new1(size);
-        _p_Y = vector_new1(size);
-        _p_Z = vector_new1(size);
-        _p_phase = vector_new1(size);
-        _p_frequency = vector_new1(size);
+    _p_X = vector_new1(size);
+    _p_Y = vector_new1(size);
+    _p_Z = vector_new1(size);
+    _p_phase = vector_new1(size);
+    _p_frequency = vector_new1(size);
+    _p_delay = vector_new1(size);
+    _p_duration = vector_new1(size);
+    _p_ramp_up = vector_new1(size);
+    _p_ramp_down = vector_new1(size);
 
-        auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
-        auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
-        auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
-        auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
-        auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
+    auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
+    auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
+    auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
+    auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
+    auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
+    auto *vdelay = *reinterpret_cast<IvocVect**>(&_p_delay);
+    auto *vduration = *reinterpret_cast<IvocVect**>(&_p_duration);
+    auto *vramp_up = *reinterpret_cast<IvocVect**>(&_p_ramp_up);
+    auto *vramp_down = *reinterpret_cast<IvocVect**>(&_p_ramp_down);
 
-        for( int i=0; i<size; i++ ) {
-            vector_vec(vX)[i] = displacementX * vector_vec(argX)[i];
-            vector_vec(vY)[i] = displacementY * vector_vec(argY)[i];
-            vector_vec(vZ)[i] = displacementZ * vector_vec(argZ)[i];
-            vector_vec(vphase)[i] = vector_vec(argphase)[i];
-            vector_vec(vfreq)[i] = vector_vec(argfreq)[i];
-        }
+    for( int i=0; i<size; i++ ) {
+        vector_vec(vX)[i] = displacementX * vector_vec(argX)[i];
+        vector_vec(vY)[i] = displacementY * vector_vec(argY)[i];
+        vector_vec(vZ)[i] = displacementZ * vector_vec(argZ)[i];
+        vector_vec(vphase)[i] = vector_vec(argphase)[i];
+        vector_vec(vfreq)[i] = vector_vec(argfreq)[i];
+        vector_vec(vdelay)[i] = vector_vec(argdelay)[i];
+        vector_vec(vduration)[i] = vector_vec(argduration)[i];
+        vector_vec(vramp_up)[i] = vector_vec(argramp_up)[i];
+        vector_vec(vramp_down)[i] = vector_vec(argramp_down)[i];
     }
 #endif
 ENDVERBATIM
@@ -106,29 +109,35 @@ VERBATIM
 #ifndef CORENEURON_BUILD
     int i, size;
     double ramp_factor=1;
+    double cur_delay, cur_duration, cur_ramp_up, cur_ramp_down;
     _lefield_accum = 0;
 
-/* TODO: Adapting to multiple ElectrodeSources */
-    if( delay < t && t < delay+duration+ramp_up+ramp_down ) {
-       auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
-       auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
-       auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
-       auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
-       auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
+    auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
+    auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
+    auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
+    auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
+    auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
+    auto *vdelay = *reinterpret_cast<IvocVect**>(&_p_delay);
+    auto *vduration = *reinterpret_cast<IvocVect**>(&_p_duration);
+    auto *vramp_up = *reinterpret_cast<IvocVect**>(&_p_ramp_up);
+    auto *vramp_down = *reinterpret_cast<IvocVect**>(&_p_ramp_down);
+    size = vector_capacity(vX);
 
-       // TODO: if in a ramp up/down window, then scale further
-       if( delay < t && t < delay+ramp_up ) {
-           ramp_factor = (t-delay) / ramp_up;
-       }
-       if( delay+ramp_up+duration < t && t < delay+duration+ramp_up+ramp_down ) {
-           ramp_factor = 1 - (t-(delay+ramp_up+duration)) / ramp_down;
-       }
-
-       size = vector_capacity(vX);
-       for( i=0; i<size; i++ ) {
-           double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-delay) + vector_vec(vphase)[i] );
-	   _lefield_accum += 1e3 * ramp_factor * (vector_vec(vX)[i] * wavefactor + vector_vec(vY)[i] * wavefactor + vector_vec(vZ)[i] * wavefactor);
-       }
+    for( i=0; i<size; i++ ) {
+        cur_delay = vector_vec(vdelay)[i];
+        cur_duration = vector_vec(vduration)[i];
+        cur_ramp_up = vector_vec(vramp_up)[i];
+        cur_ramp_down = vector_vec(vramp_down)[i];
+        if( cur_delay < t && t < cur_delay + cur_duration + cur_ramp_up + cur_ramp_down ) {
+            if( cur_delay < t && t < cur_delay + cur_ramp_up ) {
+                ramp_factor = (t-cur_delay) / cur_ramp_up;
+            }
+            if( cur_delay + cur_ramp_up + cur_duration < t && t < cur_delay + cur_duration + cur_ramp_up + cur_ramp_down ) {
+                ramp_factor = 1 - (t - (cur_delay + cur_ramp_up + cur_duration)) / cur_ramp_down;
+            }
+            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i] );
+	        _lefield_accum += 1e3 * ramp_factor * (vector_vec(vX)[i] * wavefactor + vector_vec(vY)[i] * wavefactor + vector_vec(vZ)[i] * wavefactor);
+        }
     }
 #endif
 ENDVERBATIM

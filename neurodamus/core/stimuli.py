@@ -541,26 +541,36 @@ class ElectrodeSource:
                 section.insert("extracellular")
 
             # convert field data into multiple hoc vectors
-            freq_vector = Nd.h.Vector(len(self.fields))
-            phase_vector = Nd.h.Vector(len(self.fields))
-            x_vec = Nd.h.Vector(len(self.fields))
-            y_vec = Nd.h.Vector(len(self.fields))
-            z_vec = Nd.h.Vector(len(self.fields))
+            n_fields = len(self.fields)
+            freq_vector = Nd.h.Vector(n_fields)
+            phase_vector = Nd.h.Vector(n_fields)
+            x_vec = Nd.h.Vector(n_fields)
+            y_vec = Nd.h.Vector(n_fields)
+            z_vec = Nd.h.Vector(n_fields)
+            delay_vec = Nd.h.Vector(n_fields)
+            duration_vec = Nd.h.Vector(n_fields)
+            rup_vec = Nd.h.Vector(n_fields)
+            rdown_vec = Nd.h.Vector(n_fields)
+
             for i, field in enumerate(self.fields):
                 freq_vector.x[i] = field.frequency
                 phase_vector.x[i] = field.phase
                 x_vec.x[i] = field.ex
                 y_vec.x[i] = field.ey
                 z_vec.x[i] = field.ez
+                delay_vec.x[i] = field.delay
+                duration_vec.x[i] = field.duration
+                rup_vec.x[i] = field.ramp_up_time
+                rdown_vec.x[i] = field.ramp_down_time
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1
             efi.set_displacement(Nd.h.Vector(displacement))
             efi.add_electrode_source(
-                self.fields[0].delay,
-                self.fields[0].duration,
-                self.fields[0].ramp_up_time,
-                self.fields[0].ramp_down_time,
+                delay_vec,
+                duration_vec,
+                rup_vec,
+                rdown_vec,
                 x_vec,
                 y_vec,
                 z_vec,
