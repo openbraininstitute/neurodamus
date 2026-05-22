@@ -107,7 +107,7 @@ def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     assert len(es.fields) == 1
     duration = es.fields[0].duration
     efi = es.segment_efield_integrators[3]
-    max_potential = 1e3 * efi.get_potential_amplitude(0)  # from mV to V
+    max_potential = efi.get_potential_amplitude(0)
 
     def f_cos(t):
         return max_potential * np.cos(
@@ -240,7 +240,7 @@ def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     ramp_up_time = es.fields[0].ramp_up_time
     ramp_down_time = es.fields[0].ramp_down_time
     efi = es.segment_efield_integrators[3]
-    max_potential = 1e3 * efi.get_potential_amplitude(0)  # from mV to V
+    max_potential = efi.get_potential_amplitude(0)
 
     def f_cos(t):
         return max_potential * np.cos(

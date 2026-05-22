@@ -1,31 +1,28 @@
+import copy
 import json
+from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 
 import numpy as np
-from libsonata import EdgeStorage, SpikeReader, ElementReportReader, SimulationConfig
-from scipy.signal import find_peaks
-from collections import defaultdict
-from collections.abc import Iterable
+import pandas as pd
+from libsonata import EdgeStorage, ElementReportReader, SimulationConfig, SpikeReader
 
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
-from neurodamus.target_manager import TargetManager, TargetSpec
 from neurodamus.report import Report
 from neurodamus.report_parameters import create_report_parameters
-
-from typing import List, Dict, Tuple
-import pandas as pd
-import copy
+from neurodamus.target_manager import TargetManager, TargetSpec
 
 
-def merge_dicts(parent: dict, child: dict):
+def merge_dicts(parent: dict, child: dict):  # noqa: C901
     """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
     for ties. Values of matching keys must match or a TypeError is raised.
 
     Special values/keys:
     - If a key in `child` has value "delete_field", it will be removed from the result.
-    - If a dictionary (nested or not) in `child` contains the key "override_field", it replaces the corresponding
-      `parent` sub-dictionary entirely (ignoring merging).
+    - If a dictionary (nested or not) in `child` contains the key "override_field",
+      it replaces the corresponding `parent` sub-dictionary entirely (ignoring merging).
 
     Imported from MultiscaleRun.
 
@@ -73,12 +70,13 @@ def merge_dicts(parent: dict, child: dict):
             return parent[k]
         if k not in parent:
             return child[k]
-        if type(parent[k]) is not type(child[k]):
-            if not isinstance(parent[k], (int, float)) or not isinstance(child[k], (int, float)):
-                raise TypeError(
-                    f"Field type missmatch for the values of key {k}: "
-                    f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
-                )
+        if type(parent[k]) is not type(child[k]) and not (
+            isinstance(parent[k], (int, float)) and isinstance(child[k], (int, float))
+        ):
+            raise TypeError(
+                f"Field type missmatch for the values of key {k}: "
+                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+            )
         if isinstance(parent[k], dict):
             if "override_field" in child[k]:
                 return child[k]
@@ -86,26 +84,32 @@ def merge_dicts(parent: dict, child: dict):
             return merge_dicts(parent[k], child[k])
         return child[k]
 
-    ans = {
-        k: merge_vals(k, parent, child)
-        for k in set(parent) | set(child)
-        if not isinstance(child, dict) or k not in child or child[k] != "delete_field"
-    } if "override_field" not in child else copy.deepcopy(child)
+    ans = (
+        {
+            k: merge_vals(k, parent, child)
+            for k in set(parent) | set(child)
+            if not isinstance(child, dict) or k not in child or child[k] != "delete_field"
+        }
+        if "override_field" not in child
+        else copy.deepcopy(child)
+    )
     sanitize_dict(ans)
     return ans
+
 
 def defaultdict_to_standard_types(obj):
     """Recursively converts defaultdicts with iterable values to standard Python types."""
     if isinstance(obj, (defaultdict, dict)):
         return {key: defaultdict_to_standard_types(value) for key, value in obj.items()}
-    elif isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+    if isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
         return [defaultdict_to_standard_types(x) for x in obj]
-    elif isinstance(obj, np.generic):  # convert NumPy scalars to Python scalars
+    if isinstance(obj, np.generic):  # convert NumPy scalars to Python scalars
         return obj.item()
     return obj
 
+
 def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: int):
-    """ Convenience function to retrieve gids, edges, and selection.
+    """Convenience function to retrieve gids, edges, and selection.
 
     Nd is neurodamus.code.Neurodamus
     """
@@ -115,11 +119,13 @@ def get_edge_data(nd, src_pop: str, src_rawgid: int, tgt_pop: str, tgt_rawgid: i
     src_gid = src_rawgid + src_pop_offset
 
     if src_pop == tgt_pop:
-        edges_file, edge_pop = \
-            nd.circuits.get_edge_managers(tgt_pop, tgt_pop)[0].circuit_conf.nrnPath.split(":")
+        edges_file, edge_pop = nd.circuits.get_edge_managers(tgt_pop, tgt_pop)[
+            0
+        ].circuit_conf.nrnPath.split(":")
     else:
-        edges_file, edge_pop = \
+        edges_file, edge_pop = (
             nd.circuits.get_edge_managers(src_pop, tgt_pop)[0].circuit_conf["Path"].split(":")
+        )
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
     selection = edges.afferent_edges(tgt_rawgid)
@@ -146,22 +152,18 @@ def compare_json_files(res_file: Path, ref_file: Path):
     Args:
         res_file (Path): The path to the result JSON file to compare.
         ref_file (Path): The path to the reference JSON file to compare against.
-
-    Raises:
-        AssertionError: If the two JSON files have different contents.
-        FileNotFoundError: If either of the provided file paths does not exist.
     """
     assert res_file.exists()
     assert ref_file.exists()
-    with open(res_file) as f_res:
+    with open(res_file, encoding="utf-8") as f_res:
         result = json.load(f_res)
-    with open(ref_file) as f_ref:
+    with open(ref_file, encoding="utf-8") as f_ref:
         reference = json.load(f_ref)
     assert result == reference
 
 
 def check_directory(dir_name: "Path | str"):
-    """ Check if a directory exists and is not empty """
+    """Check if a directory exists and is not empty"""
     dir_name = Path(dir_name)
     assert dir_name.is_dir(), f"{dir_name} doesn't exist"
     assert any(dir_name.iterdir()), f"{dir_name} is empty"
@@ -208,19 +210,13 @@ def check_netcon(src_gid, nc_id, nc, edges, selection, **kwargs):
         **kwargs: Optional arguments to override default values
         for conductance, delay, spike threshold, and initial voltage.
 
-    Raises:
-        AssertionError: If any of the attribute checks fail.
     """
 
     assert nc.srcgid() == src_gid
     assert np.isclose(
         nc.weight[0],
-        kwargs.get(
-            "weight",
-            1.0) *
-        edges.get_attribute(
-            "conductance",
-            selection)[nc_id])
+        kwargs.get("weight", 1.0) * edges.get_attribute("conductance", selection)[nc_id],
+    )
     assert np.isclose(nc.delay, _get_attr("delay", kwargs, edges, selection, nc_id))
     assert np.isclose(nc.threshold, kwargs.get("spike_threshold", SimConfig.spike_threshold))
     assert np.isclose(nc.x, kwargs.get("v_init", SimConfig.v_init))
@@ -259,8 +255,6 @@ def check_synapse(syn, edges, selection, **kwargs):
                 Keys include `decay_time`, `u_syn`, `depression_time`,
                 `facilitation_time`, and `n_rrp_vesicles`.
 
-    Raises:
-        AssertionError: If any of the synaptic attributes do not match the expected values.
     """
 
     expected_types = ["ProbGABAAB_EMS", "ProbAMPANMDA_EMS"]
@@ -291,7 +285,8 @@ def check_synapse(syn, edges, selection, **kwargs):
     if "NMDA_ratio" in kwargs and hasattr(syn, "NMDA_ratio"):
         assert np.isclose(syn.NMDA_ratio, kwargs["NMDA_ratio"])
 
-def record_compartment_reports(target_manager: TargetManager, nd_t=0):
+
+def record_compartment_reports(target_manager: TargetManager, nd_t=0):  # noqa: PLR0914
     """For compartment report, retrieve segments, and record the pointer of reporting variable
     More details in NEURON Vector.record()
 
@@ -299,14 +294,21 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
     """
     ascii_recorders = {}
 
-
     reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
 
     for rep_name, rep_conf in reports_conf.items():
         target_spec = TargetSpec(rep_conf.cells, None)
         target = target_manager.get_target(target_spec)
 
-        rep_params = create_report_parameters(sim_end=SimConfig.run_conf.tstop, nd_t=nd_t, output_root=SimConfig.output_root, rep_name=rep_name, rep_conf=rep_conf, target=target, buffer_size=8)
+        rep_params = create_report_parameters(
+            sim_end=SimConfig.run_conf.tstop,
+            nd_t=nd_t,
+            output_root=SimConfig.output_root,
+            rep_name=rep_name,
+            rep_conf=rep_conf,
+            target=target,
+            buffer_size=8,
+        )
 
         if rep_params.type != SimulationConfig.Report.Type.compartment:
             continue
@@ -315,10 +317,18 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
         tvec.indgen(rep_params.start, rep_params.end, rep_params.dt)
 
         sections, compartments = rep_params.sections, rep_params.compartments
-        if rep_params.type == SimulationConfig.Report.Type.summation and sections == SimulationConfig.Report.Sections.soma:
-            sections, compartments = SimulationConfig.Report.Sections.all, SimulationConfig.Report.Compartments.all
+        if (
+            rep_params.type == SimulationConfig.Report.Type.summation
+            and sections == SimulationConfig.Report.Sections.soma
+        ):
+            sections, compartments = (
+                SimulationConfig.Report.Sections.all,
+                SimulationConfig.Report.Compartments.all,
+            )
         points = rep_params.target.get_point_list(
-            cell_manager=target_manager._cell_manager, section_type=sections, compartment_type=compartments
+            cell_manager=target_manager._cell_manager,
+            section_type=sections,
+            compartment_type=compartments,
         )
 
         recorder = []
@@ -338,7 +348,7 @@ def record_compartment_reports(target_manager: TargetManager, nd_t=0):
                 trace = Nd.Vector()
                 trace.record(var_refs[0], tvec)
                 segname = str(section(x))
-                segname = segname[segname.find(".") + 1:]
+                segname = segname[segname.find(".") + 1 :]
                 recorder.append((gid, segname, trace))
 
         ascii_recorders[rep_name] = (recorder, tvec)
@@ -349,7 +359,7 @@ def write_ascii_reports(ascii_recorders, output_path):
     """Write out the report in ASCII format"""
     for rep_name, (recorder, tvec) in ascii_recorders.items():
         filename = Path(output_path) / (rep_name + ".txt")
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(f"{'cell_id':<10}{'seg_name':<20}{'time':<20}{'data':<20}\n")
             for gid, secname, data_vec in recorder:
                 f.writelines(
@@ -361,10 +371,10 @@ def write_ascii_reports(ascii_recorders, output_path):
 
 
 def read_ascii_report(filename):
-    """Read an ASCII report and return report data in format:(gid, seg_name, time, report_variable)
-    """
+    """Read an ASCII report and return report data in format:
+    (gid, seg_name, time, report_variable)"""
     data_vec = []
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         next(f)  # skip header
         for line in f:
             gid, seg_name, time, data = line.split()
@@ -373,7 +383,7 @@ def read_ascii_report(filename):
 
 
 def read_sonata_spike_file(spike_file):
-    """ Read a spike file and return the traces """
+    """Read a spike file and return the traces"""
     spikes = SpikeReader(spike_file)
     pop_name = spikes.get_population_names()[0]
     data = spikes[pop_name].get()
@@ -396,10 +406,28 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
 
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
-class ReportReader:
+
+def f_cos(t, freq, phase, amp):
+    """compute the cosine value"""
+    return amp * np.cos(2 * np.pi * freq / 1000 * t + phase)
+
+
+def make_ramp_envelope(t_vec, ramp_up_time, ramp_down_time, duration):
+    """With a given time vector, return a vector taking into account ramp up and down time"""
+    envelope = np.ones(len(t_vec))
+    envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
+    envelope = np.where(
+        t_vec > ramp_up_time + duration,
+        1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
+        envelope,
+    )
+    return envelope
+
+
+class ReportReader:  # noqa: PLW1641
     def __init__(self, file: str):
         self._reader = ElementReportReader(file)
-        self.populations: Dict[str, Tuple[List[int], pd.DataFrame]] = {}
+        self.populations: dict[str, tuple[list[int], pd.DataFrame]] = {}
 
         for name in sorted(self._reader.get_population_names()):
             pop = self._reader[name]
@@ -408,9 +436,7 @@ class ReportReader:
 
             # stable sort for ties
             df = pd.DataFrame(
-                data.data,
-                columns=pd.MultiIndex.from_arrays(data.ids.T),
-                index=data.times
+                data.data, columns=pd.MultiIndex.from_arrays(data.ids.T), index=data.times
             ).sort_index(axis=1)
 
             self.populations[name] = (node_ids, df)
@@ -439,7 +465,7 @@ class ReportReader:
 
             # coreneuron has sometimes garbage for the first line
             # erro thresholds as for old bb5 itegration report tests
-            if not np.allclose(df1.values[1:], df2.values[1:], rtol=rtol, atol=atol):
+            if not np.allclose(df1.to_numpy()[1:], df2.to_numpy()[1:], rtol=rtol, atol=atol):
                 return False
 
         return True
@@ -451,10 +477,9 @@ class ReportReader:
             if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1:
                 new_df = df.T.groupby(level=0).sum().T
                 # force 2-level MultiIndex with second level zeros
-                new_df.columns = pd.MultiIndex.from_arrays([
-                    new_df.columns,
-                    [0] * len(new_df.columns)
-                ])
+                new_df.columns = pd.MultiIndex.from_arrays(
+                    [new_df.columns, [0] * len(new_df.columns)]
+                )
                 new_nodes = sorted(new_df.columns.get_level_values(0).tolist())
             else:
                 new_df = df.copy()
@@ -464,16 +489,16 @@ class ReportReader:
 
         self.populations = new_populations
 
-    def reduce_to_compartment_set_report(self, population: str, positions: List[int]) -> None:
+    def reduce_to_compartment_set_report(self, population: str, positions: list[int]) -> None:
         """
         Create and return a new ReportReader reduced to the selected columns
-        of a population’s compartment set report. The original object is not
+        of a population's compartment set report. The original object is not
         modified
         """
         if population not in self.populations:
             raise ValueError(f"Population '{population}' not found in report.")
 
-        nodes, df = self.populations[population]
+        _nodes, df = self.populations[population]
 
         if not isinstance(df.columns, pd.MultiIndex) or df.columns.nlevels != 2:
             raise ValueError("Expected columns to be a 2-level MultiIndex.")
@@ -483,7 +508,7 @@ class ReportReader:
 
         # No need to rebuild MultiIndex — iloc preserves it
         # Extract node IDs from level 0 (with repetitions, in order)
-        new_nodes = sorted(list(set([col[0] for col in new_df.columns])))
+        new_nodes = sorted({col[0] for col in new_df.columns})
 
         new_reader = ReportReader.__new__(ReportReader)  # bypass __init__
         new_reader._reader = self._reader
@@ -495,8 +520,12 @@ class ReportReader:
         lines = [f"ReportReader with {len(self.populations)} populations:"]
         for name, (nodes, df) in self.populations.items():
             nodes_str = ", ".join(str(n) for n in nodes)
-            lines.append(f"  - {name}: {len(nodes)} nodes, shape={df.shape}")
-            lines.append(f"      node_ids: [{nodes_str}]")
+            lines.extend(
+                [
+                    f"  - {name}: {len(nodes)} nodes, shape={df.shape}",
+                    f"      node_ids: [{nodes_str}]",
+                ]
+            )
 
             columns = df.columns
             cols_str = ", ".join(f"({a},{b})" for a, b in columns)
@@ -541,5 +570,3 @@ class ReportReader:
         new_report._reader = None  # or keep from self if needed
 
         return new_report
-
-

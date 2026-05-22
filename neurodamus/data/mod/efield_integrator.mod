@@ -85,12 +85,13 @@ ENDVERBATIM
 }
 
 FUNCTION get_potential_amplitude(i) {
+    : get potential amplitude for ith electrod field, in V
 VERBATIM
     int idx = (int)_li;
     auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
     auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
     auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
-    _lget_potential_amplitude = vector_vec(vX)[idx] + vector_vec(vY)[idx] + vector_vec(vZ)[idx];
+    _lget_potential_amplitude = 1e3 * (vector_vec(vX)[idx] + vector_vec(vY)[idx] + vector_vec(vZ)[idx]);
 ENDVERBATIM
 }
 
@@ -128,7 +129,7 @@ VERBATIM
                 ramp_factor = 1 - (t - (cur_delay + cur_ramp_up + cur_duration)) / cur_ramp_down;
             }
             double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i] );
-	        _lefield_accum += 1e3 * ramp_factor * get_potential_amplitude(i) * wavefactor;
+	        _lefield_accum += ramp_factor * get_potential_amplitude(i) * wavefactor;
         }
     }
 #endif

@@ -3,7 +3,6 @@
 import logging
 from dataclasses import dataclass
 
-from .configuration import ConfigurationError
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
 
@@ -517,7 +516,7 @@ class ElectrodeSource:
 
     def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time):
         self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
-        self.segment_efield_integrators = []  # list of EFieldIntegrator attached to segments
+        self.segment_efield_integrators = []  # list of EFieldIntegrator mechs attached to segments
         self.fields = [
             EField(
                 ex=f["Ex"],
@@ -582,11 +581,9 @@ class ElectrodeSource:
 
     def cleanup(self):
         """Clear unused list variable to free memory"""
-        self.efields = None
         self.segment_displacements = None
 
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""
-        logging.error("Multiple ElectrodeSource not supported with nmodl")
-        raise ConfigurationError("Support for multiple ElectrodeSources pending")
-        # return self
+        self.fields.extend(other.fields)
+        return self
