@@ -516,7 +516,6 @@ class ElectrodeSource:
         self.dt = dt
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
-        self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
         self.segment_efield_integrators = []
 
     def delay(self, duration):
@@ -527,9 +526,13 @@ class ElectrodeSource:
         self._cur_t += duration
         return self
 
-    def apply_segment_potentials(self):
-        """Apply potentials to segment.extracellular._ref_e"""
-        for segment, displacement in self.segment_displacements.items():
+    def apply_segment_potentials(self, segment_displacements):
+        """Apply potentials to segment.extracellular._ref_e
+
+        Args:
+            segment_displacements: dict mapping segment -> displacement vector (x/y/z in meters)
+        """
+        for segment, displacement in segment_displacements.items():
             section = segment.sec
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")
@@ -562,13 +565,6 @@ class ElectrodeSource:
                 freq_vector,
             )
             self.segment_efield_integrators.append(efi)
-
-        self.cleanup()
-
-    def cleanup(self):
-        """Clear unused list variable to free memory"""
-        self.efields = None
-        self.segment_displacements = None
 
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""

@@ -373,9 +373,6 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
 
-    assert es.efields is None
-    assert es.segment_displacements is None
-
     n.clear_model()
 
 

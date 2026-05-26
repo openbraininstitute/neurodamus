@@ -411,8 +411,6 @@ def test_two_fields(create_tmp_simulation_config_file):
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
 
-    assert es.segment_displacements is None
-
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",

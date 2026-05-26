@@ -822,7 +822,7 @@ class Node:
             self._stim_manager.interpret(target_spec, stim)
         if SimConfig.has_extracellular_stimulus:
             logging.info("Inject extracellular stimuli")
-            SpatiallyUniformEField.apply_all_stimuli()
+            SpatiallyUniformEField.apply_all_stimuli(self._target_manager._cell_manager)
 
     # -
     @mpi_no_errors

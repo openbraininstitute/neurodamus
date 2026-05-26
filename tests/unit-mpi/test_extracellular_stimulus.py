@@ -114,5 +114,3 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     npt.assert_allclose(rec_dend, REF_CONSTANT[gid], atol=1e-6)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
-
-    assert es.segment_displacements is None
