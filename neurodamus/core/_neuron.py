@@ -89,8 +89,10 @@ class _Neuron:
     def section_in_stack(self, sec):
         """A contect manager to push and pop a section to the Neuron stack."""
         sec.push()
-        yield
-        self.h.pop_section()
+        try:
+            yield
+        finally:
+            self.h.pop_section()
 
     # Properties that are not found here are get / set
     # directly in neuron.h

@@ -268,8 +268,10 @@ class timeit(ContextDecorator):  # noqa: N801
 def timeit_rank0(name):
     if MPI.rank == 0:
         t = _Timer(name).start()
-        yield
-        t.stop()
-        t.log(keyword="rank0")
+        try:
+            yield
+        finally:
+            t.stop()
+            t.log(keyword="rank0")
     else:
         yield  # No-op
