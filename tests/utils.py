@@ -10,6 +10,7 @@ from libsonata import EdgeStorage, ElementReportReader, SimulationConfig, SpikeR
 
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
+from neurodamus.core.stimuli import EField
 from neurodamus.report import Report
 from neurodamus.report_parameters import create_report_parameters
 from neurodamus.target_manager import TargetManager, TargetSpec
@@ -407,21 +408,45 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
 
-def f_cos(t, freq, phase, amp):
-    """compute the cosine value"""
-    return amp * np.cos(2 * np.pi * freq / 1000 * t + phase)
+def get_expected_extracellular_potential(tot_tvec, efi, fields: list[EField]):
+    """For tests regarding the extracellular stimulus, compute the expected extracellular potential
+    Args:
+     tot_tvec: total time vector
+    efi: the Neuron EFieldIntegrator mechanism in order to get the amplitude
+    fields: list of Efields"""
 
+    def _f_cos(t, freq, phase, amp):
+        """compute the cosine value"""
+        return amp * np.cos(2 * np.pi * freq / 1000 * t + phase)
 
-def make_ramp_envelope(t_vec, ramp_up_time, ramp_down_time, duration):
-    """With a given time vector, return a vector taking into account ramp up and down time"""
-    envelope = np.ones(len(t_vec))
-    envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
-    envelope = np.where(
-        t_vec > ramp_up_time + duration,
-        1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
-        envelope,
-    )
-    return envelope
+    def _make_ramp_envelope(t_vec, ramp_up_time, ramp_down_time, duration):
+        """With a given time vector, return a vector taking into account ramp up and down time"""
+        envelope = np.ones(len(t_vec))
+        envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
+        envelope = np.where(
+            t_vec > ramp_up_time + duration,
+            1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
+            envelope,
+        )
+        return envelope
+
+    ref_dend = np.zeros(len(tot_tvec))
+    for idx, field in enumerate(fields):
+        dur = field.duration
+        delay = field.delay
+        ramp_up = field.ramp_up_time
+        ramp_down = field.ramp_down_time
+        start_idx = np.searchsorted(tot_tvec, delay)
+        stop_idx = np.searchsorted(tot_tvec, dur + ramp_up + ramp_down + delay)
+        t_vec = tot_tvec[start_idx:stop_idx] - delay
+        ramp_vec = _make_ramp_envelope(t_vec, ramp_up, ramp_down, dur)
+        ref_dend[start_idx:stop_idx] += (
+            _f_cos(t_vec, field.frequency, field.phase, efi.get_potential_amplitude(idx)) * ramp_vec
+        )
+
+        # potential is always 0 at t=0
+        ref_dend[0] = 0
+    return ref_dend
 
 
 class ReportReader:  # noqa: PLW1641

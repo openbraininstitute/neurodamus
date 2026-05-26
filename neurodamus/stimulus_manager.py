@@ -925,18 +925,9 @@ class SpatiallyUniformEField(BaseStim):
                 es.apply_segment_potentials()
 
     def parse_check_all_parameters(self, stim_info: dict):
-        self.duration = float(stim_info["Duration"])  # duration [ms]
+        self.duration = float(stim_info["Duration"])
         self.dt = float(SimConfig.run_conf.dt)
-        self.delay = float(stim_info["Delay"])  # start time [ms]
-        if not (np.isclose(self.delay % self.dt, 0) or np.isclose(self.delay % self.dt, self.dt)):
-            self.delay = np.ceil(self.delay / self.dt) * self.dt
-            logging.warning(
-                "%s delay %s is not divisible by dt %s, rounded up to the next time point %s",
-                self.__class__.__name__,
-                stim_info["Delay"],
-                self.dt,
-                self.delay,
-            )
+        self.delay = float(stim_info["Delay"])
         self.fields = stim_info["Fields"]
         self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
         self.ramp_down_time = stim_info.get("RampDownTime", 0.0)

@@ -117,8 +117,6 @@ BEFORE BREAKPOINT {
 VERBATIM
 #ifndef CORENEURON_BUILD
     int i, size;
-    double ramp_factor=1;
-    double cur_delay, cur_duration, cur_ramp_up, cur_ramp_down;
     _lefield_accum = 0;
 
     auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
@@ -133,10 +131,11 @@ VERBATIM
     size = vector_capacity(vX);
 
     for( i=0; i<size; i++ ) {
-        cur_delay = vector_vec(vdelay)[i];
-        cur_duration = vector_vec(vduration)[i];
-        cur_ramp_up = vector_vec(vramp_up)[i];
-        cur_ramp_down = vector_vec(vramp_down)[i];
+        double ramp_factor=1;
+        double cur_delay = vector_vec(vdelay)[i];
+        double cur_duration = vector_vec(vduration)[i];
+        double cur_ramp_up = vector_vec(vramp_up)[i];
+        double cur_ramp_down = vector_vec(vramp_down)[i];
         if( cur_delay < t && t < cur_delay + cur_duration + cur_ramp_up + cur_ramp_down ) {
             if( cur_delay < t && t < cur_delay + cur_ramp_up ) {
                 ramp_factor = (t-cur_delay) / cur_ramp_up;

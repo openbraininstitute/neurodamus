@@ -7,89 +7,15 @@ from scipy.signal import find_peaks
 
 from tests.conftest import RINGTEST_DIR
 from tests.utils import (
-    f_cos,
-    make_ramp_envelope,
+    get_expected_extracellular_potential,
     read_ascii_report,
     record_compartment_reports,
     write_ascii_reports,
 )
 
-from neurodamus import Neurodamus, Node
+from neurodamus import Neurodamus
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
-
-pytestmark = pytest.mark.skip(reason="not implemented yet")
-
-# Reference of various stim vectors without delay
-REF_COSINE = np.array(
-    [
-        -0.0,
-        -0.204561,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.505702,
-        -0.409122,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.337135,
-        0.136374,
-        0.0,
-        0.0,
-    ]
-)
-
-REF_CONSTANT = np.array(
-    [
-        -0.0,
-        -0.482168,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.64289,
-        -0.321445,
-        -0.0,
-        0.0,
-    ]
-)
-
-REF_CONSTANT_SMALLCELL = [
-    -0.0,
-    -8.006978,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -16.013957,
-    -10.675971,
-    -5.337986,
-    -0.0,
-    0.0,
-]
 
 
 @pytest.mark.parametrize(
@@ -99,13 +25,13 @@ REF_CONSTANT_SMALLCELL = [
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 20},
                 "inputs": {
                     "ex_efields_1": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
-                        "duration": 10,
+                        "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
                             {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
@@ -131,7 +57,7 @@ REF_CONSTANT_SMALLCELL = [
     ],
     indirect=True,
 )
-def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR0914
+def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     """
     Two stimulus blocks, one contains a cosine field and the other contains a constant field,
     they should be summed
@@ -149,8 +75,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR091
     assert len(n._stim_manager._stimulus) == 1
     stimulus = n._stim_manager._stimulus[0]
     assert stimulus == SpatiallyUniformEField._instance
-    cell_manager = n.circuits.get_node_manager("RingA")
-    cellref = cell_manager.get_cellref(0)
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
     rec_dend = Nd.Vector()
     rec_dend.record(cellref.dend[0](0.25).extracellular._ref_e)
     rec_soma = Nd.Vector()
@@ -163,35 +88,14 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR091
     assert isinstance(es, ElectrodeSource)
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)
     assert len(es.fields) == 2
-    d1 = es.fields[0].duration + es.fields[0].ramp_up_time + es.fields[0].ramp_down_time
-    d2 = es.fields[1].duration + es.fields[1].ramp_up_time + es.fields[1].ramp_down_time
-    dt = Nd.dt
     dend_efi = es.segment_efield_integrators[3]
 
-    t1_vec = np.concatenate([[0], np.arange(dt / 2, d1, dt)])
-    ramp1_vec = make_ramp_envelope(
-        t1_vec, es.fields[0].ramp_up_time, es.fields[0].ramp_down_time, es.fields[0].duration
-    )
-    t2_vec = np.concatenate([[0], np.arange(dt / 2, d2, dt)])
-    ramp2_vec = make_ramp_envelope(
-        t2_vec, es.fields[1].ramp_up_time, es.fields[1].ramp_down_time, es.fields[1].duration
-    )
-    tot_tvec = np.concatenate([[0], np.arange(dt / 2, Nd.tstop, dt)])
-    ref_dend = (
-        f_cos(
-            t1_vec, es.fields[0].frequency, es.fields[0].phase, dend_efi.get_potential_amplitude(0)
-        )
-        * ramp1_vec
-        + f_cos(
-            t2_vec, es.fields[1].frequency, es.fields[1].phase, dend_efi.get_potential_amplitude(1)
-        )
-        * ramp2_vec
-    )
-    ref_zeros = np.zeros(len(tot_tvec))
-    ref_final = ref_zeros.copy()
-    ref_final[: len(ref_dend)] += ref_dend
-    npt.assert_allclose(rec_soma, ref_zeros)
-    npt.assert_allclose(rec_dend, ref_final)
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    ref_soma = np.zeros(len(tot_tvec))
+    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+
+    npt.assert_allclose(rec_soma, ref_soma)
+    npt.assert_allclose(rec_dend, ref_dend)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
     assert es.segment_displacements is None
@@ -210,7 +114,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR091
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 5,
-                        "duration": 10,
+                        "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
                             {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
@@ -221,7 +125,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR091
                     "ex_efields_2": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
-                        "delay": 4.5,
+                        "delay": 4.4,
                         "duration": 10,
                         "node_set": "RingA_Cell0",
                         "fields": [
@@ -236,10 +140,9 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):  # noqa: PLR091
     ],
     indirect=True,
 )
-def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
+def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
     """
     1. Check the combination of two stimulus blocks, one with delay.
-    2. The original delay 4.5 is not divisible by dt 1.0, rounded up to the next time point.
     3. Record one segment extracellular._ref_e and run simulation, check the values
     """
     from neurodamus.core import (
@@ -247,43 +150,24 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
     )  # Import at function level, otherwise will impact other tests
 
     n = Neurodamus(create_tmp_simulation_config_file)
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
+    assert len(n._stim_manager._stimulus) == 1
     stimulus = n._stim_manager._stimulus[0]
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    captured = capsys.readouterr()
-    warning = (
-        "[WARNING] SpatiallyUniformEField delay 4.5 is not divisible by dt 1.0, "
-        "rounded up to the next time point 5.0"
-    )
-    assert warning in captured.out
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 5)
-    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
-    ref_stimvec = np.zeros(len(ref_timevec))
-    es = stimulus.stimList[0]
-    soma_stim_vec = es.segment_potentials[0]
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = es.segment_potentials[3]
-    npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
-
-    # record segment extracellular_e, check result after simulation run
-    cell_manager = n.circuits.get_node_manager("RingA")
-    dend_seg = cell_manager.get_cellref(0).dend[0](0.25)
-    rec_seg_e = Nd.h.Vector()
-    rec_seg_e.record(dend_seg.extracellular._ref_e)
+    rec_dend = Nd.Vector()
+    rec_dend.record(cellref.dend[0](0.25).extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    assert len(rec_seg_e) == 31
-    # check extracellular_e has been assigned to the correct values
-    npt.assert_allclose(
-        rec_seg_e[6:25],
-        REF_COSINE + REF_CONSTANT,
-        rtol=1e-5,
-    )
-    # check extracellular_e is back to 0 before and after injection
-    npt.assert_allclose(rec_seg_e[0:5], 0)
-    npt.assert_allclose(rec_seg_e[26:], 0)
+
+    assert list(stimulus.stimList.keys()) == [0]
+    es = stimulus.stimList[0]
+    assert isinstance(es, ElectrodeSource)
+    assert len(es.fields) == 2
+
+    dend_efi = es.segment_efield_integrators[3]
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+
+    npt.assert_allclose(rec_dend, ref_dend)
 
 
 @pytest.mark.parametrize(
@@ -293,13 +177,13 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "network": str(RINGTEST_DIR / "circuit_config_bigA.json"),
-                "run": {"dt": 1},
+                "run": {"dt": 1, "tstop": 20},
                 "inputs": {
                     "ex_efields_1": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
                         "delay": 5,
-                        "duration": 10,
+                        "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
                             {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
@@ -310,7 +194,7 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
                     "ex_efields_2": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
-                        "delay": 5,
+                        "delay": 4.4,
                         "duration": 10,
                         "node_set": "RingA_Cell0",
                         "fields": [
@@ -322,8 +206,8 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file, capsys):
                     "ex_efields_3": {
                         "input_type": "extracellular_stimulation",
                         "module": "spatially_uniform_e_field",
-                        "delay": 5,
-                        "duration": 10,
+                        "delay": 4.5,
+                        "duration": 6,
                         "node_set": "RingA_Cell0",
                         "fields": [
                             {"Ex": 200, "Ey": -100, "Ez": 100, "frequency": 0.001},
@@ -341,29 +225,28 @@ def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     """
     Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
     """
+    from neurodamus.core import (
+        NeuronWrapper as Nd,
+    )  # Import at function level, otherwise will impact other tests
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 5)
-    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
-    ref_stimvec = np.zeros(len(ref_timevec))
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
+    stimulus = n._stim_manager._stimulus[0]
+    rec_dend = Nd.Vector()
+    rec_dend.record(cellref.dend[0](0.25).extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+
     es = stimulus.stimList[0]
-    soma_stim_vec = es.segment_potentials[0]
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(soma_stim_vec, ref_stimvec)
-    dend_stim_vec = es.segment_potentials[3]
-    npt.assert_allclose(
-        dend_stim_vec,
-        np.append(0, REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT),
-        rtol=1e-6,
-    )
-    n.clear_model()
+    assert len(es.fields) == 3
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    dend_efi = es.segment_efield_integrators[3]
+
+    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+
+    npt.assert_allclose(rec_dend, ref_dend)
 
 
 @pytest.mark.parametrize(
@@ -412,28 +295,38 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
     cell 1,2 contain the 2nd stimluli
     """
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
-    stimulus = n._stim_manager._stimulus[0]
-    duration = stimulus.duration + stimulus.ramp_up_time + stimulus.ramp_down_time
-    dt = stimulus.dt
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 5)
-    ref_timevec = [0, *np.arange(delay, delay + duration + dt + 0.1, dt)]
-    # cell 0
-    es0 = stimulus.stimList[0]
-    dend_stim_vec = es0.segment_potentials[3]
-    npt.assert_allclose(es0.time_vec, ref_timevec)
-    npt.assert_allclose(dend_stim_vec, np.append(0, REF_COSINE + REF_CONSTANT), rtol=1e-5)
+    from neurodamus.core import (
+        NeuronWrapper as Nd,
+    )  # Import at function level, otherwise will impact other tests
 
-    # cell 1
+    n = Neurodamus(create_tmp_simulation_config_file)
+    cellref0 = n.circuits.get_node_manager("RingA").get_cellref(0)
+    cellref1 = n.circuits.get_node_manager("RingA").get_cellref(1)
+    stimulus = n._stim_manager._stimulus[0]
+    rec_dend0 = Nd.Vector()
+    rec_dend0.record(cellref0.dend[0](0.25).extracellular._ref_e)
+    rec_dend1 = Nd.Vector()
+    rec_dend1.record(cellref1.dend[0](0.25).extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+
+    # cell 0, big cell
+    es0 = stimulus.stimList[0]
+    assert len(es0.fields) == 2
+    ref0 = get_expected_extracellular_potential(
+        tot_tvec, es0.segment_efield_integrators[3], es0.fields
+    )
+    npt.assert_allclose(rec_dend0, ref0)
+
+    # cell 1, small cell
     es1 = stimulus.stimList[1]
-    dend_stim_vec = es1.segment_potentials[3]
-    npt.assert_allclose(es1.time_vec, ref_timevec)
-    npt.assert_allclose(dend_stim_vec, np.append(0, REF_CONSTANT_SMALLCELL), rtol=1e-5)
-    n.clear_model()
+    assert len(es1.fields) == 1
+    ref1 = get_expected_extracellular_potential(
+        tot_tvec, es1.segment_efield_integrators[1], es1.fields
+    )
+    npt.assert_allclose(rec_dend1, ref1)
 
 
 @pytest.mark.parametrize(
@@ -478,61 +371,27 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
     Check 2 stimulus blocks with different time window
     block 1 : [5,17], block 2: [0,7]
     """
+    from neurodamus.core import (
+        NeuronWrapper as Nd,
+    )  # Import at function level, otherwise will impact other tests
 
-    n = Node(create_tmp_simulation_config_file)
-    n.load_targets()
-    n.create_cells()
-    n.enable_stimulus()
+    n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 0)  # delay of the last stimulus block
-    ref_timevec = [
-        0.0,
-        1.0,
-        2.0,
-        3.0,
-        4.0,
-        5.0,
-        6.0,
-        7.0,
-        8.0,
-        9.0,
-        10.0,
-        11.0,
-        12.0,
-        13.0,
-        14.0,
-        15.0,
-        16.0,
-        17.0,
-        18.0,
-    ]
-    ref_stimvec = [
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -1.168896,
-        -1.120606,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.337135,
-        -0.136374,
-        -0.0,
-        0.0,
-    ]
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
+    stimulus = n._stim_manager._stimulus[0]
+    rec_dend = Nd.Vector()
+    rec_dend.record(cellref.dend[0](0.25).extracellular._ref_e)
+    Nd.finitialize()  # reinit for the recordings to be registered
+    n.run()
+
     es = stimulus.stimList[0]
-    dend_stim_vec = es.segment_potentials[3]
-    npt.assert_allclose(es.time_vec, ref_timevec)
-    npt.assert_allclose(dend_stim_vec, ref_stimvec, rtol=1e-5)
-    n.clear_model()
+    assert len(es.fields) == 2
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    dend_efi = es.segment_efield_integrators[3]
+
+    ref = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+    npt.assert_allclose(rec_dend, ref)
 
 
 @pytest.mark.parametrize(
