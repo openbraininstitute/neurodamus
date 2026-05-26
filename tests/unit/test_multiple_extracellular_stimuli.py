@@ -34,7 +34,7 @@ from neurodamus.stimulus_manager import SpatiallyUniformEField
                         "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
-                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100, "phase": 1.570796},
                         ],
                         "ramp_up_time": 3.0,
                         "ramp_down_time": 4.0,
@@ -117,7 +117,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
                         "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
-                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100, "phase": 1.570796},
                         ],
                         "ramp_up_time": 3.0,
                         "ramp_down_time": 4.0,
@@ -186,7 +186,7 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
                         "duration": 5,
                         "node_set": "RingA_Cell0",
                         "fields": [
-                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100},
+                            {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100, "phase": 1.570796},
                         ],
                         "ramp_up_time": 3.0,
                         "ramp_down_time": 4.0,
