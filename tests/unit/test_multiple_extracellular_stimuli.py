@@ -7,7 +7,7 @@ from scipy.signal import find_peaks
 
 from tests.conftest import RINGTEST_DIR
 from tests.utils import (
-    get_expected_extracellular_potential,
+    get_expected_extracellular_potentials,
     read_ascii_report,
     record_compartment_reports,
     write_ascii_reports,
@@ -92,7 +92,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     ref_soma = np.zeros(len(tot_tvec))
-    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
 
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -165,7 +165,7 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
 
     dend_efi = es.segment_efield_integrators[3]
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
 
     npt.assert_allclose(rec_dend, ref_dend)
 
@@ -244,7 +244,7 @@ def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     dend_efi = es.segment_efield_integrators[3]
 
-    ref_dend = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
 
     npt.assert_allclose(rec_dend, ref_dend)
 
@@ -315,7 +315,7 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
     # cell 0, big cell
     es0 = stimulus.stimList[0]
     assert len(es0.fields) == 2
-    ref0 = get_expected_extracellular_potential(
+    ref0 = get_expected_extracellular_potentials(
         tot_tvec, es0.segment_efield_integrators[3], es0.fields
     )
     npt.assert_allclose(rec_dend0, ref0)
@@ -323,7 +323,7 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
     # cell 1, small cell
     es1 = stimulus.stimList[1]
     assert len(es1.fields) == 1
-    ref1 = get_expected_extracellular_potential(
+    ref1 = get_expected_extracellular_potentials(
         tot_tvec, es1.segment_efield_integrators[1], es1.fields
     )
     npt.assert_allclose(rec_dend1, ref1)
@@ -390,7 +390,7 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     dend_efi = es.segment_efield_integrators[3]
 
-    ref = get_expected_extracellular_potential(tot_tvec, dend_efi, es.fields)
+    ref = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
     npt.assert_allclose(rec_dend, ref)
 
 

@@ -408,8 +408,8 @@ def compare_outdat_files(file1, file2, start_time=None, end_time=None):
     return np.array_equal(np.sort(events1, axis=0), np.sort(events2, axis=0))
 
 
-def get_expected_extracellular_potential(tot_tvec, efi, fields: list[EField]):
-    """For tests regarding the extracellular stimulus, compute the expected extracellular potential
+def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
+    """For tests regarding the extracellular stimulus, compute the expected extracellular potentials
     Args:
      tot_tvec: total time vector
     efi: the Neuron EFieldIntegrator mechanism in order to get the amplitude
