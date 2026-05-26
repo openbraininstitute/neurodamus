@@ -33,11 +33,11 @@ build-libsonata() {
 
     if [[ -n $SCCACHE_DIR ]]; then
         echo "Using sccache"
-        export CC="sccache mpicc"
-        export CXX="sccache mpic++"
+        CC="sccache mpicc"
+        CXX="sccache mpic++"
     else
-        export CC="mpicc"
-        export CXX="mpic++"
+        CC="mpicc"
+        CXX="mpic++"
     fi
 
     CMAKE_PREFIX_PATH=$INSTALL_DIR \

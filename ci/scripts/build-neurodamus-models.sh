@@ -19,8 +19,8 @@ build-neocortex-models() {
 
     if [[ ! -e $NEOCORTEX_MOD ]]; then
         git clone --filter=blob:none \
-	    https://github.com/openbraininstitute/neurodamus-models.git \
-	    $NEOCORTEX_MOD
+          https://github.com/openbraininstitute/neurodamus-models.git \
+          $NEOCORTEX_MOD
     fi
 
     ( cd $NEOCORTEX_MOD && \
@@ -30,12 +30,14 @@ build-neocortex-models() {
 
     DATADIR=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
 
+    CC="mpicc" \
+    CXX="mpic++" \
     cmake -B $NEOCORTEX_MOD_BUILD -S $NEOCORTEX_MOD  \
       -GNinja \
       -DCMAKE_INSTALL_PREFIX=$NEOCORTEX_MOD_INSTALL \
       -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
       -DCMAKE_PREFIX_PATH=$INSTALL_DIR \
-      -DNEURODAMUS_CORE_DIR=${DATADIR} \
+      -DNEURODAMUS_CORE_DIR=$DATADIR \
       -DNEURODAMUS_MECHANISMS=neocortex \
       -DNEURODAMUS_NCX_V5=ON
 

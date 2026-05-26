@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install system-level APT packages required for building (compilers, MPI, flex, bison, etc.).
 #
 # Environment variables:

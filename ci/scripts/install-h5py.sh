@@ -9,9 +9,6 @@
 install-h5py() {
     PRE || true
 
-    mkdir -p /tmp/h5py-stable
-    export TMPDIR=/tmp/h5py-stable
-
     if [[ -e $INSTALL_DIR/include/H5Epublic.h ]]; then
         HDF5_INCLUDEDIR=$INSTALL_DIR/include/
         HDF5_LIBDIR=$INSTALL_DIR/lib/
@@ -28,5 +25,5 @@ install-h5py() {
      HDF5_MPI="ON" \
      HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR \
      HDF5_LIBDIR=$HDF5_LIBDIR \
-     $PIP install --no-binary=h5py h5py
+     $PIP install -v --no-binary=h5py h5py
 }

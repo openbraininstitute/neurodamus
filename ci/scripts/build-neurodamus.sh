@@ -15,8 +15,10 @@ build-neurodamus() {
 
     local NEURODAMUS=$BUILD_DIR/neurodamus
 
-    git clone --filter=blob:none \
+    if [[ ! -e $NEURODAMUS ]]; then
+       git clone --filter=blob:none \
         https://github.com/openbraininstitute/neurodamus/ $NEURODAMUS
+    fi
 
     ( cd $NEURODAMUS && \
         git fetch --depth 1 origin $COMMIT &&

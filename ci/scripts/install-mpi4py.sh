@@ -8,7 +8,5 @@
 install-mpi4py() {
     PRE || true
 
-    export MPICC="sccache"
-
     $PIP install -v mpi4py
 }

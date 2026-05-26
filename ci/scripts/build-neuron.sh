@@ -36,7 +36,7 @@ build-neuron() {
     )
 
     $PIP install tomli tomli_w
-    python3 $NRN/packaging/python/change_name.py $NRN/pyproject.toml neuron
+    grep -q neuron-nightly $NRN/pyproject.toml && python3 $NRN/packaging/python/change_name.py $NRN/pyproject.toml neuron
 
     #XXX
       #-DPYTHON_EXECUTABLE=`which python3`
@@ -58,7 +58,8 @@ build-neuron() {
         )
     fi
 
-    CMAKE_ARGS="${CMAKE_ARGS[@]}" $PIP install -v $NRN
+    CMAKE_ARGS="${CMAKE_ARGS[@]}" \
+      $PIP install -v $NRN
 
     if [[ -n $SCCACHE_DIR ]]; then
         sccache --show-stats
