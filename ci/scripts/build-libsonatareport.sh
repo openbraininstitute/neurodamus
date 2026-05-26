@@ -36,6 +36,7 @@ build-libsonatareport() {
         -DSONATA_REPORT_ENABLE_TEST=OFF
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
         -DMPI_CXX_SKIP_MPICXX=ON
+        -DCMAKE_CXX_FLAGS="-DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX"
     )
 
     if [[ -n $SCCACHE_DIR ]]; then

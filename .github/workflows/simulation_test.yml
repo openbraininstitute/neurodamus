@@ -145,6 +145,8 @@ jobs:
     - name: simulation-smoketest
       run: |
         export NEURON_INIT_MPI=1
+        export OMPI_ALLOW_RUN_AS_ROOT=1
+        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
         source $INSTALL_DIR/env-neocortex.sh
         which special
 
