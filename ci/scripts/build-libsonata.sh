@@ -7,7 +7,6 @@
 #   INSTALL_DIR      Prefix where dependencies are installed (e.g. /opt/obi)
 #   CMAKE_BUILD_TYPE CMake build type (e.g. RelWithDebugInfo)
 #   PIP              pip command to use (e.g. "uv pip")
-#   SCCACHE_DIR      If set, enables sccache for compilation
 
 build-libsonata() {
     PRE || true
@@ -31,21 +30,10 @@ build-libsonata() {
         python/pybind11
     )
 
-    if [[ -n $SCCACHE_DIR ]]; then
-        echo "Using sccache"
-        CC="sccache mpicc"
-        CXX="sccache mpic++"
-    else
-        CC="mpicc"
-        CXX="mpic++"
-    fi
-
+    CC="mpicc" \
+    CXX="mpic++" \
     CMAKE_PREFIX_PATH=$INSTALL_DIR \
     CMAKE_GENERATOR=Ninja \
     SONATA_BUILD_TYPE=$CMAKE_BUILD_TYPE \
     $PIP -v install $LIBSONATA
-
-    if [[ -n $SCCACHE_DIR ]]; then
-        sccache --show-stats
-    fi
 }

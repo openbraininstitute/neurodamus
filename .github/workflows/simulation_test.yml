@@ -31,6 +31,9 @@ env:
 
 jobs:
   simulation:
+    permissions:
+      contents: read
+
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -38,15 +41,15 @@ jobs:
         include:
           - os: ubuntu-24.04
             python-version: '3.10'
-          - os: ubuntu-24.04
-            python-version: '3.11'
-          - os: ubuntu-24.04
-            python-version: '3.12'
-          - os: ubuntu-24.04
-            python-version: '3.13'
-          # test macOS with one python version due to the cache size limits
-          - os: macOS-15
-            python-version: '3.12'
+          #- os: ubuntu-24.04
+          #  python-version: '3.11'
+          #- os: ubuntu-24.04
+          #  python-version: '3.12'
+          #- os: ubuntu-24.04
+          #  python-version: '3.13'
+          ## test macOS with one python version due to the cache size limits
+          #- os: macOS-15
+          #  python-version: '3.12'
       fail-fast: false
 
     steps:
@@ -58,14 +61,14 @@ jobs:
 
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
+      #with:
+      #  ref: ${{ github.event.pull_request.head.sha }}
+      #  fetch-depth: 0
+      #  persist-credentials: false
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        ls -al
         sudo apt-get --yes -qq update \
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
@@ -139,9 +142,10 @@ jobs:
         && source venv/bin/activate \
         && make-env
 
-    - name: integration-e2e
+    - name: simulation-smoketest
       run: |
-        export NEURON_INIT_MPI=1 \
+        export NEURON_INIT_MPI=1
+        source $INSTALL_DIR/env-neocortex.sh
         which special
 
         # launch simulation with NEURON

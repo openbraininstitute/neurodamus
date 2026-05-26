@@ -13,8 +13,13 @@ install-apt-dependencies() {
         make \
         git \
         wget \
-        libopenmpi-dev openmpi-bin \
-        flex libfl-dev bison ninja-build libreadline-dev \
+        libopenmpi-dev \
+	openmpi-bin \
+        flex \
+	libfl-dev \
+	bison \
+	ninja-build \
+	libreadline-dev \
         curl \
         ca-certificates \
         pkg-config \
