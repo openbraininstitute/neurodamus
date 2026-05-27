@@ -441,7 +441,7 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
         t_vec = tot_tvec[start_idx:stop_idx] - delay
         ramp_vec = _make_ramp_envelope(t_vec, ramp_up, ramp_down, dur)
         ref_dend[start_idx:stop_idx] += (
-            _f_cos(t_vec, field.frequency, field.phase, efi.get_potential_amplitude(idx)) * ramp_vec
+            _f_cos(t_vec, field.frequency, field.phase, efi.get_peak_potential(idx)) * ramp_vec
         )
 
         # potential is always 0 at t=0
