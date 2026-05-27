@@ -116,34 +116,29 @@ BEFORE BREAKPOINT {
 
 VERBATIM
 #ifndef CORENEURON_BUILD
-    int i, size;
     _lefield_accum = 0;
 
-    auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
-    auto *vY = *reinterpret_cast<IvocVect**>(&_p_Y);
-    auto *vZ = *reinterpret_cast<IvocVect**>(&_p_Z);
     auto *vphase = *reinterpret_cast<IvocVect**>(&_p_phase);
     auto *vfreq = *reinterpret_cast<IvocVect**>(&_p_frequency);
     auto *vdelay = *reinterpret_cast<IvocVect**>(&_p_delay);
     auto *vduration = *reinterpret_cast<IvocVect**>(&_p_duration);
     auto *vramp_up = *reinterpret_cast<IvocVect**>(&_p_ramp_up);
     auto *vramp_down = *reinterpret_cast<IvocVect**>(&_p_ramp_down);
-    size = vector_capacity(vX);
 
-    for( i=0; i<size; i++ ) {
+    for( int i=0; i < vector_capacity(vdelay); i++ ) {
         double ramp_factor = 1;
         double cur_delay = vector_vec(vdelay)[i];
         double cur_duration = vector_vec(vduration)[i];
         double cur_ramp_up = vector_vec(vramp_up)[i];
         double cur_ramp_down = vector_vec(vramp_down)[i];
         if( cur_delay < t && t < cur_delay + cur_duration + cur_ramp_up + cur_ramp_down ) {
-            if( cur_delay < t && t < cur_delay + cur_ramp_up ) {
+            if( t < cur_delay + cur_ramp_up ) {
                 ramp_factor = (t-cur_delay) / cur_ramp_up;
             }
-            if( cur_delay + cur_ramp_up + cur_duration < t && t < cur_delay + cur_duration + cur_ramp_up + cur_ramp_down ) {
+            if( cur_delay + cur_ramp_up + cur_duration < t ) {
                 ramp_factor = 1 - (t - (cur_delay + cur_ramp_up + cur_duration)) / cur_ramp_down;
             }
-            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i] );
+            double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i]);
             _lefield_accum += ramp_factor * get_potential_amplitude(i) * wavefactor;
         }
     }

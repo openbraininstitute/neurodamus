@@ -516,8 +516,9 @@ class ElectrodeSource:
 
     def __init__(self, efields: list[EField]):
         self.segment_displacements = {}  # {segment object: displacement vec in x/y/z w.r.t ground}
-        self.segment_efield_integrators = []  # list of EFieldIntegrator mechs attached to segments
-        self.efields = efields  # list of EFields objects
+        # list of EFieldIntegrator mechs attached to segments, required to avoid garbage collection
+        self.segment_efield_integrators = []
+        self.efields = efields
 
     def apply_segment_potentials(self):
         """Apply potentials to segment.extracellular._ref_e"""
