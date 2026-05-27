@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import libsonata
@@ -28,7 +27,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
-from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
+from .core.stimuli import ConductanceSource, CurrentSource, EField, ElectrodeSource
 from .utils.logging import log_verbose
 
 if TYPE_CHECKING:
@@ -830,21 +829,6 @@ class SEClamp(BaseStim):
         self.time_vec = Nd.h.Vector(np.cumsum(duration_levels))
         if self.delay > 0:
             logging.warning("%s ignores delay", self.__class__.__name__)
-
-
-@dataclass
-class EField:
-    """Dataclass for electric field definition, currently cosinusoid"""
-
-    ex: float  # Peak amplitude of x-direction in in V/m
-    ey: float  # Peak amplitude of y-direction in in V/m
-    ez: float  # Peak amplitude of z-direction in in V/m
-    frequency: float  # Frequency of the cosinusoid wave in Hz
-    phase: float  # Phase of the cosinusoid, in radians
-    duration: float  # duration of the signal, not including ramp up and ramp down in ms
-    delay: float  # start time delay in ms
-    ramp_up_time: float  # duration during which amplitude ramps up linearly from 0, in ms
-    ramp_down_time: float  # duration during which amplitude ramps down linearly to 0, in ms
 
 
 @StimulusManager.register_type

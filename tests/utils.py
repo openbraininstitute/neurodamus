@@ -10,9 +10,9 @@ from libsonata import EdgeStorage, ElementReportReader, SimulationConfig, SpikeR
 
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
+from neurodamus.core.stimuli import EField
 from neurodamus.report import Report
 from neurodamus.report_parameters import create_report_parameters
-from neurodamus.stimulus_manager import EField
 from neurodamus.target_manager import TargetManager, TargetSpec
 
 

@@ -1,6 +1,7 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
+from dataclasses import dataclass
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -491,14 +492,29 @@ class ConductanceSource(SignalSource):
         )
 
 
+@dataclass
+class EField:
+    """Dataclass for electric field definition, currently cosinusoid"""
+
+    ex: float  # Peak amplitude of x-direction in in V/m
+    ey: float  # Peak amplitude of y-direction in in V/m
+    ez: float  # Peak amplitude of z-direction in in V/m
+    frequency: float  # Frequency of the cosinusoid wave in Hz
+    phase: float  # Phase of the cosinusoid, in radians
+    duration: float  # duration of the signal, not including ramp up and ramp down in ms
+    delay: float  # start time delay in ms
+    ramp_up_time: float  # duration during which amplitude ramps up linearly from 0, in ms
+    ramp_down_time: float  # duration during which amplitude ramps down linearly to 0, in ms
+
+
 class ElectrodeSource:
     """Manages extracellular electric field stimulation for a single cell
     and applies to every segment.extracellular._ref_e via EFieldIntegrator mechanism.
     EFieldIntegrator computes the potential at every time step as the sum of multiple e-fields,
-    each defined by peak amplitude (Ex,Ey,Ez), frequency, phase, delay, ramp up and ramp down.
+    each defined by peak amplitudes (Ex,Ey,Ez), frequency, phase, delay, ramp up and ramp down.
     """
 
-    def __init__(self, efields):
+    def __init__(self, efields: list[EField]):
         self.segment_displacements = {}  # {segment object: displacement vec in x/y/z w.r.t ground}
         self.segment_efield_integrators = []  # list of EFieldIntegrator mechs attached to segments
         self.efields = efields  # list of EFields objects
