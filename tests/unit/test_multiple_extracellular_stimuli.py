@@ -63,7 +63,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     they should be summed
     1. check their stimulus managers share the same SpatiallyUniformEField instance (singleton)
     2. check the size of segment_efield_integrators, should be applied to all the segments, n_seg
-    3. check ElectrodeSource.efields list contain 2 fields
+    3. check ElectrodeSource.efields list contains 2 fields
     4. check potential of 1st segment should be 0 (soma),
        for 4th segment the sum of the cosine fields and constant fields
     5. check an extracellar mechanism is added to each segment
@@ -89,6 +89,8 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)
     assert len(es.efields) == 2
     dend_efi = es.segment_efield_integrators[3]
+    assert np.isclose(dend_efi.get_potential_amplitude(0), -0.505702)
+    assert np.isclose(dend_efi.get_potential_amplitude(1), -0.964335)
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     ref_soma = np.zeros(len(tot_tvec))

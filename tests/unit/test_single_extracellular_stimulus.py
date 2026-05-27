@@ -83,8 +83,8 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check the reference potentials against the cosine function
-    3. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    2. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    3. check the potential amplitude of soma and 4th segment
     """
     from neurodamus.core import NeuronWrapper as Nd
 
@@ -110,10 +110,11 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     assert len(es.efields) == 1
+    assert np.isclose(es.segment_efield_integrators[0].get_potential_amplitude(0), 0)
     ref_soma = np.zeros(len(tot_tvec))
-    ref_dend = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.efields
-    )
+    efi_dend = es.segment_efield_integrators[3]
+    assert np.isclose(efi_dend.get_potential_amplitude(0), -0.505702)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, efi_dend, es.efields)
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
 
