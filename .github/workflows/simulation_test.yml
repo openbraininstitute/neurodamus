@@ -4,13 +4,13 @@ on:
     branches:
       - main
     paths:
-      - 'neurodamus/**'
-      - 'tests/**'
-      - '.github/workflows/**'
-      - 'ci/**'
-      - 'pyproject.toml'
-      - 'tox.ini'
-      - 'requirements.txt'
+      - 'neurodamus/neurodamus/**'
+      - 'neurodamus/tests/**'
+      - 'neurodamus/.github/workflows/**'
+      - 'neurodamus/ci/**'
+      - 'neurodamus/pyproject.toml'
+      - 'neurodamus/tox.ini'
+      - 'neurodamus/requirements.txt'
   push:
     branches:
       - main
@@ -41,15 +41,12 @@ jobs:
         include:
           - os: ubuntu-24.04
             python-version: '3.10'
-          #- os: ubuntu-24.04
-          #  python-version: '3.11'
-          #- os: ubuntu-24.04
-          #  python-version: '3.12'
-          #- os: ubuntu-24.04
-          #  python-version: '3.13'
-          ## test macOS with one python version due to the cache size limits
-          #- os: macOS-15
-          #  python-version: '3.12'
+          - os: ubuntu-24.04
+            python-version: '3.11'
+          - os: ubuntu-24.04
+            python-version: '3.12'
+          - os: ubuntu-24.04
+            python-version: '3.13'
       fail-fast: false
 
     steps:
@@ -61,10 +58,10 @@ jobs:
 
     - name: Checkout neurodamus repository
       uses: actions/checkout@v6
-      #with:
-      #  ref: ${{ github.event.pull_request.head.sha }}
-      #  fetch-depth: 0
-      #  persist-credentials: false
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+        persist-credentials: false
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -74,13 +71,6 @@ jobs:
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev python3-dev
 
-    - name: Install macOS homebrew packages
-      if: startsWith(matrix.os, 'macOS')
-      run: |
-        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
-        brew install coreutils doxygen flex bison ninja
-        echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
-    
     - name: sccache build cache
       id: cache-sccache
       uses: actions/cache@v5
@@ -102,7 +92,7 @@ jobs:
         && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
         && uv pip list
 
-    - name: Build h5py with the local hdf5
+    - name: Build h5py
       run: |
         source $BASE_DIR/ci/scripts/install-h5py.sh \
         && source venv/bin/activate \
@@ -128,7 +118,8 @@ jobs:
 
     - name: Install neurodamus
       run: |
-        venv/bin/pip install $BASE_DIR
+        source venv/bin/activate \
+        && uv pip install -e $BASE_DIR
 
     - name: Install neurodamus-models
       run: |
@@ -168,13 +159,13 @@ jobs:
       run: |
         export NEURON_INIT_MPI=1 \
         && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/integration-e2e
+        && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/integration-e2e
 
     - name: scientific
       run: |
         export NEURON_INIT_MPI=1 \
         && source $INSTALL_DIR/env-neocortex.sh \
-        pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
+        && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
 
     # - name: live debug session, comment out
     #   if: failure()

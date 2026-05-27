@@ -7,13 +7,13 @@
 
 install-sccache() {
     local VERSION=v0.15.0
-	local ARCH=$(uname -m)
 
     if [[ -n $SCCACHE_DIR ]]; then
         if [ "$(uname)" = "Darwin" ]; then
-            curl -fsSL https://github.com/mozilla/sccache/releases/download/${VERSION}/sccache-${VERSION}-${ARCH}-apple-darwin.tar.gz \
-                | $SUDO tar xz --strip-components=1 -C /usr/local/bin sccache-${VERSION}-${ARCH}-apple-darwin/sccache
+            curl -fsSL https://github.com/mozilla/sccache/releases/download/${VERSION}/sccache-${VERSION}-aarch64-apple-darwin.tar.gz \
+                | $SUDO tar xz --strip-components=1 -C /usr/local/bin sccache-${VERSION}-aarch64-apple-darwin/sccache
         elif [ "$(uname)" = "Linux" ]; then
+            local ARCH=$(uname -m)
             curl -fsSL https://github.com/mozilla/sccache/releases/download/${VERSION}/sccache-${VERSION}-${ARCH}-unknown-linux-musl.tar.gz \
                 | $SUDO tar xz --strip-components=1 -C /usr/bin sccache-${VERSION}-${ARCH}-unknown-linux-musl/sccache
         fi
