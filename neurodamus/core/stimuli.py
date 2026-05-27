@@ -1,7 +1,6 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
-from dataclasses import dataclass
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -492,45 +491,17 @@ class ConductanceSource(SignalSource):
         )
 
 
-@dataclass
-class EField:
-    """Dataclass for electric field definition, currently cosinusoid"""
-
-    ex: float  # Peak amplitude of x-direction in in V/m
-    ey: float  # Peak amplitude of y-direction in in V/m
-    ez: float  # Peak amplitude of z-direction in in V/m
-    frequency: float  # Frequency of the cosinusoid wave in Hz
-    phase: float  # Phase of the cosinusoid, in radians
-    duration: float  # duration of the signal, not including ramp up and ramp down in ms
-    delay: float  # start time delay in ms
-    ramp_up_time: float  # duration during which amplitude ramps up linearly from 0, in ms
-    ramp_down_time: float  # duration during which amplitude ramps down linearly to 0, in ms
-
-
 class ElectrodeSource:
     """Manages extracellular electric field stimulation for a single cell
     and applies to every segment.extracellular._ref_e via EFieldIntegrator mechanism.
-    EFieldIntegrator computes the potential at every time step as the sum of one or more e-fields,
-    each defined by direction, frequency, phase, delay, ramp up and ramp down,
+    EFieldIntegrator computes the potential at every time step as the sum of multiple e-fields,
+    each defined by peak amplitude (Ex,Ey,Ez), frequency, phase, delay, ramp up and ramp down.
     """
 
-    def __init__(self, delay, duration, fields, ramp_up_time, ramp_down_time):
-        self.segment_displacements = {}  # {segment: displacement vectors in x/y/z w.r.t ground}
+    def __init__(self, efields):
+        self.segment_displacements = {}  # {segment object: displacement vec in x/y/z w.r.t ground}
         self.segment_efield_integrators = []  # list of EFieldIntegrator mechs attached to segments
-        self.fields = [
-            EField(
-                ex=f["Ex"],
-                ey=f["Ey"],
-                ez=f["Ez"],
-                frequency=f["Frequency"],
-                phase=f["Phase"],
-                duration=duration,
-                delay=delay,
-                ramp_up_time=ramp_up_time,
-                ramp_down_time=ramp_down_time,
-            )
-            for f in fields
-        ]  # list of EFields objects
+        self.efields = efields  # list of EFields objects
 
     def apply_segment_potentials(self):
         """Apply potentials to segment.extracellular._ref_e"""
@@ -540,7 +511,7 @@ class ElectrodeSource:
                 section.insert("extracellular")
 
             # convert field data into multiple hoc vectors
-            n_fields = len(self.fields)
+            n_fields = len(self.efields)
             freq_vector = Nd.h.Vector(n_fields)
             phase_vector = Nd.h.Vector(n_fields)
             x_vec = Nd.h.Vector(n_fields)
@@ -551,7 +522,7 @@ class ElectrodeSource:
             rup_vec = Nd.h.Vector(n_fields)
             rdown_vec = Nd.h.Vector(n_fields)
 
-            for i, field in enumerate(self.fields):
+            for i, field in enumerate(self.efields):
                 freq_vector.x[i] = field.frequency
                 phase_vector.x[i] = field.phase
                 x_vec.x[i] = field.ex * displacement[0]
@@ -585,5 +556,5 @@ class ElectrodeSource:
 
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""
-        self.fields.extend(other.fields)
+        self.efields.extend(other.efields)
         return self

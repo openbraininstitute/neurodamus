@@ -66,11 +66,11 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
 
-    assert len(es.fields) == 1
+    assert len(es.efields) == 1
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     es = stimulus.stimList[gid]
     efi = es.segment_efield_integrators[3] if gid == 0 else es.segment_efield_integrators[1]
-    ref = get_expected_extracellular_potentials(tot_tvec, efi, es.fields)
+    ref = get_expected_extracellular_potentials(tot_tvec, efi, es.efields)
     npt.assert_allclose(rec_dend, ref)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)

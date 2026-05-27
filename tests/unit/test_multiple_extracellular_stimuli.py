@@ -63,7 +63,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     they should be summed
     1. check their stimulus managers share the same SpatiallyUniformEField instance (singleton)
     2. check the size of segment_efield_integrators, should be applied to all the segments, n_seg
-    3. check ElectrodeSource.fields list contain 2 fields
+    3. check ElectrodeSource.efields list contain 2 fields
     4. check potential of 1st segment should be 0 (soma),
        for 4th segment the sum of the cosine fields and constant fields
     5. check an extracellar mechanism is added to each segment
@@ -87,12 +87,12 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)
-    assert len(es.fields) == 2
+    assert len(es.efields) == 2
     dend_efi = es.segment_efield_integrators[3]
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     ref_soma = np.zeros(len(tot_tvec))
-    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.efields)
 
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -161,11 +161,11 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
     assert list(stimulus.stimList.keys()) == [0]
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
-    assert len(es.fields) == 2
+    assert len(es.efields) == 2
 
     dend_efi = es.segment_efield_integrators[3]
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.efields)
 
     npt.assert_allclose(rec_dend, ref_dend)
 
@@ -239,12 +239,12 @@ def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     n.run()
 
     es = stimulus.stimList[0]
-    assert len(es.fields) == 3
+    assert len(es.efields) == 3
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     dend_efi = es.segment_efield_integrators[3]
 
-    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.efields)
 
     npt.assert_allclose(rec_dend, ref_dend)
 
@@ -314,17 +314,17 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
 
     # cell 0, big cell
     es0 = stimulus.stimList[0]
-    assert len(es0.fields) == 2
+    assert len(es0.efields) == 2
     ref0 = get_expected_extracellular_potentials(
-        tot_tvec, es0.segment_efield_integrators[3], es0.fields
+        tot_tvec, es0.segment_efield_integrators[3], es0.efields
     )
     npt.assert_allclose(rec_dend0, ref0)
 
     # cell 1, small cell
     es1 = stimulus.stimList[1]
-    assert len(es1.fields) == 1
+    assert len(es1.efields) == 1
     ref1 = get_expected_extracellular_potentials(
-        tot_tvec, es1.segment_efield_integrators[1], es1.fields
+        tot_tvec, es1.segment_efield_integrators[1], es1.efields
     )
     npt.assert_allclose(rec_dend1, ref1)
 
@@ -385,12 +385,12 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
     n.run()
 
     es = stimulus.stimList[0]
-    assert len(es.fields) == 2
+    assert len(es.efields) == 2
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     dend_efi = es.segment_efield_integrators[3]
 
-    ref = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.fields)
+    ref = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.efields)
     npt.assert_allclose(rec_dend, ref)
 
 

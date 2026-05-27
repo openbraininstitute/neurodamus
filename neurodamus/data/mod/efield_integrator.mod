@@ -101,7 +101,7 @@ ENDVERBATIM
 }
 
 FUNCTION get_potential_amplitude(i) {
-    : get potential amplitude for ith electrod field, in mV
+    : get potential amplitude for ith eletric field, in mV
 VERBATIM
     int idx = (int)_li;
     auto *vX = *reinterpret_cast<IvocVect**>(&_p_X);
@@ -131,7 +131,7 @@ VERBATIM
     size = vector_capacity(vX);
 
     for( i=0; i<size; i++ ) {
-        double ramp_factor=1;
+        double ramp_factor = 1;
         double cur_delay = vector_vec(vdelay)[i];
         double cur_duration = vector_vec(vduration)[i];
         double cur_ramp_up = vector_vec(vramp_up)[i];

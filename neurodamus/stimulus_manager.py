@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import libsonata
@@ -831,6 +832,21 @@ class SEClamp(BaseStim):
             logging.warning("%s ignores delay", self.__class__.__name__)
 
 
+@dataclass
+class EField:
+    """Dataclass for electric field definition, currently cosinusoid"""
+
+    ex: float  # Peak amplitude of x-direction in in V/m
+    ey: float  # Peak amplitude of y-direction in in V/m
+    ez: float  # Peak amplitude of z-direction in in V/m
+    frequency: float  # Frequency of the cosinusoid wave in Hz
+    phase: float  # Phase of the cosinusoid, in radians
+    duration: float  # duration of the signal, not including ramp up and ramp down in ms
+    delay: float  # start time delay in ms
+    ramp_up_time: float  # duration during which amplitude ramps up linearly from 0, in ms
+    ramp_down_time: float  # duration during which amplitude ramps down linearly to 0, in ms
+
+
 @StimulusManager.register_type
 class SpatiallyUniformEField(BaseStim):
     """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
@@ -866,17 +882,10 @@ class SpatiallyUniformEField(BaseStim):
 
         # apply stim to each point in target_points
         for target_point_list in target_points:
-            es = ElectrodeSource(
-                delay=self.delay,
-                duration=self.duration,
-                fields=self.fields,
-                ramp_up_time=self.ramp_up_time,
-                ramp_down_time=self.ramp_down_time,
-            )
+            es = ElectrodeSource(self.efields)
             gid = target_point_list.gid
             if gid in self.stimList:
-                # Consolidate with existing stimulus - not yet supported in mod impl
-                # TODO: update iadd method to allow: self.stimList[gid] += es; raise error for now
+                # Consolidate with existing stimulus
                 self.stimList[gid] += es
             else:
                 # Add new stimulus
@@ -925,12 +934,20 @@ class SpatiallyUniformEField(BaseStim):
                 es.apply_segment_potentials()
 
     def parse_check_all_parameters(self, stim_info: dict):
-        self.duration = float(stim_info["Duration"])
-        self.dt = float(SimConfig.run_conf.dt)
-        self.delay = float(stim_info["Delay"])
-        self.fields = stim_info["Fields"]
-        self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
-        self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
+        self.efields = [
+            EField(
+                ex=f["Ex"],
+                ey=f["Ey"],
+                ez=f["Ez"],
+                frequency=f["Frequency"],
+                phase=f["Phase"],
+                duration=stim_info["Duration"],
+                delay=stim_info["Delay"],
+                ramp_up_time=stim_info["RampUpTime"],
+                ramp_down_time=stim_info["RampDownTime"],
+            )
+            for f in stim_info["Fields"]
+        ]
         return True
 
     @staticmethod

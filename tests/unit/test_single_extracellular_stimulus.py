@@ -109,10 +109,10 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     n.run()
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    assert len(es.fields) == 1
+    assert len(es.efields) == 1
     ref_soma = np.zeros(len(tot_tvec))
     ref_dend = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -173,10 +173,10 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     n.run()
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    assert len(es.fields) == 1
+    assert len(es.efields) == 1
     ref_soma = np.zeros(len(tot_tvec))
     ref_dend = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -235,10 +235,10 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     n.run()
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    assert len(es.fields) == 1
+    assert len(es.efields) == 1
     ref_soma = np.zeros(len(tot_tvec))
     ref_dend = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -302,10 +302,10 @@ def test_two_fields(create_tmp_simulation_config_file):
     n.run()
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    assert len(es.fields) == 2
+    assert len(es.efields) == 2
     ref_soma = np.zeros(len(tot_tvec))
     ref_dend = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)
@@ -361,9 +361,9 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     es = stimulus.stimList[0]
-    assert len(es.fields) == 2
+    assert len(es.efields) == 2
     ref = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_dend, ref)
 
@@ -415,9 +415,9 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     es = stimulus.stimList[0]
-    assert len(es.fields) == 3
+    assert len(es.efields) == 3
     ref = get_expected_extracellular_potentials(
-        tot_tvec, es.segment_efield_integrators[3], es.fields
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
     npt.assert_allclose(rec_dend, ref)
 
