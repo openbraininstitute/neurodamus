@@ -10,13 +10,47 @@ from libsonata import EdgeStorage, ElementReportReader, SimulationConfig, SpikeR
 
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
-from neurodamus.core.stimuli import EField
+from neurodamus.io.sonata_config import EField
 from neurodamus.report import Report
 from neurodamus.report_parameters import create_report_parameters
 from neurodamus.target_manager import TargetManager, TargetSpec
 
 
-def merge_dicts(parent: dict, child: dict):  # noqa: C901
+def _merge_vals(k, parent: dict, child: dict):
+    """Merging logic.
+
+    Args:
+        k (key type): the key can be in either parent, child or both.
+        parent: parent dict.
+        child: child dict (priority).
+
+    Raises:
+        TypeError: in case the key is present in both parent and child and the type missmatches.
+
+    Returns:
+        value type: merged version of the values possibly found in child and/or parent.
+    """
+
+    if k not in child:
+        return parent[k]
+    if k not in parent:
+        return child[k]
+    if type(parent[k]) is not type(child[k]) and not (
+        isinstance(parent[k], (int, float)) and isinstance(child[k], (int, float))
+    ):
+        raise TypeError(
+            f"Field type missmatch for the values of key {k}: "
+            f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
+        )
+    if isinstance(parent[k], dict):
+        if "override_field" in child[k]:
+            return child[k]
+
+        return merge_dicts(parent[k], child[k])
+    return child[k]
+
+
+def merge_dicts(parent: dict, child: dict):
     """Merge dictionaries recursively (in case of nested dicts) giving priority to child over parent
     for ties. Values of matching keys must match or a TypeError is raised.
 
@@ -52,42 +86,9 @@ def merge_dicts(parent: dict, child: dict):  # noqa: C901
             for item in d:
                 sanitize_dict(item)
 
-    def merge_vals(k, parent: dict, child: dict):
-        """Merging logic.
-
-        Args:
-            k (key type): the key can be in either parent, child or both.
-            parent: parent dict.
-            child: child dict (priority).
-
-        Raises:
-            TypeError: in case the key is present in both parent and child and the type missmatches.
-
-        Returns:
-            value type: merged version of the values possibly found in child and/or parent.
-        """
-
-        if k not in child:
-            return parent[k]
-        if k not in parent:
-            return child[k]
-        if type(parent[k]) is not type(child[k]) and not (
-            isinstance(parent[k], (int, float)) and isinstance(child[k], (int, float))
-        ):
-            raise TypeError(
-                f"Field type missmatch for the values of key {k}: "
-                f"{parent[k]} ({type(parent[k])}) != {child[k]} ({type(child[k])})"
-            )
-        if isinstance(parent[k], dict):
-            if "override_field" in child[k]:
-                return child[k]
-
-            return merge_dicts(parent[k], child[k])
-        return child[k]
-
     ans = (
         {
-            k: merge_vals(k, parent, child)
+            k: _merge_vals(k, parent, child)
             for k in set(parent) | set(child)
             if not isinstance(child, dict) or k not in child or child[k] != "delete_field"
         }
@@ -421,16 +422,15 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
 
     def _make_ramp_envelope(t_vec, ramp_up_time, ramp_down_time, duration):
         """With a given time vector, return a vector taking into account ramp up and down time"""
-        envelope = np.ones(len(t_vec))
-        envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
-        envelope = np.where(
-            t_vec > ramp_up_time + duration,
-            1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
-            envelope,
+        ramp_up = np.clip(t_vec / ramp_up_time, 0, 1) if ramp_up_time > 0 else np.ones(len(t_vec))
+        ramp_down = (
+            np.clip(1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time, 0, 1)
+            if ramp_down_time > 0
+            else np.ones(len(t_vec))
         )
-        return envelope
+        return np.minimum(ramp_up, ramp_down)
 
-    ref_dend = np.zeros(len(tot_tvec))
+    ref = np.zeros(len(tot_tvec))
     for idx, field in enumerate(fields):
         dur = field.duration
         delay = field.delay
@@ -440,13 +440,13 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
         stop_idx = np.searchsorted(tot_tvec, dur + ramp_up + ramp_down + delay)
         t_vec = tot_tvec[start_idx:stop_idx] - delay
         ramp_vec = _make_ramp_envelope(t_vec, ramp_up, ramp_down, dur)
-        ref_dend[start_idx:stop_idx] += (
+        ref[start_idx:stop_idx] += (
             _f_cos(t_vec, field.frequency, field.phase, efi.get_peak_potential(idx)) * ramp_vec
         )
 
         # potential is always 0 at t=0
-        ref_dend[0] = 0
-    return ref_dend
+        ref[0] = 0
+    return ref
 
 
 class ReportReader:  # noqa: PLW1641

@@ -27,7 +27,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd, random
 from .core.configuration import ConfigurationError, SimConfig
-from .core.stimuli import ConductanceSource, CurrentSource, EField, ElectrodeSource
+from .core.stimuli import ConductanceSource, CurrentSource, ElectrodeSource
 from .utils.logging import log_verbose
 
 if TYPE_CHECKING:
@@ -832,7 +832,7 @@ class SEClamp(BaseStim):
 
 
 @StimulusManager.register_type
-class SpatiallyUniformEField(BaseStim):
+class SpatiallyUniformEField:
     """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
     in time, and whose spatial gradient (i.e., E field) is constant.
@@ -861,12 +861,9 @@ class SpatiallyUniformEField(BaseStim):
         """Process stimulus block for target cells.
         Creates ElectrodeSource for new cells or merges with existing stimuli.
         """
-        # parse parameters for the current stimus block
-        self.parse_check_all_parameters(stim_info)
-
         # apply stim to each point in target_points
         for target_point_list in target_points:
-            es = ElectrodeSource(self.efields)
+            es = ElectrodeSource(stim_info["Fields"])
             gid = target_point_list.gid
             if gid in self.stimList:
                 # Consolidate with existing stimulus
@@ -916,23 +913,6 @@ class SpatiallyUniformEField(BaseStim):
         if cls._instance:
             for es in cls._instance.stimList.values():
                 es.apply_segment_potentials()
-
-    def parse_check_all_parameters(self, stim_info: dict):
-        self.efields = [
-            EField(
-                ex=f["Ex"],
-                ey=f["Ey"],
-                ez=f["Ez"],
-                frequency=f["Frequency"],
-                phase=f["Phase"],
-                duration=stim_info["Duration"],
-                delay=stim_info["Delay"],
-                ramp_up_time=stim_info["RampUpTime"],
-                ramp_down_time=stim_info["RampDownTime"],
-            )
-            for f in stim_info["Fields"]
-        ]
-        return True
 
     @staticmethod
     def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
