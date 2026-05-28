@@ -866,10 +866,8 @@ class SpatiallyUniformEField:
             es = ElectrodeSource(stim_info["Fields"])
             gid = target_point_list.gid
             if gid in self.stimList:
-                # Consolidate with existing stimulus
                 self.stimList[gid] += es
             else:
-                # Add new stimulus
                 self.stimList[gid] = es
 
                 # Compute segment displacement from the ground point where potential is 0,
