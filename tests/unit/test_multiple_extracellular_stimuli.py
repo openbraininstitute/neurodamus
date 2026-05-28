@@ -89,8 +89,8 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)
     assert len(es.efields) == 2
     dend_efi = es.segment_efield_integrators[3]
-    assert np.isclose(dend_efi.get_potential_amplitude(0), -0.505702)
-    assert np.isclose(dend_efi.get_potential_amplitude(1), -0.964335)
+    assert np.isclose(dend_efi.get_peak_potential(0), -0.505702)
+    assert np.isclose(dend_efi.get_peak_potential(1), -0.964335)
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     ref_soma = np.zeros(len(tot_tvec))

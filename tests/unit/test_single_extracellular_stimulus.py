@@ -110,10 +110,10 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
     assert len(es.efields) == 1
-    assert np.isclose(es.segment_efield_integrators[0].get_potential_amplitude(0), 0)
+    assert np.isclose(es.segment_efield_integrators[0].get_peak_potential(0), 0)
     ref_soma = np.zeros(len(tot_tvec))
     efi_dend = es.segment_efield_integrators[3]
-    assert np.isclose(efi_dend.get_potential_amplitude(0), -0.505702)
+    assert np.isclose(efi_dend.get_peak_potential(0), -0.505702)
     ref_dend = get_expected_extracellular_potentials(tot_tvec, efi_dend, es.efields)
     npt.assert_allclose(rec_soma, ref_soma)
     npt.assert_allclose(rec_dend, ref_dend)

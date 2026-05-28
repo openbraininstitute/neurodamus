@@ -516,9 +516,7 @@ class ElectrodeSource:
             n_fields = len(self.efields)
             freq_vector = Nd.h.Vector(n_fields)
             phase_vector = Nd.h.Vector(n_fields)
-            x_vec = Nd.h.Vector(n_fields)
-            y_vec = Nd.h.Vector(n_fields)
-            z_vec = Nd.h.Vector(n_fields)
+            peak_potential_vec = Nd.h.Vector(n_fields)
             delay_vec = Nd.h.Vector(n_fields)
             duration_vec = Nd.h.Vector(n_fields)
             rup_vec = Nd.h.Vector(n_fields)
@@ -527,9 +525,12 @@ class ElectrodeSource:
             for i, field in enumerate(self.efields):
                 freq_vector.x[i] = field.frequency
                 phase_vector.x[i] = field.phase
-                x_vec.x[i] = field.ex * displacement[0]
-                y_vec.x[i] = field.ey * displacement[1]
-                z_vec.x[i] = field.ez * displacement[2]
+                # dot product E·d in V, converted to mV (* 1e3)
+                peak_potential_vec.x[i] = 1e3 * (
+                    field.ex * displacement[0]
+                    + field.ey * displacement[1]
+                    + field.ez * displacement[2]
+                )
                 delay_vec.x[i] = field.delay
                 duration_vec.x[i] = field.duration
                 rup_vec.x[i] = field.ramp_up_time
@@ -542,9 +543,7 @@ class ElectrodeSource:
                 duration_vec,
                 rup_vec,
                 rdown_vec,
-                x_vec,
-                y_vec,
-                z_vec,
+                peak_potential_vec,
                 phase_vector,
                 freq_vector,
             )
