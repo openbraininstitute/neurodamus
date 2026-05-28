@@ -15,6 +15,9 @@ on:
     branches:
       - main
 
+env:
+    COVERATE_PYTHON=: '3.12'
+
 jobs:
   coverage:
     runs-on: ${{ matrix.os }}
@@ -45,6 +48,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        persist-credentials: false
 
     - name: Install uv
       uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
@@ -72,7 +76,7 @@ jobs:
         tox -e baseline
 
     - name: Upload baseline coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -86,7 +90,7 @@ jobs:
         tox -e unit
 
     - name: Upload unit coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +104,7 @@ jobs:
         tox -e unit-mpi
 
     - name: Upload unit-mpi coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -114,7 +118,7 @@ jobs:
         tox -e unit-ngv-mpi
 
     - name: Upload unit-ngv-mpi coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -128,7 +132,7 @@ jobs:
         tox -e unit-allen-v1
 
     - name: Upload unit-allen-v1 coverage to Coveralls
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +142,7 @@ jobs:
         fail-on-error: false
 
     - name: Finalize Coveralls parallel build
-      if: startsWith(matrix.python-version, '3.12')
+      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
