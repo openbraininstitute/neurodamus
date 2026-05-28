@@ -430,7 +430,7 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
         )
         return np.minimum(ramp_up, ramp_down)
 
-    ref_dend = np.zeros(len(tot_tvec))
+    ref = np.zeros(len(tot_tvec))
     for idx, field in enumerate(fields):
         dur = field.duration
         delay = field.delay
@@ -440,13 +440,13 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
         stop_idx = np.searchsorted(tot_tvec, dur + ramp_up + ramp_down + delay)
         t_vec = tot_tvec[start_idx:stop_idx] - delay
         ramp_vec = _make_ramp_envelope(t_vec, ramp_up, ramp_down, dur)
-        ref_dend[start_idx:stop_idx] += (
+        ref[start_idx:stop_idx] += (
             _f_cos(t_vec, field.frequency, field.phase, efi.get_potential_amplitude(idx)) * ramp_vec
         )
 
         # potential is always 0 at t=0
-        ref_dend[0] = 0
-    return ref_dend
+        ref[0] = 0
+    return ref
 
 
 class ReportReader:  # noqa: PLW1641
