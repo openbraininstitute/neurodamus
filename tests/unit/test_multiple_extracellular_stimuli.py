@@ -93,10 +93,9 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     assert np.isclose(dend_efi.get_peak_potential(1), -0.964335)
 
     tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
-    ref_soma = np.zeros(len(tot_tvec))
     ref_dend = get_expected_extracellular_potentials(tot_tvec, dend_efi, es.efields)
 
-    npt.assert_allclose(rec_soma, ref_soma)
+    assert all(rec_soma.as_numpy() == 0)
     npt.assert_allclose(rec_dend, ref_dend)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
