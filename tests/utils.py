@@ -422,14 +422,13 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
 
     def _make_ramp_envelope(t_vec, ramp_up_time, ramp_down_time, duration):
         """With a given time vector, return a vector taking into account ramp up and down time"""
-        envelope = np.ones(len(t_vec))
-        envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
-        envelope = np.where(
-            t_vec > ramp_up_time + duration,
-            1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
-            envelope,
+        ramp_up = np.clip(t_vec / ramp_up_time, 0, 1) if ramp_up_time > 0 else np.ones(len(t_vec))
+        ramp_down = (
+            np.clip(1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time, 0, 1)
+            if ramp_down_time > 0
+            else np.ones(len(t_vec))
         )
-        return envelope
+        return np.minimum(ramp_up, ramp_down)
 
     ref_dend = np.zeros(len(tot_tvec))
     for idx, field in enumerate(fields):
