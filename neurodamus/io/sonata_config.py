@@ -88,6 +88,21 @@ class RunConfig:
     restore: str | None = None  # set in configuration.py
 
 
+@dataclass
+class EField:
+    """Dataclass for electric field definition, currently cosinusoid"""
+
+    ex: float  # Peak amplitude of x-direction in in V/m
+    ey: float  # Peak amplitude of y-direction in in V/m
+    ez: float  # Peak amplitude of z-direction in in V/m
+    frequency: float  # Frequency of the cosinusoid wave in Hz
+    phase: float  # Phase of the cosinusoid, in radians
+    duration: float  # duration of the signal, not including ramp up and ramp down in ms
+    delay: float  # start time delay in ms
+    ramp_up_time: float  # duration during which amplitude ramps up linearly from 0, in ms
+    ramp_down_time: float  # duration during which amplitude ramps down linearly to 0, in ms
+
+
 class SonataConfig:
     __slots__ = (
         "_circuit_conf",  # libsonata.CircuitConfig
@@ -343,7 +358,18 @@ class SonataConfig:
             stimulus["Name"] = name
             if stimulus["Pattern"] == "SpatiallyUniformEField":
                 fields = [
-                    self._translate_dict({}, field) for field in self._sim_conf.input(name).fields
+                    EField(
+                        duration=self._sim_conf.input(name).duration,
+                        delay=self._sim_conf.input(name).delay,
+                        ex=field.Ex,
+                        ey=field.Ey,
+                        ez=field.Ez,
+                        frequency=field.frequency,
+                        phase=field.phase,
+                        ramp_up_time=self._sim_conf.input(name).ramp_up_time,
+                        ramp_down_time=self._sim_conf.input(name).ramp_down_time,
+                    )
+                    for field in self._sim_conf.input(name).fields
                 ]
                 stimulus["Fields"] = fields
             stimuli.append(stimulus)
