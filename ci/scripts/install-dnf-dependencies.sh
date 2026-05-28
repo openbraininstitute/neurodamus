@@ -7,7 +7,7 @@
 install-dnf-dependencies() {
     $SUDO dnf -y $DNF_OPTIONS install \
         bison \
-        cpp \
+        gcc-c++ \
         flex \
         git \
         flex-devel \

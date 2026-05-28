@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install system-level APT packages required for building (compilers, MPI, flex, bison, etc.).
+# Install system-level APT packages required for building (compilers, flex, bison, etc.).
+# Note; this doesn't include MPI - some environments supply their own MPI
 #
 # Environment variables:
 #   SUDO Set to "sudo" if elevated privileges are needed (e.g. SUDO=sudo)
@@ -13,13 +14,11 @@ install-apt-dependencies() {
         make \
         git \
         wget \
-        libopenmpi-dev \
-	openmpi-bin \
         flex \
-	libfl-dev \
-	bison \
-	ninja-build \
-	libreadline-dev \
+        libfl-dev \
+        bison \
+        ninja-build \
+        libreadline-dev \
         curl \
         ca-certificates \
         pkg-config \

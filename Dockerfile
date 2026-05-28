@@ -33,7 +33,7 @@ RUN --mount=type=bind,source=ci/scripts/install-apt-dependencies.sh,target=/tmp/
     && apt-get --yes -qq upgrade \
     && source /tmp/install-apt-dependencies.sh \
     && install-apt-dependencies \
-    && apt-get --yes -qq --no-install-recommends install libhdf5-openmpi-dev \
+    && apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev \
     && apt-get --yes -qq clean \
     && rm -rf /var/lib/apt/lists/*
 
