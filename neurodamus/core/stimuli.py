@@ -2,9 +2,9 @@
 
 import logging
 
-from .configuration import ConfigurationError
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.io.sonata_config import EField
 
 
 class SignalSource:
@@ -493,38 +493,16 @@ class ConductanceSource(SignalSource):
 
 
 class ElectrodeSource:
-    """Constructs an extracellular potential field as the sum of multiple user-defined e-fields,
-    and applies the resulting signal to the segment's e_extracellular.
-
-    Args:
-        base_amp: baseline amplitude when signal is inactive
-        delay: start time delay in ms
-        duration: duration of the signal, not including ramp up and ramp down
-        fields: list of user-defined electric field components (e.g. cosinuoid fields)
-        duration: duration of the signal, not including ramp up and ramp down.
-        ramp_up_time: duration during which the signal amplitude ramps up linearly from 0, in ms
-        ramp_down_time: duration during which the signal amplitude ramps down linearly to 0, in ms
+    """Manages extracellular electric field stimulation for a single cell
+    and applies to every segment.extracellular._ref_e via EFieldIntegrator mechanism.
+    EFieldIntegrator computes the potential at every time step as the sum of multiple e-fields,
+    each defined by peak amplitudes (Ex,Ey,Ez), frequency, phase, delay, ramp up and ramp down.
     """
 
-    def __init__(self, base_amp, delay, duration, fields, ramp_up_time, ramp_down_time, dt):
-        self.time_vec = Nd.h.Vector()  # Time points for stimulus waveform
-        self._cur_t = 0
-        self._base_amp = base_amp
-        self._delay = delay
-        self.fields = fields
-        self.duration = duration
-        self.dt = dt
-        self.ramp_up_time = ramp_up_time
-        self.ramp_down_time = ramp_down_time
+    def __init__(self, efields: list[EField]):
+        # list of EFieldIntegrator mechs attached to segments, required to avoid garbage collection
         self.segment_efield_integrators = []
-
-    def delay(self, duration):
-        """Increments the ref time so that the next created signal is delayed"""
-        # NOTE: We rely on the fact that Neuron allows "instantaneous" changes
-        # and made all signal shapes return to base_amp. Therefore delay() doesn't
-        # need to introduce any point to avoid interpolation.
-        self._cur_t += duration
-        return self
+        self.efields = efields
 
     def apply_segment_potentials(self, segment_displacements):
         """Apply potentials to segment.extracellular._ref_e
@@ -538,36 +516,44 @@ class ElectrodeSource:
                 section.insert("extracellular")
 
             # convert field data into multiple hoc vectors
-            freq_vector = Nd.h.Vector(len(self.fields))
-            phase_vector = Nd.h.Vector(len(self.fields))
-            x_vec = Nd.h.Vector(len(self.fields))
-            y_vec = Nd.h.Vector(len(self.fields))
-            z_vec = Nd.h.Vector(len(self.fields))
-            for i, field in enumerate(self.fields):
-                freq_vector.x[i] = field["Frequency"]
-                phase_vector.x[i] = field["Phase"]
-                x_vec.x[i] = field["Ex"]
-                y_vec.x[i] = field["Ey"]
-                z_vec.x[i] = field["Ez"]
+            n_fields = len(self.efields)
+            freq_vector = Nd.h.Vector(n_fields)
+            phase_vector = Nd.h.Vector(n_fields)
+            peak_potential_vec = Nd.h.Vector(n_fields)
+            delay_vec = Nd.h.Vector(n_fields)
+            duration_vec = Nd.h.Vector(n_fields)
+            rup_vec = Nd.h.Vector(n_fields)
+            rdown_vec = Nd.h.Vector(n_fields)
+
+            for i, field in enumerate(self.efields):
+                freq_vector.x[i] = field.frequency
+                phase_vector.x[i] = field.phase
+                # dot product E·d in V, converted to mV (* 1e3)
+                peak_potential_vec.x[i] = 1e3 * (
+                    field.ex * displacement[0]
+                    + field.ey * displacement[1]
+                    + field.ez * displacement[2]
+                )
+                delay_vec.x[i] = field.delay
+                duration_vec.x[i] = field.duration
+                rup_vec.x[i] = field.ramp_up_time
+                rdown_vec.x[i] = field.ramp_down_time
             efi = Nd.h.EFieldIntegrator(segment)
             Nd.h.setpointer(segment.extracellular._ref_e, "e_ext", efi)
             efi.enabled = 1
-            efi.set_displacement(Nd.h.Vector(displacement))
             efi.add_electrode_source(
-                self._delay,
-                self.duration,
-                self.ramp_up_time,
-                self.ramp_down_time,
-                x_vec,
-                y_vec,
-                z_vec,
+                delay_vec,
+                duration_vec,
+                rup_vec,
+                rdown_vec,
+                peak_potential_vec,
                 phase_vector,
                 freq_vector,
             )
             self.segment_efield_integrators.append(efi)
 
+
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""
-        logging.error("Multiple ElectrodeSource not supported with nmodl")
-        raise ConfigurationError("Support for multiple ElectrodeSources pending")
-        # return self
+        self.efields.extend(other.efields)
+        return self
