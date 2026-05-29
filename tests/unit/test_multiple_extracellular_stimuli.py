@@ -100,8 +100,6 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
 
-    n.clear_model()
-
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
