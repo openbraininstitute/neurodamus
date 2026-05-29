@@ -16,7 +16,7 @@ on:
       - main
 
 env:
-    COVERATE_PYTHON=: '3.12'
+    COVERAGE_PYTHON=: '3.12'
 
 jobs:
   coverage:
@@ -76,7 +76,7 @@ jobs:
         tox -e baseline
 
     - name: Upload baseline coverage to Coveralls
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -90,7 +90,7 @@ jobs:
         tox -e unit
 
     - name: Upload unit coverage to Coveralls
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
         tox -e unit-mpi
 
     - name: Upload unit-mpi coverage to Coveralls
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -118,7 +118,7 @@ jobs:
         tox -e unit-ngv-mpi
 
     - name: Upload unit-ngv-mpi coverage to Coveralls
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -132,7 +132,7 @@ jobs:
         tox -e unit-allen-v1
 
     - name: Upload unit-allen-v1 coverage to Coveralls
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -142,7 +142,7 @@ jobs:
         fail-on-error: false
 
     - name: Finalize Coveralls parallel build
-      if: startsWith(matrix.python-version, env.COVERATE_PYTHON)
+      if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}

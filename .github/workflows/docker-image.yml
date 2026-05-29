@@ -79,7 +79,6 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.2.2
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

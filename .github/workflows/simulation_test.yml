@@ -4,13 +4,13 @@ on:
     branches:
       - main
     paths:
-      - 'neurodamus/neurodamus/**'
-      - 'neurodamus/tests/**'
-      - 'neurodamus/.github/workflows/**'
-      - 'neurodamus/ci/**'
-      - 'neurodamus/pyproject.toml'
-      - 'neurodamus/tox.ini'
-      - 'neurodamus/requirements.txt'
+      - 'neurodamus/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+      - 'ci/**'
+      - 'pyproject.toml'
+      - 'tox.ini'
+      - 'requirements.txt'
   push:
     branches:
       - main
