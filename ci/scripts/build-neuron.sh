@@ -38,8 +38,6 @@ build-neuron() {
     $PIP install tomli tomli_w
     grep -q neuron-nightly $NRN/pyproject.toml && python3 $NRN/packaging/python/change_name.py $NRN/pyproject.toml neuron
 
-    #XXX
-      #-DPYTHON_EXECUTABLE=`which python3`
     local CMAKE_ARGS=(
       -DNRN_ENABLE_MPI_DYNAMIC=OFF
       -DNRN_ENABLE_MPI=ON
