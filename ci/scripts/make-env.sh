@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Generate an environment activation script (env-neocortex.sh) for running neurodamus.
 #
 # Environment variables:

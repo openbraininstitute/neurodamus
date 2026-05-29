@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Clone and pip-install neurodamus
 #
 # Environment variables:

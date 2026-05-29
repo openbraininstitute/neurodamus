@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install h5py with MPI support, building from source against the available HDF5 library.
 #
 # Environment variables:

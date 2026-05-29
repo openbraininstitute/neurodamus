@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build and install NEURON simulator from source with CoreNEURON and MPI support.
 # Assumes libsonatareport has already been installed in $INSTALL_DIR.
 #

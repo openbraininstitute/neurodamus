@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build neocortex neurodamus-models.
 #
 # Environment variables:

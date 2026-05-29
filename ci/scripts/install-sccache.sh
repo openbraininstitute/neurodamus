@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Download and install the sccache compiler cache binary.
 #
 # Environment variables:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build and install mpi4py
 #
 # Environment variables:
