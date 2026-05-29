@@ -552,7 +552,6 @@ class ElectrodeSource:
             )
             self.segment_efield_integrators.append(efi)
 
-
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""
         self.efields.extend(other.efields)
