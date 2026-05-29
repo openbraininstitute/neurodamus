@@ -122,7 +122,7 @@ VERBATIM
             if( t < cur_delay + cur_ramp_up ) {
                 ramp_factor = (t-cur_delay) / cur_ramp_up;
             }
-            if( cur_delay + cur_ramp_up + cur_duration < t ) {
+            else if( t > (cur_delay + cur_ramp_up + cur_duration) ) {
                 ramp_factor = 1 - (t - (cur_delay + cur_ramp_up + cur_duration)) / cur_ramp_down;
             }
             double wavefactor = cos(2 * PI * vector_vec(vfreq)[i] / 1000 * (t-cur_delay) + vector_vec(vphase)[i]);
