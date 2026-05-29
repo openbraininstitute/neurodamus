@@ -832,7 +832,7 @@ class SEClamp(BaseStim):
 
 
 @StimulusManager.register_type
-class SpatiallyUniformEField(BaseStim):
+class SpatiallyUniformEField:
     """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
     in time, and whose spatial gradient (i.e., E field) is constant.
@@ -861,27 +861,13 @@ class SpatiallyUniformEField(BaseStim):
         """Process stimulus block for target cells.
         Creates ElectrodeSource for new cells or merges with existing stimuli.
         """
-        # parse parameters for the current stimus block
-        self.parse_check_all_parameters(stim_info)
-
         # apply stim to each point in target_points
         for target_point_list in target_points:
-            es = ElectrodeSource(
-                base_amp=0,
-                delay=self.delay,
-                duration=self.duration,
-                fields=self.fields,
-                ramp_up_time=self.ramp_up_time,
-                ramp_down_time=self.ramp_down_time,
-                dt=self.dt,
-            )
+            es = ElectrodeSource(stim_info["Fields"])
             gid = target_point_list.gid
             if gid in self.stimList:
-                # Consolidate with existing stimulus - not yet supported in mod impl
-                # TODO: update iadd method to allow: self.stimList[gid] += es; raise error for now
                 self.stimList[gid] += es
             else:
-                # Add new stimulus
                 self.stimList[gid] = es
 
                 # Compute segment displacement from the ground point where potential is 0,
@@ -925,24 +911,6 @@ class SpatiallyUniformEField(BaseStim):
         if cls._instance:
             for es in cls._instance.stimList.values():
                 es.apply_segment_potentials()
-
-    def parse_check_all_parameters(self, stim_info: dict):
-        self.duration = float(stim_info["Duration"])  # duration [ms]
-        self.dt = float(SimConfig.run_conf.dt)
-        self.delay = float(stim_info["Delay"])  # start time [ms]
-        if not (np.isclose(self.delay % self.dt, 0) or np.isclose(self.delay % self.dt, self.dt)):
-            self.delay = np.ceil(self.delay / self.dt) * self.dt
-            logging.warning(
-                "%s delay %s is not divisible by dt %s, rounded up to the next time point %s",
-                self.__class__.__name__,
-                stim_info["Delay"],
-                self.dt,
-                self.delay,
-            )
-        self.fields = stim_info["Fields"]
-        self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
-        self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
-        return True
 
     @staticmethod
     def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
