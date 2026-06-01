@@ -32,7 +32,7 @@ from neurodamus.stimulus_manager import SpatiallyUniformEField
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
                         "duration": 5,
-                        "node_set": "RingA_Cell0",
+                        "node_set": "RingA",
                         "fields": [
                             {"Ex": 50, "Ey": -25, "Ez": 75, "frequency": 100, "phase": 1.570796},
                         ],
@@ -44,7 +44,7 @@ from neurodamus.stimulus_manager import SpatiallyUniformEField
                         "module": "spatially_uniform_e_field",
                         "delay": 0,
                         "duration": 10,
-                        "node_set": "RingA_Cell0",
+                        "node_set": "RingA",
                         "fields": [
                             {"Ex": 100, "Ey": -50, "Ez": 50, "frequency": 0},
                         ],
@@ -83,7 +83,7 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
 
-    assert list(stimulus.stimList.keys()) == [0]
+    assert list(stimulus.stimList.keys()) == [0, 1, 2]
     es = stimulus.stimList[0]
     assert isinstance(es, ElectrodeSource)
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)

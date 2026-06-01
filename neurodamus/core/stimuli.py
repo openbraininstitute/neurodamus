@@ -502,7 +502,7 @@ class ElectrodeSource:
     def __init__(self, efields: list[EField]):
         # list of EFieldIntegrator mechs attached to segments, required to avoid garbage collection
         self.segment_efield_integrators = []
-        self.efields = efields
+        self.efields = efields.copy()  # copy to avoid shared reference when combined via __iadd__
 
     def apply_segment_potentials(self, segment_displacements):
         """Apply potentials to segment.extracellular._ref_e
