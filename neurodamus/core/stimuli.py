@@ -500,14 +500,17 @@ class ElectrodeSource:
     """
 
     def __init__(self, efields: list[EField]):
-        self.segment_displacements = {}  # {segment object: displacement vec in x/y/z w.r.t ground}
         # list of EFieldIntegrator mechs attached to segments, required to avoid garbage collection
         self.segment_efield_integrators = []
         self.efields = efields
 
-    def apply_segment_potentials(self):
-        """Apply potentials to segment.extracellular._ref_e"""
-        for segment, displacement in self.segment_displacements.items():
+    def apply_segment_potentials(self, segment_displacements):
+        """Apply potentials to segment.extracellular._ref_e
+
+        Args:
+            segment_displacements: list of (segment, displacement vector) tuples (x/y/z in meters)
+        """
+        for segment, displacement in segment_displacements:
             section = segment.sec
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")
@@ -548,12 +551,6 @@ class ElectrodeSource:
                 freq_vector,
             )
             self.segment_efield_integrators.append(efi)
-
-        self.cleanup()
-
-    def cleanup(self):
-        """Clear unused list variable to free memory"""
-        self.segment_displacements = None
 
     def __iadd__(self, other):
         """Combined with another ElectrodeSource object"""

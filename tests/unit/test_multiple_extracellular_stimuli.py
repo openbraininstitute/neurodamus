@@ -99,7 +99,6 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     npt.assert_allclose(rec_dend, ref_dend)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
-    assert es.segment_displacements is None
 
 
 @pytest.mark.parametrize(

@@ -870,47 +870,46 @@ class SpatiallyUniformEField:
             else:
                 self.stimList[gid] = es
 
-                # Compute segment displacement from the ground point where potential is 0,
-                # i.e. the soma baricenter position in x/y/z
-                cell = cell_manager.get_cell(gid)
-                all_seg_points = cell.compute_segment_global_coordinates()
-                local_seg_points = cell.compute_segment_local_coordinates()
-                soma = cell.CellRef.soma[0]
-                # soma position is the average of all its segment points
-                soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
-                soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+    @classmethod
+    def apply_all_stimuli(cls, cell_manager):
+        """Apply all consolidated stimuli to their segments.
+        Computes segment displacements on the fly from cell geometry.
+        """
+        assert cls._instance, (
+            "SpatiallyUniformEField is a singleton but was never instantiated. "
+            "Probably interpret() was not called before apply_all_stimuli()."
+        )
+        for gid, es in cls._instance.stimList.items():
+            cell = cell_manager.get_cell(gid)
 
-                def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
-                    return cell.local_to_global_coord_mapping(
-                        np.vstack([soma_local_position, pos])
-                    )[1]
+            # Compute segment displacements from the ground point (soma barycenter)
+            all_seg_points = cell.compute_segment_global_coordinates()
+            local_seg_points = cell.compute_segment_local_coordinates()
+            soma_name = cell.CellRef.soma[0].name()
+            soma_global_position = np.array(all_seg_points[soma_name]).mean(axis=0)
+            soma_local_position = np.array(local_seg_points[soma_name]).mean(axis=0)
 
-                for sec_id, sc in enumerate(target_point_list.sclst):
-                    # skip sections not in this split
-                    if not sc.exists():
-                        continue
+            def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
+                return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
+
+            segment_displacements = []
+            for sec in cell.CellRef.all:
+                for seg in sec:
                     segment_position = (
-                        self.get_segment_position(
-                            all_seg_points[sc.sec.name()],
+                        cls.get_segment_position(
+                            all_seg_points[sec.name()],
                             soma_local_position,
-                            sc.sec,
-                            target_point_list.x[sec_id],
+                            sec,
+                            seg.x,
                             local_to_global,
                         )
-                        if "soma" not in sc.sec.name()
+                        if "soma" not in sec.name()
                         else soma_global_position
                     )
-                    # vector of displacement in x,y,z, convert from um to m
                     displacement_vec = (segment_position - soma_global_position) * 1e-6
-                    segment = sc.sec(target_point_list.x[sec_id])
-                    es.segment_displacements[segment] = displacement_vec
+                    segment_displacements.append((seg, displacement_vec))
 
-    @classmethod
-    def apply_all_stimuli(cls):
-        """Apply all consolidated stimuli to their segments"""
-        if cls._instance:
-            for es in cls._instance.stimList.values():
-                es.apply_segment_potentials()
+            es.apply_segment_potentials(segment_displacements)
 
     @staticmethod
     def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
