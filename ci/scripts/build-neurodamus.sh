@@ -25,5 +25,5 @@ build-neurodamus() {
         git checkout FETCH_HEAD
     )
 
-    $PIP install $NEURODAMUS
+    $PIP install $NEURODAMUS'[full']
 }

@@ -9,6 +9,6 @@ install-python-dependencies() {
     PRE || true
 
     $PIP install --upgrade pip setuptools
-    $PIP install -v cython numpy wheel pkgconfig jinja2 pyyaml cmake ninja morphio
+    $PIP install -v cython numpy wheel pkgconfig jinja2 pyyaml cmake ninja
     $PIP install -v mpi4py
 }
