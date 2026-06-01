@@ -508,9 +508,9 @@ class ElectrodeSource:
         """Apply potentials to segment.extracellular._ref_e
 
         Args:
-            segment_displacements: dict mapping segment -> displacement vector (x/y/z in meters)
+            segment_displacements: list of (segment, displacement vector) tuples (x/y/z in meters)
         """
-        for segment, displacement in segment_displacements.items():
+        for segment, displacement in segment_displacements:
             section = segment.sec
             if not section.has_membrane("extracellular"):
                 section.insert("extracellular")

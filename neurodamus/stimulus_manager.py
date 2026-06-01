@@ -875,22 +875,24 @@ class SpatiallyUniformEField:
         """Apply all consolidated stimuli to their segments.
         Computes segment displacements on the fly from cell geometry.
         """
-        if not cls._instance:
-            return
+        assert cls._instance, (
+            "SpatiallyUniformEField is a singleton but was never instantiated. "
+            "Probably interpret() was not called before apply_all_stimuli()."
+        )
         for gid, es in cls._instance.stimList.items():
             cell = cell_manager.get_cell(gid)
 
             # Compute segment displacements from the ground point (soma barycenter)
             all_seg_points = cell.compute_segment_global_coordinates()
             local_seg_points = cell.compute_segment_local_coordinates()
-            soma = cell.CellRef.soma[0]
-            soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
-            soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+            soma_name = cell.CellRef.soma[0].name()
+            soma_global_position = np.array(all_seg_points[soma_name]).mean(axis=0)
+            soma_local_position = np.array(local_seg_points[soma_name]).mean(axis=0)
 
             def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
                 return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
 
-            segment_displacements = {}
+            segment_displacements = []
             for sec in cell.CellRef.all:
                 for seg in sec:
                     segment_position = (
@@ -905,7 +907,7 @@ class SpatiallyUniformEField:
                         else soma_global_position
                     )
                     displacement_vec = (segment_position - soma_global_position) * 1e-6
-                    segment_displacements[seg] = displacement_vec
+                    segment_displacements.append((seg, displacement_vec))
 
             es.apply_segment_potentials(segment_displacements)
 
