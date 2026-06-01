@@ -1,5 +1,8 @@
 name: neurodamus integration and simulation tests
 on:
+  schedule:
+    - cron: '0 20 * * 6'  # Saturdays at 8pm
+
   pull_request:
     branches:
       - main
@@ -57,7 +60,7 @@ jobs:
         version: "0.11.14"
 
     - name: Checkout neurodamus repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
@@ -73,7 +76,7 @@ jobs:
 
     - name: sccache build cache
       id: cache-sccache
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
         path: ${{ github.workspace }}/cache
         key: sccache-${{ runner.os }}-${{ github.run_id }}
