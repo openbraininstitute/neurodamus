@@ -12,14 +12,11 @@ on:
 jobs:
   wheel:
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python_version: ["3.11"]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: "3.11"
 
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -28,19 +25,17 @@ jobs:
 
       - name: Build Wheel
         run: |
-          cd $GITHUB_WORKSPACE
-          python${{ matrix.python_version }} -m pip install --upgrade build
-          python${{ matrix.python_version }} -m build .
+          python -m pip install --upgrade build
+          python -m build .
 
       - name: Test Wheel
         run: |
-          cd $GITHUB_WORKSPACE
-          pip3 install tox
-          DIST_FILE=`ls dist/*whl` && tox --installpkg=$DIST_FILE -e ${{ matrix.python_version }}
+          pip install tox
+          DIST_FILE=$(ls dist/*whl) && tox --installpkg=$DIST_FILE -e 3.11
 
       - uses: actions/upload-artifact@v7
         with:
-          name: release-artifacts-${{ matrix.python_version }}-${{ strategy.job-index }}
+          name: release-artifacts
           path: ./dist/*
 
   pypi-publish:
@@ -54,9 +49,8 @@ jobs:
       - name: Download artifacts produced by the wheel job
         uses: actions/download-artifact@v8
         with:
-          pattern: release-artifacts*
+          name: release-artifacts
           path: dist/
-          merge-multiple: true
 
       - name: Display structure of downloaded files
         run: ls -R
