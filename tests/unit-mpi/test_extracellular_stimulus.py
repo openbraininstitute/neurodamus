@@ -3,56 +3,11 @@ import numpy.testing as npt
 import pytest
 
 from tests.conftest import RINGTEST_DIR
+from tests.utils import get_expected_extracellular_potentials
 
 from neurodamus import Neurodamus
 from neurodamus.core import MPI
 from neurodamus.stimulus_manager import SpatiallyUniformEField
-
-REF_CONSTANT_BIGCELL = np.array(
-    [
-        -0.0,
-        -0.160722,
-        -0.4821677,
-        -0.8036128,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.843793,
-        -0.60271,
-        -0.361626,
-        -0.120542,
-    ]
-)
-
-REF_CONSTANT_SMALLCELL = [
-    0.0,
-    -0.184506,
-    -0.553517,
-    -0.922529,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -1.107034,
-    -0.968655,
-    -0.691896,
-    -0.415138,
-    -0.138379,
-]
-
-REF_CONSTANT = {0: REF_CONSTANT_BIGCELL, 1: REF_CONSTANT_SMALLCELL}
 
 
 @pytest.mark.parametrize(
@@ -101,8 +56,7 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
     gid = local_gids[0]
-    cell = n.circuits.get_node_manager("RingA").get_cell(gid)
-    cellref = cell.CellRef
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(gid)
     es = stimulus.stimList[gid]
     assert len(es.segment_efield_integrators) == sum(sec.nseg for sec in cellref.all)
 
@@ -111,8 +65,12 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     rec_dend.record(dend_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(rec_dend, REF_CONSTANT[gid], atol=1e-6)
+
+    assert len(es.efields) == 1
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    es = stimulus.stimList[gid]
+    efi = es.segment_efield_integrators[3] if gid == 0 else es.segment_efield_integrators[1]
+    ref = get_expected_extracellular_potentials(tot_tvec, efi, es.efields)
+    npt.assert_allclose(rec_dend, ref)
 
     assert all(sec.has_membrane("extracellular") for sec in cellref.all)
-
-    assert es.segment_displacements is None

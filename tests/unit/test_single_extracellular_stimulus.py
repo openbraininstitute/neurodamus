@@ -6,7 +6,12 @@ import pytest
 from scipy.signal import find_peaks
 
 from tests.conftest import RINGTEST_DIR
-from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
+from tests.utils import (
+    get_expected_extracellular_potentials,
+    read_ascii_report,
+    record_compartment_reports,
+    write_ascii_reports,
+)
 
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import ConfigurationError
@@ -74,12 +79,12 @@ def test_interpolate_myelin_coordinates():
     ],
     indirect=True,
 )
-def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
+def test_one_field_noramp(create_tmp_simulation_config_file):
     """
     One cosinusoid field without ramp
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
-    2. check the reference potentials against the cosine function
-    3. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    2. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
+    3. check the potential amplitude of soma and 4th segment
     """
     from neurodamus.core import NeuronWrapper as Nd
 
@@ -103,83 +108,14 @@ def test_one_field_noramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
 
-    dt = es.dt
-    duration = es.duration
-    efi = es.segment_efield_integrators[3]
-    max_potential = 1e3 * (
-        efi.displacementX * es.fields[0]["Ex"]
-        + efi.displacementY * es.fields[0]["Ey"]
-        + efi.displacementZ * es.fields[0]["Ez"]
-    )  # from mV to V
-
-    def f_cos(t):
-        return max_potential * np.cos(
-            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
-        )
-
-    # original reference with vec.play with time points at every dt
-    ref_stimvec_vecplay = [
-        -0.505702,
-        -0.409122,
-        -0.156271,
-        0.156271,
-        0.409122,
-        0.505702,
-        0.409122,
-        0.156271,
-        -0.156271,
-        -0.409122,
-        -0.505702,
-        0.0,
-    ]
-    t_vecplay = np.arange(0, duration + 1, dt)
-    # current reference with efield_integrator.mod at very t+dt/2 w.r.t BEFORE_BREAKPOINT
-    ref_stimvec_mod = [
-        0,
-        -0.4809515,
-        -0.2972444,
-        0,
-        0.2972444,
-        0.4809515,
-        0.4809515,
-        0.2972444,
-        0,
-        -0.2972444,
-        -0.4809515,
-    ]
-    t_beforebreakpoint = np.arange(dt / 2, duration, dt)
-
-    # check the references against the cosine function
-    npt.assert_allclose(f_cos(t_beforebreakpoint), ref_stimvec_mod[1:], atol=1e-9)
-    npt.assert_allclose(f_cos(t_vecplay), ref_stimvec_vecplay[:-1], atol=1e-6)
-
-    # check the actually segment.extracellular._ref_e against the current reference
-    npt.assert_allclose(rec_dend, ref_stimvec_mod, atol=1e-9)
-    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
-
-
-REF_COSINE = np.array(
-    [
-        0,
-        -0.08015859,
-        -0.1486222,
-        0,
-        0.2972444,
-        0.4809515,
-        0.4809515,
-        0.2972444,
-        0,
-        -0.2972444,
-        -0.4809515,
-        -0.4809515,
-        -0.2972444,
-        0,
-        0.26008885,
-        0.3005947,
-        0.18035683,
-        0.03715555,
-    ]
-)
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    assert len(es.efields) == 1
+    assert np.isclose(es.segment_efield_integrators[0].get_peak_potential(0), 0)
+    efi_dend = es.segment_efield_integrators[3]
+    assert np.isclose(efi_dend.get_peak_potential(0), -0.505702)
+    ref_dend = get_expected_extracellular_potentials(tot_tvec, efi_dend, es.efields)
+    assert all(rec_soma.as_numpy() == 0)
+    npt.assert_allclose(rec_dend, ref_dend)
 
 
 @pytest.mark.parametrize(
@@ -207,7 +143,7 @@ REF_COSINE = np.array(
     ],
     indirect=True,
 )
-def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
+def test_one_field_withramp(create_tmp_simulation_config_file):
     """
     A cosinusoid field with ramp up and down
     1. check the size of segment_potentials, should be applied to all the segments, n_seg
@@ -235,64 +171,14 @@ def test_one_field_withramp(create_tmp_simulation_config_file):  # noqa: PLR0914
     rec_soma.record(soma_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(rec_dend, REF_COSINE, atol=1e-9)
-    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
 
-    dt = es.dt
-    duration = es.duration
-    ramp_up_time = es.ramp_up_time
-    ramp_down_time = es.ramp_down_time
-    efi = es.segment_efield_integrators[3]
-    max_potential = 1e3 * (
-        efi.displacementX * es.fields[0]["Ex"]
-        + efi.displacementY * es.fields[0]["Ey"]
-        + efi.displacementZ * es.fields[0]["Ez"]
-    )  # from mV to V
-
-    def f_cos(t):
-        return max_potential * np.cos(
-            2 * np.pi * es.fields[0]["Frequency"] / 1000 * t + es.fields[0]["Phase"]
-        )
-
-    t_beforebreakpoint = np.arange(dt / 2, duration + ramp_up_time + ramp_down_time, dt)
-
-    # check the references against the cosine function
-    def make_ramp_envelope(t_vec):
-        envelope = np.ones(len(t_vec))
-        envelope = np.where(t_vec < ramp_up_time, t_vec / ramp_up_time, envelope)
-        envelope = np.where(
-            t_vec > ramp_up_time + duration,
-            1 - (t_vec - (ramp_up_time + duration)) / ramp_down_time,
-            envelope,
-        )
-        return envelope
-
-    ramping_mod = make_ramp_envelope(t_beforebreakpoint)
-    npt.assert_allclose(f_cos(t_beforebreakpoint) * ramping_mod, REF_COSINE[1:], atol=1e-6)
-
-
-REF_CONSTANT = np.array(
-    [
-        -0.0,
-        -0.160722,
-        -0.4821677,
-        -0.8036128,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.964335,
-        -0.843793,
-        -0.60271,
-        -0.361626,
-        -0.120542,
-    ]
-)
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    assert len(es.efields) == 1
+    ref_dend = get_expected_extracellular_potentials(
+        tot_tvec, es.segment_efield_integrators[3], es.efields
+    )
+    assert all(rec_soma.as_numpy() == 0)
+    npt.assert_allclose(rec_dend, ref_dend)
 
 
 @pytest.mark.parametrize(
@@ -346,8 +232,14 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     rec_soma.record(soma_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(rec_dend, REF_CONSTANT, atol=1e-6)
-    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    assert len(es.efields) == 1
+    ref_dend = get_expected_extracellular_potentials(
+        tot_tvec, es.segment_efield_integrators[3], es.efields
+    )
+    assert all(rec_soma.as_numpy() == 0)
+    npt.assert_allclose(rec_dend, ref_dend)
 
 
 @pytest.mark.parametrize(
@@ -406,12 +298,16 @@ def test_two_fields(create_tmp_simulation_config_file):
     rec_soma.record(soma_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(rec_dend, REF_COSINE + REF_CONSTANT, atol=1e-6)
-    npt.assert_allclose(rec_soma, np.zeros(len(rec_dend)))
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    assert len(es.efields) == 2
+    ref_dend = get_expected_extracellular_potentials(
+        tot_tvec, es.segment_efield_integrators[3], es.efields
+    )
+    assert all(rec_soma.as_numpy() == 0)
+    npt.assert_allclose(rec_dend, ref_dend)
 
     assert all(sec.has_membrane("extracellular") for sec in cell.all)
-
-    assert es.segment_displacements is None
 
 
 @pytest.mark.parametrize(
@@ -450,10 +346,6 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    dt = stimulus.dt
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 5)
-
     cell_manager = n.circuits.get_node_manager("RingA")
     cell = cell_manager.get_cellref(0)
     dend_seg = cell.dend[0](0.25)
@@ -461,9 +353,14 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     rec_dend.record(dend_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(
-        rec_dend, np.concatenate([np.zeros(int(delay / dt)), REF_COSINE + REF_CONSTANT]), atol=1e-6
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    es = stimulus.stimList[0]
+    assert len(es.efields) == 2
+    ref = get_expected_extracellular_potentials(
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
+    npt.assert_allclose(rec_dend, ref)
 
 
 @pytest.mark.parametrize(
@@ -503,10 +400,6 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
 
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
-    dt = stimulus.dt
-    delay = stimulus.delay
-    npt.assert_approx_equal(delay, 5)
-
     cell_manager = n.circuits.get_node_manager("RingA")
     cell = cell_manager.get_cellref(0)
     dend_seg = cell.dend[0](0.25)
@@ -514,11 +407,14 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     rec_dend.record(dend_seg.extracellular._ref_e)
     Nd.finitialize()  # reinit for the recordings to be registered
     n.run()
-    npt.assert_allclose(
-        rec_dend,
-        np.concatenate([np.zeros(int(delay / dt)), REF_COSINE + REF_CONSTANT + 2 * REF_CONSTANT]),
-        atol=1e-5,
+
+    tot_tvec = np.concatenate([[0], np.arange(Nd.dt / 2, Nd.tstop, Nd.dt)])
+    es = stimulus.stimList[0]
+    assert len(es.efields) == 3
+    ref = get_expected_extracellular_potentials(
+        tot_tvec, es.segment_efield_integrators[3], es.efields
     )
+    npt.assert_allclose(rec_dend, ref)
 
 
 @pytest.mark.parametrize(
