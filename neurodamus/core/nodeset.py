@@ -127,8 +127,10 @@ class PopulationNodes:
     @contextmanager
     def offset_freezer(cls):
         cls._do_offsetting = False
-        yield
-        cls._do_offsetting = True
+        try:
+            yield
+        finally:
+            cls._do_offsetting = True
 
 
 class SelectionNodeSet:

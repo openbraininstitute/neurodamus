@@ -759,11 +759,13 @@ class LoadBalance:
                 the cells to be load balanced
         """
         mcomplex = MComplexLoadBalancer()  # init mcomplex before building circuit
-        yield
-        target_str = target_spec.simple_name
-        self._compute_save_complexities(target_str, mcomplex, cell_distributor)
-        self._cpu_assign(target_str)
-        self._valid_loadbalance.add(target_str)
+        try:
+            yield
+        finally:
+            target_str = target_spec.simple_name
+            self._compute_save_complexities(target_str, mcomplex, cell_distributor)
+            self._cpu_assign(target_str)
+            self._valid_loadbalance.add(target_str)
 
     @mpi_no_errors
     def _compute_save_complexities(self, target_str, mcomplex, cell_distributor):

@@ -832,7 +832,7 @@ class SEClamp(BaseStim):
 
 
 @StimulusManager.register_type
-class SpatiallyUniformEField(BaseStim):
+class SpatiallyUniformEField:
     """Inject a spatially-uniform, temporally-oscillating extracellular potential field.
     The potential field is defined as the sum of multiple potential fields which vary cosinusoidally
     in time, and whose spatial gradient (i.e., E field) is constant.
@@ -861,87 +861,55 @@ class SpatiallyUniformEField(BaseStim):
         """Process stimulus block for target cells.
         Creates ElectrodeSource for new cells or merges with existing stimuli.
         """
-        # parse parameters for the current stimus block
-        self.parse_check_all_parameters(stim_info)
-
         # apply stim to each point in target_points
         for target_point_list in target_points:
-            es = ElectrodeSource(
-                base_amp=0,
-                delay=self.delay,
-                duration=self.duration,
-                fields=self.fields,
-                ramp_up_time=self.ramp_up_time,
-                ramp_down_time=self.ramp_down_time,
-                dt=self.dt,
-            )
+            es = ElectrodeSource(stim_info["Fields"])
             gid = target_point_list.gid
             if gid in self.stimList:
-                # Consolidate with existing stimulus
                 self.stimList[gid] += es
             else:
-                # Add new stimulus
                 self.stimList[gid] = es
 
-                # Compute segment displacement from the ground point where potential is 0,
-                # i.e. the soma baricenter position in x/y/z
-                cell = cell_manager.get_cell(gid)
-                all_seg_points = cell.compute_segment_global_coordinates()
-                local_seg_points = cell.compute_segment_local_coordinates()
-                soma = cell.CellRef.soma[0]
-                # soma position is the average of all its segment points
-                soma_global_position = np.array(all_seg_points[soma.name()]).mean(axis=0)
-                soma_local_position = np.array(local_seg_points[soma.name()]).mean(axis=0)
+    @classmethod
+    def apply_all_stimuli(cls, cell_manager):
+        """Apply all consolidated stimuli to their segments.
+        Computes segment displacements on the fly from cell geometry.
+        """
+        assert cls._instance, (
+            "SpatiallyUniformEField is a singleton but was never instantiated. "
+            "Probably interpret() was not called before apply_all_stimuli()."
+        )
+        for gid, es in cls._instance.stimList.items():
+            cell = cell_manager.get_cell(gid)
 
-                def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
-                    return cell.local_to_global_coord_mapping(
-                        np.vstack([soma_local_position, pos])
-                    )[1]
+            # Compute segment displacements from the ground point (soma barycenter)
+            all_seg_points = cell.compute_segment_global_coordinates()
+            local_seg_points = cell.compute_segment_local_coordinates()
+            soma_name = cell.CellRef.soma[0].name()
+            soma_global_position = np.array(all_seg_points[soma_name]).mean(axis=0)
+            soma_local_position = np.array(local_seg_points[soma_name]).mean(axis=0)
 
-                for sec_id, sc in enumerate(target_point_list.sclst):
-                    # skip sections not in this split
-                    if not sc.exists():
-                        continue
+            def local_to_global(pos, cell=cell, soma_local_position=soma_local_position):
+                return cell.local_to_global_coord_mapping(np.vstack([soma_local_position, pos]))[1]
+
+            segment_displacements = []
+            for sec in cell.CellRef.all:
+                for seg in sec:
                     segment_position = (
-                        self.get_segment_position(
-                            all_seg_points[sc.sec.name()],
+                        cls.get_segment_position(
+                            all_seg_points[sec.name()],
                             soma_local_position,
-                            sc.sec,
-                            target_point_list.x[sec_id],
+                            sec,
+                            seg.x,
                             local_to_global,
                         )
-                        if "soma" not in sc.sec.name()
+                        if "soma" not in sec.name()
                         else soma_global_position
                     )
-                    # vector of displacement in x,y,z, convert from um to m
                     displacement_vec = (segment_position - soma_global_position) * 1e-6
-                    segment = sc.sec(target_point_list.x[sec_id])
-                    es.segment_displacements[segment] = displacement_vec
+                    segment_displacements.append((seg, displacement_vec))
 
-    @classmethod
-    def apply_all_stimuli(cls):
-        """Apply all consolidated stimuli to their segments"""
-        if cls._instance:
-            for es in cls._instance.stimList.values():
-                es.apply_segment_potentials()
-
-    def parse_check_all_parameters(self, stim_info: dict):
-        self.duration = float(stim_info["Duration"])  # duration [ms]
-        self.dt = float(SimConfig.run_conf.dt)
-        self.delay = float(stim_info["Delay"])  # start time [ms]
-        if not (np.isclose(self.delay % self.dt, 0) or np.isclose(self.delay % self.dt, self.dt)):
-            self.delay = np.ceil(self.delay / self.dt) * self.dt
-            logging.warning(
-                "%s delay %s is not divisible by dt %s, rounded up to the next time point %s",
-                self.__class__.__name__,
-                stim_info["Delay"],
-                self.dt,
-                self.delay,
-            )
-        self.fields = stim_info["Fields"]
-        self.ramp_up_time = stim_info.get("RampUpTime", 0.0)
-        self.ramp_down_time = stim_info.get("RampDownTime", 0.0)
-        return True
+            es.apply_segment_potentials(segment_displacements)
 
     @staticmethod
     def get_segment_position(sec_seg_points, soma_local_position, section, x, func_loc2glob=None):
