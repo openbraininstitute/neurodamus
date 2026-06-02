@@ -90,3 +90,8 @@ RUN --mount=type=bind,source=ci/scripts/make-env.sh,target=/tmp/make-env.sh \
     source $USER_VENV/bin/activate \
     && source /tmp/make-env.sh \
     && make-env
+
+RUN --mount=type=bind,source=ci/scripts/make-build-neurodamus-models.sh,target=/tmp/make-build-neurodamus-models.sh \
+    source $USER_VENV/bin/activate \
+    && source /tmp/make-build-neurodamus-models.sh \
+    && make-build-neurodamus-models

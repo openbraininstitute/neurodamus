@@ -105,13 +105,14 @@ The docker images will be built in the `regular github action <https://github.co
 Docker container
 ----------------
 
-With the docker image, you can start a neurodamus container with an interative Bash shell and meanwhile mount your local folder which contains your mod files and the circuit data.
+With the docker image, you can start a neurodamus container with an interactive Bash shell and meanwhile mount your local folder which contains your mod files and the circuit data.
 
 .. code-block:: sh
 
   docker run --rm -it -v <full path of your folder_mods_circuit>:/mnt/mydata ghcr.io/openbraininstitute/neurodamus:$TAG /bin/bash
 
-Within that, one can examine the `/opt/obi/env-neocortex.sh` file to see how neocortext models are set up.
+To build new models, one can use the script in `/opt/obi/make-neurodamus-models.sh`.
+One can also examine the `/opt/obi/env-neocortex.sh` file to see how neocortext environment variables are setup so that the models are loaded.
 NEURON is installed, so by activating the virtual environment with `source $USER_ENV/bin/activate` one gets access to `neuron` and `neurodamus`
 
 Acknowledgment
