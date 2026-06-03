@@ -43,7 +43,7 @@ def update_sim_conf(tstop, output_dir):
 def check_dir_content(dir, files):
     """
     Check that the files (and only these files) are present
-    in the directory.
+    in the directory. out.h5 is optionally allowed (produced by libsonatareport).
     """
     dir = Path(dir)
     if not dir.exists():
@@ -54,7 +54,7 @@ def check_dir_content(dir, files):
         if not (dir / f).exists():
             raise FileNotFoundError(f"File {f} does not exist in {dir.resolve()}")
     for f in dir.iterdir():
-        if f.name not in files:
+        if f.name not in files and f.name != "out.h5":
             raise UnexpectedFileError(
             f"Unexpected file '{f.name}' found in {dir.resolve()}.\n"
             f"Expected only: {list(files)}"
