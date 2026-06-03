@@ -38,9 +38,7 @@ class CompartmentMapping:
             end_idx = (section_offset + num_segments) * num_electrodes - 1
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
-        electrode_offsets = (
-            Nd.Vector([0, num_electrodes]) if num_electrodes > 0 else Nd.Vector()
-        )
+        electrode_offsets = Nd.Vector([0, num_electrodes]) if num_electrodes > 0 else Nd.Vector()
         self.pc.nrnbbcore_register_mapping(
             cell.gid, sec_type, secvec, segvec, lfp_factors, electrode_offsets
         )
