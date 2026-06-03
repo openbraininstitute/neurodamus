@@ -16,6 +16,7 @@ from tests.utils import (
 from neurodamus import Neurodamus
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
+from neurodamus.core import NeuronWrapper as Nd
 
 
 @pytest.mark.parametrize(
@@ -69,7 +70,6 @@ def test_two_stimulus_blocks(create_tmp_simulation_config_file):
     5. check an extracellar mechanism is added to each segment
     6. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
-    from neurodamus.core import NeuronWrapper as Nd
 
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n._stim_manager._stimulus) == 1
@@ -145,10 +145,6 @@ def test_two_stimulus_blocks_delay(create_tmp_simulation_config_file):
     1. Check the combination of two stimulus blocks, one with delay.
     3. Record one segment extracellular._ref_e and run simulation, check the values
     """
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
     assert len(n._stim_manager._stimulus) == 1
@@ -225,10 +221,6 @@ def test_three_stimulus_blocks_delay(create_tmp_simulation_config_file):
     """
     Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
     """
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
@@ -294,11 +286,6 @@ def test_two_blocks_nodeset_overlap(create_tmp_simulation_config_file):
     Cell 0 contains the sum of the two stimuli
     cell 1,2 contain the 2nd stimluli
     """
-
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     cellref0 = n.circuits.get_node_manager("RingA").get_cellref(0)
     cellref1 = n.circuits.get_node_manager("RingA").get_cellref(1)
@@ -371,10 +358,6 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
     Check 2 stimulus blocks with different time window
     block 1 : [5,17], block 2: [0,7]
     """
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     cellref = n.circuits.get_node_manager("RingA").get_cellref(0)
@@ -487,10 +470,6 @@ def test_two_blocks_time_overlap(create_tmp_simulation_config_file):
 )
 def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak):
     """NEURON integration tests, check the compartment ASCII report"""
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     ascii_recorders = record_compartment_reports(n._target_manager)
     Nd.finitialize()  # reinit for the recordings to be registered

@@ -1,13 +1,12 @@
 import pytest
 import numpy as np
 import numpy.testing as npt
-from tests import utils
 from mpi4py import MPI
 import tempfile
 
 from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
 
-import numpy as np
 from scipy.signal import find_peaks
 
 
@@ -69,8 +68,6 @@ def change_test_dir(monkeypatch, tmp_folder):
 @pytest.mark.mpi(ranks=2)
 def test_load_balance_simulation(request, create_tmp_simulation_config_file, lb_mode,
                                  mpi_ranks):
-    from neurodamus.core import NeuronWrapper as Nd
-
     if lb_mode == "memory-cache":
         request.getfixturevalue("copy_memory_files")       
         lb_mode = "memory"

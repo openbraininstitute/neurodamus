@@ -7,7 +7,7 @@ from mpi4py import MPI
 from neurodamus import Neurodamus
 from neurodamus.ngv import GlioVascularManager
 from tests.conftest import NGV_DIR
-
+from neurodamus.core import NeuronWrapper as Nd
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -68,8 +68,6 @@ def test_vasccouplingB_radii(create_tmp_simulation_config_file, mpi_ranks):
     - Ensuring Rad values evolve as expected during simulation.
     - Confirming R0pas remains stable after the simulation.
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
 
@@ -137,8 +135,6 @@ def test_vasccouplingB_radii_mpi(create_tmp_simulation_config_file, mpi_ranks):
     """
     Test function to validate vascouplingB mechanism attributes .
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
 
     astro_ids = list(n.circuits.get_node_manager("AstrocyteA").gid2cell.keys())
