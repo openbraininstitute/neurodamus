@@ -467,8 +467,9 @@ class ConductanceSource(SignalSource):
             self.stim_vec = Nd.h.Vector(1, 0).append(stim_vec)
             # replace self.stim_vec with inverted and clamped signal
             # rs is in MOhm, so conductance is in uS (micro Siemens)
+            # note we clip negative vals in place of using a Reflected Ornstein-Uhlenbeck Process
             self.stim_vec = Nd.h.Vector(
-                [1 / x if abs(x) > 1e-9 else (1e9 if x >= 0 else -1e9) for x in self.stim_vec]
+                [1 / x if x > 1e-9 and x < 1e9 else 1e9 for x in self.stim_vec]
             )
             self.stim_vec.play(self.clamp._ref_rs, self.time_vec, 1)
             # Clamps must be kept otherwise they are garbage-collected
