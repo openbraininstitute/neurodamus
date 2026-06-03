@@ -126,7 +126,7 @@ jobs:
 
     - name: Install neurodamus-models
       run: |
-        source $BASE_DIR/ci/scripts/build-neurodamus-models.sh \
+        source $BASE_DIR/ci/scripts/build-neocortex-models.sh \
         && source venv/bin/activate \
         && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
