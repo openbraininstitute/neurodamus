@@ -501,7 +501,7 @@ class TestConductanceSource:
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
-        assert np.allclose(self.stim.time_vec, expected_time_vec)
+        np.testing.assert_equal(self.stim.time_vec, expected_time_vec)
         expected_stim_vec = [
             1e9,
             self.base_amp,
@@ -517,6 +517,4 @@ class TestConductanceSource:
             1e9,
             self.base_amp,
         ]
-        assert np.allclose(
-            dynclamp.stim_vec, expected_stim_vec
-        ), f"{list(dynclamp.stim_vec)}, {list(expected_stim_vec)}"
+        np.testing.assert_equal(np.array(dynclamp.stim_vec), expected_stim_vec)
