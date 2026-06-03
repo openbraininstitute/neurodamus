@@ -489,3 +489,32 @@ class TestConductanceSource:
 
     def test_clamp_attach_detach(self):
         clamp_attach_detach(self.stim, "ConductanceSource")
+
+    def test_ornstein_uhlenbeck_clip_negative(self):
+        """Test OU process when generated numbers fall in negative space; should clip to 1e9"""
+        sec1, soma = create_ball_and_stick()
+        self.stim = st.ConductanceSource(
+            reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
+        )
+        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.042, 0.029, 2)
+        dynclamp = self.stim.attach_to(soma)
+        base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
+        expected_time_vec = base_time_vec + self.base_delay
+        expected_time_vec = np.concatenate(([0], expected_time_vec))
+        np.testing.assert_equal(self.stim.time_vec, expected_time_vec)
+        expected_stim_vec = [
+            1e9,
+            self.base_amp,
+            self.base_amp,
+            17.70886517692609,
+            26.745787821469456,
+            27.655225425824607,
+            18.850572907882057,
+            1e9,
+            10.381426494807684,
+            14.874458020035506,
+            18.52106302047261,
+            1e9,
+            self.base_amp,
+        ]
+        np.testing.assert_allclose(np.array(dynclamp.stim_vec), expected_stim_vec)
