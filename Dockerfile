@@ -80,9 +80,9 @@ RUN --mount=type=bind,source=ci/scripts/build-neurodamus.sh,target=/tmp/build-ne
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' build-neurodamus $NEURODAMUS_COMMIT
 
-RUN --mount=type=bind,source=ci/scripts/build-neurodamus-models.sh,target=/tmp/build-neurodamus-models.sh \
+RUN --mount=type=bind,source=ci/scripts/build-neocortex-models.sh,target=/tmp/build-neocortex-models.sh \
     --mount=type=cache,target=/var/cache/sccache \
-    source /tmp/build-neurodamus-models.sh \
+    source /tmp/build-neocortex-models.sh \
     && source $USER_VENV/bin/activate \
     && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
 
