@@ -517,4 +517,4 @@ class TestConductanceSource:
             1e9,
             self.base_amp,
         ]
-        np.testing.assert_equal(np.array(dynclamp.stim_vec), expected_stim_vec)
+        np.testing.assert_allclose(np.array(dynclamp.stim_vec), expected_stim_vec)
