@@ -1,7 +1,10 @@
 from pathlib import Path
 import pytest
 from neurodamus.utils.logging import log_verbose
-# !! NOTE: Please dont import Neuron or Nd objects. pytest will trigger Neuron instantiation!
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
+from neurodamus.node import Node
+
 
 from tests.conftest import V5_SONATA
 
@@ -33,10 +36,6 @@ def test_ttx_modification(create_tmp_simulation_config_file):
 
     We require launching with mpiexec (numprocs=1).
     """
-    from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
-    from neurodamus.node import Node
-
     GlobalConfig.verbosity = LogLevel.VERBOSE
     n = Node(create_tmp_simulation_config_file)
 
@@ -91,10 +90,6 @@ def test_configure_all_sections_modification(create_tmp_simulation_config_file):
 
     We require launching with mpiexec (numprocs=1).
     """
-    from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
-    from neurodamus.node import Node
-
     GlobalConfig.verbosity = LogLevel.VERBOSE
     n = Node(create_tmp_simulation_config_file)
 

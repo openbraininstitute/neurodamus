@@ -6,6 +6,7 @@ import numpy.testing as npt
 import pytest
 
 from neurodamus.io.sonata_config import ConnectionOverride
+from neurodamus.core import NeuronWrapper as Nd
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
 SSCX_V7 = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
@@ -18,7 +19,6 @@ def test_synapses_params():
     """
     from libsonata import EdgeStorage
 
-    from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
     from neurodamus.io.synapse_reader import SynapseParameters
     from neurodamus.node import Node

@@ -9,6 +9,8 @@ import pytest
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.modification_manager import ModificationManager
 from neurodamus.node import Neurodamus, Node
+from neurodamus.core import NeuronWrapper as Nd
+
 from types import SimpleNamespace
 
 from tests.conftest import RINGTEST_DIR
@@ -42,10 +44,6 @@ def test_applyTTX(create_tmp_simulation_config_file):
     to enable/disable sodium channels, no spike change is expected.
     Instead, we check that all sections contain TTXDynamicsSwitch after modification
     """
-
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Node(create_tmp_simulation_config_file)
 
     # setup sim
@@ -105,9 +103,6 @@ def test_configure_all_sections(create_tmp_simulation_config_file):
     After applying sec.gnabar_hh = 0, the expected outcome is 0 spike.
     """
 
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Node(create_tmp_simulation_config_file)
     sec_variable = "gnabar_hh"
 
@@ -166,10 +161,6 @@ def test_configure_all_sections(create_tmp_simulation_config_file):
 )
 def test_configure_all_sections_AugAssign(create_tmp_simulation_config_file):
     """Test the augmented assignment (*=) and multiple assignments for configure_all_sections"""
-
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
     Neurodamus(create_tmp_simulation_config_file)
     soma1 = Nd._pc.gid2cell(0).soma[0]
     soma2 = Nd._pc.gid2cell(1).soma[0]
@@ -228,9 +219,6 @@ def test_configure_all_sections_two_modifications_same_variable_ordered(
     3. gnabar_hh += 1  -> 2.2
     If gnabar_hh order were reversed the result would be (0.12 + 1) * 10 = 11.2.
     """
-
-    from neurodamus.core import NeuronWrapper as Nd
-
     Neurodamus(create_tmp_simulation_config_file)
     soma1 = Nd._pc.gid2cell(0).soma[0]
     soma2 = Nd._pc.gid2cell(1).soma[0]
@@ -400,10 +388,6 @@ def test_modification_section_list(create_tmp_simulation_config_file):
     After applying gnabar_hh = 0 on somatic and basal sections,
     the expected outcome is 0 spikes.
     """
-
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Node(create_tmp_simulation_config_file)
     sec_variable = "gnabar_hh"
 
@@ -514,8 +498,6 @@ def test_modification_section(create_tmp_simulation_config_file):
 )
 def test_modification_compartment_set(create_tmp_simulation_config_file):
     """Test the augmented assignment (*=) and multiple assignments for compartment_set"""
-
-    from neurodamus.core import NeuronWrapper as Nd
     n = Node(create_tmp_simulation_config_file)
 
     # setup sim config
@@ -637,9 +619,6 @@ def test_modification_augassign_multiple_types(
     """
     Test augmented assignments (+=, -=, *=, /=) for section_list, section, and compartment_set.
     """
-    # NeuronWrapper needs to be imported at function level
-    from neurodamus.core import NeuronWrapper as Nd
-
     # Build modification dict dynamically
     modification = {
         "name": "augassign_test",
@@ -1222,8 +1201,6 @@ def test_modification_all_attrs_condition(
     Because the ALL condition is not met, no section/segment should be modified,
     and gnabar_hh must remain at its original value.
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     modification = {
         "name": "all_attrs_test",
         "type": mod_type,

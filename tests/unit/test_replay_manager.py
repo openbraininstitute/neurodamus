@@ -12,6 +12,7 @@ from neurodamus import Neurodamus
 from neurodamus.connection import NetConType
 from neurodamus.core.configuration import ConfigurationError, Feature, SimConfig
 from neurodamus.replay import MissingSpikesPopulationError, SpikeManager
+from neurodamus.core import NeuronWrapper as Nd
 
 import numpy as np
 from scipy.signal import find_peaks
@@ -165,9 +166,6 @@ def test_sonata_parse_synapse_replay_input(create_tmp_simulation_config):
 ], indirect=True)
 @pytest.mark.forked
 def test_replay_stim_generated_run(create_tmp_simulation_config_file):
-    # the import of neuron must be at function level,
-    # otherwise will impact other tests even done in forked processes
-    from neurodamus.core import NeuronWrapper as Nd
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
@@ -229,8 +227,6 @@ def test_replay_stim_generated_run(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_replay_virtual_population(create_tmp_simulation_config_file):
-    from neurodamus.core import NeuronWrapper as Nd
-
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay],
