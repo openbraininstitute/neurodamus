@@ -19,6 +19,8 @@ class UnexpectedFileError(Exception):
 checkpoint_content = {"time.dat", "0_2.dat", "populations_offset.dat"}
 removable_checkpoint_content = {"report.conf", "sim.conf", "coreneuron_input"}
 output_content = {"out.dat", "populations_offset.dat"}
+# out.h5 is produced when libsonatareport is linked (e.g. local MPI builds)
+output_optional = {"out.h5"}
 coreneuron_input_content = {
     "0_1.dat",
     "0_2.dat",
@@ -40,12 +42,13 @@ def update_sim_conf(tstop, output_dir):
         json.dump(sim_config, f, indent=2)
 
 
-def check_dir_content(dir, files):
+def check_dir_content(dir, files, optional_files=None):
     """
     Check that the files (and only these files) are present
-    in the directory. out.h5 is optionally allowed (produced by libsonatareport).
+    in the directory. Files in optional_files are allowed but not required.
     """
     dir = Path(dir)
+    optional_files = optional_files or set()
     if not dir.exists():
         raise FileNotFoundError(f"Directory {dir.resolve()} does not exist.")
     if not dir.is_dir():
@@ -54,7 +57,7 @@ def check_dir_content(dir, files):
         if not (dir / f).exists():
             raise FileNotFoundError(f"File {f} does not exist in {dir.resolve()}")
     for f in dir.iterdir():
-        if f.name not in files and f.name != "out.h5":
+        if f.name not in files and f.name not in optional_files:
             raise UnexpectedFileError(
             f"Unexpected file '{f.name}' found in {dir.resolve()}.\n"
             f"Expected only: {list(files)}"
@@ -86,7 +89,7 @@ def test_file_placement_base(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content)
+    check_dir_content("output", output_content, output_optional)
     assert not Path("build").exists()
 
 
@@ -116,7 +119,7 @@ def test_file_placement_keep_build(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content)
+    check_dir_content("output", output_content, output_optional)
     check_dir_content("build", removable_checkpoint_content)
     with pytest.raises(FileNotFoundError):
         check_dir_content("output/coreneuron_input", coreneuron_input_content)
@@ -149,7 +152,7 @@ def test_file_placement_save(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content)
+    check_dir_content("output", output_content, output_optional)
     check_dir_content("checkpoint", checkpoint_content | removable_checkpoint_content)
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
 
@@ -181,7 +184,7 @@ def test_file_placement_keep_build_save(create_tmp_simulation_config_file):
     subprocess.run(command, check=True, capture_output=True)
 
     # Check the output directory: output + save files
-    check_dir_content("output", output_content)
+    check_dir_content("output", output_content, output_optional)
     check_dir_content("checkpoint", checkpoint_content | removable_checkpoint_content)
     check_dir_content("checkpoint/coreneuron_input", coreneuron_input_content)
     assert not Path("build").exists()
