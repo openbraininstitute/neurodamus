@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import h5py
 import libsonata
 
 from . import NeuronWrapper as Nd
@@ -47,12 +48,27 @@ class CompartmentMapping:
         )
         return num_segments
 
-    def register_mapping(self):
+    def register_mapping(self) -> None:
+        """Register section-segment and LFP electrode mappings for CoreNEURON.
+
+        For each cell on this rank, registers the section/segment structure with
+        NEURON via nrnbbcore_register_mapping. When LFP reports are configured,
+        also loads electrode scaling factors from each report's electrodes_file
+        and builds a CSR-style electrode_offsets vector across reports.
+
+        A gid not present in a given electrode file contributes zero electrodes
+        for that report (the offset increment is zero, factors are empty).
+
+        For example, with report A (3 electrodes, gids 0-2) and report B
+        (2 electrodes, gids 2-3):
+          - gid 0: offsets=[0,3,3], factors from A only
+          - gid 2: offsets=[0,3,5], factors from A+B concatenated
+          - gid 3: offsets=[0,0,2], factors from B only
+        """
         gidvec = self.cell_distributor.getGidListForProcessor()
 
         # Collect all LFP electrode files from reports
-        import h5py
-        lfp_files = []
+        lfp_files: list[h5py.File] = []
         for rep_conf in SimConfig.reports.values():
             if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
                 lfp_files.append(h5py.File(rep_conf.electrodes_file, "r"))
@@ -60,7 +76,7 @@ class CompartmentMapping:
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
-            electrode_offsets = []
+            electrode_offsets: list[int] = []
 
             if lfp_files:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
