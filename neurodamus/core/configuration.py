@@ -288,7 +288,6 @@ class _SimConfig:
         cls.reports = cls._config_parser.parsedReports
         cls.modifications = cls._config_parser.parsedModifications
         cls.beta_features = cls._config_parser.beta_features
-
         cls.cli_options = CliOptions(**(cli_options or {}))
 
         cls.dry_run = cls.cli_options.dry_run
