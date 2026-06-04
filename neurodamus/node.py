@@ -621,23 +621,6 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = None
-        if self._run_conf.enable_reports and SimConfig.use_coreneuron:
-            for rep_conf in SimConfig.reports.values():
-                if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-                    lfp_weights_file = rep_conf.electrodes_file
-                    break
-
-        if lfp_weights_file:
-            lfp_manager = self._circuits.global_manager._lfp_manager
-            cell_managers = self._circuits.global_manager._cell_managers
-            population_list = [
-                manager.population_name
-                for manager in cell_managers
-                if manager.population_name is not None
-            ]
-            lfp_manager.load_lfp_config(lfp_weights_file, population_list)
-
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
         # Let the cell managers have any final say in the cell objects
@@ -987,7 +970,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
+                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:

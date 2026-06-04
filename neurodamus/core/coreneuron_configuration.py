@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import libsonata
+
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
+from neurodamus.lfp_manager import LFPManager
 from neurodamus.metype import BaseCell
 
 
@@ -46,15 +49,27 @@ class CompartmentMapping:
 
     def register_mapping(self):
         gidvec = self.cell_distributor.getGidListForProcessor()
+
+        # Find the LFP electrodes file from reports (if any)
+        import h5py
+        lfp_file = None
+        for rep_conf in SimConfig.reports.values():
+            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
+                lfp_file = h5py.File(rep_conf.electrodes_file, "r")
+                break
+
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
             num_electrodes = 0
-            lfp_manager = getattr(self.cell_distributor, "_lfp_manager", None)
-            if lfp_manager:
+            if lfp_file is not None:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
-                num_electrodes = lfp_manager.get_number_electrodes(activegid, pop_info)
-                all_lfp_factors = lfp_manager.read_lfp_factors(activegid, pop_info)
+                num_electrodes = LFPManager.get_number_electrodes(
+                    lfp_file, activegid, pop_info
+                )
+                all_lfp_factors = LFPManager.read_lfp_factors(
+                    lfp_file, activegid, pop_info
+                )
 
             section_offset = 0
             for sec_type, sec_list in BaseCell.SECTION_TYPES:
@@ -67,6 +82,9 @@ class CompartmentMapping:
                     section_offset,
                 )
                 section_offset += processed_segments
+
+        if lfp_file is not None:
+            lfp_file.close()
 
 
 class _CoreNEURONConfig:
