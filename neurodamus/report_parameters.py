@@ -79,10 +79,16 @@ def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, tar
         rep_conf.dt,
     )
 
+    # For LFP reports, variable_name may be empty (libsonata no longer allows it).
+    # Use empty string for report_on in that case.
+    report_on = rep_conf.variable_name
+    if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp and not report_on:
+        report_on = ""
+
     return ReportParameters(
         type=rep_conf.type,
         name=Path(rep_conf.file_name).name,
-        report_on=rep_conf.variable_name,
+        report_on=report_on,
         unit=rep_conf.unit,
         format="SONATA",
         dt=rep_conf.dt,

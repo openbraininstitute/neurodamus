@@ -68,7 +68,6 @@ class RunConfig:
     ionchannel_seed: int
     minis_seed: int
     synapse_seed: int
-    lfp_weights_path: str
 
     # Additional extended fields
     output_root: str
@@ -136,7 +135,6 @@ class SonataConfig:
             ionchannel_seed=self._sim_conf.run.ionchannel_seed,
             minis_seed=self._sim_conf.run.minis_seed,
             synapse_seed=self._sim_conf.run.synapse_seed,
-            lfp_weights_path=self._sim_conf.run.electrodes_file,
             output_root=self._sim_conf.output.output_dir,
             config_node_sets_file=self._circuit_conf.node_sets_path,
             target_file=self._sim_conf.node_sets_file,
@@ -379,6 +377,34 @@ class SonataConfig:
     @property
     def parsedReports(self):
         return {name: self._sim_conf.report(name) for name in self._sim_conf.list_report_names}
+
+    @property
+    def lfp_electrodes_file(self):
+        """Read and validate electrodes_file from LFP report blocks.
+
+        Returns the electrodes_file path if LFP reports are present, or None otherwise.
+        Raises ValueError if multiple LFP reports reference different electrode files.
+        """
+        lfp_reports = {}
+        for name in self._sim_conf.list_report_names:
+            report = self._sim_conf.report(name)
+            if report.type == libsonata.SimulationConfig.Report.Type.lfp:
+                lfp_reports[name] = report.electrodes_file
+
+        if not lfp_reports:
+            return None
+
+        unique_paths = set(lfp_reports.values())
+        if len(unique_paths) > 1:
+            conflicts = ", ".join(
+                f"'{name}': '{path}'" for name, path in lfp_reports.items()
+            )
+            raise ValueError(
+                "All LFP reports must reference the same electrodes file. "
+                f"Conflicting reports: {conflicts}"
+            )
+
+        return next(iter(unique_paths))
 
     @property
     def parsedModifications(self):
