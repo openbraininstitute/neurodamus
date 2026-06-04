@@ -4,7 +4,7 @@ import libsonata
 
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
-from neurodamus.lfp_manager import LFPFileReader
+from neurodamus.lfp_reader import LFPFileReader
 from neurodamus.metype import BaseCell
 
 

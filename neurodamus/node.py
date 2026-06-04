@@ -62,6 +62,7 @@ from .core.coreneuron_configuration import (
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
 from .io.sonata_config import ConnectionTypes, RunConfig
+from .lfp_reader import LFPFileReader
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
@@ -930,6 +931,12 @@ class Node:
         # filter: only the enabled ones
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
         self._report_list = []
+
+        # Validate LFP electrode files early (fail fast before expensive processing)
+        if SimConfig.use_coreneuron:
+            for rep_name, rep_conf in reports_conf.items():
+                if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
+                    LFPFileReader(rep_conf.electrodes_file)
 
         pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
         pop_offsets_alias = pop_offsets, alias_pop

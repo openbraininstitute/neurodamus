@@ -1,3 +1,5 @@
+"""LFP electrodes file reader for neurodamus."""
+
 import logging
 
 import h5py
@@ -12,10 +14,11 @@ class LFPFileReader:
 
     Opens the file and validates basic structure on construction.
     Provides lazy per-gid access to electrode scaling factors via h5py
-    (no bulk preloading). Use as a context manager or call close() when done.
+    (no bulk preloading).
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath: str) -> None:
+        """Open the electrodes file and validate its structure."""
         try:
             self._file = h5py.File(filepath, "r")
         except OSError as e:
@@ -25,20 +28,21 @@ class LFPFileReader:
         self._filepath = filepath
         self._validate()
 
-    def _validate(self):
+    def _validate(self) -> None:
+        """Check that the file has the required top-level 'electrodes' group."""
         if "electrodes" not in self._file:
             raise ConfigurationError(
                 f"LFP electrodes file '{self._filepath}' is missing the "
                 "'electrodes' group."
             )
 
-    def get_number_electrodes(self, gid, population_info):
-        """Get number of electrodes for a given gid in a population.
+    def get_number_electrodes(self, gid: int, population_info: tuple[str, int]) -> int:
+        """Return the number of electrodes for a given gid.
 
         Args:
             gid: The global cell identifier.
-            population_info: Tuple of (population_name, population_offset)
-                as returned by GlobalCellManager.getPopulationInfo().
+            population_info: (population_name, population_offset) from
+                GlobalCellManager.getPopulationInfo().
         """
         population_name, offset = population_info
         node_id = gid - offset
@@ -52,15 +56,17 @@ class LFPFileReader:
             )
             return 0
 
-    def get_factors(self, gid, population_info):
+    def get_factors(self, gid: int, population_info: tuple[str, int]):
         """Read LFP scaling factors for a given gid as a flat Nd.Vector.
 
         Args:
             gid: The global cell identifier.
-            population_info: Tuple of (population_name, population_offset)
-                as returned by GlobalCellManager.getPopulationInfo().
+            population_info: (population_name, population_offset) from
+                GlobalCellManager.getPopulationInfo().
 
-        Returns an empty vector if the node_id is not found.
+        Returns:
+            Nd.Vector with concatenated per-compartment electrode factors,
+            or an empty vector if the gid is not found.
         """
         population_name, offset = population_info
         node_id = gid - offset
@@ -77,21 +83,34 @@ class LFPFileReader:
             )
             return Nd.Vector()
 
-    def _get_node_subsets(self, node_id, population_name):
+    def _get_node_subsets(self, node_id: int, population_name: str) -> np.ndarray:
+        """Retrieve the scaling factor matrix for a single node.
+
+        Args:
+            node_id: The 0-based SONATA node identifier.
+            population_name: The population group name in the HDF5 file.
+
+        Returns:
+            2D array of shape (n_compartments, n_electrodes).
+
+        Raises:
+            KeyError: If the population or dataset is missing.
+            IndexError: If the node_id is not found in the file.
+        """
         node_ids = self._file[population_name]["node_ids"]
         index = np.where(np.array(node_ids) == node_id)[0][0]
         offsets = self._file[population_name]["offsets"]
         scaling = self._file["electrodes"][population_name]["scaling_factors"]
         return scaling[offsets[index]:offsets[index + 1], :]
 
-    def close(self):
+    def close(self) -> None:
         self._file.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._file.close()
 
     def __enter__(self):
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_) -> None:
         self.close()
