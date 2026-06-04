@@ -36,7 +36,11 @@ class CompartmentMapping:
                 section_id = cell.get_section_id(sec)
                 num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
 
-        num_electrodes = int(electrode_offsets.x[int(electrode_offsets.size()) - 1]) if electrode_offsets.size() > 0 else 0
+        num_electrodes = (
+            int(electrode_offsets.x[int(electrode_offsets.size()) - 1])
+            if electrode_offsets.size() > 0
+            else 0
+        )
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
             start_idx = section_offset * num_electrodes
             end_idx = (section_offset + num_segments) * num_electrodes - 1
