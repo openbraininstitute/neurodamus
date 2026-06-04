@@ -692,13 +692,20 @@ def _spike_parameters(config: _SimConfig):
 def _simulator_globals(config: _SimConfig):
     from neuron import h
 
-    # Hackish but some constants only live in the helper
-    h.load_file("GABAABHelper.hoc")
-
-    # in h this is a string
-    h.randomize_Gaba_risetime = str(
-        config._simulation_config.parsedConditions.randomize_gaba_rise_time
-    )
+    try:
+        # Randomize GABA_A rise time in GABAABHelper.hoc for BBP models
+        # Other models may not contain GABAABHelper.hoc unless "randomize_gaba_rise_time": true
+        # is written in the simulation config file
+        h.load_file("GABAABHelper.hoc")
+        # in h this is a string
+        h.randomize_Gaba_risetime = str(
+            config._simulation_config.parsedConditions.randomize_gaba_rise_time
+        )
+    except LookupError as e:
+        if config._simulation_config.parsedConditions.randomize_gaba_rise_time:
+            raise ConfigurationError(
+                "Can not enable randomize_gaba_rise_time, likely missing GABAABHelper.hoc"
+            ) from e
 
     # set the mechanism values
     for suffix, dict_var in config._simulation_config.parsedConditions.mechanisms.items():
