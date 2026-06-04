@@ -26,7 +26,7 @@ class CompartmentMapping:
         return num_segments
 
     def process_section(
-        self, cell, sec_type, sec_list, num_electrodes, all_lfp_factors, section_offset
+        self, cell, sec_type, sec_list, electrode_offsets, all_lfp_factors, section_offset
     ):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
@@ -36,12 +36,12 @@ class CompartmentMapping:
                 section_id = cell.get_section_id(sec)
                 num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
 
+        num_electrodes = int(electrode_offsets.x[-1]) if electrode_offsets.size() > 0 else 0
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
             start_idx = section_offset * num_electrodes
             end_idx = (section_offset + num_segments) * num_electrodes - 1
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
-        electrode_offsets = Nd.Vector([0, num_electrodes]) if num_electrodes > 0 else Nd.Vector()
         self.pc.nrnbbcore_register_mapping(
             cell.gid, sec_type, secvec, segvec, lfp_factors, electrode_offsets
         )
@@ -50,26 +50,30 @@ class CompartmentMapping:
     def register_mapping(self):
         gidvec = self.cell_distributor.getGidListForProcessor()
 
-        # Find the LFP electrodes file from reports (if any)
+        # Collect all LFP electrode files from reports
         import h5py
-        lfp_file = None
+        lfp_files = []
         for rep_conf in SimConfig.reports.values():
             if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-                lfp_file = h5py.File(rep_conf.electrodes_file, "r")
-                break
+                lfp_files.append(h5py.File(rep_conf.electrodes_file, "r"))
 
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
-            num_electrodes = 0
-            if lfp_file is not None:
+            electrode_offsets = []
+
+            if lfp_files:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
-                num_electrodes = LFPManager.get_number_electrodes(
-                    lfp_file, activegid, pop_info
-                )
-                all_lfp_factors = LFPManager.read_lfp_factors(
-                    lfp_file, activegid, pop_info
-                )
+                cumulative = 0
+                electrode_offsets.append(0)
+                for lfp_file in lfp_files:
+                    n_elec = LFPManager.get_number_electrodes(lfp_file, activegid, pop_info)
+                    factors = LFPManager.read_lfp_factors(lfp_file, activegid, pop_info)
+                    all_lfp_factors.append(factors)
+                    cumulative += n_elec
+                    electrode_offsets.append(cumulative)
+
+            offsets_vec = Nd.Vector(electrode_offsets) if electrode_offsets else Nd.Vector()
 
             section_offset = 0
             for sec_type, sec_list in BaseCell.SECTION_TYPES:
@@ -77,14 +81,14 @@ class CompartmentMapping:
                     cell,
                     sec_type,
                     sec_list,
-                    num_electrodes,
+                    offsets_vec,
                     all_lfp_factors,
                     section_offset,
                 )
                 section_offset += processed_segments
 
-        if lfp_file is not None:
-            lfp_file.close()
+        for f in lfp_files:
+            f.close()
 
 
 class _CoreNEURONConfig:
