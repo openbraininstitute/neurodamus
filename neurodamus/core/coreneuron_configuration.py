@@ -78,13 +78,12 @@ class CompartmentMapping:
             electrode_offsets = []
 
             if readers:
-                pop_name, pop_offset = self.cell_distributor.getPopulationInfo(activegid)
-                node_id = activegid - pop_offset
+                pop_info = self.cell_distributor.getPopulationInfo(activegid)
                 cumulative = 0
                 electrode_offsets.append(0)
                 for reader in readers:
-                    n_elec = reader.get_number_electrodes(node_id, pop_name)
-                    factors = reader.get_factors(node_id, pop_name)
+                    n_elec = reader.get_number_electrodes(activegid, pop_info)
+                    factors = reader.get_factors(activegid, pop_info)
                     all_lfp_factors.append(factors)
                     cumulative += n_elec
                     electrode_offsets.append(cumulative)

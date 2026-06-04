@@ -32,8 +32,16 @@ class LFPFileReader:
                 "'electrodes' group."
             )
 
-    def get_number_electrodes(self, node_id, population_name):
-        """Get number of electrodes for a given node_id in a population."""
+    def get_number_electrodes(self, gid, population_info):
+        """Get number of electrodes for a given gid in a population.
+
+        Args:
+            gid: The global cell identifier.
+            population_info: Tuple of (population_name, population_offset)
+                as returned by GlobalCellManager.getPopulationInfo().
+        """
+        population_name, offset = population_info
+        node_id = gid - offset
         try:
             subset = self._get_node_subsets(node_id, population_name)
             return subset.shape[1]
@@ -44,11 +52,18 @@ class LFPFileReader:
             )
             return 0
 
-    def get_factors(self, node_id, population_name):
-        """Read LFP scaling factors for a given node_id as a flat Nd.Vector.
+    def get_factors(self, gid, population_info):
+        """Read LFP scaling factors for a given gid as a flat Nd.Vector.
+
+        Args:
+            gid: The global cell identifier.
+            population_info: Tuple of (population_name, population_offset)
+                as returned by GlobalCellManager.getPopulationInfo().
 
         Returns an empty vector if the node_id is not found.
         """
+        population_name, offset = population_info
+        node_id = gid - offset
         try:
             subset = self._get_node_subsets(node_id, population_name)
             factors = Nd.Vector()
