@@ -2,6 +2,22 @@
 Change Log
 ==========
 
+Version 4.2.3
+=============
+**4 June 2026**
+
+*Improvements*
+  * Create reusable scripts to install neurodamus and its dependencies (#528)
+  * Update how stimvec values played in ConductanceSource.rs are clipped (#540)
+  * Publish to PyPI on GitHub Release (#539)
+  * Compute segment displacements on the fly in apply_all_stimuli (#529)
+  * Combine multiple extracellular electric field stimulus blocks (#532)
+
+*Bug Fixes*
+  * Avoid shared reference in ElectrodeSource.efields to fix mulitple elecric fields stimulus on mulitple cells (#537)
+  * Fix RUF075: wrap context manager yields in try/finally (#531)
+
+
 Version 4.2.2
 =============
 **20 May 2026**
@@ -10,6 +26,7 @@ Version 4.2.2
   * For Extracellular stimulus, switch from using vector.play to a PointProcess which computes the contribution during runtime, avoiding big memory allocation (#521)
   * Update condition modification implementation to match the spec (#519)
   * adapt to new libsonata (#517)
+
 
 Version 4.2.1
 =============
