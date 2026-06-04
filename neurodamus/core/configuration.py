@@ -215,7 +215,6 @@ class _SimConfig:
     reports = None
     modifications = None
     beta_features = None
-    lfp_electrodes_file = None
 
     # Hoc objects used
     _config_parser = None
@@ -289,11 +288,6 @@ class _SimConfig:
         cls.reports = cls._config_parser.parsedReports
         cls.modifications = cls._config_parser.parsedModifications
         cls.beta_features = cls._config_parser.beta_features
-
-        try:
-            cls.lfp_electrodes_file = cls._config_parser.lfp_electrodes_file
-        except ValueError as e:
-            raise ConfigurationError(str(e)) from e
 
         cls.cli_options = CliOptions(**(cli_options or {}))
 

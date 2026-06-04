@@ -379,34 +379,6 @@ class SonataConfig:
         return {name: self._sim_conf.report(name) for name in self._sim_conf.list_report_names}
 
     @property
-    def lfp_electrodes_file(self):
-        """Read and validate electrodes_file from LFP report blocks.
-
-        Returns the electrodes_file path if LFP reports are present, or None otherwise.
-        Raises ValueError if multiple LFP reports reference different electrode files.
-        """
-        lfp_reports = {}
-        for name in self._sim_conf.list_report_names:
-            report = self._sim_conf.report(name)
-            if report.type == libsonata.SimulationConfig.Report.Type.lfp:
-                lfp_reports[name] = report.electrodes_file
-
-        if not lfp_reports:
-            return None
-
-        unique_paths = set(lfp_reports.values())
-        if len(unique_paths) > 1:
-            conflicts = ", ".join(
-                f"'{name}': '{path}'" for name, path in lfp_reports.items()
-            )
-            raise ValueError(
-                "All LFP reports must reference the same electrodes file. "
-                f"Conflicting reports: {conflicts}"
-            )
-
-        return next(iter(unique_paths))
-
-    @property
     def parsedModifications(self):
         return self._sim_conf.conditions.modifications()
 

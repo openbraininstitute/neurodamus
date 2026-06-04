@@ -621,19 +621,22 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = SimConfig.lfp_electrodes_file
-        if lfp_weights_file and self._run_conf.enable_reports:
-            if SimConfig.use_coreneuron:
-                lfp_manager = self._circuits.global_manager._lfp_manager
-                cell_managers = self._circuits.global_manager._cell_managers
-                population_list = [
-                    manager.population_name
-                    for manager in cell_managers
-                    if manager.population_name is not None
-                ]
-                lfp_manager.load_lfp_config(lfp_weights_file, population_list)
-            else:
-                logging.warning("LFP supported only with CoreNEURON.")
+        lfp_weights_file = None
+        if self._run_conf.enable_reports and SimConfig.use_coreneuron:
+            for rep_conf in SimConfig.reports.values():
+                if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
+                    lfp_weights_file = rep_conf.electrodes_file
+                    break
+
+        if lfp_weights_file:
+            lfp_manager = self._circuits.global_manager._lfp_manager
+            cell_managers = self._circuits.global_manager._cell_managers
+            population_list = [
+                manager.population_name
+                for manager in cell_managers
+                if manager.population_name is not None
+            ]
+            lfp_manager.load_lfp_config(lfp_weights_file, population_list)
 
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
