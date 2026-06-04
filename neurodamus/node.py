@@ -934,7 +934,7 @@ class Node:
 
         # Validate LFP electrode files early (fail fast before expensive processing)
         if SimConfig.use_coreneuron:
-            for rep_name, rep_conf in reports_conf.items():
+            for rep_conf in reports_conf.values():
                 if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
                     LFPFileReader(rep_conf.electrodes_file)
 

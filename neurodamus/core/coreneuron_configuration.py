@@ -67,10 +67,11 @@ class CompartmentMapping:
         gidvec = self.cell_distributor.getGidListForProcessor()
 
         # Open LFP electrode readers from reports (validates structure upfront)
-        readers = []
-        for rep_conf in SimConfig.reports.values():
-            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-                readers.append(LFPFileReader(rep_conf.electrodes_file))
+        readers = [
+            LFPFileReader(rep_conf.electrodes_file)
+            for rep_conf in SimConfig.reports.values()
+            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp
+        ]
 
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)

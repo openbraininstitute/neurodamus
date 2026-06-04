@@ -22,9 +22,7 @@ class LFPFileReader:
         try:
             self._file = h5py.File(filepath, "r")
         except OSError as e:
-            raise ConfigurationError(
-                f"Error opening LFP electrodes file: {filepath}"
-            ) from e
+            raise ConfigurationError(f"Error opening LFP electrodes file: {filepath}") from e
         self._filepath = filepath
         self._validate()
 
@@ -32,8 +30,7 @@ class LFPFileReader:
         """Check that the file has the required top-level 'electrodes' group."""
         if "electrodes" not in self._file:
             raise ConfigurationError(
-                f"LFP electrodes file '{self._filepath}' is missing the "
-                "'electrodes' group."
+                f"LFP electrodes file '{self._filepath}' is missing the 'electrodes' group."
             )
 
     def get_number_electrodes(self, gid: int, population_info: tuple[str, int]) -> int:
@@ -52,7 +49,10 @@ class LFPFileReader:
         except (KeyError, IndexError) as e:
             logging.warning(
                 "Node id %d missing in '%s' for population %s: %s",
-                node_id, self._filepath, population_name, e,
+                node_id,
+                self._filepath,
+                population_name,
+                e,
             )
             return 0
 
@@ -75,13 +75,17 @@ class LFPFileReader:
             factors = Nd.Vector()
             for electrode_factors in subset:
                 factors.append(Nd.Vector(electrode_factors))
-            return factors
         except (KeyError, IndexError) as e:
             logging.warning(
                 "Node id %d missing in '%s' for population %s: %s",
-                node_id, self._filepath, population_name, e,
+                node_id,
+                self._filepath,
+                population_name,
+                e,
             )
             return Nd.Vector()
+        else:
+            return factors
 
     def _get_node_subsets(self, node_id: int, population_name: str) -> np.ndarray:
         """Retrieve the scaling factor matrix for a single node.
@@ -92,16 +96,12 @@ class LFPFileReader:
 
         Returns:
             2D array of shape (n_compartments, n_electrodes).
-
-        Raises:
-            KeyError: If the population or dataset is missing.
-            IndexError: If the node_id is not found in the file.
         """
         node_ids = self._file[population_name]["node_ids"]
         index = np.where(np.array(node_ids) == node_id)[0][0]
         offsets = self._file[population_name]["offsets"]
         scaling = self._file["electrodes"][population_name]["scaling_factors"]
-        return scaling[offsets[index]:offsets[index + 1], :]
+        return scaling[offsets[index] : offsets[index + 1], :]
 
     def close(self) -> None:
         self._file.close()
