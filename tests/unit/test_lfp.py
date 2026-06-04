@@ -9,104 +9,89 @@ from ..conftest import RINGTEST_DIR
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
 
 
-def test_load_lfp_config():
+def test_lfp_file_reader_open():
     """
-    Test that the 'load_lfp_config' function opens and loads correctly
-    the LFP weights file and checks its format
+    Test that LFPFileReader opens and validates the electrodes file structure.
     """
-    from neurodamus.cell_distributor import LFPManager
+    from neurodamus.lfp_reader import LFPFileReader
     from neurodamus.core.configuration import ConfigurationError
 
-    # Create an instance of the class
-    lfp = LFPManager()
-    pop_list = ["wrong_pop", "RingA", "RingB"]
+    # Valid file opens without error
+    reader = LFPFileReader(str(LFP_FILE))
+    assert reader._file
+    assert isinstance(reader._file, h5py.File)
+    assert "/electrodes/RingA" in reader._file
+    assert "/RingA/node_ids" in reader._file
+    assert "/RingA/offsets" in reader._file
+    reader.close()
 
-    # Test loading LFP configuration from file
-    lfp.load_lfp_config(LFP_FILE, pop_list)
-    assert lfp._lfp_file
-    assert isinstance(lfp._lfp_file, h5py.File)
-    assert "/electrodes/RingA" in lfp._lfp_file
-    assert "/RingA/node_ids" in lfp._lfp_file
-    assert "/RingA/offsets" in lfp._lfp_file
-
-    # Test loading LFP with no population found
-    pop_list = ["wrong_pop"]
+    # Invalid file raises ConfigurationError
     with pytest.raises(ConfigurationError):
-        lfp.load_lfp_config(LFP_FILE, pop_list)
-
-    # Test loading LFP configuration from invalid file
-    with pytest.raises(ConfigurationError):
-        lfp.load_lfp_config("invalid_file.h5", pop_list)
+        LFPFileReader("invalid_file.h5")
 
 
 def test_read_lfp_factors():
     """
-    Test that the 'read_lfp_factors' function correctly extracts the LFP factors
-    for the specified gid and section ids from the weights file
+    Test that get_factors correctly extracts the LFP factors
+    for the specified gid and section ids from the weights file.
     """
-    from neurodamus.cell_distributor import LFPManager
-    # Create an instance of the class
-    lfp = LFPManager()
-    pop_list = ["RingA", "RingB"]
-    lfp.load_lfp_config(LFP_FILE, pop_list)
+    from neurodamus.lfp_reader import LFPFileReader
 
-    # Test the function with valid inputs for both populations
-    result = lfp.read_lfp_factors(2, ("RingA", 0)).to_python()
+    reader = LFPFileReader(str(LFP_FILE))
+
+    # Test with valid inputs for both populations
+    result = reader.get_factors(2, ("RingA", 0)).to_python()
     expected_result = np.array(
         [0.111, 0.112, 0.121, 0.122, 0.131, 0.132, 0.141, 0.142, 0.151, 0.152]
-        )
+    )
     npt.assert_allclose(result, expected_result)
 
-    result = lfp.read_lfp_factors(1001, ("RingB", 1000)).to_python()
+    result = reader.get_factors(1001, ("RingB", 1000)).to_python()
     expected_result = np.array([
         0.064, 0.065, 0.066, 0.074, 0.075, 0.076, 0.084, 0.085, 0.086,
         0.094, 0.095, 0.096, 0.104, 0.105, 0.106
-        ])
+    ])
     npt.assert_allclose(result, expected_result)
 
-    # Test the function with invalid input
-    # (non-existent gid)
-    result_no_gid = lfp.read_lfp_factors(3, ("RingA", 0)).to_python()
-    # (non-existent pop)
-    result_no_pop = lfp.read_lfp_factors(0, ("WrongPop", 0)).to_python()
-    # (wrong offset)
-    result_wrong_offset = lfp.read_lfp_factors(0, ("RingA", 10)).to_python()
+    # Test with invalid inputs
+    result_no_gid = reader.get_factors(3, ("RingA", 0)).to_python()
+    result_no_pop = reader.get_factors(0, ("WrongPop", 0)).to_python()
+    result_wrong_offset = reader.get_factors(0, ("RingA", 10)).to_python()
     expected_result = []
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
+
+    reader.close()
 
 
 def test_number_electrodes():
     """
-    Test that the 'get_number_electrodes' function correctly extracts the number of
-    electrodes in the weights file for a certain gid
+    Test that get_number_electrodes correctly extracts the number of
+    electrodes in the weights file for a certain gid.
     """
-    from neurodamus.cell_distributor import LFPManager
-    # Create an instance of the class
-    lfp = LFPManager()
-    pop_list = ["RingA", "RingB"]
-    lfp.load_lfp_config(LFP_FILE, pop_list)
+    from neurodamus.lfp_reader import LFPFileReader
 
-    # Test the function with valid input
-    num_electrodes_1 = lfp.get_number_electrodes(0, ("RingA", 0))
-    num_electrodes_2 = lfp.get_number_electrodes(1, ("RingA", 0))
-    num_electrodes_3 = lfp.get_number_electrodes(2, ("RingA", 0))
+    reader = LFPFileReader(str(LFP_FILE))
+
+    # Test with valid input
+    num_electrodes_1 = reader.get_number_electrodes(0, ("RingA", 0))
+    num_electrodes_2 = reader.get_number_electrodes(1, ("RingA", 0))
+    num_electrodes_3 = reader.get_number_electrodes(2, ("RingA", 0))
     expected_num_electrodes = 2
     assert num_electrodes_1 == num_electrodes_2 == num_electrodes_3 == expected_num_electrodes
 
-    num_electrodes_1001 = lfp.get_number_electrodes(1000, ("RingB", 1000))
-    num_electrodes_1002 = lfp.get_number_electrodes(1001, ("RingB", 1000))
+    num_electrodes_1001 = reader.get_number_electrodes(1000, ("RingB", 1000))
+    num_electrodes_1002 = reader.get_number_electrodes(1001, ("RingB", 1000))
     expected_num_electrodes = 3
     assert num_electrodes_1001 == num_electrodes_1002 == expected_num_electrodes
 
-    # Test the function with invalid input
-    # (non-existent gid)
-    result_no_gid = lfp.get_number_electrodes(3, ("RingA", 0))
-    # (non-existent pop)
-    result_no_pop = lfp.get_number_electrodes(0, ("WrongPop", 0))
-    # (wrong offset)
-    result_wrong_offset = lfp.get_number_electrodes(0, ("RingA", 10))
+    # Test with invalid inputs
+    result_no_gid = reader.get_number_electrodes(3, ("RingA", 0))
+    result_no_pop = reader.get_number_electrodes(0, ("WrongPop", 0))
+    result_wrong_offset = reader.get_number_electrodes(0, ("RingA", 10))
     expected_result = 0
     assert result_no_gid == result_no_pop == result_wrong_offset == expected_result
+
+    reader.close()
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -114,14 +99,11 @@ def test_number_electrodes():
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "run": {
-                "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5")
-            },
             "reports": {
                 "lfp_report": {
                     "type": "lfp",
                     "cells": "Mosaic",
-                    "variable_name": "v",
+                    "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5"),
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0
@@ -161,7 +143,7 @@ def test_lfp_reports(create_tmp_simulation_config_file):
     assert rep_config.start_time == 0.0
     assert rep_config.end_time == 2.0
     assert rep_config.dt == 0.1
-    assert rep_config.variable_name == 'v'
+    assert rep_config.variable_name == ''
     assert rep_config.file_name == str(Path(CoreConfig.output_root) / (rep_name + ".h5"))
 
     nd.run()
@@ -172,14 +154,11 @@ def test_lfp_reports(create_tmp_simulation_config_file):
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "run": {
-                "electrodes_file": "/nonexistent/path/lfp_file.h5"
-            },
         }
     },
 ], indirect=True)
 def test_missing_electrodes_file(create_tmp_simulation_config_file):
-    """Test that a missing electrodes_file does not crash when reports are disabled."""
+    """Test that a missing electrodes_file does not crash when no LFP reports are configured."""
     from neurodamus import Neurodamus
 
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)

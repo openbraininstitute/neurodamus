@@ -107,7 +107,8 @@ class LFPFileReader:
         self._file.close()
 
     def __del__(self) -> None:
-        self._file.close()
+        if hasattr(self, "_file"):
+            self._file.close()
 
     def __enter__(self):
         return self
