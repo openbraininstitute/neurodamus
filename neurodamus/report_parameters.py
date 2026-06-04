@@ -79,11 +79,13 @@ def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, tar
         rep_conf.dt,
     )
 
-    # For LFP reports, variable_name may be empty (libsonata no longer allows it).
-    # Use empty string for report_on in that case.
+    # For LFP reports, variable_name is empty (libsonata no longer allows it).
+    # Use a placeholder for the positional report.conf format — CoreNEURON
+    # does not use this field for LFP computation. If it ever does, it should
+    # fail loudly rather than silently reporting a real variable.
     report_on = rep_conf.variable_name
     if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp and not report_on:
-        report_on = ""
+        report_on = "_lfp_placeholder_"
 
     return ReportParameters(
         type=rep_conf.type,
