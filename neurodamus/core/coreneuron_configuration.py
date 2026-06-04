@@ -68,7 +68,7 @@ class CompartmentMapping:
         gidvec = self.cell_distributor.getGidListForProcessor()
 
         # Collect all LFP electrode files from reports
-        lfp_files: list[h5py.File] = []
+        lfp_files = []
         for rep_conf in SimConfig.reports.values():
             if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
                 lfp_files.append(h5py.File(rep_conf.electrodes_file, "r"))
@@ -76,7 +76,7 @@ class CompartmentMapping:
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
-            electrode_offsets: list[int] = []
+            electrode_offsets = []
 
             if lfp_files:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
