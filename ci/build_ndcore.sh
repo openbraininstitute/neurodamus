@@ -1,20 +1,12 @@
 #!/bin/bash
-#  - Blue Brain Project -
+#  - Open Brain Institute  -
 # This script builds the mod extensions to neurodamus. The folder gets named _lib
-build_common()
+build_mechanisms()
 {
     cp -fL $CORE_DIR/mod/*.mod $MOD_DIR
-    cp -f $MECHS_DIR/common/*.mod $MOD_DIR
+    cp -f $MECHS_DIR/*.mod $MOD_DIR
     cd $BUILD_DIR
-    nrnivmodl -coreneuron -incflags "-DDISABLE_REPORTINGLIB" $MOD_DIR   
-}
-
-build_common_ngv()
-{
-    cp -fL $CORE_DIR/mod/*.mod $MOD_DIR
-    cp -f $MECHS_DIR/ngv/*.mod $MOD_DIR
-    cd $BUILD_DIR
-    nrnivmodl -incflags "-DDISABLE_REPORTINGLIB" $MOD_DIR
+    nrnivmodl "${BUILD_OPT[@]}" $MOD_DIR
 }
 
 set -euxo pipefail
@@ -36,7 +28,7 @@ set -- $remaining_args
 CORE_DIR="$1"
 MECHS_DIR="$2"
 BUILD_DIR="$3"
-
+BUILD_OPT=("-incflags" "-DDISABLE_REPORTINGLIB")
 if [ $NGV_BUILD = true ]; then 
     LIBRARY_DIR=$BUILD_DIR/lib-ngv
     MOD_DIR=$BUILD_DIR/mods-ngv.tmp
@@ -46,6 +38,7 @@ elif [ $ALLEN_V1_BUILD = true ]; then
 else
     LIBRARY_DIR=$BUILD_DIR/lib
     MOD_DIR=$BUILD_DIR/mods.tmp
+    BUILD_OPT=("-coreneuron" "${BUILD_OPT[@]}")
 fi
 
 # Check if library already exists and export ENV variables in that case
@@ -62,11 +55,7 @@ fi
 #Build libs from mod files
 mkdir -p $MOD_DIR
 mkdir -p $LIBRARY_DIR
-if [ $NGV_BUILD = true ]; then
-    build_common_ngv
-else
-    build_common
-fi
+build_mechanisms
 
 ARCH=$(uname -m)
 if [ ! -f $ARCH/special ]; then
