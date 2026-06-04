@@ -44,6 +44,7 @@ Tracker = "https://github.com/BlueBrain/neurodamus/issues"
 [tool.hatch.build.targets.sdist]
 only-include = [
     "neurodamus",
+    "external/neurodamus-models/common/mod"
 ]
 
 [tool.hatch.version]
