@@ -89,7 +89,7 @@ class CompartmentMapping:
                     cumulative += n_elec
                     electrode_offsets.append(cumulative)
 
-            offsets_vec = Nd.Vector(electrode_offsets) if electrode_offsets else Nd.Vector()
+            offsets_vec = Nd.Vector(electrode_offsets)
 
             section_offset = 0
             for sec_type, sec_list in BaseCell.SECTION_TYPES:
