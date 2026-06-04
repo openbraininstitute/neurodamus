@@ -1,11 +1,10 @@
 from pathlib import Path
 
-import h5py
 import libsonata
 
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
-from neurodamus.lfp_manager import LFPManager
+from neurodamus.lfp_manager import LFPFileReader
 from neurodamus.metype import BaseCell
 
 
@@ -67,24 +66,25 @@ class CompartmentMapping:
         """
         gidvec = self.cell_distributor.getGidListForProcessor()
 
-        # Collect all LFP electrode files from reports
-        lfp_files = []
+        # Open LFP electrode readers from reports (validates structure upfront)
+        readers = []
         for rep_conf in SimConfig.reports.values():
             if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-                lfp_files.append(h5py.File(rep_conf.electrodes_file, "r"))
+                readers.append(LFPFileReader(rep_conf.electrodes_file))
 
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
             electrode_offsets = []
 
-            if lfp_files:
-                pop_info = self.cell_distributor.getPopulationInfo(activegid)
+            if readers:
+                pop_name, pop_offset = self.cell_distributor.getPopulationInfo(activegid)
+                node_id = activegid - pop_offset
                 cumulative = 0
                 electrode_offsets.append(0)
-                for lfp_file in lfp_files:
-                    n_elec = LFPManager.get_number_electrodes(lfp_file, activegid, pop_info)
-                    factors = LFPManager.read_lfp_factors(lfp_file, activegid, pop_info)
+                for reader in readers:
+                    n_elec = reader.get_number_electrodes(node_id, pop_name)
+                    factors = reader.get_factors(node_id, pop_name)
                     all_lfp_factors.append(factors)
                     cumulative += n_elec
                     electrode_offsets.append(cumulative)
@@ -103,8 +103,8 @@ class CompartmentMapping:
                 )
                 section_offset += processed_segments
 
-        for f in lfp_files:
-            f.close()
+        for reader in readers:
+            reader.close()
 
 
 class _CoreNEURONConfig:

@@ -1,78 +1,79 @@
 import logging
 
+import h5py
 import numpy as np
 
 from .core import NeuronWrapper as Nd
+from .core.configuration import ConfigurationError
 
 
-class LFPManager:
-    """Class handling the Online Local Field Potential (LFP) functionality.
+class LFPFileReader:
+    """Driver for an LFP electrodes HDF5 file.
 
-    This class is designed to manage the configuration and retrieval of Online
-    Local Field Potential (LFP) data used in large-scale neural simulations.
-    LFPs represent the aggregate extracellular electrical activity recorded by
-    electrodes, reflecting the synchronized activity of nearby neuronal
-    populations.
-
-    LFP data in this context is stored in HDF5 files, which must include
-    information on:
-        - Electrode scaling factors (per compartment contribution to each electrode)
-        - Node IDs (cell identifiers contributing to the signal)
-        - Offsets (to index subsets of the data per neuron)
+    Opens the file and validates basic structure on construction.
+    Provides lazy per-gid access to electrode scaling factors via h5py
+    (no bulk preloading). Use as a context manager or call close() when done.
     """
 
-    @staticmethod
-    def get_sonata_node_id(gid, population_info):
-        return population_info[0], gid - population_info[1]
+    def __init__(self, filepath):
+        try:
+            self._file = h5py.File(filepath, "r")
+        except OSError as e:
+            raise ConfigurationError(
+                f"Error opening LFP electrodes file: {filepath}"
+            ) from e
+        self._filepath = filepath
+        self._validate()
 
-    @staticmethod
-    def _get_node_id_subsets(lfp_file, node_id, population_name):
-        node_ids = lfp_file[population_name]["node_ids"]
-        index = np.where(np.array(node_ids) == node_id)[0][0]
-        offsets_dataset = lfp_file[population_name]["offsets"]
-        electrodes_dataset = lfp_file["electrodes"][population_name]["scaling_factors"]
-        index_low = offsets_dataset[index]
-        index_high = offsets_dataset[index + 1]
-        return electrodes_dataset[index_low:index_high, :]
+    def _validate(self):
+        if "electrodes" not in self._file:
+            raise ConfigurationError(
+                f"LFP electrodes file '{self._filepath}' is missing the "
+                "'electrodes' group."
+            )
 
-    @staticmethod
-    def read_lfp_factors(lfp_file, gid, population_info):
-        """Reads the LFP factors for a specific gid from an open HDF5 file.
+    def get_number_electrodes(self, node_id, population_name):
+        """Get number of electrodes for a given node_id in a population."""
+        try:
+            subset = self._get_node_subsets(node_id, population_name)
+            return subset.shape[1]
+        except (KeyError, IndexError) as e:
+            logging.warning(
+                "Node id %d missing in '%s' for population %s: %s",
+                node_id, self._filepath, population_name, e,
+            )
+            return 0
 
-        Args:
-            lfp_file: An open h5py.File with electrode scaling factors.
-            gid (int): The unique cell identifier.
-            population_info (Pair(str, int)): ("population_name", population_offset)
+    def get_factors(self, node_id, population_name):
+        """Read LFP scaling factors for a given node_id as a flat Nd.Vector.
 
-        Returns:
-            Nd.Vector: A vector containing the LFP factors for the specified gid.
+        Returns an empty vector if the node_id is not found.
         """
-        scalar_factors = Nd.Vector()
         try:
-            population_name, node_id = LFPManager.get_sonata_node_id(gid, population_info)
-            subset_data = LFPManager._get_node_id_subsets(lfp_file, node_id, population_name)
-            for electrode_factors in subset_data:
-                scalar_factors.append(Nd.Vector(electrode_factors))
+            subset = self._get_node_subsets(node_id, population_name)
+            factors = Nd.Vector()
+            for electrode_factors in subset:
+                factors.append(Nd.Vector(electrode_factors))
+            return factors
         except (KeyError, IndexError) as e:
-            msg = (
-                f"Node id {node_id} missing in the electrodes file "
-                f"for population {population_name}: {e!s}"
+            logging.warning(
+                "Node id %d missing in '%s' for population %s: %s",
+                node_id, self._filepath, population_name, e,
             )
-            logging.warning(msg)
-        return scalar_factors
+            return Nd.Vector()
 
-    @staticmethod
-    def get_number_electrodes(lfp_file, gid, population_info):
-        """Get number of electrodes for a given gid."""
-        num_electrodes = 0
-        try:
-            population_name, node_id = LFPManager.get_sonata_node_id(gid, population_info)
-            subset_data = LFPManager._get_node_id_subsets(lfp_file, node_id, population_name)
-            num_electrodes = subset_data.shape[1]
-        except (KeyError, IndexError) as e:
-            msg = (
-                f"Node id {node_id} missing in the electrodes file "
-                f"for population {population_name}: {e!s}"
-            )
-            logging.warning(msg)
-        return num_electrodes
+    def _get_node_subsets(self, node_id, population_name):
+        node_ids = self._file[population_name]["node_ids"]
+        index = np.where(np.array(node_ids) == node_id)[0][0]
+        offsets = self._file[population_name]["offsets"]
+        scaling = self._file["electrodes"][population_name]["scaling_factors"]
+        return scaling[offsets[index]:offsets[index + 1], :]
+
+    def close(self):
+        self._file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
