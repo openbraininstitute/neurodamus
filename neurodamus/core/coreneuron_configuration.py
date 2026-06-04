@@ -103,9 +103,6 @@ class CompartmentMapping:
                 )
                 section_offset += processed_segments
 
-        for reader in readers:
-            reader.close()
-
 
 class _CoreNEURONConfig:
     """Responsible for managing the configuration of the CoreNEURON simulation.

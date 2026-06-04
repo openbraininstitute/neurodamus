@@ -72,6 +72,9 @@ class LFPFileReader:
     def close(self):
         self._file.close()
 
+    def __del__(self):
+        self._file.close()
+
     def __enter__(self):
         return self
 
