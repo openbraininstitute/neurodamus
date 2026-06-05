@@ -21,7 +21,6 @@ on:
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
   LIBSONATA_COMMIT: v0.1.35
-  NEURODAMUS_MODELS_COMMIT: 2.4.4
   NEURON_COMMIT: 9.0.1
 
   RDMAV_FORK_SAFE: '1'
@@ -124,11 +123,11 @@ jobs:
         source venv/bin/activate \
         && uv pip install -e $BASE_DIR
 
-    - name: Install neurodamus-models
+    - name: Install neurodamus-neocortex models
       run: |
         source $BASE_DIR/ci/scripts/build-neocortex-models.sh \
         && source venv/bin/activate \
-        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
+        && build-neocortex-models.sh $BASE_DIR/tests/mechanisms/neocortex
 
     - name: Make env
       run: |

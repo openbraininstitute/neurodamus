@@ -8,6 +8,7 @@
 make-env() {
     : "${INSTALL_DIR:?INSTALL_DIR is not set}"
 
+    local ARCH=$(uname -m)
     local NEURODAMUS_PYTHON=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
     local NEURODAMUS_NEOCORTEX_ROOT=$INSTALL_DIR/neurodamus-models
 
@@ -15,9 +16,9 @@ make-env() {
     export NEURODAMUS_NEOCORTEX_ROOT=$NEURODAMUS_NEOCORTEX_ROOT
     source $VIRTUAL_ENV/bin/activate
     export NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON
-    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-    export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-    export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
-    export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
+    export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/hoc
+    export CORENEURONLIB=$INSTALL_DIR/$ARCH/libcorenrnmech.so
+    export NRNMECH_LIB_PATH=$INSTALL_DIR/$ARCH/libnrnmech.so
+    export PATH=$INSTALL_DIR/$ARCH:$PATH
 _EOF
 }
