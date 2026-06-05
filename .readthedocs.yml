@@ -22,4 +22,5 @@ python:
         - docs
 
 submodules:
+  include: all
   recursive: true
