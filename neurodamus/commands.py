@@ -19,7 +19,7 @@ def neurodamus(args=None):
     """Neurodamus
 
     Usage:
-        neurodamus <ConfigFile> [options]
+        neurodamus <config_file> [options]
         neurodamus --version
         neurodamus --help
 
@@ -39,7 +39,6 @@ def neurodamus(args=None):
                                 Otherwise deleted at the end. ``--save=<PATH>`` overrides this.
         --modelbuilding-steps=<number>
                                 Set the number of ModelBuildingSteps for the CoreNeuron sim
-        --experimental-stims    Shall use only Python stimuli? [default: False]
         --lb-mode=[RoundRobin, WholeCell, MultiSplit, Memory]
                                 The Load Balance mode.
                                 - RoundRobin: Disable load balancing. Good for quick simulations
@@ -82,7 +81,7 @@ def neurodamus(args=None):
     from . import __version__
 
     options = docopt_sanitize(docopt(neurodamus.__doc__, args, version=__version__))
-    config_file = options.pop("ConfigFile")
+    config_file = options.pop("config_file")
     log_level = _pop_log_level(options)
 
     if not os.path.isfile(config_file):
