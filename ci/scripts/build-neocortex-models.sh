@@ -23,10 +23,11 @@ build-neocortex-models() {
     mkdir -p neurodamus-models/mod
     mkdir -p neurodamus-models/hoc
     cp $DATADIR/mod/*.mod neurodamus-models/mod/
-    cp $DATADIR/mod/*.hoc neurodamus-models/hoc/
+    cp $DATADIR/hoc/*.hoc neurodamus-models/hoc/
     cp $NEOCORTEX_MOD/*.mod neurodamus-models/mod/
     source $BASE_DIR/ci/scripts/make-build-neurodamus-models.sh
-    ./$INSTALL_DIR/build-neurodaus-models.sh neurodamus-models/mod
+    make-build-neurodamus-models
+    $INSTALL_DIR/build-neurodamus-models.sh neurodamus-models/mod
     popd
 
 }
