@@ -95,22 +95,25 @@ Docker container
 ================
 Alternatively, you can start directly a neurodamus docker container where all the packages are built.
 With the container, you can build your mod files and run simulations.
-See instructions in `docker/README.md <https://github.com/openbraininstitute/neurodamus/blob/main/docker/README.md>`_.
 
 Building the docker container
 -----------------------------
-.. TODO: decide what to do without pipelines
-.. The docker container image is built automatically when a new tag is created in the repository, if a container with the specified version doesn't already exist.
-.. On manual pipeline runs, the container image is also built but not automatically pushed to docker-hub; you'll have to manually start the job in the pipeline you created if you want this to happen. Keep in mind that this is *optional*, the container image is *always* pushed to the gitlab registry!
 
-The docker images will be built in the `regular github action <https://github.com/openbraininstitute/neurodamus/actions>`_ - if triggered under the right conditions (either manually or through git tag creation) the container jobs will be added to this pipeline.
+The docker images will be built in the `regular github action <https://github.com/openbraininstitute/neurodamus/actions>`_ - it is built on `tags`.
 
-If you run the pipeline manually, you can also set versions for the dependencies:
-  * `LIBSONATAREPORT_TAG`: git tag for libsonata-report
-  * `LIBSONATA_TAG`: git tag for libsonata
-  * `NEURON_COMMIT_ID`: commit ID for neuron
-  * `REGISTRY_IMAGE_TAG`: this will be the container version. Must be specified if you specify one of the others.
 
+Docker container
+----------------
+
+With the docker image, you can start a neurodamus container with an interactive Bash shell and meanwhile mount your local folder which contains your mod files and the circuit data.
+
+.. code-block:: sh
+
+  docker run --rm -it -v <full path of your folder_mods_circuit>:/mnt/mydata ghcr.io/openbraininstitute/neurodamus:$TAG /bin/bash
+
+To build new models, one can use the script in `/opt/obi/build-neurodamus-models.sh`.
+One can also examine the `/opt/obi/env-neocortex.sh` file to see how `neocortext` environment variables are setup so that the models are loaded.
+NEURON is installed, so by activating the virtual environment with `source $USER_VENV/bin/activate` one gets access to `neuron` and `neurodamus`
 
 Acknowledgment
 ==============
