@@ -53,9 +53,6 @@ source = "vcs"
 [tool.hatch.version.raw-options]
 local_scheme = "no-local-version"
 
-[tool.hatch.buid.hooks.custom]
-path = "hatch_build.py"
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
