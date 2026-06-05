@@ -64,6 +64,7 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
         persist-credentials: false
+        submodules: recursive
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
