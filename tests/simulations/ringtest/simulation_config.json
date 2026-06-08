@@ -10,6 +10,7 @@
     },
     "conditions": {
         "celsius": 35,
-        "v_init": -65
+        "v_init": -65,
+        "randomize_gaba_rise_time": true
     }
 }
