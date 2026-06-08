@@ -51,10 +51,10 @@ Once neuron and neurodamus are installed, you can build `special` with your mod 
   mkdir mods
   cp -r <your-mod-files> mods/
   export DATADIR=$(python -c "import neurodamus; from pathlib import Path; print(Path(neurod)mus.__file__).parent / 'data')")
-  cp -r $DATADIR/mod/* mods/
+  cp -L $DATADIR/mod/* mods/
   nrnivmodl -incflags '-I <include-paths-of-our-dependencies>' -loadflags '-L <libs-paths-for-linking>' mods
 
-To use the Blue Brain open models, you can build `neurodamus-models <https://github.com/openbraininstitute/neurodamus-models/>`_.
+To use the Blue Brain open models, you can build `neurodamus-models rel 2.4.4 <https://github.com/openbraininstitute/neurodamus-models/tree/2.4.4/>`_.
 It will also produce a handy `build_neurodamus.sh` script that calls `nrnivmodl` with all dependencies to compile your future mod files
 
 .. code-block:: sh
