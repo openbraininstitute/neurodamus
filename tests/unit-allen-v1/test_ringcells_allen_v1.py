@@ -75,6 +75,6 @@ def test_errorhandling(create_tmp_simulation_config_file):
     """
     with pytest.raises(
         ConfigurationError,
-        match=r"Cannot enable randomize_gaba_rise_time, likely missing GABAABHelper.hoc",
+        match=r"Cannot enable randomize_gaba_rise_time, likely missing ProbGABAAB_EMS.mod",
     ):
         Neurodamus(create_tmp_simulation_config_file)
