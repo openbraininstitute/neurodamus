@@ -4,7 +4,9 @@
 build_mechanisms()
 {
     cp -fL $CORE_DIR/mod/*.mod $MOD_DIR
-    cp -f $MECHS_DIR/*.mod $MOD_DIR
+    if [ -n "$MECHS_DIR" ]; then
+        cp -f $MECHS_DIR/*.mod $MOD_DIR
+    fi
     cd $BUILD_DIR
     nrnivmodl "${BUILD_OPT[@]}" $MOD_DIR
 }
@@ -25,9 +27,10 @@ for arg in "$@"; do
 done
 set -- $remaining_args
 
-CORE_DIR="$1"
-MECHS_DIR="$2"
-BUILD_DIR="$3"
+BUILD_DIR="$1"
+CORE_DIR="$2"
+#Optional scientific mods
+MECHS_DIR="${3:-}"
 BUILD_OPT=("-incflags" "-DDISABLE_REPORTINGLIB")
 if [ $NGV_BUILD = true ]; then 
     LIBRARY_DIR=$BUILD_DIR/lib-ngv
