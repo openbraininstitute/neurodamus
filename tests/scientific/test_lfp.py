@@ -240,6 +240,8 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
 
 LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
 LFP_3ELEC_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA_cell0.h5")
+LFP_3ELEC_RINGA_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA.h5")
+LFP_2ELEC_CELL0_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA_cell0.h5")
 
 _COMMON_INPUTS = {
     "stimulus_pulse": {
@@ -339,7 +341,7 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
                 "lfp_report_A": {
                     "type": "lfp",
                     "cells": "RingA",
-                    "electrodes_file": LFP_2ELEC_FILE,
+                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -347,7 +349,7 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
                 "lfp_report_B": {
                     "type": "lfp",
                     "cells": "RingA_Cell0",
-                    "electrodes_file": LFP_3ELEC_FILE,
+                    "electrodes_file": LFP_2ELEC_CELL0_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -367,14 +369,14 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
-    # Report A: RingA gids 0,1,2 with 2 electrodes
+    # Report A: RingA gids 0,1,2 with 3 electrodes
     lfp_A = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report_A.h5")
     result_ids_A, result_data_A = lfp_A["RingA"]
     assert list(result_ids_A) == [0, 1, 2]
-    assert result_data_A.data.shape[1] == 6  # 3 gids * 2 electrodes
+    assert result_data_A.data.shape[1] == 9  # 3 gids * 3 electrodes
 
-    # Report B: RingA_Cell0 gid 0 with 3 electrodes
+    # Report B: RingA_Cell0 gid 0 with 2 electrodes
     lfp_B = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report_B.h5")
     result_ids_B, result_data_B = lfp_B["RingA"]
     assert list(result_ids_B) == [0]
-    assert result_data_B.data.shape[1] == 3  # 1 gid * 3 electrodes
+    assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
