@@ -697,7 +697,7 @@ def _simulator_globals(config: _SimConfig):
         # Randomize GABA_A rise time in GABAABHelper.hoc for BBP models, not mandatory
         # GABAABHelper.hoc is not mandatory for all models unless "randomize_gaba_rise_time": true
         # is given in the simulation config file
-        Nd.load_hoc("GABAABHelper.hoc")
+        Nd.load_hoc("GABAABHelper")
         # in GABAABHelper.hoc this is a string
         Nd.randomize_Gaba_risetime = str(
             config._simulation_config.parsedConditions.randomize_gaba_rise_time
@@ -705,7 +705,7 @@ def _simulator_globals(config: _SimConfig):
     except RuntimeError as e:
         if config._simulation_config.parsedConditions.randomize_gaba_rise_time:
             raise ConfigurationError(
-                "Cannot enable randomize_gaba_rise_time, likely missing GABAABHelper.hoc"
+                "Cannot enable randomize_gaba_rise_time, likely missing ProbGABAAB_EMS.mod"
             ) from e
 
     # set the mechanism values
