@@ -705,7 +705,7 @@ def _simulator_globals(config: _SimConfig):
     except RuntimeError as e:
         if config._simulation_config.parsedConditions.randomize_gaba_rise_time:
             raise ConfigurationError(
-                "Can not enable randomize_gaba_rise_time, likely missing GABAABHelper.hoc"
+                "Cannot enable randomize_gaba_rise_time, likely missing GABAABHelper.hoc"
             ) from e
 
     # set the mechanism values
