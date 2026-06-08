@@ -13,7 +13,8 @@
         "random_seed": 767740
     },
     "conditions": {
-        "v_init": -65
+        "v_init": -65,
+        "randomize_gaba_rise_time": true
     },
     "output": {
         "output_dir": "output_sonata2"
