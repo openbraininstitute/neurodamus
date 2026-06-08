@@ -694,9 +694,9 @@ def _simulator_globals(config: _SimConfig):
     from . import NeuronWrapper as Nd
 
     try:
-        # Randomize GABA_A rise time in GABAABHelper.hoc for BBP models, not mandatory
-        # GABAABHelper.hoc is not mandatory for all models unless "randomize_gaba_rise_time": true
-        # is given in the simulation config file
+        # Randomize GABA_A rise time in GABAABHelper.hoc for ProbGABAAB_EMS synapse model
+        # ProbGABAAB_EMS.mod is not mandatory for all models unless "randomize_gaba_rise_time": true
+        # in the simulation config file
         Nd.load_hoc("GABAABHelper")
         # in GABAABHelper.hoc this is a string
         Nd.randomize_Gaba_risetime = str(
