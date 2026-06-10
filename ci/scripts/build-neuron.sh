@@ -47,7 +47,19 @@ build-neuron() {
       -DNMODL_ENABLE_PYTHON_BINDINGS=OFF
       -DCORENRN_ENABLE_REPORTING=ON
       -DCMAKE_PREFIX_PATH=$INSTALL_DIR
+      -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
     )
+
+    if [[ $(uname) == Darwin ]]; then
+        CMAKE_ARGS+=(
+            -DCMAKE_C_COMPILER=gcc
+            -DCMAKE_CXX_COMPILER=g++
+        )
+
+        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+        brew unlink fmt
+        export PATH="$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin":$PATH
+    fi
 
     if [[ -n $SCCACHE_DIR ]]; then
         CMAKE_ARGS+=(
