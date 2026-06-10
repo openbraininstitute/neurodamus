@@ -76,6 +76,15 @@ jobs:
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev python3-dev
 
+    - name: Install macOS homebrew packages
+      if: startsWith(matrix.os, 'macOS')
+      run: |
+        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
+        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+        brew unlink fmt
+        echo "$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin" >> $GITHUB_PATH
+
     - name: sccache build cache
       id: cache-sccache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
