@@ -19,7 +19,7 @@ def neurodamus(args=None):
     """Neurodamus
 
     Usage:
-        neurodamus <config_file> [options]
+        neurodamus <ConfigFile> [options]
         neurodamus --version
         neurodamus --help
 
@@ -81,7 +81,7 @@ def neurodamus(args=None):
     from . import __version__
 
     options = docopt_sanitize(docopt(neurodamus.__doc__, args, version=__version__))
-    config_file = options.pop("config_file")
+    config_file = options.pop("ConfigFile")
     log_level = _pop_log_level(options)
 
     if not os.path.isfile(config_file):
