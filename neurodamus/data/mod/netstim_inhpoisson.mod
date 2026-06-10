@@ -1,1 +1,0 @@
-../../../external/neurodamus-models/common/mod/netstim_inhpoisson.mod

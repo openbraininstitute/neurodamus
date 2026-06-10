@@ -1,1 +1,1 @@
-../../../external/neurodamus-models/common/mod/TTXDynamicsSwitch.mod
+../../../external/neurodamus-models/mod/TTXDynamicsSwitch.mod

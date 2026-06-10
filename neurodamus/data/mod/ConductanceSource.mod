@@ -1,1 +1,1 @@
-../../../external/neurodamus-models/common/mod/ConductanceSource.mod
+../../../external/neurodamus-models/mod/ConductanceSource.mod

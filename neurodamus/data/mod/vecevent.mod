@@ -1,1 +1,1 @@
-../../../external/neurodamus-models/common/mod/vecevent.mod
+../../../external/neurodamus-models/mod/vecevent.mod
