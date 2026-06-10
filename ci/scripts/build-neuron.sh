@@ -47,7 +47,15 @@ build-neuron() {
       -DNMODL_ENABLE_PYTHON_BINDINGS=OFF
       -DCORENRN_ENABLE_REPORTING=ON
       -DCMAKE_PREFIX_PATH=$INSTALL_DIR
+      -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
     )
+
+    if [[ $(uname) == Darwin ]]; then
+        CMAKE_ARGS+=(
+            -DCMAKE_C_COMPILER=gcc
+            -DCMAKE_CXX_COMPILER=g++
+        )
+    fi
 
     if [[ -n $SCCACHE_DIR ]]; then
         CMAKE_ARGS+=(

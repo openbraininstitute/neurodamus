@@ -8,6 +8,7 @@
 make-env() {
     : "${INSTALL_DIR:?INSTALL_DIR is not set}"
 
+    local LIB_EXT=$(if [[ $(uname) == Darwin ]]; then echo dylib; else echo so; fi)
     local NEURODAMUS_PYTHON=$(python3 -c "import neurodamus; from pathlib import Path; print(Path(neurodamus.__file__).parent / 'data')")
     local NEURODAMUS_NEOCORTEX_ROOT=$INSTALL_DIR/neurodamus-models
 
@@ -16,8 +17,8 @@ make-env() {
     source $VIRTUAL_ENV/bin/activate
     export NEURODAMUS_PYTHON=$NEURODAMUS_PYTHON
     export HOC_LIBRARY_PATH=$NEURODAMUS_NEOCORTEX_ROOT/share/neurodamus_neocortex/hoc
-    export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.so
-    export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.so
+    export CORENEURONLIB=$NEURODAMUS_NEOCORTEX_ROOT/lib/libcorenrnmech.$LIB_EXT
+    export NRNMECH_LIB_PATH=$NEURODAMUS_NEOCORTEX_ROOT/lib/libnrnmech.$LIB_EXT
     export PATH=$NEURODAMUS_NEOCORTEX_ROOT/bin:$PATH
 _EOF
 }
