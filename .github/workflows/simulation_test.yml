@@ -26,7 +26,7 @@ env:
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
-  INSTALL_DIR: /opt/obi
+  INSTALL_DIR: ${{ github.workspace }}/opt/obi
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
