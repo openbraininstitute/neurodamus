@@ -69,7 +69,7 @@ Once neurodamus is installed, you should be able to find the executable `neuroda
 
   $ neurodamus
     Usage:
-        neurodamus <config_file> [options]
+        neurodamus <ConfigFile> [options]
         neurodamus --help
 
 Among the options you will find flags to tune run behavior.
