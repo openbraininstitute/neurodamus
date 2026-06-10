@@ -18,6 +18,11 @@ class _Neuron:
     _h = None  # We don't import it at module-level to avoid starting neuron
     _hocs_loaded = set()
 
+    # pytest will try and examine all imports to see if they have fixtures
+    # and since this acts like a proxy (ie: __getattr__) which lazy loads NEURON
+    # we can prevent _init from being called by telling pytest to stop
+    _pytestfixturefunction = None
+
     # No new attributes. __setattr__ can rely on it
     __slots__ = ()
 

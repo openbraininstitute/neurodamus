@@ -13,6 +13,9 @@ from scipy.signal import find_peaks
 from tests import utils
 
 from neurodamus.core.configuration import ConfigurationError
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.connection import NetConType
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -50,12 +53,7 @@ from neurodamus.core.configuration import ConfigurationError
     },
 ], indirect=True)
 def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
-    """
-    Tests simple synapse parameter changes.
-    """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
+    """Tests simple synapse parameter changes."""
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
         ("RingA", 2, "RingA", 0),
@@ -128,12 +126,7 @@ def test_synapse_change_simple_parameters(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_synapse_without_weight(create_tmp_simulation_config_file):
-    """
-    Test that 0 weight removes the netcon
-    """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
+    """Test that 0 weight removes the netcon"""
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
         ("RingA", 2, "RingA", 0),
@@ -168,12 +161,7 @@ def test_synapse_without_weight(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_synapse_modoverride(create_tmp_simulation_config_file):
-    """
-    Test modoverride
-    """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
+    """Test modoverride"""
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     connections = [
         ("RingA", 2, "RingA", 0),
@@ -215,11 +203,10 @@ def test_synapse_modoverride(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_gluSynapse_modoverride(create_tmp_simulation_config_file):
+    """Test modoverride with gluSynapse.
+
+    It raises an error because of missing data in the edge file
     """
-    Test modoverride with gluSynapse. It raises an error because of
-    missing data in the edge file
-    """
-    from neurodamus import Neurodamus
     with pytest.raises(AttributeError, match="Missing attribute Use_d_TM in the SONATA edge file"):
         Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
@@ -254,14 +241,10 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     - run a simulation and see spikes at roughly the correct
     firing rate
     """
-    from neurodamus import Neurodamus
-    from neurodamus.connection import NetConType
-    from neurodamus.core import NeuronWrapper as Ndc
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     # get all the netcons targetting 1000 from neuron directly
     cell = nd._pc.gid2cell(1000)
-    nclist = Ndc.cvode.netconlist("", cell, "")
+    nclist = Nd.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     # assert that the old netcons are still there
     assert nclist[0].srcgid() == 0
@@ -274,10 +257,10 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     # delay is always set to 0.1. Check connection.SpontMinis.create_on
     assert nclist[2].delay == pytest.approx(0.1)
 
-    voltage_trace = Ndc.Vector()
+    voltage_trace = Nd.Vector()
     cell_ringB = nd.circuits.get_node_manager("RingB").get_cell(1000)
     voltage_trace.record(cell_ringB._cellref.soma[0](0.5)._ref_v)
-    Ndc.finitialize()  # reinit for the recordings to be registered
+    Nd.finitialize()  # reinit for the recordings to be registered
     nd.run()
 
     peaks_pos = find_peaks(voltage_trace, prominence=0.3)[0]
@@ -314,15 +297,10 @@ def test_spont_minis_simple(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_override_globals_from_conditions(create_tmp_simulation_config_file):
-    """
-    Override global synapse variable from the conditions section
-    """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Ndc
-
+    """Override global synapse variable from the conditions section."""
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
-    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1001.1)
+    assert np.isclose(Nd.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1001.1)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -371,8 +349,7 @@ def test_override_globals_from_conditions(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_override_globals(create_tmp_simulation_config_file):
-    """
-    Tests whether global synapse parameter overrides take effect as expected.
+    """Tests whether global synapse parameter overrides take effect as expected.
 
     Key aspects being tested:
     - The global override ignores synapse type, delay, and order.
@@ -380,13 +357,10 @@ def test_override_globals(create_tmp_simulation_config_file):
     If equal the order in the `connection_overrides` list.
     - The override in the synapse overrides the one in conditions
     """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Ndc
-
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
-    assert np.isclose(Ndc.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
-    assert np.isclose(Ndc.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
+    assert np.isclose(Nd.h.tau_d_NMDA_ProbAMPANMDA_EMS, 1003.1)
+    assert np.isclose(Nd.h.tau_r_NMDA_ProbAMPANMDA_EMS, 1002.1)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -404,8 +378,6 @@ def test_override_globals(create_tmp_simulation_config_file):
     },
 ], indirect=True)
 def test_no_partial_weight0_override(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     with pytest.raises(ConfigurationError,
                        match="Partial Weight=0 override is not supported: Conn All->All"):
         Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
@@ -437,7 +409,6 @@ def test_weight0_not_overridden_warning(create_tmp_simulation_config_file, monke
     # patch the logger class handle method globally
     monkeypatch.setattr(logging.Logger, "handle", fake_handle)
 
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
     assert any(forbidden_message in str(r.getMessage()) for r in captured), (
@@ -467,7 +438,6 @@ def test_no_overriding_warning(create_tmp_simulation_config_file, monkeypatch):
     # patch the logger class handle method globally
     monkeypatch.setattr(logging.Logger, "handle", fake_handle)
 
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
     assert any(forbidden_message in str(r.getMessage()) for r in captured), (
@@ -505,7 +475,6 @@ def test_overriding_chain_warning(create_tmp_simulation_config_file, monkeypatch
 
     # patch the logger class handle method globally
     monkeypatch.setattr(logging.Logger, "handle", fake_handle)
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
     captured = "\n".join(record.getMessage() for record in captured)
@@ -544,7 +513,6 @@ def test_overriding_chain_warning2(create_tmp_simulation_config_file, monkeypatc
 
     # patch the logger class handle method globally
     monkeypatch.setattr(logging.Logger, "handle", fake_handle)
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
     captured = "\n".join(record.getMessage() for record in captured)

@@ -8,6 +8,8 @@ from tests.utils import get_expected_extracellular_potentials
 from neurodamus import Neurodamus
 from neurodamus.core import MPI
 from neurodamus.stimulus_manager import SpatiallyUniformEField
+from neurodamus.core import NeuronWrapper as Nd
+
 
 
 @pytest.mark.parametrize(
@@ -44,8 +46,6 @@ def test_one_constant_field(create_tmp_simulation_config_file, mpi_ranks):
     3. check all segment has extracellular mechanism inserted
     4. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     assert MPI.size == mpi_ranks == 2
 
     n = Neurodamus(create_tmp_simulation_config_file)
