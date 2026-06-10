@@ -25,7 +25,7 @@ env:
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
-  INSTALL_DIR: /opt/obi
+  INSTALL_DIR: ${{ github.workspace }}/opt/obi
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
@@ -49,6 +49,8 @@ jobs:
             python-version: '3.12'
           - os: ubuntu-24.04
             python-version: '3.13'
+          - os: macOS-15
+            python-version: '3.12'
       fail-fast: false
 
     steps:
@@ -73,6 +75,12 @@ jobs:
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev python3-dev
+
+    - name: Install macOS homebrew packages
+      if: startsWith(matrix.os, 'macOS')
+      run: |
+        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
 
     - name: sccache build cache
       id: cache-sccache

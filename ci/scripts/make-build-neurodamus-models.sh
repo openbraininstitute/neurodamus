@@ -6,8 +6,9 @@
 
 make-build-neurodamus-models() {
     set -x
+    local LIB_EXT=$(if [[ $(uname) == Darwin ]]; then echo dylib; else echo so; fi)
     INCLUDE_FLAGS="'-isystem $INSTALL_DIR/include'"
-    LOAD_FLAGS="'-Wl,-rpath,$INSTALL_DIR/lib $INSTALL_DIR/lib/libsonatareport.so'"
+    LOAD_FLAGS="'-Wl,-rpath,$INSTALL_DIR/lib $INSTALL_DIR/lib/libsonatareport.$LIB_EXT'"
 
     cat > $INSTALL_DIR/build-neurodamus-models.sh << _EOF
 #!/bin/bash
