@@ -1,1 +1,1 @@
-../../../external/neurodamus-models/common/mod/MembraneCurrentSource.mod
+../../../external/neurodamus-models/mod/MembraneCurrentSource.mod
