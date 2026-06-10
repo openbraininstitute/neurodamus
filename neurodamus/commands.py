@@ -39,7 +39,6 @@ def neurodamus(args=None):
                                 Otherwise deleted at the end. ``--save=<PATH>`` overrides this.
         --modelbuilding-steps=<number>
                                 Set the number of ModelBuildingSteps for the CoreNeuron sim
-        --experimental-stims    Shall use only Python stimuli? [default: False]
         --lb-mode=[RoundRobin, WholeCell, MultiSplit, Memory]
                                 The Load Balance mode.
                                 - RoundRobin: Disable load balancing. Good for quick simulations
