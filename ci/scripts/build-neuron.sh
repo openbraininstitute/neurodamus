@@ -55,6 +55,10 @@ build-neuron() {
             -DCMAKE_C_COMPILER=gcc
             -DCMAKE_CXX_COMPILER=g++
         )
+
+        # NRN: workaround for fmt 11.1 (see https://github.com/gabime/spdlog/pull/3312)
+        brew unlink fmt
+        export PATH="$(brew --prefix)/opt/flex/bin:$(brew --prefix)/opt/bison/bin":$PATH
     fi
 
     if [[ -n $SCCACHE_DIR ]]; then
