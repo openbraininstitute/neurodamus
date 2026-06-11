@@ -4,6 +4,7 @@ import libsonata
 import numpy as np
 
 from .core import NeuronWrapper as Nd
+from .lfp_reader import LFPFileReader
 from .report_parameters import ReportParameters
 from .target_manager import TargetPointList
 from .utils.pyutils import cache_errors
@@ -26,7 +27,7 @@ class ReportManager:
 
     @classmethod
     @cache_errors
-    def create(cls, params: ReportParameters, use_coreneuron, lfp_manager=None):
+    def create(cls, params: ReportParameters, use_coreneuron):
         """Factory method to create a Report instance for the given parameters.
 
         Returns:
@@ -39,7 +40,7 @@ class ReportManager:
         if params.type == libsonata.SimulationConfig.Report.Type.lfp:
             if use_coreneuron:
                 return None  # CoreNEURON handles LFP natively
-            return LFPReport(params, use_coreneuron, lfp_manager)  # noqa: F821
+            return LFPReport(params, use_coreneuron)
 
         report_cls = cls._report_types.get(params.type)
         if report_cls is None:
@@ -612,31 +613,24 @@ class LFPReport(WeightedSummationReport):
     """LFP report: weighted summation with electrode scaling factors from HDF5.
 
     Specializes WeightedSummationReport by loading beta (electrode factors)
-    from LFPManager for each GID.
+    lazily from the electrodes file specified in ReportParameters.
     """
 
-    def __init__(self, params: ReportParameters, use_coreneuron, lfp_manager):
+    def __init__(self, params: ReportParameters, use_coreneuron):
         """Initialize the LFP report.
 
         Args:
-            params: ReportParameters.
+            params: ReportParameters (must be LFP type with electrodes_file set).
             use_coreneuron: Boolean indicating if CoreNEURON is enabled.
-            lfp_manager: LFPManager with loaded electrode weights file.
         """
         super().__init__(params=params, use_coreneuron=use_coreneuron)
-        self._lfp_manager = lfp_manager
+        self._lfp_reader = LFPFileReader(params.electrodes_file)
 
     def _get_beta_for_gid(
         self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
     ) -> np.ndarray | None:
-        """Load electrode scaling factors from LFPManager for this GID."""
-        pop_info = (pop_name, pop_offset)
-        try:
-            _, node_id = self._lfp_manager.get_sonata_node_id(gid, pop_info)
-            return self._lfp_manager.get_node_id_subsets(node_id, pop_info[0])
-        except (KeyError, IndexError) as e:
-            logging.warning("GID %d: could not load LFP factors: %s", gid, e)
-            return None
+        """Load electrode scaling factors from the electrodes file for this GID."""
+        return self._lfp_reader.get_scaling_matrix(gid, (pop_name, pop_offset))
 
     def _read_inputs(self, gid_idx):
         """Read i_membrane_ from each compartment and return as numpy array."""

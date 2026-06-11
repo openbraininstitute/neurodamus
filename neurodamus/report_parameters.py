@@ -35,6 +35,7 @@ class ReportParameters:
     compartments: libsonata.SimulationConfig.Report.Compartments
     compartment_set: str
     points: list[TargetPointList] | None = None  # this is filled later with get_point_list
+    electrodes_file: str | None = None  # only set for LFP reports
 
 
 @cache_errors
@@ -100,4 +101,9 @@ def create_report_parameters(sim_end, nd_t, output_root, rep_name, rep_conf, tar
         sections=rep_conf.sections,
         compartments=rep_conf.compartments,
         compartment_set=rep_conf.compartment_set,
+        electrodes_file=(
+            rep_conf.electrodes_file
+            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp
+            else None
+        ),
     )

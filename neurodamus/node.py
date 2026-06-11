@@ -622,17 +622,6 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = self._run_conf.lfp_weights_path
-        if lfp_weights_file and self._run_conf.enable_reports:
-            lfp_manager = self._circuits.global_manager._lfp_manager
-            cell_managers = self._circuits.global_manager._cell_managers
-            population_list = [
-                manager.population_name
-                for manager in cell_managers
-                if manager.population_name is not None
-            ]
-            lfp_manager.load_lfp_config(lfp_weights_file, population_list)
-
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
         # Let the cell managers have any final say in the cell objects
@@ -988,7 +977,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
+                lfp_active=bool(rep_conf.electrodes_file),
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
@@ -1013,7 +1002,6 @@ class Node:
             report = ReportManager.create(
                 params=rep_params,
                 use_coreneuron=SimConfig.use_coreneuron,
-                lfp_manager=self._circuits.global_manager._lfp_manager,
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
