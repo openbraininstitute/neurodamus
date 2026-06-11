@@ -56,10 +56,7 @@ def check_report_parameters(
         )
 
     if rep_params.type == libsonata.SimulationConfig.Report.Type.lfp and not lfp_active:
-        errors.append(
-            "LFP report setup failed: electrodes file may be missing or "
-            "simulator is not set to CoreNEURON."
-        )
+        errors.append("LFP report setup failed: electrodes file may be missing.")
 
     if errors:
         raise ReportSetupError("\n".join(errors))

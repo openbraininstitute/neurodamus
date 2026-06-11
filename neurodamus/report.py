@@ -26,20 +26,20 @@ class ReportManager:
 
     @classmethod
     @cache_errors
-    def create(cls, params: ReportParameters, use_coreneuron):
+    def create(cls, params: ReportParameters, use_coreneuron, lfp_manager=None):
         """Factory method to create a Report instance for the given parameters.
 
         Returns:
-            Report instance for the given type, or None if the type is known
-            but unimplemented (e.g., LFP). Returning None causes the report
-            to be skipped downstream.
+            Report instance for the given type, or None if the type is
+            handled externally (e.g., LFP with CoreNEURON).
 
         Raises:
             ValueError: If the report type is unknown.
         """
-        # LFP is recognized but not implemented; skip it
         if params.type == libsonata.SimulationConfig.Report.Type.lfp:
-            return None
+            if use_coreneuron:
+                return None  # CoreNEURON handles LFP natively
+            return LFPReport(params, use_coreneuron, lfp_manager)  # noqa: F821
 
         report_cls = cls._report_types.get(params.type)
         if report_cls is None:
