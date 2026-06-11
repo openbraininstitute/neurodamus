@@ -32,7 +32,7 @@ build-neocortex-models() {
 
     CC="mpicc" \
     CXX="mpic++" \
-    cmake -B $NEOCORTEX_MOD_BUILD -S $NEOCORTEX_MOD  \
+    cmake -B $NEOCORTEX_MOD_BUILD --fresh -S $NEOCORTEX_MOD  \
       -GNinja \
       -DCMAKE_INSTALL_PREFIX=$NEOCORTEX_MOD_INSTALL \
       -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
