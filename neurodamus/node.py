@@ -62,6 +62,7 @@ from .core.coreneuron_configuration import (
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
 from .io.sonata_config import ConnectionTypes, RunConfig
+from .lfp_reader import LFPFileReader
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
@@ -621,20 +622,6 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = self._run_conf.lfp_weights_path
-        if lfp_weights_file and self._run_conf.enable_reports:
-            if SimConfig.use_coreneuron:
-                lfp_manager = self._circuits.global_manager._lfp_manager
-                cell_managers = self._circuits.global_manager._cell_managers
-                population_list = [
-                    manager.population_name
-                    for manager in cell_managers
-                    if manager.population_name is not None
-                ]
-                lfp_manager.load_lfp_config(lfp_weights_file, population_list)
-            else:
-                logging.warning("LFP supported only with CoreNEURON.")
-
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
         # Let the cell managers have any final say in the cell objects
@@ -945,6 +932,12 @@ class Node:
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
         self._report_list = []
 
+        # Validate LFP electrode files early (fail fast before expensive processing)
+        if SimConfig.use_coreneuron:
+            for rep_conf in reports_conf.values():
+                if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
+                    LFPFileReader(rep_conf.electrodes_file)
+
         pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
         pop_offsets_alias = pop_offsets, alias_pop
 
@@ -984,7 +977,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
+                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:

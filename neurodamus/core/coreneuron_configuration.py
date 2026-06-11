@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import libsonata
+
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
+from neurodamus.lfp_reader import LFPFileReader
 from neurodamus.metype import BaseCell
 
 
@@ -23,7 +26,7 @@ class CompartmentMapping:
         return num_segments
 
     def process_section(
-        self, cell, sec_type, sec_list, num_electrodes, all_lfp_factors, section_offset
+        self, cell, sec_type, sec_list, electrode_offsets, all_lfp_factors, section_offset
     ):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
@@ -33,27 +36,64 @@ class CompartmentMapping:
                 section_id = cell.get_section_id(sec)
                 num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
 
+        num_electrodes = (
+            int(electrode_offsets.x[int(electrode_offsets.size()) - 1])
+            if electrode_offsets.size() > 0
+            else 0
+        )
         if num_electrodes > 0 and all_lfp_factors.size() > 0 and num_segments > 0:
             start_idx = section_offset * num_electrodes
             end_idx = (section_offset + num_segments) * num_electrodes - 1
             lfp_factors.copy(all_lfp_factors, start_idx, end_idx)
 
         self.pc.nrnbbcore_register_mapping(
-            cell.gid, sec_type, secvec, segvec, lfp_factors, num_electrodes
+            cell.gid, sec_type, secvec, segvec, lfp_factors, electrode_offsets
         )
         return num_segments
 
-    def register_mapping(self):
+    def register_mapping(self) -> None:
+        """Register section-segment and LFP electrode mappings for CoreNEURON.
+
+        For each cell on this rank, registers the section/segment structure with
+        NEURON via nrnbbcore_register_mapping. When LFP reports are configured,
+        also loads electrode scaling factors from each report's electrodes_file
+        and builds a CSR-style electrode_offsets vector across reports.
+
+        A gid not present in a given electrode file contributes zero electrodes
+        for that report (the offset increment is zero, factors are empty).
+
+        For example, with report A (3 electrodes, gids 0-2) and report B
+        (2 electrodes, gids 2-3):
+          - gid 0: offsets=[0,3,3], factors from A only
+          - gid 2: offsets=[0,3,5], factors from A+B concatenated
+          - gid 3: offsets=[0,0,2], factors from B only
+        """
         gidvec = self.cell_distributor.getGidListForProcessor()
+
+        # Open LFP electrode readers from reports (validates structure upfront)
+        readers = [
+            LFPFileReader(rep_conf.electrodes_file)
+            for rep_conf in SimConfig.reports.values()
+            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp
+        ]
+
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
             all_lfp_factors = Nd.Vector()
-            num_electrodes = 0
-            lfp_manager = getattr(self.cell_distributor, "_lfp_manager", None)
-            if lfp_manager:
+            electrode_offsets = []
+
+            if readers:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
-                num_electrodes = lfp_manager.get_number_electrodes(activegid, pop_info)
-                all_lfp_factors = lfp_manager.read_lfp_factors(activegid, pop_info)
+                cumulative = 0
+                electrode_offsets.append(0)
+                for reader in readers:
+                    n_elec = reader.get_number_electrodes(activegid, pop_info)
+                    factors = reader.get_factors(activegid, pop_info)
+                    all_lfp_factors.append(factors)
+                    cumulative += n_elec
+                    electrode_offsets.append(cumulative)
+
+            offsets_vec = Nd.Vector(electrode_offsets)
 
             section_offset = 0
             for sec_type, sec_list in BaseCell.SECTION_TYPES:
@@ -61,7 +101,7 @@ class CompartmentMapping:
                     cell,
                     sec_type,
                     sec_list,
-                    num_electrodes,
+                    offsets_vec,
                     all_lfp_factors,
                     section_offset,
                 )
