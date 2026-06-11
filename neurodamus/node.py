@@ -977,7 +977,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
+                lfp_active=bool(rep_conf.electrodes_file),
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:

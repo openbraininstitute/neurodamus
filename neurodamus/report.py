@@ -1,9 +1,12 @@
 import logging
 
 import libsonata
+import numpy as np
 
 from .core import NeuronWrapper as Nd
+from .lfp_reader import LFPFileReader
 from .report_parameters import ReportParameters
+from .target_manager import TargetPointList
 from .utils.pyutils import cache_errors
 
 
@@ -28,16 +31,16 @@ class ReportManager:
         """Factory method to create a Report instance for the given parameters.
 
         Returns:
-            Report instance for the given type, or None if the type is known
-            but unimplemented (e.g., LFP). Returning None causes the report
-            to be skipped downstream.
+            Report instance for the given type, or None if the type is
+            handled externally (e.g., LFP with CoreNEURON).
 
         Raises:
             ValueError: If the report type is unknown.
         """
-        # LFP is recognized but not implemented; skip it
         if params.type == libsonata.SimulationConfig.Report.Type.lfp:
-            return None
+            if use_coreneuron:
+                return None  # CoreNEURON handles LFP natively
+            return LFPReport(params, use_coreneuron)
 
         report_cls = cls._report_types.get(params.type)
         if report_cls is None:
@@ -443,3 +446,193 @@ class SynapseReport(Report):
             except AttributeError as e:
                 msg = f"Variable '{variable}' not found at '{synapse.hname()}'."
                 raise AttributeError(msg) from e
+
+
+class WeightedSummationReport(Report):
+    """Report that computes weighted summation of NEURON variables using numpy.
+
+    Mathematical model:
+        result[e] = Sum_compartments beta[e, c] * (Sum_variables var_i[c] * alpha_i)
+
+    For LFP: single variable (i_membrane), alpha=1, beta = electrode scaling factors.
+
+    Uses cvode.event at report_dt - 1e-5 to compute values before
+    SonataReportHelper samples at report_dt.
+    """
+
+    def __init__(self, params, use_coreneuron):
+        """Initialize the weighted summation report.
+
+        Args:
+            params: ReportParameters with name, dt, start, end, output_dir, unit, report_on.
+            use_coreneuron: Boolean indicating if CoreNEURON is enabled.
+        """
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        self.start_time = params.start
+        self.end_time = params.end
+
+        # Per-GID parallel arrays, populated during register_gid_section()
+        self._compartments = []  # list of lists of NEURON segment refs (one per compartment)
+        self._betas = []  # list of numpy arrays (n_outputs, n_compartments) or None
+        self._output_vecs = []  # list of NEURON Vectors (keeps them alive for SonataReport)
+        self._output_nps = []  # cached numpy views into output_vecs (avoids repeated as_numpy())
+
+    @cache_errors
+    def setup(self, rep_params, global_manager):
+        """Set up the report: collect compartments, load beta weights, register outputs."""
+        super().setup(rep_params, global_manager)
+
+        # Start the event chain
+        self._schedule_event()
+
+    def register_gid_section(
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        sections: libsonata.SimulationConfig.Report.Sections,
+    ):
+        """Collect compartments and load beta weights for a single GID."""
+        gid = cell_obj.gid
+
+        compartments = self._collect_compartments(point)
+        n_compartments = len(compartments)
+        if n_compartments == 0:
+            logging.warning("GID %d has no compartments for report, skipping.", gid)
+            return
+
+        beta_matrix = self._build_beta_matrix(gid, pop_name, pop_offset, n_compartments)
+        n_outputs = beta_matrix.shape[0] if beta_matrix is not None else 1
+
+        # Output buffer: NEURON Vector with one element per output channel
+        output_vec = Nd.Vector(n_outputs)
+        output_np = output_vec.as_numpy()
+
+        # Register with SonataReport
+        self.report.AddNode(gid, pop_name, pop_offset)
+        for out_idx in range(n_outputs):
+            self.report.AddVar(output_vec._ref_x[out_idx], out_idx, gid, pop_name)
+
+        # Store per-GID data in parallel arrays
+        self._compartments.append(compartments)
+        self._betas.append(beta_matrix)
+        self._output_vecs.append(output_vec)
+        self._output_nps.append(output_np)
+
+    @staticmethod
+    def _collect_compartments(point: TargetPointList) -> list:
+        """Collect compartment references (NEURON segments) from a point's section list."""
+        compartments = []
+        for i, sc in enumerate(point.sclst):
+            section = sc.sec
+            x = point.x[i]
+            compartments.append(section(x))
+        return compartments
+
+    def _build_beta_matrix(
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Build the beta matrix for a GID.
+
+        Returns:
+            np.ndarray (n_outputs, n_compartments): weighted output.
+            None: no beta provided, use plain summation.
+
+        Raises:
+            ValueError: if beta shape doesn't match compartment count.
+        """
+        beta_raw = self._get_beta_for_gid(gid, pop_name, pop_offset, n_compartments)
+        if beta_raw is not None:
+            beta_arr = np.asarray(beta_raw, dtype=np.float64)
+            if beta_arr.shape[0] != n_compartments:
+                raise ValueError(
+                    f"GID {gid}: beta matrix rows ({beta_arr.shape[0]}) "
+                    f"!= compartments ({n_compartments})."
+                )
+            return beta_arr.T  # (n_outputs, n_compartments)
+        # No beta provided: plain summation
+        return None
+
+    def _get_beta_for_gid(  # noqa: PLR6301
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Get beta weights for a GID. Override in subclasses for custom sources.
+
+        Subclasses should return a numpy array of shape (n_compartments, n_outputs)
+        or None. None means beta=1 (plain summation to a single output value).
+        """
+        return None
+
+    def _schedule_event(self):
+        """Schedule the next compute event, respecting the reporting window.
+
+        The next event fires at max(start_time, Nd.t + report_dt) - 1e-5,
+        ensuring we skip ahead to start_time on the first call and stay
+        report_dt-aligned afterwards. The -1e-5 guarantees we compute before
+        SonataReportHelper samples.
+        """
+        event_t = max(self.start_time, Nd.t + self.report_dt) - 1e-5
+        if event_t <= self.end_time:
+            Nd.cvode.event(event_t, self._compute_callback)
+
+    def restart_event(self):
+        """Restart the event chain after restore."""
+        self._schedule_event()
+
+    def _compute_callback(self):
+        """Self-rescheduling callback that computes the weighted summation.
+
+        Fires at report_dt - 1e-5 so output is ready before SonataReportHelper
+        samples at report_dt.
+        """
+        self._compute()
+        self._schedule_event()
+
+    def _compute(self):
+        """Compute weighted summation for all report GIDs on this rank."""
+        for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
+            values = self._read_inputs(idx)
+
+            # Apply beta weights or plain sum (out= avoids temporary allocation)
+            if beta is not None:
+                np.dot(beta, values, out=output_np)
+            else:
+                output_np[0] = values.sum()
+
+    def _read_inputs(self, gid_idx):
+        """Read input values from compartments and return as numpy array.
+
+        Override in subclasses to provide variable-specific reading logic.
+        """
+        raise NotImplementedError("Subclasses must implement _read_inputs")
+
+
+class LFPReport(WeightedSummationReport):
+    """LFP report: weighted summation with electrode scaling factors from HDF5.
+
+    Specializes WeightedSummationReport by loading beta (electrode factors)
+    lazily from the electrodes file specified in ReportParameters.
+    """
+
+    def __init__(self, params: ReportParameters, use_coreneuron):
+        """Initialize the LFP report.
+
+        Args:
+            params: ReportParameters (must be LFP type with electrodes_file set).
+            use_coreneuron: Boolean indicating if CoreNEURON is enabled.
+        """
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        self._lfp_reader = LFPFileReader(params.electrodes_file)
+
+    def _get_beta_for_gid(
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Load electrode scaling factors from the electrodes file for this GID."""
+        return self._lfp_reader.get_scaling_matrix(gid, (pop_name, pop_offset))
+
+    def _read_inputs(self, gid_idx):
+        """Read i_membrane_ from each compartment and return as numpy array."""
+        compartments = self._compartments[gid_idx]
+        return np.array([comp.i_membrane_ for comp in compartments])
