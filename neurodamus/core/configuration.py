@@ -690,22 +690,30 @@ def _spike_parameters(config: _SimConfig):
 
 @SimConfig.validator
 def _simulator_globals(config: _SimConfig):
-    from neuron import h
+    # Import scope-level to avoid cross module dependency
+    from . import NeuronWrapper as Nd
 
-    # Hackish but some constants only live in the helper
-    h.load_file("GABAABHelper.hoc")
-
-    # in h this is a string
-    h.randomize_Gaba_risetime = str(
-        config._simulation_config.parsedConditions.randomize_gaba_rise_time
-    )
+    try:
+        # Randomize GABA_A rise time in GABAABHelper.hoc for ProbGABAAB_EMS synapse model
+        # ProbGABAAB_EMS.mod is not mandatory for all models unless "randomize_gaba_rise_time": true
+        # in the simulation config file
+        Nd.load_hoc("GABAABHelper")
+        # in GABAABHelper.hoc this is a string
+        Nd.randomize_Gaba_risetime = str(
+            config._simulation_config.parsedConditions.randomize_gaba_rise_time
+        )
+    except RuntimeError as e:
+        if config._simulation_config.parsedConditions.randomize_gaba_rise_time:
+            raise ConfigurationError(
+                "Cannot enable randomize_gaba_rise_time, likely missing ProbGABAAB_EMS.mod"
+            ) from e
 
     # set the mechanism values
     for suffix, dict_var in config._simulation_config.parsedConditions.mechanisms.items():
         for name, value in dict_var.items():
             key = name + "_" + suffix
             log_verbose("GLOBAL %s = %s", key, value)
-            setattr(h, name + "_" + suffix, value)
+            setattr(Nd, name + "_" + suffix, value)
 
             if "cao_CR" in key and value != config.extracellular_calcium:
                 logging.warning(

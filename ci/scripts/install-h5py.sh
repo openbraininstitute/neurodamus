@@ -18,6 +18,9 @@ install-h5py() {
     elif [[ -e /usr/include/hdf5/mpich/H5Epublic.h ]]; then
         HDF5_INCLUDEDIR=/usr/include/hdf5/mpich
         HDF5_LIBDIR=/usr/lib/$(uname -m)-linux-gnu/hdf5/mpich
+    elif [[ $(uname) == Darwin ]]; then
+        HDF5_INCLUDEDIR=$(brew --prefix hdf5-mpi)/include
+        HDF5_LIBDIR=$(brew --prefix hdf5-mpi)/lib
     fi
 
     CC="mpicc" \

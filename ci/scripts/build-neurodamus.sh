@@ -22,7 +22,8 @@ build-neurodamus() {
 
     ( cd $NEURODAMUS && \
         git fetch --depth 1 origin $COMMIT &&
-        git checkout FETCH_HEAD
+        git checkout FETCH_HEAD && \
+        git submodule update --init --recursive
     )
 
     $PIP install $NEURODAMUS'[full]'

@@ -7,6 +7,7 @@ from tests import utils
 from tests.conftest import ALLEN_V1_DIR
 
 from neurodamus import Neurodamus
+from neurodamus.core.configuration import ConfigurationError
 from neurodamus.utils.dump_cellstate import dump_cellstate
 
 
@@ -60,3 +61,20 @@ def test_cell_states(capsys, create_tmp_simulation_config_file):
     assert syns[2].srcgid() == -1  # netcon for synapse replay
     assert syns[2].pre().hname() == "VecStim[0]"
     assert syns[2].weight[0] == 500
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"src_dir": ALLEN_V1_DIR, "extra_config": {"conditions": {"randomize_gaba_rise_time": True}}}],
+    indirect=True,
+)
+def test_errorhandling(create_tmp_simulation_config_file):
+    """
+    The Allen v1 circuit does not contain the GABAAB synapse model.
+    If the simulation config file contains "randomize_gaba_rise_time": True, an exception is raised
+    """
+    with pytest.raises(
+        ConfigurationError,
+        match=r"Cannot enable randomize_gaba_rise_time, likely missing ProbGABAAB_EMS.mod",
+    ):
+        Neurodamus(create_tmp_simulation_config_file)

@@ -91,7 +91,9 @@ class _NeuronWrapper(_Neuron):
             return hasattr(cls._h, mech)
 
         if not check_load_lib("SonataReport", "NRNMECH_LIB_PATH"):
-            logging.error("Could not load neurodamus core mechs from NRNMECH_LIB_PATH")
+            logging.error(
+                "Could not load neurodamus core mech SonataReport.mod from NRNMECH_LIB_PATH"
+            )
             sys.exit(1)
         if not check_load_lib("ProbAMPANMDA_EMS", ""):
             logging.warning(
