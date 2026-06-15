@@ -24,6 +24,13 @@ VERBATIM
         sonata_refresh_pointers(nrn_recalc_ptr); //tell bin report library to update its pointers using nrn_recalc_ptr function
     }
 #endif
+
+static void (*pre_record_callback)(void) = NULL;
+
+extern "C" void sonata_report_helper_set_pre_record_callback(void (*cb)(void)) {
+    pre_record_callback = cb;
+}
+
 #endif
 #endif
 ENDVERBATIM
@@ -45,6 +52,9 @@ NET_RECEIVE(w) {
 VERBATIM
 #ifndef CORENEURON_BUILD
 #ifndef DISABLE_REPORTINGLIB
+    if (pre_record_callback != NULL) {
+        pre_record_callback();
+    }
     sonata_record_data(activeStep);
     activeStep++;
 #endif

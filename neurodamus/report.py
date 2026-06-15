@@ -1,3 +1,4 @@
+import ctypes
 import logging
 
 import libsonata
@@ -468,22 +469,19 @@ class WeightedSummationReport(Report):
             use_coreneuron: Boolean indicating if CoreNEURON is enabled.
         """
         super().__init__(params=params, use_coreneuron=use_coreneuron)
-        self.start_time = params.start
-        self.end_time = params.end
 
         # Per-GID parallel arrays, populated during register_gid_section()
         self._compartments = []  # list of lists of NEURON segment refs (one per compartment)
         self._betas = []  # list of numpy arrays (n_outputs, n_compartments) or None
         self._output_vecs = []  # list of NEURON Vectors (keeps them alive for SonataReport)
         self._output_nps = []  # cached numpy views into output_vecs (avoids repeated as_numpy())
+        self._ctypes_callback = None  # prevent GC of ctypes callback
 
     @cache_errors
     def setup(self, rep_params, global_manager):
-        """Set up the report: collect compartments, load beta weights, register outputs."""
+        """Set up the report and register the pre-record callback."""
         super().setup(rep_params, global_manager)
-
-        # Start the event chain
-        self._schedule_event()
+        self.register_pre_record_callback()
 
     def register_gid_section(
         self,
@@ -565,37 +563,25 @@ class WeightedSummationReport(Report):
         """
         return None
 
-    def _schedule_event(self):
-        """Schedule the next compute event, respecting the reporting window.
+    def register_pre_record_callback(self):
+        """Register _compute as the pre-record callback in SonataReportHelper.
 
-        The next event fires at max(start_time, Nd.t + report_dt) - 1e-5,
-        ensuring we skip ahead to start_time on the first call and stay
-        report_dt-aligned afterwards. The -1e-5 guarantees we compute before
-        SonataReportHelper samples.
+        Uses ctypes to set a C function pointer in the MOD file that will
+        be called before sonata_record_data at each report timestep.
         """
-        event_t = max(self.start_time, Nd.t + self.report_dt) - 1e-5
-        if event_t <= self.end_time:
-            Nd.cvode.event(event_t, self._compute_callback)
+        CALLBACK_TYPE = ctypes.CFUNCTYPE(None)
+        self._ctypes_callback = CALLBACK_TYPE(self._compute)
 
-    def restart_event(self):
-        """Restart the event chain after restore."""
-        self._schedule_event()
-
-    def _compute_callback(self):
-        """Self-rescheduling callback that computes the weighted summation.
-
-        Fires at report_dt - 1e-5 so output is ready before SonataReportHelper
-        samples at report_dt.
-        """
-        self._compute()
-        self._schedule_event()
+        setter = ctypes.CDLL(None).sonata_report_helper_set_pre_record_callback
+        setter.argtypes = [CALLBACK_TYPE]
+        setter.restype = None
+        setter(self._ctypes_callback)
 
     def _compute(self):
         """Compute weighted summation for all report GIDs on this rank."""
         for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
             values = self._read_inputs(idx)
 
-            # Apply beta weights or plain sum (out= avoids temporary allocation)
             if beta is not None:
                 np.dot(beta, values, out=output_np)
             else:
