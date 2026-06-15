@@ -236,6 +236,79 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     npt.assert_allclose(result_data.data[19], t19_data)
 
 
+# --- NEURON-only LFP tests (numpy WeightedSummationReport path) ---
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "reports": {
+                "lfp_report": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5"),
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0
+                }
+            },
+            "inputs": {
+                "stimulus_pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
+                }
+            }
+        }
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_ringcircuit_lfp_neuron(create_tmp_simulation_config_file):
+    """Test LFP report using NEURON-only numpy path (WeightedSummationReport).
+
+    Uses the same reference values as test_ringcircuit_lfp (CoreNEURON path)
+    to validate that the numpy implementation produces identical results.
+    """
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
+
+    # Same reference values as the CoreNEURON test_ringcircuit_lfp
+    lfp_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report.h5")
+    result_ids, result_data = lfp_data["RingA"]
+
+    node_ids = np.array([0, 1, 2])
+    t11_data = np.array([0.11541528, 0.12541528, 0.6154153, 0.62541527, 1.1154152, 1.1254153])
+    t19_data = np.array([0.11362588, 0.12362587, 0.6136259, 0.6236259, 1.1136259, 1.1236259])
+
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)
+
+    result_ids, result_data = lfp_data["RingB"]
+
+    node_ids = np.array([0, 1])
+    t11_data = np.array(
+        [6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07, 6.4121537e-07])
+    t19_data = np.array(
+        [8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07, 8.2200177e-07])
+
+    npt.assert_allclose(result_ids, node_ids)
+    npt.assert_allclose(result_data.data[11], t11_data)
+    npt.assert_allclose(result_data.data[19], t19_data)
+
+
 # --- Multi-report LFP tests (per-report electrodes_file) ---
 
 LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
@@ -377,6 +450,58 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
 
     # Report B: RingA_Cell0 gid 0 with 2 electrodes
     lfp_B = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report_B.h5")
+    result_ids_B, result_data_B = lfp_B["RingA"]
+    assert list(result_ids_B) == [0]
+    assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
+
+
+# --- NEURON-only multi-report LFP tests ---
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "reports": {
+                "lfp_report_A": {
+                    "type": "lfp",
+                    "cells": "RingA",
+                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0,
+                },
+                "lfp_report_B": {
+                    "type": "lfp",
+                    "cells": "RingA_Cell0",
+                    "electrodes_file": LFP_2ELEC_CELL0_FILE,
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0,
+                },
+            },
+            "inputs": _COMMON_INPUTS,
+        }
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_multi_lfp_report_combined_neuron(create_tmp_simulation_config_file):
+    """Run multi-report LFP with NEURON-only numpy path and verify structure."""
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
+
+    # Report A: RingA gids 0,1,2 with 3 electrodes
+    lfp_A = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report_A.h5")
+    result_ids_A, result_data_A = lfp_A["RingA"]
+    assert list(result_ids_A) == [0, 1, 2]
+    assert result_data_A.data.shape[1] == 9  # 3 gids * 3 electrodes
+
+    # Report B: RingA_Cell0 gid 0 with 2 electrodes
+    lfp_B = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report_B.h5")
     result_ids_B, result_data_B = lfp_B["RingA"]
     assert list(result_ids_B) == [0]
     assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
