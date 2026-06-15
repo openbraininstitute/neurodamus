@@ -1,5 +1,6 @@
 matplotlib
-pytest
+# pytest-isolate-mpi cann't pickle tmp_path_factory from pytest-9.1.0 because of an unpicklable _BaseExitStack
+pytest<9.1.0
 pytest-forked
 pandas
 # 3.15.0 breaks compatibility with older macOS versions:
