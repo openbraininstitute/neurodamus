@@ -5,6 +5,24 @@ from pathlib import Path
 from ..conftest import RINGTEST_DIR
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
+LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
+LFP_3ELEC_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA_cell0.h5")
+LFP_3ELEC_RINGA_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA.h5")
+LFP_2ELEC_CELL0_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA_cell0.h5")
+
+_COMMON_INPUTS = {
+    "stimulus_pulse": {
+        "module": "pulse",
+        "input_type": "current_clamp",
+        "delay": 1,
+        "duration": 50,
+        "node_set": "RingA",
+        "represents_physical_electrode": True,
+        "amp_start": 10,
+        "width": 1,
+        "frequency": 50,
+    }
+}
 
 
 @pytest.fixture
@@ -234,28 +252,6 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     npt.assert_allclose(result_ids, node_ids)
     npt.assert_allclose(result_data.data[11], t11_data)
     npt.assert_allclose(result_data.data[19], t19_data)
-
-
-# --- Multi-report LFP tests (per-report electrodes_file) ---
-
-LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
-LFP_3ELEC_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA_cell0.h5")
-LFP_3ELEC_RINGA_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA.h5")
-LFP_2ELEC_CELL0_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA_cell0.h5")
-
-_COMMON_INPUTS = {
-    "stimulus_pulse": {
-        "module": "pulse",
-        "input_type": "current_clamp",
-        "delay": 1,
-        "duration": 50,
-        "node_set": "RingA",
-        "represents_physical_electrode": True,
-        "amp_start": 10,
-        "width": 1,
-        "frequency": 50,
-    }
-}
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
