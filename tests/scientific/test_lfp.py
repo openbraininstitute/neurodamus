@@ -254,7 +254,6 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     npt.assert_allclose(result_data.data[19], t19_data)
 
 
-
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
