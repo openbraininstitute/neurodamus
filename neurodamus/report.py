@@ -32,17 +32,11 @@ class ReportManager:
         """Factory method to create a Report instance for the given parameters.
 
         Returns:
-            Report instance for the given type, or None if the type is
-            handled externally (e.g., LFP with CoreNEURON).
+            Report instance for the given type.
 
         Raises:
             ValueError: If the report type is unknown.
         """
-        if params.type == libsonata.SimulationConfig.Report.Type.lfp:
-            if use_coreneuron:
-                return None  # CoreNEURON handles LFP natively
-            return LFPReport(params, use_coreneuron)
-
         report_cls = cls._report_types.get(params.type)
         if report_cls is None:
             raise ValueError(f"Unknown report type: {params.type.name}")
@@ -595,6 +589,7 @@ class WeightedSummationReport(Report):
         raise NotImplementedError("Subclasses must implement _read_inputs")
 
 
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.lfp)
 class LFPReport(WeightedSummationReport):
     """LFP report: weighted summation with electrode scaling factors from HDF5.
 
@@ -611,6 +606,13 @@ class LFPReport(WeightedSummationReport):
         """
         super().__init__(params=params, use_coreneuron=use_coreneuron)
         self._lfp_reader = LFPFileReader(params.electrodes_file)
+
+    @cache_errors
+    def setup(self, rep_params, global_manager):
+        """Set up the LFP report. No-op when CoreNEURON handles LFP natively."""
+        if self.use_coreneuron:
+            return
+        super().setup(rep_params, global_manager)
 
     def _get_beta_for_gid(
         self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
