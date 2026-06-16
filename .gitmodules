@@ -1,0 +1,3 @@
+[submodule "external/neurodamus-models"]
+	path = external/neurodamus-models
+	url = https://github.com/openbraininstitute/neurodamus-models.git

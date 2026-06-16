@@ -21,12 +21,11 @@ on:
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
   LIBSONATA_COMMIT: v0.1.35
-  NEURODAMUS_MODELS_COMMIT: 2.4.4
   NEURON_COMMIT: 9.0.1
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
-  INSTALL_DIR: /opt/obi
+  INSTALL_DIR: ${{ github.workspace }}/opt/obi
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
@@ -50,6 +49,8 @@ jobs:
             python-version: '3.12'
           - os: ubuntu-24.04
             python-version: '3.13'
+          - os: macOS-15
+            python-version: '3.12'
       fail-fast: false
 
     steps:
@@ -65,6 +66,7 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
         persist-credentials: false
+        submodules: recursive
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -73,6 +75,12 @@ jobs:
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
         && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev python3-dev
+
+    - name: Install macOS homebrew packages
+      if: startsWith(matrix.os, 'macOS')
+      run: |
+        brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
+        brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
 
     - name: sccache build cache
       id: cache-sccache
@@ -124,11 +132,11 @@ jobs:
         source venv/bin/activate \
         && uv pip install -e $BASE_DIR
 
-    - name: Install neurodamus-models
+    - name: Install neurodamus-neocortex models
       run: |
         source $BASE_DIR/ci/scripts/build-neocortex-models.sh \
         && source venv/bin/activate \
-        && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
+        && build-neocortex-models $BASE_DIR/tests/mechanisms/neocortex
 
     - name: Make env
       run: |
