@@ -451,8 +451,8 @@ class WeightedSummationReport(Report):
 
     For LFP: single variable (i_membrane), alpha=1, beta = electrode scaling factors.
 
-    Uses cvode.event at report_dt - 1e-5 to compute values before
-    SonataReportHelper samples at report_dt.
+    Uses a pre-record callback in SonataReportHelper to compute values
+    before sonata_record_data samples at report_dt.
     """
 
     def __init__(self, params, use_coreneuron):
@@ -464,12 +464,11 @@ class WeightedSummationReport(Report):
         """
         super().__init__(params=params, use_coreneuron=use_coreneuron)
 
-        # Per-GID parallel arrays, populated during register_gid_section()
-        self._compartments = []  # list of lists of NEURON segment refs (one per compartment)
-        self._betas = []  # list of numpy arrays (n_outputs, n_compartments) or None
-        self._output_vecs = []  # list of NEURON Vectors (keeps them alive for SonataReport)
-        self._output_nps = []  # cached numpy views into output_vecs (avoids repeated as_numpy())
-        self._ctypes_callback = None  # prevent GC of ctypes callback
+        self._compartments: list[list] = []
+        self._betas: list[np.ndarray | None] = []
+        self._output_vecs: list = []  # keeps Vectors alive for SonataReport
+        self._output_nps: list[np.ndarray] = []  # cached numpy views (avoids repeated as_numpy())
+        self._ctypes_callback: ctypes.CFUNCTYPE | None = None  # prevent GC
 
     @cache_errors
     def setup(self, rep_params, global_manager):
@@ -498,16 +497,13 @@ class WeightedSummationReport(Report):
         beta_matrix = self._build_beta_matrix(gid, pop_name, pop_offset, n_compartments)
         n_outputs = beta_matrix.shape[0] if beta_matrix is not None else 1
 
-        # Output buffer: NEURON Vector with one element per output channel
         output_vec = Nd.Vector(n_outputs)
         output_np = output_vec.as_numpy()
 
-        # Register with SonataReport
         self.report.AddNode(gid, pop_name, pop_offset)
         for out_idx in range(n_outputs):
             self.report.AddVar(output_vec._ref_x[out_idx], out_idx, gid, pop_name)
 
-        # Store per-GID data in parallel arrays
         self._compartments.append(compartments)
         self._betas.append(beta_matrix)
         self._output_vecs.append(output_vec)
@@ -516,12 +512,7 @@ class WeightedSummationReport(Report):
     @staticmethod
     def _collect_compartments(point: TargetPointList) -> list:
         """Collect compartment references (NEURON segments) from a point's section list."""
-        compartments = []
-        for i, sc in enumerate(point.sclst):
-            section = sc.sec
-            x = point.x[i]
-            compartments.append(section(x))
-        return compartments
+        return [sc.sec(point.x[i]) for i, sc in enumerate(point.sclst)]
 
     def _build_beta_matrix(
         self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
@@ -544,7 +535,6 @@ class WeightedSummationReport(Report):
                     f"!= compartments ({n_compartments})."
                 )
             return beta_arr.T  # (n_outputs, n_compartments)
-        # No beta provided: plain summation
         return None
 
     def _get_beta_for_gid(  # noqa: PLR6301
@@ -557,7 +547,7 @@ class WeightedSummationReport(Report):
         """
         return None
 
-    def register_pre_record_callback(self):
+    def register_pre_record_callback(self) -> None:
         """Register _compute as the pre-record callback in SonataReportHelper.
 
         Uses ctypes to set a C function pointer in the MOD file that will
@@ -571,7 +561,7 @@ class WeightedSummationReport(Report):
         setter.restype = None
         setter(self._ctypes_callback)
 
-    def _compute(self):
+    def _compute(self) -> None:
         """Compute weighted summation for all report GIDs on this rank."""
         for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
             values = self._read_inputs(idx)
@@ -581,7 +571,7 @@ class WeightedSummationReport(Report):
             else:
                 output_np[0] = values.sum()
 
-    def _read_inputs(self, gid_idx):
+    def _read_inputs(self, gid_idx: int) -> np.ndarray:
         """Read input values from compartments and return as numpy array.
 
         Override in subclasses to provide variable-specific reading logic.
@@ -620,7 +610,7 @@ class LFPReport(WeightedSummationReport):
         """Load electrode scaling factors from the electrodes file for this GID."""
         return self._lfp_reader.get_scaling_matrix(gid, (pop_name, pop_offset))
 
-    def _read_inputs(self, gid_idx):
+    def _read_inputs(self, gid_idx: int) -> np.ndarray:
         """Read i_membrane_ from each compartment and return as numpy array."""
         compartments = self._compartments[gid_idx]
         return np.array([comp.i_membrane_ for comp in compartments])
