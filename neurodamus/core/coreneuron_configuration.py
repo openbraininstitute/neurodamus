@@ -51,6 +51,50 @@ class CompartmentMapping:
         )
         return num_segments
 
+    @staticmethod
+    def _interleave_lfp_factors(readers, activegid, pop_info):
+        """Build interleaved LFP factors and electrode offsets for a gid.
+
+        Returns (all_lfp_factors, electrode_offsets) where factors are interleaved
+        per-compartment: for each compartment, all electrodes from all reports
+        are contiguous.
+        """
+        all_lfp_factors = Nd.Vector()
+        electrode_offsets = [0]
+        per_report_n_elec = []
+        per_report_factors = []
+        cumulative = 0
+
+        for reader in readers:
+            n_elec = reader.get_number_electrodes(activegid, pop_info)
+            cumulative += n_elec
+            electrode_offsets.append(cumulative)
+            per_report_n_elec.append(n_elec)
+            per_report_factors.append(reader.get_factors(activegid, pop_info))
+
+        if cumulative == 0:
+            return all_lfp_factors, electrode_offsets
+
+        # Determine n_compartments from first non-empty factor vector
+        n_compartments = next(
+            (
+                int(f.size() / n)
+                for f, n in zip(per_report_factors, per_report_n_elec, strict=True)
+                if n > 0 and f.size() > 0
+            ),
+            0,
+        )
+
+        # Interleave: CoreNEURON reads lfp_factors_flat[comp * total_elec + elec]
+        for comp_idx in range(n_compartments):
+            for factors, n_elec in zip(per_report_factors, per_report_n_elec, strict=True):
+                if n_elec > 0 and factors.size() > 0:
+                    start = comp_idx * n_elec
+                    for e in range(n_elec):
+                        all_lfp_factors.append(factors.x[start + e])
+
+        return all_lfp_factors, electrode_offsets
+
     def register_mapping(self) -> None:
         """Register section-segment and LFP electrode mappings for CoreNEURON.
 
@@ -79,19 +123,15 @@ class CompartmentMapping:
 
         for activegid in gidvec:
             cell = self.cell_distributor.get_cell(activegid)
-            all_lfp_factors = Nd.Vector()
-            electrode_offsets = []
 
             if readers:
                 pop_info = self.cell_distributor.getPopulationInfo(activegid)
-                cumulative = 0
-                electrode_offsets.append(0)
-                for reader in readers:
-                    n_elec = reader.get_number_electrodes(activegid, pop_info)
-                    factors = reader.get_factors(activegid, pop_info)
-                    all_lfp_factors.append(factors)
-                    cumulative += n_elec
-                    electrode_offsets.append(cumulative)
+                all_lfp_factors, electrode_offsets = self._interleave_lfp_factors(
+                    readers, activegid, pop_info
+                )
+            else:
+                all_lfp_factors = Nd.Vector()
+                electrode_offsets = []
 
             offsets_vec = Nd.Vector(electrode_offsets)
 

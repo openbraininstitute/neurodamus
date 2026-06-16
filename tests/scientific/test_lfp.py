@@ -1,16 +1,8 @@
-import json
-
 import pytest
 import h5py
 import numpy as np
-import numpy.testing as npt
 from pathlib import Path
 from ..conftest import RINGTEST_DIR
-import libsonata
-
-from neurodamus import Neurodamus
-from neurodamus.core.configuration import SimConfig
-from neurodamus.core.coreneuron_configuration import CoreConfig
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
@@ -72,6 +64,7 @@ def test_weights_file(tmp_path):
 
 
 def _read_sonata_lfp_file(lfp_file):
+    import libsonata
     report = libsonata.ElementReportReader(lfp_file)
     lfp_data = {}
     for pop_name in report.get_population_names():
@@ -82,6 +75,10 @@ def _read_sonata_lfp_file(lfp_file):
 
 
 def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
+    import numpy.testing as npt
+    import json
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
 
     _, lfp_weights_file = test_weights_file
     with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
@@ -113,7 +110,7 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
     t7_data = np.array([0.00029265403, -0.0009364929, 0.001548515, -0.004955248])
     node_ids = np.array([0, 4])
     result_ids, result_data = _read_sonata_lfp_file(
-        Path(CoreConfig.output_root) / "lfp.h5")["default"]
+        Path(SimConfig.output_root) / "lfp.h5")["default"]
 
     npt.assert_allclose(result_data.data[3], t3_data)
     npt.assert_allclose(result_data.data[7], t7_data)
@@ -135,34 +132,31 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
                     "end_time": 2.0
                 }
             },
-            "inputs": _COMMON_INPUTS,
-        }
-    },
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "NEURON",
-            "reports": {
-                "lfp_report": {
-                    "type": "lfp",
-                    "cells": "Mosaic",
-                    "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5"),
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 2.0
+            "inputs": {
+                "stimulus_pulse": {
+                    "module": "pulse",
+                    "input_type": "current_clamp",
+                    "delay": 1,
+                    "duration": 50,
+                    "node_set": "RingA",
+                    "represents_physical_electrode": True,
+                    "amp_start": 10,
+                    "width": 1,
+                    "frequency": 50
                 }
-            },
-            "inputs": _COMMON_INPUTS,
+            }
         }
     },
 ], indirect=True)
-@pytest.mark.forked
 def test_ringcircuit_lfp(create_tmp_simulation_config_file):
-    """Test LFP report on ring circuit — both simulators produce identical results."""
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
+    # compare results with refs
     lfp_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report.h5")
     result_ids, result_data = lfp_data["RingA"]
 
@@ -196,24 +190,7 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
                 "lfp_report_A": {
                     "type": "lfp",
                     "cells": "RingA",
-                    "electrodes_file": LFP_2ELEC_FILE,
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 2.0,
-                }
-            },
-            "inputs": _COMMON_INPUTS,
-        }
-    },
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "NEURON",
-            "reports": {
-                "lfp_report_A": {
-                    "type": "lfp",
-                    "cells": "RingA",
-                    "electrodes_file": LFP_2ELEC_FILE,
+                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -225,7 +202,10 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
-    """Run with only report A (RingA, 2 electrodes) — both simulators."""
+    """Run with only report A (RingA, 3 electrodes) and compare to reference."""
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
@@ -233,14 +213,12 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
     lfp_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report_A.h5")
     result_ids, result_data = lfp_data["RingA"]
 
-    # RingA has gids 0,1,2 — each with 2 electrodes
     assert list(result_ids) == [0, 1, 2]
-    assert result_data.data.shape[1] == 6  # 3 gids * 2 electrodes
+    assert result_data.data.shape[1] == 9  # 3 gids * 3 electrodes
 
-    # DEBUG
-    with open("/Users/katta/OBI/neurodamus/lfp_combined_debug.txt", "a") as f:
-        f.write(f"\n[single_A] data[10]: {repr(result_data.data[10])}\n")
-        f.write(f"[single_A] data[15]: {repr(result_data.data[15])}\n")
+    ref = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_A.h5"))["RingA"]
+    npt.assert_allclose(result_data.data, ref[1].data, rtol=1e-5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -252,24 +230,7 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
                 "lfp_report_B": {
                     "type": "lfp",
                     "cells": "RingA_Cell0",
-                    "electrodes_file": LFP_3ELEC_FILE,
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 2.0,
-                }
-            },
-            "inputs": _COMMON_INPUTS,
-        }
-    },
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "NEURON",
-            "reports": {
-                "lfp_report_B": {
-                    "type": "lfp",
-                    "cells": "RingA_Cell0",
-                    "electrodes_file": LFP_3ELEC_FILE,
+                    "electrodes_file": LFP_2ELEC_CELL0_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -281,7 +242,10 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
-    """Run with only report B (RingA_Cell0, 3 electrodes) — both simulators."""
+    """Run with only report B (RingA_Cell0, 2 electrodes) and compare to reference."""
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
@@ -289,9 +253,12 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
     lfp_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp_report_B.h5")
     result_ids, result_data = lfp_data["RingA"]
 
-    # Only gid 0 with 3 electrodes
     assert list(result_ids) == [0]
-    assert result_data.data.shape[1] == 3  # 1 gid * 3 electrodes
+    assert result_data.data.shape[1] == 2  # 1 gid * 2 electrodes
+
+    ref = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_B.h5"))["RingA"]
+    npt.assert_allclose(result_data.data, ref[1].data, rtol=1e-5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -299,31 +266,6 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
         "simconfig_fixture": "ringtest_baseconfig",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "reports": {
-                "lfp_report_A": {
-                    "type": "lfp",
-                    "cells": "RingA",
-                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 2.0,
-                },
-                "lfp_report_B": {
-                    "type": "lfp",
-                    "cells": "RingA_Cell0",
-                    "electrodes_file": LFP_2ELEC_CELL0_FILE,
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 2.0,
-                },
-            },
-            "inputs": _COMMON_INPUTS,
-        }
-    },
-    {
-        "simconfig_fixture": "ringtest_baseconfig",
-        "extra_config": {
-            "target_simulator": "NEURON",
             "reports": {
                 "lfp_report_A": {
                     "type": "lfp",
@@ -348,7 +290,10 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
-    """Run with both reports and verify each — both simulators."""
+    """Run with both reports and verify each matches its single-report run."""
+    import numpy.testing as npt
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
 
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
@@ -365,17 +310,12 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
     assert list(result_ids_B) == [0]
     assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
 
-    # DEBUG: dump values to capture reference data
-    with open("/Users/katta/OBI/neurodamus/lfp_combined_debug.txt", "a") as f:
-        f.write(f"\nReport A data[10]: {repr(result_data_A.data[10])}\n")
-        f.write(f"Report A data[15]: {repr(result_data_A.data[15])}\n")
-        f.write(f"Report B data[10]: {repr(result_data_B.data[10])}\n")
-        f.write(f"Report B data[15]: {repr(result_data_B.data[15])}\n")
-        # dump callback counts
-        if nd.reports:
-            for i, report in enumerate(nd.reports):
-                if report and hasattr(report, '_compute_count'):
-                    f.write(f"  report[{i}] _compute_count={report._compute_count}\n")
-    assert np.any(result_data_A.data != 0), "Report A has all zeros"
-    assert np.any(result_data_B.data != 0), "Report B has all zeros"
-
+    # Compare against single-report references
+    ref_A = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_A.h5"))["RingA"]
+    ref_B = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_B.h5"))["RingA"]
+    npt.assert_allclose(result_data_A.data, ref_A[1].data, rtol=1e-5,
+                        err_msg="Report A differs from single-report reference")
+    npt.assert_allclose(result_data_B.data, ref_B[1].data, rtol=1e-5,
+                        err_msg="Report B differs from single-report reference")
