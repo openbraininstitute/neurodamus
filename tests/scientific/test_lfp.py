@@ -190,7 +190,7 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
                 "lfp_report_A": {
                     "type": "lfp",
                     "cells": "RingA",
-                    "electrodes_file": LFP_2ELEC_FILE,
+                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -202,7 +202,7 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
-    """Run with only report A (RingA, 2 electrodes) and capture results."""
+    """Run with only report A (RingA, 3 electrodes) and compare to reference."""
     import numpy.testing as npt
     from neurodamus import Neurodamus
     from neurodamus.core.coreneuron_configuration import CoreConfig
@@ -213,9 +213,12 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
     lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report_A.h5")
     result_ids, result_data = lfp_data["RingA"]
 
-    # RingA has gids 0,1,2 — each with 2 electrodes
     assert list(result_ids) == [0, 1, 2]
-    assert result_data.data.shape[1] == 6  # 3 gids * 2 electrodes
+    assert result_data.data.shape[1] == 9  # 3 gids * 3 electrodes
+
+    ref = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_A.h5"))["RingA"]
+    npt.assert_allclose(result_data.data, ref[1].data, rtol=1e-5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -227,7 +230,7 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
                 "lfp_report_B": {
                     "type": "lfp",
                     "cells": "RingA_Cell0",
-                    "electrodes_file": LFP_3ELEC_FILE,
+                    "electrodes_file": LFP_2ELEC_CELL0_FILE,
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 2.0,
@@ -239,7 +242,7 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
-    """Run with only report B (RingA_Cell0, 3 electrodes) and capture results."""
+    """Run with only report B (RingA_Cell0, 2 electrodes) and compare to reference."""
     import numpy.testing as npt
     from neurodamus import Neurodamus
     from neurodamus.core.coreneuron_configuration import CoreConfig
@@ -250,9 +253,12 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
     lfp_data = _read_sonata_lfp_file(Path(CoreConfig.output_root) / "lfp_report_B.h5")
     result_ids, result_data = lfp_data["RingA"]
 
-    # Only gid 0 with 3 electrodes
     assert list(result_ids) == [0]
-    assert result_data.data.shape[1] == 3  # 1 gid * 3 electrodes
+    assert result_data.data.shape[1] == 2  # 1 gid * 2 electrodes
+
+    ref = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_B.h5"))["RingA"]
+    npt.assert_allclose(result_data.data, ref[1].data, rtol=1e-5)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -303,3 +309,13 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
     result_ids_B, result_data_B = lfp_B["RingA"]
     assert list(result_ids_B) == [0]
     assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
+
+    # Compare against single-report references
+    ref_A = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_A.h5"))["RingA"]
+    ref_B = _read_sonata_lfp_file(
+        str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_single_B.h5"))["RingA"]
+    npt.assert_allclose(result_data_A.data, ref_A[1].data, rtol=1e-5,
+                        err_msg="Report A differs from single-report reference")
+    npt.assert_allclose(result_data_B.data, ref_B[1].data, rtol=1e-5,
+                        err_msg="Report B differs from single-report reference")
