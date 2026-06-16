@@ -70,10 +70,11 @@ fi
 
 # Get the common synapses and mechanisms 
 NEURODAMUS_MODELS_DIR=$BUILD_DIR/neurodamus-models
+NEURODAMUS_MODELS_TAG="2.4.4"
 if [ -d "$NEURODAMUS_MODELS_DIR" ]; then
-    ( cd "$NEURODAMUS_MODELS_DIR" && git pull --quiet )
+    ( cd "$NEURODAMUS_MODELS_DIR" && git fetch --tags --quiet && git checkout $NEURODAMUS_MODELS_TAG --quiet )
 else
-    git clone https://github.com/openbraininstitute/neurodamus-models.git $NEURODAMUS_MODELS_DIR --depth=1
+    git clone https://github.com/openbraininstitute/neurodamus-models.git $NEURODAMUS_MODELS_DIR --branch $NEURODAMUS_MODELS_TAG --depth=1
 fi
 
 #Build libs from mod files
