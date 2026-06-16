@@ -20,7 +20,7 @@ dynamic = ["version"]
 dependencies = [
     "h5py",
     "docopt-ng",
-    "libsonata>=0.1.35",
+    "libsonata>=0.1.37",
     "psutil",
     "packaging",
     "scipy"
@@ -44,6 +44,7 @@ Tracker = "https://github.com/BlueBrain/neurodamus/issues"
 [tool.hatch.build.targets.sdist]
 only-include = [
     "neurodamus",
+    "external/neurodamus-models/mod"
 ]
 
 [tool.hatch.version]

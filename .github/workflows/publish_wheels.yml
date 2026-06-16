@@ -23,6 +23,7 @@ jobs:
         with:
           fetch-depth: 0  # needed for hatch-vcs to resolve version from tags
           persist-credentials: false
+          submodules: recursive
 
       - name: Build Wheel
         run: |
