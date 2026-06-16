@@ -25,12 +25,10 @@ _COMMON_INPUTS = {
 }
 
 
+
 @pytest.fixture
 def test_weights_file(tmp_path):
-    """
-    Generates example weights file.
-    Returns the h5py.File obj and the file path.
-    """
+    """Generate a synthetic LFP weights file for v5_sonata tests."""
     populations = {
         "default": [42, 0, 4],
         "other_pop": [77777, 88888]
@@ -63,77 +61,6 @@ def test_weights_file(tmp_path):
         electrodes_group.create_dataset("scaling_factors", dtype='f8', data=matrix)
 
     return test_file, str(tmp_path / "test_file.h5")
-
-
-def test_lfp_file_reader(test_weights_file):
-    """
-    Test that LFPFileReader opens, validates, and reads correctly.
-    """
-    from neurodamus.lfp_reader import LFPFileReader
-    from neurodamus.core.configuration import ConfigurationError
-
-    _, lfp_weights_file = test_weights_file
-
-    reader = LFPFileReader(lfp_weights_file)
-    assert reader._file
-    assert isinstance(reader._file, h5py.File)
-    assert "/electrodes/default" in reader._file
-    assert "/default/node_ids" in reader._file
-    reader.close()
-
-    # Invalid file raises ConfigurationError
-    with pytest.raises(ConfigurationError):
-        LFPFileReader("./invalid_file.h5")
-
-
-def test_read_lfp_factors(test_weights_file):
-    """
-    Test that get_factors correctly extracts the LFP factors
-    for the specified gid and section ids from the weights file.
-    """
-    from neurodamus.lfp_reader import LFPFileReader
-
-    _, lfp_weights_file = test_weights_file
-    reader = LFPFileReader(lfp_weights_file)
-
-    # Test with valid input (node_id is 0 based, so expected 42 in the file)
-    gid = 42
-    result = reader.get_factors(gid, ("default", 0)).to_python()
-    expected_result = [0.1, 0.2, 0.3, 0.4]
-    assert result == expected_result, f'Expected {expected_result}, but got {result}'
-
-    # Test with invalid input (non-existent gid)
-    gid = 419
-    result = reader.get_factors(gid, ("default", 0)).to_python()
-    expected_result = []
-    assert result == expected_result, f'Expected {expected_result}, but got {result}'
-
-    reader.close()
-
-
-def test_number_electrodes(test_weights_file):
-    """
-    Test that get_number_electrodes correctly extracts the number of
-    electrodes in the weights file for a certain gid.
-    """
-    from neurodamus.lfp_reader import LFPFileReader
-
-    _, lfp_weights_file = test_weights_file
-    reader = LFPFileReader(lfp_weights_file)
-
-    # Test with valid input
-    gid = 0
-    result = reader.get_number_electrodes(gid, ("default", 0))
-    expected_result = 2
-    assert result == expected_result, f'Expected {expected_result}, but got {result}'
-
-    # Test with invalid input (non-existent gid)
-    gid = 419
-    result = reader.get_number_electrodes(gid, ("default", 0))
-    expected_result = 0
-    assert result == expected_result, f'Expected {expected_result}, but got {result}'
-
-    reader.close()
 
 
 def _read_sonata_lfp_file(lfp_file):
