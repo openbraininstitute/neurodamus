@@ -548,21 +548,24 @@ class WeightedSummationReport(Report):
         return None
 
     def register_pre_record_callback(self) -> None:
-        """Register _compute as the pre-record callback in SonataReportHelper.
+        """Register _compute as a pre-record callback in SonataReportHelper.
 
-        Uses ctypes to set a C function pointer in the MOD file that will
-        be called before sonata_record_data at each report timestep.
+        Uses ctypes to register a C function pointer that will be called
+        before sonata_record_data at each report timestep.
         """
         CALLBACK_TYPE = ctypes.CFUNCTYPE(None)
         self._ctypes_callback = CALLBACK_TYPE(self._compute)
 
-        setter = ctypes.CDLL(None).sonata_report_helper_set_pre_record_callback
-        setter.argtypes = [CALLBACK_TYPE]
-        setter.restype = None
-        setter(self._ctypes_callback)
+        register = ctypes.CDLL(None).sonata_report_helper_register_pre_record_callback
+        register.argtypes = [CALLBACK_TYPE]
+        register.restype = ctypes.c_int
+        result = register(self._ctypes_callback)
+        if result != 0:
+            raise RuntimeError("Failed to register pre-record callback")
 
     def _compute(self) -> None:
         """Compute weighted summation for all report GIDs on this rank."""
+        self._compute_count = getattr(self, '_compute_count', 0) + 1
         for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
             values = self._read_inputs(idx)
 

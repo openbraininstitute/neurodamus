@@ -237,6 +237,11 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
     assert list(result_ids) == [0, 1, 2]
     assert result_data.data.shape[1] == 6  # 3 gids * 2 electrodes
 
+    # DEBUG
+    with open("/Users/katta/OBI/neurodamus/lfp_combined_debug.txt", "a") as f:
+        f.write(f"\n[single_A] data[10]: {repr(result_data.data[10])}\n")
+        f.write(f"[single_A] data[15]: {repr(result_data.data[15])}\n")
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -359,4 +364,18 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
     result_ids_B, result_data_B = lfp_B["RingA"]
     assert list(result_ids_B) == [0]
     assert result_data_B.data.shape[1] == 2  # 1 gid * 2 electrodes
+
+    # DEBUG: dump values to capture reference data
+    with open("/Users/katta/OBI/neurodamus/lfp_combined_debug.txt", "a") as f:
+        f.write(f"\nReport A data[10]: {repr(result_data_A.data[10])}\n")
+        f.write(f"Report A data[15]: {repr(result_data_A.data[15])}\n")
+        f.write(f"Report B data[10]: {repr(result_data_B.data[10])}\n")
+        f.write(f"Report B data[15]: {repr(result_data_B.data[15])}\n")
+        # dump callback counts
+        if nd.reports:
+            for i, report in enumerate(nd.reports):
+                if report and hasattr(report, '_compute_count'):
+                    f.write(f"  report[{i}] _compute_count={report._compute_count}\n")
+    assert np.any(result_data_A.data != 0), "Report A has all zeros"
+    assert np.any(result_data_B.data != 0), "Report B has all zeros"
 
