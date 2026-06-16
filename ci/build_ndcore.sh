@@ -55,7 +55,6 @@ if [ -f "$LIBRARY_DIR/libnrnmech.$EXT" ]; then
     exit 0
 fi
 
-
 #Build libs from mod files
 mkdir -p $MOD_DIR
 mkdir -p $LIBRARY_DIR
