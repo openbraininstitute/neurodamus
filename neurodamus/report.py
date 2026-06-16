@@ -565,7 +565,6 @@ class WeightedSummationReport(Report):
 
     def _compute(self) -> None:
         """Compute weighted summation for all report GIDs on this rank."""
-        self._compute_count = getattr(self, '_compute_count', 0) + 1
         for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
             values = self._read_inputs(idx)
 
