@@ -5,7 +5,6 @@ import logging
 import h5py
 import numpy as np
 
-from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 
 
@@ -56,37 +55,6 @@ class LFPFileReader:
             )
             return 0
 
-    def get_factors(self, gid: int, population_info: tuple[str, int]):
-        """Read LFP scaling factors for a given gid as a flat Nd.Vector.
-
-        Args:
-            gid: The global cell identifier.
-            population_info: (population_name, population_offset) from
-                GlobalCellManager.getPopulationInfo().
-
-        Returns:
-            Nd.Vector with concatenated per-compartment electrode factors,
-            or an empty vector if the gid is not found.
-        """
-        population_name, offset = population_info
-        node_id = gid - offset
-        try:
-            subset = self._get_node_subsets(node_id, population_name)
-            factors = Nd.Vector()
-            for electrode_factors in subset:
-                factors.append(Nd.Vector(electrode_factors))
-        except (KeyError, IndexError) as e:
-            logging.warning(
-                "Node id %d missing in '%s' for population %s: %s",
-                node_id,
-                self._filepath,
-                population_name,
-                e,
-            )
-            return Nd.Vector()
-        else:
-            return factors
-
     def get_scaling_matrix(self, gid: int, population_info: tuple[str, int]) -> np.ndarray | None:
         """Read LFP scaling factors for a given gid as a numpy array.
 
@@ -127,6 +95,31 @@ class LFPFileReader:
         offsets = self._file[population_name]["offsets"]
         scaling = self._file["electrodes"][population_name]["scaling_factors"]
         return scaling[offsets[index] : offsets[index + 1], :]
+
+    def get_scaling_matrix(self, gid: int, population_info: tuple[str, int]) -> np.ndarray | None:
+        """Read LFP scaling factors for a given gid as a numpy array.
+
+        Args:
+            gid: The global cell identifier.
+            population_info: (population_name, population_offset) from
+                GlobalCellManager.getPopulationInfo().
+
+        Returns:
+            2D array of shape (n_compartments, n_electrodes), or None if not found.
+        """
+        population_name, offset = population_info
+        node_id = gid - offset
+        try:
+            return self._get_node_subsets(node_id, population_name)
+        except (KeyError, IndexError) as e:
+            logging.warning(
+                "Node id %d missing in '%s' for population %s: %s",
+                node_id,
+                self._filepath,
+                population_name,
+                e,
+            )
+            return None
 
     def close(self) -> None:
         self._file.close()
