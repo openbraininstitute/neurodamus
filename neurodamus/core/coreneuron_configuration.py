@@ -5,7 +5,7 @@ import numpy as np
 
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
-from neurodamus.lfp_reader import LFPFileReader
+from neurodamus.io.lfp_reader import LFPFileReader
 from neurodamus.metype import BaseCell
 
 

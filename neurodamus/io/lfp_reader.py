@@ -5,7 +5,9 @@ import logging
 import h5py
 import numpy as np
 
-from .core.configuration import ConfigurationError
+
+class LFPFileValidationError(Exception):
+    """Error raised when an LFP electrodes file cannot be opened or is invalid."""
 
 
 class LFPFileReader:
@@ -21,14 +23,14 @@ class LFPFileReader:
         try:
             self._file = h5py.File(filepath, "r")
         except OSError as e:
-            raise ConfigurationError(f"Error opening LFP electrodes file: {filepath}") from e
+            raise LFPFileValidationError(f"Error opening LFP electrodes file: {filepath}") from e
         self._filepath = filepath
         self._validate()
 
     def _validate(self) -> None:
         """Check that the file has the required top-level 'electrodes' group."""
         if "electrodes" not in self._file:
-            raise ConfigurationError(
+            raise LFPFileValidationError(
                 f"LFP electrodes file '{self._filepath}' is missing the 'electrodes' group."
             )
 
