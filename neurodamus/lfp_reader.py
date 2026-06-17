@@ -96,31 +96,6 @@ class LFPFileReader:
         scaling = self._file["electrodes"][population_name]["scaling_factors"]
         return scaling[offsets[index] : offsets[index + 1], :]
 
-    def get_scaling_matrix(self, gid: int, population_info: tuple[str, int]) -> np.ndarray | None:
-        """Read LFP scaling factors for a given gid as a numpy array.
-
-        Args:
-            gid: The global cell identifier.
-            population_info: (population_name, population_offset) from
-                GlobalCellManager.getPopulationInfo().
-
-        Returns:
-            2D array of shape (n_compartments, n_electrodes), or None if not found.
-        """
-        population_name, offset = population_info
-        node_id = gid - offset
-        try:
-            return self._get_node_subsets(node_id, population_name)
-        except (KeyError, IndexError) as e:
-            logging.warning(
-                "Node id %d missing in '%s' for population %s: %s",
-                node_id,
-                self._filepath,
-                population_name,
-                e,
-            )
-            return None
-
     def close(self) -> None:
         self._file.close()
 
