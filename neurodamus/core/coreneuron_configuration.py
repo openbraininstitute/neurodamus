@@ -55,43 +55,44 @@ class CompartmentMapping:
     def _interleave_lfp_factors(readers, activegid, pop_info):
         """Build interleaved LFP factors and electrode offsets for a gid.
 
-        Returns (all_lfp_factors, electrode_offsets) where factors are interleaved
-        per-compartment: for each compartment, all electrodes from all reports
-        are contiguous.
+        Each report provides a (n_compartments, n_electrodes) scaling matrix.
+        CoreNEURON expects a flat array where each compartment's electrodes
+        from ALL reports are stored contiguously:
+
+            factors_flat = [comp0_repA_e0, comp0_repA_e1, comp0_repB_e0,
+                            comp1_repA_e0, comp1_repA_e1, comp1_repB_e0, ...]
+
+        This allows CoreNEURON to read n_total_electrodes values per compartment
+        with a simple stride: factors_flat[comp_idx * n_total + electrode_idx].
+
+        Example with 2 compartments, report A (2 electrodes), report B (1 electrode):
+            A factors: [[a00, a01], [a10, a11]]
+            B factors: [[b00], [b10]]
+            Interleaved: [a00, a01, b00, a10, a11, b10]
+            electrode_offsets: [0, 2, 3]  (A occupies indices 0-1, B index 2)
+
+        Returns:
+            (all_lfp_factors, electrode_offsets) — NEURON Vector and list of ints.
         """
-        all_lfp_factors = Nd.Vector()
+        import numpy as np_local
+
         electrode_offsets = [0]
-        per_report_n_elec = []
-        per_report_factors = []
+        matrices = []
         cumulative = 0
 
         for reader in readers:
             n_elec = reader.get_number_electrodes(activegid, pop_info)
             cumulative += n_elec
             electrode_offsets.append(cumulative)
-            per_report_n_elec.append(n_elec)
-            per_report_factors.append(reader.get_factors(activegid, pop_info))
+            if n_elec > 0:
+                matrix = reader.get_scaling_matrix(activegid, pop_info)
+                if matrix is not None:
+                    matrices.append(matrix)
 
-        if cumulative == 0:
-            return all_lfp_factors, electrode_offsets
-
-        # Determine n_compartments from first non-empty factor vector
-        n_compartments = next(
-            (
-                int(f.size() / n)
-                for f, n in zip(per_report_factors, per_report_n_elec, strict=True)
-                if n > 0 and f.size() > 0
-            ),
-            0,
-        )
-
-        # Interleave: CoreNEURON reads lfp_factors_flat[comp * total_elec + elec]
-        for comp_idx in range(n_compartments):
-            for factors, n_elec in zip(per_report_factors, per_report_n_elec, strict=True):
-                if n_elec > 0 and factors.size() > 0:
-                    start = comp_idx * n_elec
-                    for e in range(n_elec):
-                        all_lfp_factors.append(factors.x[start + e])
+        all_lfp_factors = Nd.Vector()
+        if matrices:
+            interleaved = np_local.hstack(matrices).flatten()
+            all_lfp_factors.from_python(interleaved.tolist())
 
         return all_lfp_factors, electrode_offsets
 
