@@ -62,7 +62,6 @@ from .core.coreneuron_configuration import (
 from .core.nodeset import PopulationNodes
 from .gap_junction import GapJunctionManager
 from .io.sonata_config import ConnectionTypes, RunConfig
-from .lfp_reader import LFPFileReader
 from .modification_manager import ModificationManager
 from .neuromodulation_manager import NeuroModulationManager
 from .replay import MissingSpikesPopulationError, SpikeManager
@@ -932,12 +931,6 @@ class Node:
         reports_conf = {name: conf for name, conf in SimConfig.reports.items() if conf.enabled}
         self._report_list = []
 
-        # Validate LFP electrode files early (fail fast before expensive processing)
-        if SimConfig.use_coreneuron:
-            for rep_conf in reports_conf.values():
-                if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-                    LFPFileReader(rep_conf.electrodes_file)
-
         pop_offsets, alias_pop, _virtual_pop_offsets = self.write_and_get_population_offsets()
         pop_offsets_alias = pop_offsets, alias_pop
 
@@ -1641,7 +1634,7 @@ class Neurodamus(Node):
                 3 - Debug messages
             user_opts: Options to Neurodamus overriding the simulation config file
         """
-        enable_reports = not user_opts.pop("disable_reports", False)
+        enable_reports = not user_opts.get("disable_reports")
         if logging_level is not None:
             GlobalConfig.verbosity = logging_level
 

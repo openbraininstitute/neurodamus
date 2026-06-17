@@ -25,7 +25,7 @@ import neurodamus.io.__init__
 import neurodamus.io.cell_readers
 import neurodamus.io.sonata_config
 import neurodamus.io.synapse_reader
-import neurodamus.lfp_reader
+import neurodamus.io.lfp_reader
 import neurodamus.metype
 import neurodamus.modification_manager
 import neurodamus.morphio_wrapper
