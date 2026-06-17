@@ -5,8 +5,6 @@ from pathlib import Path
 from ..conftest import RINGTEST_DIR
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
-LFP_2ELEC_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA.h5")
-LFP_3ELEC_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA_cell0.h5")
 LFP_3ELEC_RINGA_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA.h5")
 LFP_2ELEC_CELL0_FILE = str(RINGTEST_DIR / "lfp_2elec_ringA_cell0.h5")
 

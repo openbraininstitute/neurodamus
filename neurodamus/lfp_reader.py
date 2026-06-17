@@ -5,7 +5,6 @@ import logging
 import h5py
 import numpy as np
 
-from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError
 
 
@@ -55,37 +54,6 @@ class LFPFileReader:
                 e,
             )
             return 0
-
-    def get_factors(self, gid: int, population_info: tuple[str, int]):
-        """Read LFP scaling factors for a given gid as a flat Nd.Vector.
-
-        Args:
-            gid: The global cell identifier.
-            population_info: (population_name, population_offset) from
-                GlobalCellManager.getPopulationInfo().
-
-        Returns:
-            Nd.Vector with concatenated per-compartment electrode factors,
-            or an empty vector if the gid is not found.
-        """
-        population_name, offset = population_info
-        node_id = gid - offset
-        try:
-            subset = self._get_node_subsets(node_id, population_name)
-            factors = Nd.Vector()
-            for electrode_factors in subset:
-                factors.append(Nd.Vector(electrode_factors))
-        except (KeyError, IndexError) as e:
-            logging.warning(
-                "Node id %d missing in '%s' for population %s: %s",
-                node_id,
-                self._filepath,
-                population_name,
-                e,
-            )
-            return Nd.Vector()
-        else:
-            return factors
 
     def _get_node_subsets(self, node_id: int, population_name: str) -> np.ndarray:
         """Retrieve the scaling factor matrix for a single node.

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from . import NeuronWrapper as Nd
 from .configuration import SimConfig
@@ -52,7 +53,7 @@ class CompartmentMapping:
         return num_segments
 
     @staticmethod
-    def _interleave_lfp_factors(readers, activegid, pop_info):
+    def _interleave_lfp_factors(readers, gid, pop_info):
         """Build interleaved LFP factors and electrode offsets for a gid.
 
         Each report provides a (n_compartments, n_electrodes) scaling matrix.
@@ -74,24 +75,21 @@ class CompartmentMapping:
         Returns:
             (all_lfp_factors, electrode_offsets) — NEURON Vector and list of ints.
         """
-        import numpy as np_local
-
         electrode_offsets = [0]
         matrices = []
         cumulative = 0
 
         for reader in readers:
-            n_elec = reader.get_number_electrodes(activegid, pop_info)
+            matrix = reader.get_scaling_matrix(gid, pop_info)
+            n_elec = matrix.shape[1] if matrix is not None else 0
             cumulative += n_elec
             electrode_offsets.append(cumulative)
-            if n_elec > 0:
-                matrix = reader.get_scaling_matrix(activegid, pop_info)
-                if matrix is not None:
-                    matrices.append(matrix)
+            if matrix is not None:
+                matrices.append(matrix)
 
         all_lfp_factors = Nd.Vector()
         if matrices:
-            interleaved = np_local.hstack(matrices).flatten()
+            interleaved = np.hstack(matrices).flatten()
             all_lfp_factors.from_python(interleaved.tolist())
 
         return all_lfp_factors, electrode_offsets
@@ -122,17 +120,12 @@ class CompartmentMapping:
             if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp
         ]
 
-        for activegid in gidvec:
-            cell = self.cell_distributor.get_cell(activegid)
-
-            if readers:
-                pop_info = self.cell_distributor.getPopulationInfo(activegid)
-                all_lfp_factors, electrode_offsets = self._interleave_lfp_factors(
-                    readers, activegid, pop_info
-                )
-            else:
-                all_lfp_factors = Nd.Vector()
-                electrode_offsets = []
+        for gid in gidvec:
+            cell = self.cell_distributor.get_cell(gid)
+            pop_info = self.cell_distributor.getPopulationInfo(gid)
+            all_lfp_factors, electrode_offsets = self._interleave_lfp_factors(
+                readers, gid, pop_info
+            )
 
             offsets_vec = Nd.Vector(electrode_offsets)
 
