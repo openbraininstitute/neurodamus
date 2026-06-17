@@ -5,7 +5,7 @@ import libsonata
 import numpy as np
 
 from .core import NeuronWrapper as Nd
-from .lfp_reader import LFPFileReader
+from .io.lfp_reader import LFPFileReader
 from .report_parameters import ReportParameters
 from .target_manager import TargetPointList
 from .utils.pyutils import cache_errors
