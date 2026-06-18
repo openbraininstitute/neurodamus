@@ -9,7 +9,6 @@ ENV SCCACHE_DIR=/var/cache/sccache
 ARG LIBSONATAREPORT_COMMIT=2.0.0
 ARG LIBSONATA_COMMIT=v0.1.35
 ARG NEURODAMUS_COMMIT=4.2.1
-ARG NEURODAMUS_MODELS_COMMIT=2.4.4
 ARG NEURON_COMMIT=9.0.1
 
 ENV USER_VENV=/workspace/user_venv
@@ -80,18 +79,13 @@ RUN --mount=type=bind,source=ci/scripts/build-neurodamus.sh,target=/tmp/build-ne
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' build-neurodamus $NEURODAMUS_COMMIT
 
-RUN --mount=type=bind,source=ci/scripts/build-neocortex-models.sh,target=/tmp/build-neocortex-models.sh \
-    --mount=type=cache,target=/var/cache/sccache \
-    source /tmp/build-neocortex-models.sh \
-    && source $USER_VENV/bin/activate \
-    && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
-
-RUN --mount=type=bind,source=ci/scripts/make-env.sh,target=/tmp/make-env.sh \
+RUN --mount=type=bind,source=ci/scripts/make-neurodamus-nrnivmodl.sh,target=/tmp/make-neurodamus-nrnivmodl.sh \
     source $USER_VENV/bin/activate \
-    && source /tmp/make-env.sh \
-    && make-env
+    && source /tmp/make-neurodamus-nrnivmodl.sh \
+    && make-neurodamus-nrnivmodl
 
-RUN --mount=type=bind,source=ci/scripts/make-build-neurodamus-models.sh,target=/tmp/make-build-neurodamus-models.sh \
+RUN --mount=type=bind,source=ci/scripts/make-neocortex-env.sh,target=/tmp/make-neocortex-env.sh \
     source $USER_VENV/bin/activate \
-    && source /tmp/make-build-neurodamus-models.sh \
-    && make-build-neurodamus-models
+    && export PATH=/opt/obi:$PATH
+    && source /tmp/make-neocortex-env.sh \
+    && make-neocortex-env

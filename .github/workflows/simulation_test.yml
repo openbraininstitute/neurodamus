@@ -132,23 +132,15 @@ jobs:
         source venv/bin/activate \
         && uv pip install -e $BASE_DIR
 
-    - name: Install neurodamus-neocortex models
+    - name: Build neocortex mod files and make env
       run: |
-        source $BASE_DIR/ci/scripts/build-neocortex-models.sh \
+        source $BASE_DIR/ci/scripts/make-neocortex-env.sh \
         && source venv/bin/activate \
-        && build-neocortex-models $BASE_DIR/tests/mechanisms/neocortex
-
-    - name: Make env
-      run: |
-        source $BASE_DIR/ci/scripts/make-env.sh \
-        && source venv/bin/activate \
-        && make-env
+        && make-neocortex-env.sh
 
     - name: simulation-smoketest
       run: |
         export NEURON_INIT_MPI=1
-        export OMPI_ALLOW_RUN_AS_ROOT=1
-        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
         source $INSTALL_DIR/env-neocortex.sh
         which special
 
