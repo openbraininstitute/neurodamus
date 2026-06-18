@@ -132,11 +132,18 @@ jobs:
         source venv/bin/activate \
         && uv pip install -e $BASE_DIR
 
+    - name: Install neurodamus-nrnivmodl
+      run: |
+        source $BASE_DIR/ci/scripts/make-neurodamus-nrnivmodl.sh \
+        && source venv/bin/activate \
+        && make-neurodamus-nrnivmodl
+
     - name: Build neocortex mod files and make env
       run: |
         source $BASE_DIR/ci/scripts/make-neocortex-env.sh \
+        && export PATH=$INSTALL_DIR:$PATH \
         && source venv/bin/activate \
-        && make-neocortex-env.sh
+        && make-neocortex-env
 
     - name: simulation-smoketest
       run: |

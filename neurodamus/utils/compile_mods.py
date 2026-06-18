@@ -7,7 +7,6 @@ import platform
 import shutil
 import subprocess  # noqa: S404
 import sys
-import sysconfig
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -125,16 +124,17 @@ def _build_modules(
 
 def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
     base = (output_dir / platform.machine()).absolute()
-    ext = sysconfig.get_config_var("SHLIB_SUFFIX")
+    ext = ".dylib" if sys.platform == "darwin" else ".so"
 
+    # "/Users/runner/work/neurodamus/neurodamus/opt/obi/neocortex/arm64/./libnrnmech.dylib"
     libnrnmech = base / f"libnrnmech{ext}"
-    assert libnrnmech.exists()
+    assert libnrnmech.exists(), f"Missing {libnrnmech}"
 
     ret = {"NRNMECH_LIB_PATH": str(libnrnmech), "SPECIALS_PATH": str(base)}
 
     if options.simulator == Simulator.coreneuron:
         coreneuronlib = base / f"libcorenrnmech{ext}"
-        assert coreneuronlib.exists()
+        assert coreneuronlib.exists(), f"Missing {coreneuronlib}"
         ret["CORENEURONLIB"] = str(coreneuronlib)
 
     return ret
