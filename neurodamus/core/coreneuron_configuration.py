@@ -80,18 +80,18 @@ class _CoreNEURONConfig:
     artificial_cell_object = None
 
     @property
-    def sim_config_file(self):
-        """Get sim config file path to be saved"""
+    def sim_config_file(self) -> str:
+        """`sim.conf` path to be saved."""
         return str(Path(self.build_path) / "sim.conf")
 
     @property
-    def report_config_file_save(self):
-        """Get report config file path to be saved"""
+    def report_config_file_save(self) -> str:
+        """`report.conf` file path to be saved."""
         return str(Path(self.build_path) / "report.conf")
 
     @property
-    def report_config_file_restore(self):
-        """Get report config file path to be restored
+    def report_config_file_restore(self) -> str:
+        """`report.conf` file path to be restored.
 
         We need this file and path for restoring because we cannot recreate it
         from scratch. Only usable when restore exists and is a dir
@@ -100,12 +100,12 @@ class _CoreNEURONConfig:
 
     @property
     def output_root(self):
-        """Get output root from SimConfig"""
+        """Output root from SimConfig."""
         return SimConfig.output_root
 
     @property
     def datadir(self):
-        """Get datadir from SimConfig if not set explicitly"""
+        """`datadir` from SimConfig if not set explicitly."""
         return SimConfig.coreneuron_datadir_path()
 
     @property

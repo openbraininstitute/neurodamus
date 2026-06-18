@@ -1,5 +1,7 @@
 """Py Wrappers for the HOC RNGs"""
 
+from math import log, sqrt
+
 from . import Neuron
 
 # NOTE: These are pure wrappers, in the sense they don't create Python objects. Instead
@@ -14,7 +16,6 @@ class RNG:
 
     @classmethod
     def create(cls, ids, seed=None):
-        # type: (tuple, object) -> RNG
         assert len(ids) == 3, "Random123 requires three ids (as a tuple)"
         obj = Random123(ids[0], ids[1], ids[2], seed)
 
@@ -36,8 +37,6 @@ def gamma(rng, a, b, N=1):  # noqa: N803
     using the NEURON random number generator rng.
     Uses the algorithm by Marsaglia and Tsang 2001.
     """
-    from math import log, sqrt
-
     if a < 1:
         rng.uniform(0, 1)
         w = Neuron.h.Vector(N)
