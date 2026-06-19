@@ -20,8 +20,8 @@ on:
 
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
-  LIBSONATA_COMMIT: v0.1.35
-  NEURON_COMMIT: 9.0.1
+  LIBSONATA_COMMIT: v0.1.37
+  NEURON_COMMIT: 2ac5cc7
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
