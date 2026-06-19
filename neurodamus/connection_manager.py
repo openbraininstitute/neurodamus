@@ -281,7 +281,7 @@ class ConnectionManagerBase:
                 "Edges will be merged with base circuit"
             )
 
-        cur_pop = self.select_connection_set(src_pop_id, dst_pop_id)  # type: ConnectionSet
+        cur_pop: ConnectionSet = self.select_connection_set(src_pop_id, dst_pop_id)
         cur_pop.src_pop_name = src_pop_name
         cur_pop.dst_pop_name = dst_pop_name
         cur_pop.virtual_source = (
@@ -929,7 +929,7 @@ class ConnectionManagerBase:
         n_created_conns = 0
         if reverse:
             conns = reversed(conns)
-        for conn in conns:  # type: Connection
+        for conn in conns:
             syn_count = conn.finalize(metype, base_seed, **kwargs)
             logging.debug("Instantiated conn %s: %d synapses", conn, syn_count)
             n_created_conns += syn_count
