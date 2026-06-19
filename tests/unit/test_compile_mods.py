@@ -1,5 +1,5 @@
 import platform
-import sysconfig
+import sys
 
 import neurodamus.utils.compile_mods as test_module
 
@@ -72,7 +72,7 @@ def test__write_cache_and_check_cache(tmp_path):
 
 
 def test__output_files(tmp_path):
-    ext = sysconfig.get_config_var("SHLIB_SUFFIX")
+    ext = ".dylib" if sys.platform == "darwin" else ".so"
     arch = platform.machine()
     base = tmp_path / arch
     base.mkdir()
@@ -86,7 +86,7 @@ def test__output_files(tmp_path):
 
 
 def test__output_files_coreneuron(tmp_path):
-    ext = sysconfig.get_config_var("SHLIB_SUFFIX")
+    ext = ".dylib" if sys.platform == "darwin" else ".so"
     arch = platform.machine()
     base = tmp_path / arch
     base.mkdir()
