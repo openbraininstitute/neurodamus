@@ -3,7 +3,11 @@ name: Build and Push Docker Image
 on:
   release:
     types: [published]
-
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Commit SHA to build'
+        required: true
 
 env:
   REGISTRY: ghcr.io
@@ -38,6 +42,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
               type=ref,event=tag
+              type=raw,value=${{ inputs.commit }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
         with:
@@ -49,7 +54,7 @@ jobs:
         with:
           context: .
           build-args: |
-            NEURODAMUS_COMMIT=${{ github.sha }}
+            NEURODAMUS_COMMIT=${{ inputs.commit || github.sha }}
           push: false
           load: true
           tags: |
@@ -77,7 +82,7 @@ jobs:
         with:
           context: .
           build-args: |
-            NEURODAMUS_COMMIT=${{ github.sha }}
+            NEURODAMUS_COMMIT=${{ inputs.commit || github.sha }}
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
