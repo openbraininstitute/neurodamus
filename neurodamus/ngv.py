@@ -119,7 +119,7 @@ class Astrocyte(BaseCell):
 
     @property
     def gid(self) -> int:
-        """Get the gid as an integer."""
+        """The gid."""
         return int(self._cellref.gid)
 
     @gid.setter
@@ -129,7 +129,7 @@ class Astrocyte(BaseCell):
 
     @property
     def all(self):
-        """Return the main SectionList (`_cellref.all`).
+        """Main SectionList (`_cellref.all`).
 
         Note:
             This list does **not** include all sections. Specifically,
@@ -139,7 +139,7 @@ class Astrocyte(BaseCell):
 
     @property
     def endfeet(self):
-        """Returns _cellref.endfeet (SectionList)."""
+        """`endfeet` SectionList."""
         if hasattr(self._cellref, "endfeet") and self._cellref.endfeet is not None:
             return self._cellref.endfeet
         return Nd.SectionList()
