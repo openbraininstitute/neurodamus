@@ -109,7 +109,7 @@ def contour2centroid(mean, points):
     # assuming (falsely in general) that the center is the mean
 
     points -= mean
-    eigen_values, eigen_vectors = eigh(np.dot(points.T, points))
+    _, eigen_vectors = eigh(np.dot(points.T, points))
 
     # To be consistent with NEURON eigen vector directions
     eigen_vectors *= -1
