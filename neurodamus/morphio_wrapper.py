@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 
 import numpy as np
-from numpy.linalg import eig, norm
+from numpy.linalg import eigh, norm
 
 """
     [START] Implementations retrieved from nse/morph-tool (!= hpc/morpho-tool !!!)
@@ -109,7 +109,7 @@ def contour2centroid(mean, points):
     # assuming (falsely in general) that the center is the mean
 
     points -= mean
-    eigen_values, eigen_vectors = eig(np.dot(points.T, points))
+    eigen_values, eigen_vectors = eigh(np.dot(points.T, points))
 
     # To be consistent with NEURON eigen vector directions
     eigen_vectors *= -1
