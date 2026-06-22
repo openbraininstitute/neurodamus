@@ -30,10 +30,12 @@ class Options:
 
 
 def _metadata_path(output_dir: Path):
+    """Return cache metadata path."""
     return output_dir / "modules.json"
 
 
 def _md5sum(path: Path) -> str:
+    """Get the md5sum of the contents of `path`."""
     h = hashlib.md5(usedforsecurity=False)
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -42,7 +44,10 @@ def _md5sum(path: Path) -> str:
 
 
 def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
-    # files with the same names; the last one "wins"
+    """Get all the mod files, with their md5_sum.
+
+    Note: files with the same names; the last one "wins"
+    """
     files = {
         f.name: f.absolute() for f in it.chain.from_iterable(d.glob("*.mod") for d in input_dirs)
     }
@@ -52,6 +57,8 @@ def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
 
 
 def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict:
+    """Create metadata about the compiled mod files, used to track cache hit."""
+
     def factory(pairs):
         return {k: v.value if isinstance(v, Enum) else v for k, v in pairs}
 
@@ -63,24 +70,44 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
 
 def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
+    """See if if we have a cache hit."""
     metadata = _metadata_path(output_dir)
     if not metadata.exists():
         return False
 
     with metadata.open() as fd:
         old = json.load(fd)
+
     new = _generate_mod_metadata(mod_files, options)
-    return old == new
+    if old != new:
+        return False
+
+    base = (output_dir / platform.machine()).absolute()
+    ext = ".dylib" if sys.platform == "darwin" else ".so"
+
+    libnrnmech = base / f"libnrnmech{ext}"
+
+    if not libnrnmech.exists():
+        return False
+
+    if options.simulator == Simulator.coreneuron:
+        coreneuronlib = base / f"libcorenrnmech{ext}"
+        if not coreneuronlib.exists():
+            return False
+
+    return True
 
 
 def _write_cache(mod_files: dict[Path, str], output_dir: Path, options: Options):
+    """Write the cache metadata."""
     with _metadata_path(output_dir).open("w") as fd:
         json.dump(_generate_mod_metadata(mod_files, options), fd)
 
 
-def _build_modules(
+def _build_mod_files(
     input_dirs: list[Path], output_dir: Path, nrnivmodl_path: str | None, options: Options
 ) -> dict:
+    """Compile the mod files."""
     nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
     if not nrnivmodl:
         sys.exit("nrnivmodl not found in PATH")
@@ -88,6 +115,10 @@ def _build_modules(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mod_files = _get_mod_files(input_dirs)
+    if not mod_files:
+        msg = "No mod files selected to be compiled"
+        raise RuntimeError(msg)
+
     if _check_cache(mod_files, output_dir, options):
         return _output_files(output_dir, options)
 
@@ -112,8 +143,8 @@ def _build_modules(
 
     cmd.append(str(mod_dir))
 
-    res = subprocess.Popen(cmd, cwd=str(output_dir), stdout=sys.stderr)  # noqa: S603
-    res.wait()
+    res = subprocess.run(cmd, cwd=str(output_dir), stdout=sys.stderr, check=False)  # noqa: S603
+
     if res.returncode:
         sys.exit("Failed to compile")
 
@@ -123,18 +154,23 @@ def _build_modules(
 
 
 def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
+    """Returned the output shared object files."""
     base = (output_dir / platform.machine()).absolute()
     ext = ".dylib" if sys.platform == "darwin" else ".so"
 
-    # "/Users/runner/work/neurodamus/neurodamus/opt/obi/neocortex/arm64/./libnrnmech.dylib"
     libnrnmech = base / f"libnrnmech{ext}"
-    assert libnrnmech.exists(), f"Missing {libnrnmech}"
+    if not libnrnmech.exists():
+        msg = f"{libnrnmech} does not exist, error running nrnivmodl?"
+        raise RuntimeError(msg)
 
     ret = {"NRNMECH_LIB_PATH": str(libnrnmech), "SPECIALS_PATH": str(base)}
 
     if options.simulator == Simulator.coreneuron:
         coreneuronlib = base / f"libcorenrnmech{ext}"
-        assert coreneuronlib.exists(), f"Missing {coreneuronlib}"
+        if not coreneuronlib.exists():
+            msg = f"{coreneuronlib} does not exist, error running nrnivmodl?"
+            raise RuntimeError(msg)
+
         ret["CORENEURONLIB"] = str(coreneuronlib)
 
     return ret
@@ -163,7 +199,7 @@ def _internal_mods_path() -> list[Path]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--internal-mods", action="store_true", help="Include neurodamus internal mods"
+        "--with-internal-mods", action="store_true", help="Include neurodamus internal mods"
     )
     parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
@@ -188,11 +224,11 @@ def compile_mods():
     if args.circuit_config:
         input_dirs.extend(_extract_mechanisms_dir(Path(args.circuit_config)))
 
-    if args.internal_mods:
+    if args.with_internal_mods:
         input_dirs.extend(_internal_mods_path())
 
     options = Options(incflags=args.incflags, loadflags=args.loadflags, simulator=args.simulator)
-    env = _build_modules(input_dirs, output_dir, args.nrnivmodl, options)
+    env = _build_mod_files(input_dirs, output_dir, args.nrnivmodl, options)
 
     match args.output_type:
         case "json":

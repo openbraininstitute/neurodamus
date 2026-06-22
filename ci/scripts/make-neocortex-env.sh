@@ -15,7 +15,7 @@ make-neocortex-env() {
         neurodamus-compile-mods
         --input-dir $BASE_DIR/tests/mechanisms/neocortex
         --output-dir $INSTALL_DIR/neocortex
-        --internal-mods
+        --with-internal-mods
         --output-type shell
         --simulator=coreneuron
     )

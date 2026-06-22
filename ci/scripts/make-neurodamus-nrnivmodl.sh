@@ -48,7 +48,6 @@ ARGS+=("-loadflags" "$LOADFLAGS")
 [[ -n $NMODLFLAGS ]] && ARGS+=("-nmodlflags" "$NMODLFLAGS")
 
 
-echo "nrnivmodl "${ARGS[@]}" "${POSITIONAL[@]}""
 exec nrnivmodl "${ARGS[@]}" "${POSITIONAL[@]}"
 _EOF
 

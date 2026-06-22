@@ -22,7 +22,7 @@ CMD=(
     neurodamus-compile-mods
     --input-dir $MODS_DIR
     --output-dir $BUILD_DIR
-    --internal-mods
+    --with-internal-mods
     --incflags="-DDISABLE_REPORTINGLIB"
     --output-type shell
     )
