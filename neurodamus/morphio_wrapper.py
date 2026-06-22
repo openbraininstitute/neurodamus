@@ -114,11 +114,10 @@ def contour2centroid(mean, points):
     # To be consistent with NEURON eigen vector directions
     eigen_vectors *= -1
 
-    idx = np.argmax(eigen_values)
-    major = eigen_vectors[:, idx]
-    # minor is normal and in xy plane
-    idx = 3 - np.argmin(eigen_values) - np.argmax(eigen_values)
-    minor = eigen_vectors[:, idx]
+    # eigh returns eigenvalues in ascending order:
+    # [0]=smallest, [1]=middle, [2]=largest
+    major = eigen_vectors[:, 2]
+    minor = eigen_vectors[:, 1]
     minor[2] = 0
 
     sides, rads = get_sides(points, major, minor)
