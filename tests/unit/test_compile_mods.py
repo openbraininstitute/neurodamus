@@ -1,3 +1,9 @@
+import json
+from pathlib import Path
+import subprocess
+import pytest
+import argparse
+from unittest.mock import patch
 import platform
 import sys
 
@@ -8,6 +14,7 @@ Simulator = test_module.Simulator
 
 
 def write(path, contents):
+    path.parent.mkdir(exist_ok=True, parents=True)
     path.write_bytes(contents)
     return path
 
@@ -60,14 +67,21 @@ def test__check_cache_missing(tmp_path):
 def test__write_cache_and_check_cache(tmp_path):
     path = write(tmp_path / "a.mod", b"content")
     mod_files = {path: "hash1"}
-    options = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="")
+    options0 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="")
 
-    test_module._write_cache(mod_files, tmp_path, options)
+    test_module._write_cache(mod_files, tmp_path, options0)
     assert test_module._metadata_path(tmp_path).exists()
 
-    assert test_module._check_cache(mod_files, tmp_path, options)
+    assert not test_module._check_cache(mod_files, tmp_path, options0)
 
-    options2 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="")
+    write(test_module._get_dynamic_file(tmp_path, "libnrnmech"), b"")
+    assert test_module._check_cache(mod_files, tmp_path, options0)
+
+    options1 = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="")
+    test_module._write_cache(mod_files, tmp_path, options1)
+    assert not test_module._check_cache(mod_files, tmp_path, options1)
+
+    options2 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="-different")
     assert not test_module._check_cache(mod_files, tmp_path, options2)
 
 
@@ -83,6 +97,13 @@ def test__output_files(tmp_path):
     assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
     assert res["SPECIALS_PATH"] == str(base)
     assert "CORENEURONLIB" not in res
+
+    write(base / f"libcorenrnmech{ext}", b"")
+    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+    res = test_module._output_files(tmp_path, options)
+    assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
+    assert res["SPECIALS_PATH"] == str(base)
+    assert res["CORENEURONLIB"] == str(base / f"libcorenrnmech{ext}")
 
 
 def test__output_files_coreneuron(tmp_path):
@@ -105,6 +126,41 @@ def test__internal_mods_path():
     assert paths[0].exists()
 
 
-#def test__build_modules(tmp_path):
-#    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
-#    res = test_module._build_modules(tmp_path, "echo", options)
+def test__build_mod_filess(tmp_path):
+    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    input_dirs = []
+    with patch("neurodamus.utils.compile_mods.subprocess.run") as mock_run:
+        with pytest.raises(RuntimeError, match="No mod files selected to be compiled"):
+            test_module._build_mod_files(input_dirs, tmp_path, "echo", options)
+
+        input_dir = tmp_path / "inputs"
+        write(input_dir / "a.mod", b"mod file")
+        write(test_module._get_dynamic_file(tmp_path, "libnrnmech"), b"")
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="ok", stderr=""
+        )
+        test_module._build_mod_files([input_dir], tmp_path, "echo", options)
+
+        # cache exists
+        test_module._build_mod_files([input_dir], tmp_path, "echo", options)
+
+
+def test__build_parser():
+    parser = test_module.build_parser()
+    assert isinstance(parser, argparse.ArgumentParser)
+
+
+def test__extract_mechanisms_dir(tmp_path):
+    circuit_config = Path(__file__).parent.parent / "simulations/ringtest/circuit_config.json"
+    assert test_module._extract_mechanisms_dir(circuit_config) == []
+
+    with circuit_config.open() as fd:
+        js = json.load(fd)
+
+    circuit_config = tmp_path / "circuit_config.json"
+    js["components"] = {"mechanisms_dir": "path/to/mechs"}
+    with circuit_config.open("w") as fd:
+        json.dump(js, fd)
+    res = test_module._extract_mechanisms_dir(circuit_config)
+    assert len(res) == 1
+    assert str(res[0]).endswith("path/to/mechs")

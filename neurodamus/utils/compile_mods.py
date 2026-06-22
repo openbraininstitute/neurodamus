@@ -69,6 +69,14 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
     }
 
 
+def _get_dynamic_file(output_dir: Path, name: str) -> Path:
+    """Returns the name of the file with the correct machine directory for NEURON."""
+    base = (output_dir / platform.machine()).absolute()
+    ext = ".dylib" if sys.platform == "darwin" else ".so"
+
+    return base / f"{name}{ext}"
+
+
 def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
     """See if if we have a cache hit."""
     metadata = _metadata_path(output_dir)
@@ -82,16 +90,13 @@ def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options)
     if old != new:
         return False
 
-    base = (output_dir / platform.machine()).absolute()
-    ext = ".dylib" if sys.platform == "darwin" else ".so"
-
-    libnrnmech = base / f"libnrnmech{ext}"
+    libnrnmech = _get_dynamic_file(output_dir, "libnrnmech")
 
     if not libnrnmech.exists():
         return False
 
     if options.simulator == Simulator.coreneuron:
-        coreneuronlib = base / f"libcorenrnmech{ext}"
+        coreneuronlib = _get_dynamic_file(output_dir, "libcorenrnmech")
         if not coreneuronlib.exists():
             return False
 
@@ -108,10 +113,6 @@ def _build_mod_files(
     input_dirs: list[Path], output_dir: Path, nrnivmodl_path: str | None, options: Options
 ) -> dict:
     """Compile the mod files."""
-    nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
-    if not nrnivmodl:
-        sys.exit("nrnivmodl not found in PATH")
-
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mod_files = _get_mod_files(input_dirs)
@@ -122,13 +123,16 @@ def _build_mod_files(
     if _check_cache(mod_files, output_dir, options):
         return _output_files(output_dir, options)
 
+    nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
+    if not nrnivmodl:
+        sys.exit("nrnivmodl not found in PATH")
+
     cmd = [nrnivmodl]
 
     incflags = []
     match options.simulator:
         case Simulator.coreneuron:
             cmd.append("-coreneuron")
-            # incflags.append("-DCORENEURON_BUILD")
 
     if incflags or options.incflags:
         cmd.extend(["-incflags", f"{options.incflags or ''} {''.join(incflags)}"])
@@ -146,7 +150,7 @@ def _build_mod_files(
     res = subprocess.run(cmd, cwd=str(output_dir), stdout=sys.stderr, check=False)  # noqa: S603
 
     if res.returncode:
-        sys.exit("Failed to compile")
+        raise RuntimeError("Failed to compile")
 
     _write_cache(mod_files, output_dir, options)
 
