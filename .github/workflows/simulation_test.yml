@@ -1,5 +1,4 @@
 name: neurodamus integration and simulation tests
-
 on:
   schedule:
     - cron: '0 20 * * 6'  # Saturdays at 8pm
