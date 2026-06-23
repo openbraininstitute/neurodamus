@@ -25,14 +25,28 @@ class LFPFileReader:
         except OSError as e:
             raise LFPFileValidationError(f"Error opening LFP electrodes file: {filepath}") from e
         self._filepath = filepath
-        self._validate()
-
-    def _validate(self) -> None:
-        """Check that the file has the required top-level 'electrodes' group."""
         if "electrodes" not in self._file:
             raise LFPFileValidationError(
-                f"LFP electrodes file '{self._filepath}' is missing the 'electrodes' group."
+                f"LFP electrodes file '{filepath}' is missing the 'electrodes' group."
             )
+
+    @staticmethod
+    def validate(filepath: str) -> None:
+        """Validate that an LFP electrodes file can be opened and has correct structure.
+
+        Raises LFPFileValidationError if the file is missing or malformed.
+        """
+        try:
+            f = h5py.File(filepath, "r")
+        except OSError as e:
+            raise LFPFileValidationError(f"Error opening LFP electrodes file: {filepath}") from e
+        try:
+            if "electrodes" not in f:
+                raise LFPFileValidationError(
+                    f"LFP electrodes file '{filepath}' is missing the 'electrodes' group."
+                )
+        finally:
+            f.close()
 
     def get_number_electrodes(self, gid: int, population_info: tuple[str, int]) -> int:
         """Return the number of electrodes for a given gid.
