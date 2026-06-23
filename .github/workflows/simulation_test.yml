@@ -74,7 +74,7 @@ jobs:
         sudo apt-get --yes -qq update \
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
-        && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev python3-dev
+        && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev python3-dev
 
     - name: Install macOS homebrew packages
       if: startsWith(matrix.os, 'macOS')
@@ -102,6 +102,12 @@ jobs:
         && source venv/bin/activate \
         && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
         && uv pip list
+
+    - name: Install HDF5 (parallel, from source)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        source $BASE_DIR/ci/scripts/install-hdf5.sh \
+        && install-hdf5
 
     - name: Build h5py
       run: |

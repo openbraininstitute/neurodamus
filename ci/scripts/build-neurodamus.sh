@@ -21,6 +21,7 @@ build-neurodamus() {
     fi
 
     ( cd $NEURODAMUS && \
+        git reset --hard &&
         git fetch --depth 1 origin $COMMIT &&
         git checkout FETCH_HEAD && \
         git submodule update --init --recursive
