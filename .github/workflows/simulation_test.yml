@@ -21,7 +21,7 @@ on:
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
   LIBSONATA_COMMIT: v0.1.37
-  NEURON_COMMIT: 2ac5cc7
+  NEURON_COMMIT: 2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
@@ -30,6 +30,7 @@ env:
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
   BASE_DIR: ${{ github.workspace }}
+  LD_LIBRARY_PATH: ${{ github.workspace }}/opt/obi/lib
 
 jobs:
   simulation:
@@ -74,7 +75,7 @@ jobs:
         sudo apt-get --yes -qq update \
         && source $BASE_DIR/ci/scripts/install-apt-dependencies.sh \
         && SUDO=sudo install-apt-dependencies \
-        && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev python3-dev
+        && sudo apt-get --yes -qq --no-install-recommends install libopenmpi-dev python3-dev
 
     - name: Install macOS homebrew packages
       if: startsWith(matrix.os, 'macOS')
@@ -95,6 +96,12 @@ jobs:
         mkdir -p ${{ github.workspace }}/cache \
         && source $BASE_DIR/ci/scripts/install-sccache.sh \
         && SUDO=sudo install-sccache
+
+    - name: Install HDF5 (parallel, from source)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        source $BASE_DIR/ci/scripts/install-hdf5.sh \
+        && install-hdf5
 
     - name: Upgrade pip and install base python packages
       run: |
