@@ -964,7 +964,7 @@ def _lfp_electrodes_files(config: _SimConfig):
         return
     for rep_conf in config.reports.values():
         if rep_conf.enabled and rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
-            LFPFileReader(rep_conf.electrodes_file)
+            LFPFileReader.validate(rep_conf.electrodes_file)
 
 
 def get_debug_cell_gids(cli_options):
