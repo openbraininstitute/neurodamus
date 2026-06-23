@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import logging
 import argparse
 import hashlib
 import json
+import logging
 import platform
 import shutil
 import subprocess  # noqa: S404
@@ -13,7 +13,6 @@ from importlib.util import find_spec
 from pathlib import Path
 
 import libsonata
-
 
 L = logging.getLogger(__name__)
 VERSION = 1
@@ -54,18 +53,21 @@ def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
     for d in input_dirs:
         for f in d.glob("*.mod"):
             if f.name in files:
-                L.warning("Already seen `%s` (%s), overriding with `%s`",
-                          f.name, f.absolute(), files[f.name])
+                L.warning(
+                    "Already seen `%s` (%s), overriding with `%s`",
+                    f.name,
+                    f.absolute(),
+                    files[f.name],
+                )
             files[f.name] = f.absolute()
 
     hashed_files = {}
     seen_hashes = set()
     for p in files.values():
-        hash = _md5sum(p)
-        if hash in seen_hashes:
-            L.warning("Already added a file with the same contents: %s", hash)
-        seen_hashes.add(hash)
-        hashed_files[p] = hash
+        hashed_files[p] = _md5sum(p)
+        if hashed_files[p] in seen_hashes:
+            L.warning("Already added a file with the same contents: %s", hashed_files[p])
+        seen_hashes.add(hashed_files[p])
     return hashed_files
 
 
