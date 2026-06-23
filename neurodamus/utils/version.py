@@ -30,9 +30,17 @@ class GitVersion:
         """Parse a version string like '9.0a-1485-g0d990513b' or '9.0a'.
 
         For shallow-clone builds that produce non-standard strings (e.g.
-        'HEAD (2ac5cc71+) 2026-06-19'), the version is treated as newer than
-        any parseable release by using a very high base version.
+        'HEAD (2ac5cc71+) 2026-06-19') or empty strings, the version is
+        treated as newer than any parseable release by using a very high
+        base version.
         """
+        if not vstr or not vstr.strip():
+            # Empty version: assume recent dev build (shallow clone artifact)
+            self.base = version.parse("99.99.99")
+            self.commits = 0
+            self.commit = ""
+            return
+
         m = self._regex.match(vstr)
         if m:
             base, commits, commit = m.groups()
