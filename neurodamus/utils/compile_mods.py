@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import logging
 import argparse
 import hashlib
-import itertools as it
 import json
 import platform
 import shutil
@@ -14,6 +14,8 @@ from pathlib import Path
 
 import libsonata
 
+
+L = logging.getLogger(__name__)
 VERSION = 1
 
 
@@ -48,12 +50,23 @@ def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
 
     Note: files with the same names; the last one "wins"
     """
-    files = {
-        f.name: f.absolute() for f in it.chain.from_iterable(d.glob("*.mod") for d in input_dirs)
-    }
-    # deduplicate based on md5 hash
-    files = {_md5sum(p): p for p in files.values()}
-    return {v: k for k, v in files.items()}
+    files = {}
+    for d in input_dirs:
+        for f in d.glob("*.mod"):
+            if f.name in files:
+                L.warning("Already seen `%s` (%s), overriding with `%s`",
+                          f.name, f.absolute(), files[f.name])
+            files[f.name] = f.absolute()
+
+    hashed_files = {}
+    seen_hashes = set()
+    for p in files.values():
+        hash = _md5sum(p)
+        if hash in seen_hashes:
+            L.warning("Already added a file with the same contents: %s", hash)
+        seen_hashes.add(hash)
+        hashed_files[p] = hash
+    return hashed_files
 
 
 def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict:
@@ -125,17 +138,17 @@ def _build_mod_files(
 
     nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
     if not nrnivmodl:
-        sys.exit("nrnivmodl not found in PATH")
+        msg = "nrnivmodl not found in PATH"
+        raise RuntimeError(msg)
 
     cmd = [nrnivmodl]
 
-    incflags = []
     match options.simulator:
         case Simulator.coreneuron:
             cmd.append("-coreneuron")
 
-    if incflags or options.incflags:
-        cmd.extend(["-incflags", f"{options.incflags or ''} {''.join(incflags)}"])
+    if options.incflags:
+        cmd.extend(["-incflags", f"{options.incflags}"])
 
     if options.loadflags:
         cmd.extend(["-loadflags", options.loadflags])

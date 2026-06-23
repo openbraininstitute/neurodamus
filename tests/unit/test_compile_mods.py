@@ -1,13 +1,14 @@
-import json
-from pathlib import Path
-import subprocess
-import pytest
 import argparse
-from unittest.mock import patch
+import json
+import logging
 import platform
+import subprocess
 import sys
+from pathlib import Path
+from unittest.mock import patch
 
 import neurodamus.utils.compile_mods as test_module
+import pytest
 
 Options = test_module.Options
 Simulator = test_module.Simulator
@@ -28,7 +29,7 @@ def test__md5sum(tmp_path):
     assert test_module._md5sum(path) == "5d41402abc4b2a76b9719d911017c592"
 
 
-def test__get_mod_files(tmp_path):
+def test__get_mod_files(tmp_path, caplog):
     d1 = tmp_path / "a"
     d1.mkdir()
     d2 = tmp_path / "b"
@@ -36,10 +37,14 @@ def test__get_mod_files(tmp_path):
 
     write(d1 / "x.mod", b"content_x")
     write(d2 / "y.mod", b"content_y")
-    # same name in d2 overrides d1
-    write(d2 / "x.mod", b"content_x_override")
+    write(d2 / "x.mod", b"content_x_override")  # same name in d2 overrides d1
+    write(d2 / "z.mod", b"content_y") # same content as `y.mod`
 
-    res = test_module._get_mod_files([d1, d2])
+    with caplog.at_level(logging.WARNING):
+        res = test_module._get_mod_files([d1, d2])
+
+    assert "Already seen `x.mod`" in caplog.text
+    assert "Already added a file with the same contents: 531ba6ac24a2ebde442987529f07e697" in caplog.text
     names = {p.name for p in res}
     assert "x.mod" in names
     assert "y.mod" in names
