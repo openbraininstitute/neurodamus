@@ -22,6 +22,7 @@ build-libsonata() {
         $LIBSONATA
 
     (cd $LIBSONATA && \
+        git reset --hard &&
         git fetch --depth 1 origin $COMMIT &&
         git checkout FETCH_HEAD &&
         git submodule update --init --depth=1 \

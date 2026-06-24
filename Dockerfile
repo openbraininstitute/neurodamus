@@ -29,7 +29,7 @@ RUN --mount=type=bind,source=ci/scripts/install-apt-dependencies.sh,target=/tmp/
     && apt-get --yes -qq upgrade \
     && source /tmp/install-apt-dependencies.sh \
     && install-apt-dependencies \
-    && apt-get --yes -qq --no-install-recommends install libopenmpi-dev libhdf5-openmpi-dev \
+    && apt-get --yes -qq --no-install-recommends install libopenmpi-dev \
     && apt-get --yes -qq clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +44,11 @@ RUN --mount=type=bind,source=ci/scripts/install-python-dependencies.sh,target=/t
 RUN --mount=type=bind,source=ci/scripts/install-sccache.sh,target=/tmp/install-sccache.sh \
     source /tmp/install-sccache.sh \
 	&& install-sccache
+
+RUN --mount=type=bind,source=ci/scripts/install-hdf5.sh,target=/tmp/install-hdf5.sh \
+    source $USER_VENV/bin/activate \
+    && source /tmp/install-hdf5.sh \
+	&& install-hdf5
 
 RUN --mount=type=bind,source=ci/scripts/install-h5py.sh,target=/tmp/install-h5py.sh \
     mkdir -p /tmp/stable-build \
