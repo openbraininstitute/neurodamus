@@ -110,6 +110,12 @@ jobs:
         && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
         && uv pip list
 
+    - name: Install HDF5 (parallel, from source)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        source $BASE_DIR/ci/scripts/install-hdf5.sh \
+        && install-hdf5
+
     - name: Build h5py
       run: |
         source $BASE_DIR/ci/scripts/install-h5py.sh \
