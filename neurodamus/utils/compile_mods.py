@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from collections.abc import Iterable
 import argparse
 import hashlib
 import json
@@ -8,6 +7,7 @@ import platform
 import shutil
 import subprocess  # noqa: S404
 import sys
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -139,7 +139,7 @@ def _place_mod_files(output_dir: Path, mod_files: Iterable[Path]):
     for path in mod_files:
         shutil.copy(path, mod_dir)
 
-    return  mod_dir
+    return mod_dir
 
 
 def _build_mod_files(
