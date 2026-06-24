@@ -26,7 +26,7 @@ build-neuron() {
     fi
 
     ( cd $NRN && \
-        git checkout -- . &&
+        git reset --hard &&
         git fetch --depth 1 origin $COMMIT &&
         git checkout FETCH_HEAD &&
         git submodule update --init --depth=1 --recursive \
