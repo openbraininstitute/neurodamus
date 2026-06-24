@@ -10,6 +10,7 @@ Includes:
 Intended for use with programs that use Git-describe-style versioning, such as NEURON.
 """
 
+import logging
 import re
 from functools import total_ordering
 
@@ -36,6 +37,7 @@ class GitVersion:
         """
         if not vstr or not vstr.strip():
             # Empty version: assume recent dev build (shallow clone artifact)
+            logging.warning("Empty NEURON version string; assuming recent dev build.")
             self.base = version.parse("99.99.99")
             self.commits = 0
             self.commit = ""
@@ -52,6 +54,9 @@ class GitVersion:
         # Shallow-clone fallback: assume it's a recent dev build
         m_shallow = self._regex_shallow.match(vstr)
         if m_shallow:
+            logging.warning(
+                "Non-standard NEURON version string: '%s'; assuming recent dev build.", vstr
+            )
             self.base = version.parse("99.99.99")
             self.commits = 0
             self.commit = m_shallow.group(1)
