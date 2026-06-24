@@ -29,6 +29,28 @@ def test__md5sum(tmp_path):
     assert test_module._md5sum(path) == "5d41402abc4b2a76b9719d911017c592"
 
 
+def test__place_mod_files(tmp_path):
+    output_dir = tmp_path
+    mod_dir = output_dir / test_module.MOD_FILES_PATH
+
+    # Create a pre-existing .mod file that should be cleaned
+    mod_dir.mkdir(parents=True)
+    (mod_dir / "old.mod").write_text("old")
+
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "a.mod").write_text("aaa")
+    (src_dir / "b.mod").write_text("bbb")
+
+    result = test_module._place_mod_files(
+        output_dir, [src_dir / "a.mod", src_dir / "b.mod"]
+    )
+
+    assert result == mod_dir.absolute()
+    assert not (mod_dir / "old.mod").exists()
+    assert (mod_dir / "a.mod").read_text() == "aaa"
+    assert (mod_dir / "b.mod").read_text() == "bbb"
+
 def test__get_mod_files(tmp_path, caplog):
     d1 = tmp_path / "a"
     d1.mkdir()

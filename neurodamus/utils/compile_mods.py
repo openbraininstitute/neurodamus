@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from collections.abc import Iterable
 import argparse
 import hashlib
 import json
@@ -16,6 +17,9 @@ import libsonata
 
 L = logging.getLogger(__name__)
 VERSION = 1
+
+# Path within output dir where mod files are moved
+MOD_FILES_PATH = "mod_files"
 
 
 class Simulator(Enum):
@@ -124,6 +128,20 @@ def _write_cache(mod_files: dict[Path, str], output_dir: Path, options: Options)
         json.dump(_generate_mod_metadata(mod_files, options), fd)
 
 
+def _place_mod_files(output_dir: Path, mod_files: Iterable[Path]):
+    """Place mod files in the output directory."""
+    mod_dir = (output_dir / MOD_FILES_PATH).absolute()
+    mod_dir.mkdir(exist_ok=True)
+    for f in mod_dir.glob("*.mod"):
+        if f.is_file():
+            f.unlink()
+
+    for path in mod_files:
+        shutil.copy(path, mod_dir)
+
+    return  mod_dir
+
+
 def _build_mod_files(
     input_dirs: list[Path], output_dir: Path, nrnivmodl_path: str | None, options: Options
 ) -> dict:
@@ -155,10 +173,7 @@ def _build_mod_files(
     if options.loadflags:
         cmd.extend(["-loadflags", options.loadflags])
 
-    mod_dir = (output_dir / "mod_files").absolute()
-    mod_dir.mkdir(exist_ok=True)
-    for path in mod_files:
-        shutil.copy(path, mod_dir)
+    mod_dir = _place_mod_files(output_dir, mod_files.keys())
 
     cmd.append(str(mod_dir))
 
