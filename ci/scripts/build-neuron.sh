@@ -28,6 +28,7 @@ build-neuron() {
     ( cd $NRN && \
         git reset --hard &&
         git fetch --depth 1 origin $COMMIT &&
+        git fetch --depth 1 origin 'refs/tags/*:refs/tags/*' &&
         git checkout FETCH_HEAD &&
         git submodule update --init --depth=1 --recursive \
             external/spdlog \
