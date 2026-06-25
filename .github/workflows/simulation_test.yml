@@ -186,7 +186,7 @@ jobs:
 
     - name: Prune the uv cache
       run: |
-        uv -vv cache prune
+        uv -vv cache prune --ci
 
     - name: live debug session, comment out
       if: failure()
