@@ -100,7 +100,7 @@ jobs:
 
     - name: Upgrade pip and install base python packages
       run: |
-        uv venv --clear --python ${{ matrix.python-version }} venv \
+        uv venv --managed-python --clear --python ${{ matrix.python-version }} venv \
         && source venv/bin/activate \
         && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
         && uv pip list
