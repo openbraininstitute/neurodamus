@@ -34,6 +34,7 @@ build-neuron() {
             external/Random123 \
             external/fmt \
             external/nanobind \
+            external/coding-conventions \
     )
 
     $PIP install tomli tomli_w
