@@ -29,6 +29,7 @@ env:
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
+  UV_PYTHON_INSTALL_DIR:  ${{ github.workspace }}/cache/uv-python
   BASE_DIR: ${{ github.workspace }}
 
 jobs:
@@ -184,12 +185,13 @@ jobs:
         && source $INSTALL_DIR/env-neocortex.sh \
         && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
 
+    # recommendation from https://docs.astral.sh/uv/concepts/cache/#caching-in-continuous-integration
     - name: Prune the uv cache
       run: |
         uv -vv cache prune --ci
 
-    #- name: live debug session, comment out
-    #  if: failure()
-    #  uses: mxschmitt/action-tmate@v3
-    #  with:
-    #   timeout-minutes: 60  # or any other value you need
+    # - name: live debug session, comment out
+    #   if: failure()
+    #   uses: mxschmitt/action-tmate@v3
+    #   with:
+    #    timeout-minutes: 60  # or any other value you need
