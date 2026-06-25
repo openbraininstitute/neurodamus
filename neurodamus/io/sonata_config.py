@@ -68,7 +68,6 @@ class RunConfig:
     ionchannel_seed: int
     minis_seed: int
     synapse_seed: int
-    lfp_weights_path: str
 
     # Additional extended fields
     output_root: str
@@ -136,7 +135,6 @@ class SonataConfig:
             ionchannel_seed=self._sim_conf.run.ionchannel_seed,
             minis_seed=self._sim_conf.run.minis_seed,
             synapse_seed=self._sim_conf.run.synapse_seed,
-            lfp_weights_path=self._sim_conf.run.electrodes_file,
             output_root=self._sim_conf.output.output_dir,
             config_node_sets_file=self._circuit_conf.node_sets_path,
             target_file=self._sim_conf.node_sets_file,

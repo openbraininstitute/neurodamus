@@ -29,9 +29,7 @@ Now that we have an electrode file for our simulation to get the LFP report foll
 
 1. Open your simulation configuration file.
 
-2. Locate the "run" section in the configuration file.
-
-3. Add the following key-value pair to the "run" section, providing the correct path to your electrodes file:
+2. Ensure that the simulator is set to CoreNEURON in the "run" section:
 
 .. code-block::
 
@@ -40,13 +38,10 @@ Now that we have an electrode file for our simulation to get the LFP report foll
         "tstop": 1,
         "dt": 0.025,
         "random_seed": 767740,
-        "run_mode" : "WholeCell",
-        "electrodes_file": "/path/to/electrodes_file.h5"
+        "run_mode" : "WholeCell"
     }
 
-Replace "/path/to/electrodes_file.h5" with the actual path to your electrodes file.
-
-4. Create a report of type 'lfp' in the reports section:
+3. Create a report of type 'lfp' in the reports section, specifying the ``electrodes_file`` within the report block:
 
 .. code-block::
 
@@ -55,13 +50,14 @@ Replace "/path/to/electrodes_file.h5" with the actual path to your electrodes fi
             "type": "lfp",
             "cells": "Mosaic",
             "variable_name": "v",
+            "electrodes_file": "/path/to/electrodes_file.h5",
             "dt": 0.1,
             "start_time": 0.0,
             "end_time": 40.0
         }
     }
 
-Modify the rest of the parameters according to your requirements.
+Replace "/path/to/electrodes_file.h5" with the actual path to your electrodes file. Each LFP report can reference its own electrodes file, allowing multiple LFP reports with different electrode configurations in a single simulation.
 
 Key considerations
 ------------------

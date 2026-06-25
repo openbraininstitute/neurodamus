@@ -14,6 +14,7 @@ import libsonata
 
 from . import EngineBase
 from ._shmutils import SHMUtil
+from neurodamus.io.lfp_reader import LFPFileReader
 from neurodamus.io.sonata_config import SonataConfig
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import ConfigT, StrEnumBase
@@ -110,6 +111,7 @@ class CliOptions(ConfigT):
     keep_axon = False
     coreneuron_direct_mode = False
     crash_test = False
+    disable_reports = False
     memory_tracker = None
 
     # Restricted Functionality support, mostly for testing
@@ -953,6 +955,16 @@ def _extracellular_stimulation(config: _SimConfig):
             "Extracellular stimulation is not supported with CoreNEURON -"
             " CoreNEURON cannot simulate a model that contains the extracellular mechanism"
         )
+
+
+@SimConfig.validator
+def _lfp_electrodes_files(config: _SimConfig):
+    """Validate LFP electrode files early during configuration (fail fast)."""
+    if not config.use_coreneuron or config.cli_options.disable_reports:
+        return
+    for rep_conf in config.reports.values():
+        if rep_conf.enabled and rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp:
+            LFPFileReader.validate(rep_conf.electrodes_file)
 
 
 def get_debug_cell_gids(cli_options):

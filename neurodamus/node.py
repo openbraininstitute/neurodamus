@@ -621,20 +621,6 @@ class Node:
                 loader_opts=loader_opts,
             )
 
-        lfp_weights_file = self._run_conf.lfp_weights_path
-        if lfp_weights_file and self._run_conf.enable_reports:
-            if SimConfig.use_coreneuron:
-                lfp_manager = self._circuits.global_manager._lfp_manager
-                cell_managers = self._circuits.global_manager._cell_managers
-                population_list = [
-                    manager.population_name
-                    for manager in cell_managers
-                    if manager.population_name is not None
-                ]
-                lfp_manager.load_lfp_config(lfp_weights_file, population_list)
-            else:
-                logging.warning("LFP supported only with CoreNEURON.")
-
         PopulationNodes.freeze_offsets()  # Dont offset further, could change gids
 
         # Let the cell managers have any final say in the cell objects
@@ -984,7 +970,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=self._circuits.global_manager._lfp_manager._lfp_file,
+                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
@@ -1349,7 +1335,7 @@ class Node:
             seed=SimConfig.rng_info.getGlobalSeed(),
             model_stats=int(SimConfig.cli_options.model_stats),
             report_conf=CoreConfig.report_config_file_save
-            if self._run_conf.enable_reports
+            if not SimConfig.cli_options.disable_reports
             else None,
             mpi=int(os.environ.get("NEURON_INIT_MPI", "1")),
         )
@@ -1648,13 +1634,10 @@ class Neurodamus(Node):
                 3 - Debug messages
             user_opts: Options to Neurodamus overriding the simulation config file
         """
-        enable_reports = not user_opts.pop("disable_reports", False)
         if logging_level is not None:
             GlobalConfig.verbosity = logging_level
 
         Node.__init__(self, config_path_or_obj, user_opts)
-        # Use the run_conf dict to avoid passing it around
-        self._run_conf.enable_reports = enable_reports
 
         if SimConfig.dry_run:
             if self._is_ngv_run:
@@ -1723,7 +1706,7 @@ class Neurodamus(Node):
         print_mem_usage()
         self.enable_modifications()
 
-        if self._run_conf.enable_reports:
+        if not SimConfig.cli_options.disable_reports:
             self.enable_reports()
         print_mem_usage()
 
@@ -1766,7 +1749,7 @@ class Neurodamus(Node):
         log_stage(" =============== CORENEURON RESTORE ===============")
         self.load_targets()
         self.enable_replay()
-        if self._run_conf.enable_reports:
+        if not SimConfig.cli_options.disable_reports:
             self.enable_reports()
 
         self._coreneuron_write_sim_config(corenrn_restore=True)
