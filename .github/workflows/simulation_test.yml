@@ -138,23 +138,28 @@ jobs:
         source venv/bin/activate \
         && uv pip install -e $BASE_DIR
 
-    - name: Install neurodamus-neocortex models
+    - name: Install neurodamus-nrnivmodl
       run: |
-        source $BASE_DIR/ci/scripts/build-neocortex-models.sh \
+        source $BASE_DIR/ci/scripts/make-neurodamus-nrnivmodl.sh \
         && source venv/bin/activate \
-        && build-neocortex-models $BASE_DIR/tests/mechanisms/neocortex
+        && make-neurodamus-nrnivmodl
+        
+    - name: live debug session, comment out
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+       timeout-minutes: 60  # or any other value you need
 
-    - name: Make env
+    - name: Build neocortex mod files and make env
       run: |
-        source $BASE_DIR/ci/scripts/make-env.sh \
+        source $BASE_DIR/ci/scripts/make-neocortex-env.sh \
+        && export PATH=$INSTALL_DIR:$PATH \
         && source venv/bin/activate \
-        && make-env
+        && make-neocortex-env
 
     - name: simulation-smoketest
       run: |
         export NEURON_INIT_MPI=1
-        export OMPI_ALLOW_RUN_AS_ROOT=1
-        export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
         source $INSTALL_DIR/env-neocortex.sh
         which special
 
