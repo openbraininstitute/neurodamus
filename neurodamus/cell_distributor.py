@@ -31,7 +31,6 @@ from .core.configuration import (
 )
 from .core.nodeset import SelectionNodeSet
 from .io import cell_readers
-from .lfp_manager import LFPManager
 from .metype import Cell_V6, EmptyCell, PointCell
 from .target_manager import TargetSpec
 from .utils import compat
@@ -446,7 +445,6 @@ class GlobalCellManager(_CellManager):
     def __init__(self):
         self._cell_managers = []
         self._pc = Nd.pc
-        self._lfp_manager = LFPManager()
 
     def register_manager(self, cell_manager):
         self._cell_managers.append(cell_manager)

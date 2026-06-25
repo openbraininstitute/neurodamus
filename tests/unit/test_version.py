@@ -30,3 +30,26 @@ def test_comparison():
     assert v5 < v6
     assert v5 < v7
     assert v6 == v7
+
+
+def test_shallow_clone_version():
+    """Shallow-clone builds produce 'HEAD (sha+) date' — should not crash."""
+    v = GitVersion("HEAD (2ac5cc71+) 2026-06-19")
+    # Treated as newer than any real release
+    assert v > GitVersion("9.0.1-71-g2ac5cc719")
+    assert v.commit == "2ac5cc71"
+
+
+def test_empty_version():
+    """Empty version string from broken git describe — should not crash."""
+    v = GitVersion("")
+    assert v > GitVersion("9.0.1-71-g2ac5cc719")
+
+    v2 = GitVersion("   ")
+    assert v2 > GitVersion("9.0.1")
+
+
+def test_invalid_version_raises():
+    """Truly unrecognizable strings should still raise."""
+    with pytest.raises(ValueError):
+        GitVersion("not-a-version-at-all!!!")
