@@ -143,6 +143,12 @@ jobs:
         source $BASE_DIR/ci/scripts/make-neurodamus-nrnivmodl.sh \
         && source venv/bin/activate \
         && make-neurodamus-nrnivmodl
+        
+    - name: live debug session, comment out
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+       timeout-minutes: 60  # or any other value you need
 
     - name: Build neocortex mod files and make env
       run: |
