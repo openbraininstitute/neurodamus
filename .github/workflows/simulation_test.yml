@@ -30,7 +30,6 @@ env:
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
   BASE_DIR: ${{ github.workspace }}
-  LD_LIBRARY_PATH: ${{ github.workspace }}/opt/obi/lib
 
 jobs:
   simulation:
@@ -97,18 +96,18 @@ jobs:
         && source $BASE_DIR/ci/scripts/install-sccache.sh \
         && SUDO=sudo install-sccache
 
-    - name: Install HDF5 (parallel, from source)
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        source $BASE_DIR/ci/scripts/install-hdf5.sh \
-        && install-hdf5
-
     - name: Upgrade pip and install base python packages
       run: |
         uv venv --clear --python ${{ matrix.python-version }} venv \
         && source venv/bin/activate \
         && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
         && uv pip list
+
+    - name: Install HDF5 (parallel, from source)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        source $BASE_DIR/ci/scripts/install-hdf5.sh \
+        && install-hdf5
 
     - name: Build h5py
       run: |

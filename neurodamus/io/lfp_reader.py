@@ -20,15 +20,9 @@ class LFPFileReader:
 
     def __init__(self, filepath: str) -> None:
         """Open the electrodes file and validate its structure."""
-        try:
-            self._file = h5py.File(filepath, "r")
-        except OSError as e:
-            raise LFPFileValidationError(f"Error opening LFP electrodes file: {filepath}") from e
+        self.validate(filepath)
+        self._file = h5py.File(filepath, "r")
         self._filepath = filepath
-        if "electrodes" not in self._file:
-            raise LFPFileValidationError(
-                f"LFP electrodes file '{filepath}' is missing the 'electrodes' group."
-            )
 
     @staticmethod
     def validate(filepath: str) -> None:
