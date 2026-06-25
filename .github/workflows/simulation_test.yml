@@ -30,6 +30,7 @@ env:
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
   BASE_DIR: ${{ github.workspace }}
+  LD_LIBRARY_PATH: ${{ github.workspace }}/opt/obi/lib
 
 jobs:
   simulation:
