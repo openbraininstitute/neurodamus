@@ -27,13 +27,14 @@ build-neuron() {
 
     ( cd $NRN && \
         git reset --hard &&
-        git fetch --depth 1 origin $COMMIT &&
+        git fetch --depth 1 origin $COMMIT --tags &&
         git checkout FETCH_HEAD &&
         git submodule update --init --depth=1 --recursive \
             external/spdlog \
             external/Random123 \
             external/fmt \
             external/nanobind \
+            external/coding-conventions \
     )
 
     $PIP install tomli tomli_w

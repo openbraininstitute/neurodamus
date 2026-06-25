@@ -29,6 +29,7 @@ env:
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
+  UV_PYTHON_INSTALL_DIR:  ${{ github.workspace }}/cache/uv-python
   BASE_DIR: ${{ github.workspace }}
 
 jobs:
@@ -55,11 +56,6 @@ jobs:
 
     steps:
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      with:
-        version: "0.11.14"
-
     - name: Checkout neurodamus repository
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
@@ -67,6 +63,12 @@ jobs:
         fetch-depth: 0
         persist-credentials: false
         submodules: recursive
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      with:
+        version: "0.11.14"
+        enable-cache: false
 
     - name: Install ubuntu system dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -183,6 +185,11 @@ jobs:
         export NEURON_INIT_MPI=1 \
         && source $INSTALL_DIR/env-neocortex.sh \
         && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
+
+    # recommendation from https://docs.astral.sh/uv/concepts/cache/#caching-in-continuous-integration
+    - name: Prune the uv cache
+      run: |
+        uv -vv cache prune --ci
 
     # - name: live debug session, comment out
     #   if: failure()
