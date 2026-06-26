@@ -31,7 +31,6 @@ env:
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
   UV_PYTHON_INSTALL_DIR:  ${{ github.workspace }}/cache/uv-python
   BASE_DIR: ${{ github.workspace }}
-  LD_LIBRARY_PATH: ${{ github.workspace }}/opt/obi/lib
 
 jobs:
   simulation:
