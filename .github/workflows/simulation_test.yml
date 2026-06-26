@@ -29,7 +29,6 @@ env:
   CMAKE_BUILD_TYPE: RelWithDebugInfo
   SCCACHE_DIR: ${{ github.workspace }}/cache/sccache
   UV_CACHE_DIR: ${{ github.workspace }}/cache/uv
-  UV_PYTHON_INSTALL_DIR:  ${{ github.workspace }}/cache/uv-python
   BASE_DIR: ${{ github.workspace }}
 
 jobs:
