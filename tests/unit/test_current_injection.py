@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 from scipy.signal import find_peaks
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -25,9 +27,6 @@ from scipy.signal import find_peaks
 ], indirect=True)
 @pytest.mark.forked
 def test_current_injection(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
     nd = Neurodamus(create_tmp_simulation_config_file)
 
     cell_id = 1000

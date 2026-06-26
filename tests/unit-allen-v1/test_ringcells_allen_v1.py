@@ -9,6 +9,7 @@ from tests.conftest import ALLEN_V1_DIR
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.utils.dump_cellstate import dump_cellstate
+from neurodamus.core import NeuronWrapper as Nd
 
 
 @pytest.mark.parametrize(
@@ -21,8 +22,6 @@ from neurodamus.utils.dump_cellstate import dump_cellstate
     indirect=True,
 )
 def test_cell_states(capsys, create_tmp_simulation_config_file):
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
 
     # 1. check warning msg about no BBP syn models
