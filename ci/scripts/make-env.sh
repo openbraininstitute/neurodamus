@@ -21,5 +21,10 @@ make-env() {
     export CORENEURONLIB=$INSTALL_DIR/$ARCH/libcorenrnmech.$LIB_EXT
     export NRNMECH_LIB_PATH=$INSTALL_DIR/$ARCH/libnrnmech.$LIB_EXT
     export PATH=$INSTALL_DIR/$ARCH:$PATH
+    # On Linux, NEURON loads libnrnmech via dlopen with RTLD_LOCAL, hiding its
+    # symbols from ctypes.CDLL(None). LD_PRELOAD forces global visibility.
+    if [[ \$(uname) == Linux ]]; then
+        export LD_PRELOAD=$INSTALL_DIR/$ARCH/libnrnmech.$LIB_EXT
+    fi
 _EOF
 }
