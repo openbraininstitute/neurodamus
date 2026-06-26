@@ -23,7 +23,7 @@ build-libsonata() {
 
     (cd $LIBSONATA && \
         git reset --hard &&
-        git fetch --depth 1 origin $COMMIT &&
+        git fetch --depth 1 origin $COMMIT --tags &&
         git checkout FETCH_HEAD &&
         git submodule update --init --depth=1 \
         extlib/HighFive \
