@@ -701,7 +701,7 @@ def _simulator_globals(config: _SimConfig):
     if config._simulation_config.parsedConditions.randomize_gaba_rise_time:
         if not hasattr(Nd.h, "ProbGABAAB_EMS"):
             raise ConfigurationError(
-                "Cannot enable randomize_gaba_rise_time, likely missing ProbGABAAB_EMS.mod"
+                "Cannot enable randomize_gaba_rise_time, missing ProbGABAAB_EMS.mod"
             )
         Nd.load_hoc("GABAABHelper")
         # in GABAABHelper.hoc this is a string
