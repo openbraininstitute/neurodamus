@@ -184,7 +184,6 @@ jobs:
       run: |
         export NEURON_INIT_MPI=1 \
         && source $INSTALL_DIR/env-neocortex.sh \
-        && export LD_PRELOAD=$NRNMECH_LIB_PATH \
         && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
 
     # recommendation from https://docs.astral.sh/uv/concepts/cache/#caching-in-continuous-integration
