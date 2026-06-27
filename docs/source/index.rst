@@ -21,6 +21,7 @@ Contents
    NGV <ngv>
    Online Local Field Potentials (LFPs) <lfp>
    Neuromodulation <neuromodulation>
+   Building MOD files <build_mod_files>
    Memory Load Balance Tutorial <memory_load_balance>
    More on Neurodamus Wiki <https://github.com/BlueBrain/neurodamus/wiki>
    Module Reference <api/modules>

@@ -5,12 +5,8 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM python:${PYTHON_VERSION}-slim
 
 ENV SCCACHE_DIR=/var/cache/sccache
-
-ARG LIBSONATAREPORT_COMMIT=2.0.0
-ARG LIBSONATA_COMMIT=v0.1.35
-ARG NEURODAMUS_COMMIT=4.2.1
-ARG NEURODAMUS_MODELS_COMMIT=2.4.4
-ARG NEURON_COMMIT=9.0.1
+# Docker Args are: LIBSONATAREPORT_COMMIT LIBSONATA_COMMIT NEURON_COMMIT NEURODAMUS_COMMIT
+# they are defined at the point of usage, to reduce the layers that need to be rebuilt
 
 ENV USER_VENV=/workspace/user_venv
 
@@ -60,17 +56,23 @@ RUN --mount=type=bind,source=ci/scripts/install-h5py.sh,target=/tmp/install-h5py
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' install-h5py
 
+ARG LIBSONATAREPORT_COMMIT=2.0.0
+
 RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/build-libsonatareport.sh \
     --mount=type=cache,target=/var/cache/sccache \
     source /tmp/build-libsonatareport.sh \
     && source $USER_VENV/bin/activate \
     && build-libsonatareport $LIBSONATAREPORT_COMMIT
 
+ARG LIBSONATA_COMMIT=v0.1.35
+
 RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-libsonata.sh \
     --mount=type=cache,target=/root/.cache/uv \
     source /tmp/build-libsonata.sh \
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
+
+ARG NEURON_COMMIT=9.0.1
 
 RUN --mount=type=bind,source=ci/scripts/build-neuron.sh,target=/tmp/build-neuron.sh \
     --mount=type=cache,target=/var/cache/sccache \
@@ -79,24 +81,21 @@ RUN --mount=type=bind,source=ci/scripts/build-neuron.sh,target=/tmp/build-neuron
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' build-neuron $NEURON_COMMIT
 
+ARG NEURODAMUS_COMMIT=c46a58f9bcf72522732fe0dbc2c1456484a8c737
+
 RUN --mount=type=bind,source=ci/scripts/build-neurodamus.sh,target=/tmp/build-neurodamus.sh \
     --mount=type=cache,target=/root/.cache/uv \
     source /tmp/build-neurodamus.sh \
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' build-neurodamus $NEURODAMUS_COMMIT
 
-RUN --mount=type=bind,source=ci/scripts/build-neocortex-models.sh,target=/tmp/build-neocortex-models.sh \
-    --mount=type=cache,target=/var/cache/sccache \
-    source /tmp/build-neocortex-models.sh \
-    && source $USER_VENV/bin/activate \
-    && build-neocortex-models $NEURODAMUS_MODELS_COMMIT
-
-RUN --mount=type=bind,source=ci/scripts/make-env.sh,target=/tmp/make-env.sh \
+RUN --mount=type=bind,source=ci/scripts/make-neurodamus-nrnivmodl.sh,target=/tmp/make-neurodamus-nrnivmodl.sh \
     source $USER_VENV/bin/activate \
-    && source /tmp/make-env.sh \
-    && make-env
+    && source /tmp/make-neurodamus-nrnivmodl.sh \
+    && make-neurodamus-nrnivmodl
 
-RUN --mount=type=bind,source=ci/scripts/make-build-neurodamus-models.sh,target=/tmp/make-build-neurodamus-models.sh \
+RUN --mount=type=bind,source=ci/scripts/make-neocortex-env.sh,target=/tmp/make-neocortex-env.sh \
     source $USER_VENV/bin/activate \
-    && source /tmp/make-build-neurodamus-models.sh \
-    && make-build-neurodamus-models
+    && export PATH=/opt/obi:$PATH \
+    && source /tmp/make-neocortex-env.sh \
+    && make-neocortex-env

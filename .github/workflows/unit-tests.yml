@@ -128,17 +128,17 @@ jobs:
         parallel: true
         fail-on-error: false
 
-    - name: Run tox unit-allen-v1
+    - name: Run tox unit-allen-v1-mpi
       run: |
-        tox -e unit-allen-v1
+        tox -e unit-allen-v1-mpi
 
-    - name: Upload unit-allen-v1 coverage to Coveralls
+    - name: Upload unit-allen-v1-mpi coverage to Coveralls
       if: startsWith(matrix.python-version, env.COVERAGE_PYTHON)
       uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        file: .coverage.unit-allen-v1
-        flag-name: unit-allen-v1
+        file: .coverage.unit-allen-v1-mpi
+        flag-name: unit-allen-v1-mpi
         parallel: true
         fail-on-error: false
 

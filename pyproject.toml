@@ -35,6 +35,7 @@ dryrun=['memray']
 
 [project.scripts]
 neurodamus = "neurodamus.commands:neurodamus"
+neurodamus-compile-mods = "neurodamus.utils.compile_mods:compile_mods"
 
 [project.urls]
 Homepage = "https://github.com/BlueBrain/neurodamus"
