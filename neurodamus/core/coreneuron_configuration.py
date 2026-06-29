@@ -31,11 +31,8 @@ class CompartmentMapping:
     ):
         secvec, segvec, lfp_factors = Nd.Vector(), Nd.Vector(), Nd.Vector()
         num_segments = 0
-        section_attr = getattr(cell._cellref, sec_list, None)
-        if section_attr:
-            for sec in section_attr:
-                section_id = cell.get_section_id(sec)
-                num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
+        for section_id, sec in cell.iter_section_list(sec_list):
+            num_segments += self.create_section_vectors(section_id, sec, secvec, segvec)
 
         num_electrodes = (
             int(electrode_offsets.x[int(electrode_offsets.size()) - 1])

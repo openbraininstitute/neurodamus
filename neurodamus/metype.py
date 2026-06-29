@@ -149,6 +149,27 @@ class BaseCell:
 
         raise SectionIdError(f"Section ID {section_id} is out of bounds.")
 
+    def iter_section_list(self, sec_list_name: str):
+        """Iterate sections from a named section list (e.g. 'somatic', 'axonal').
+
+        Yields (section_id, section) tuples in the order the section list provides.
+        This is the canonical way to enumerate sections within a single type.
+        """
+        section_attr = getattr(self._cellref, sec_list_name, None)
+        if not section_attr:
+            return
+        for sec in section_attr:
+            yield self.get_section_id(sec), sec
+
+    def iter_sections(self):
+        """Iterate all sections in canonical SECTION_TYPES order.
+
+        Yields (section_id, section) tuples. This is the single source of truth
+        for the full-cell segment ordering used by reports, weights, and CoreNEURON.
+        """
+        for _sec_type, sec_list in BaseCell.SECTION_TYPES:
+            yield from self.iter_section_list(sec_list)
+
 
 class METype(BaseCell):
     """Class representing an METype. Will instantiate a Hoc-level cell as well"""
