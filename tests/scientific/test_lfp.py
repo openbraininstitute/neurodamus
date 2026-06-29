@@ -366,3 +366,76 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
                         err_msg="Report A differs from single-report reference")
     npt.assert_allclose(result_data_B.data, ref_B[1].data, rtol=1e-5,
                         err_msg="Report B differs from single-report reference")
+
+
+LFP_MINI5_WEIGHTS = str(SIM_DIR / "v5_sonata" / "sub_mini5" / "lfp_weights_mini5.h5")
+LFP_MINI5_REF = str(RINGTEST_DIR / "reference" / "lfp_reports" / "lfp_v5_mini5.h5")
+
+_V5_LFP_REPORT = {
+    "override_field": 1,
+    "lfp": {
+        "type": "lfp",
+        "cells": "Mosaic",
+        "electrodes_file": LFP_MINI5_WEIGHTS,
+        "dt": 0.1,
+        "start_time": 0.0,
+        "end_time": 10.0,
+    },
+}
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "v5_sonata_config",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {"tstop": 10},
+            "reports": _V5_LFP_REPORT,
+        },
+    },
+    {
+        "simconfig_fixture": "v5_sonata_config",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "run": {"tstop": 10},
+            "reports": _V5_LFP_REPORT,
+        },
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_v5_multicompartment_lfp(create_tmp_simulation_config_file):
+    """NEURON and CoreNEURON must produce identical LFP on multi-compartment cells.
+
+    Uses sub_mini5 (5 cells with real morphologies, hundreds of segments each)
+    with stimulus. Both simulators compare against the same reference file,
+    verifying consistent segment ordering in the scaling factor application.
+    """
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
+
+    _, result_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp.h5")["default"]
+
+    _, ref_data = _read_sonata_lfp_file(LFP_MINI5_REF)["default"]
+    npt.assert_allclose(result_data.data, ref_data.data, rtol=1e-5)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "v5_sonata_config",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {"tstop": 10},
+            "reports": _V5_LFP_REPORT,
+        },
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_v5_multicompartment_lfp_permuted(create_tmp_simulation_config_file):
+    """CoreNEURON with cell_permute=1 must match the unpermuted reference."""
+    nd = Neurodamus(create_tmp_simulation_config_file, cell_permute="node-adjacency")
+    nd.run()
+
+    _, result_data = _read_sonata_lfp_file(Path(SimConfig.output_root) / "lfp.h5")["default"]
+
+    _, ref_data = _read_sonata_lfp_file(LFP_MINI5_REF)["default"]
+    npt.assert_allclose(result_data.data, ref_data.data, rtol=1e-5)

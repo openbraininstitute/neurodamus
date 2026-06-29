@@ -465,6 +465,7 @@ class WeightedSummationReport(Report):
         super().__init__(params=params, use_coreneuron=use_coreneuron)
 
         self._compartments: list[list] = []
+        self._refs: list[list] = []  # pre-stored _ref_i_membrane_ pointers per GID
         self._betas: list[np.ndarray | None] = []
         self._output_vecs: list = []  # keeps Vectors alive for SonataReport
         self._output_nps: list[np.ndarray] = []  # cached numpy views (avoids repeated as_numpy())
@@ -505,6 +506,7 @@ class WeightedSummationReport(Report):
             self.report.AddVar(output_vec._ref_x[out_idx], out_idx, gid, pop_name)
 
         self._compartments.append(compartments)
+        self._refs.append(self._collect_refs(compartments))
         self._betas.append(beta_matrix)
         self._output_vecs.append(output_vec)
         self._output_nps.append(output_np)
@@ -513,6 +515,15 @@ class WeightedSummationReport(Report):
     def _collect_compartments(point: TargetPointList) -> list:
         """Collect compartment references (NEURON segments) from a point's section list."""
         return [sc.sec(point.x[i]) for i, sc in enumerate(point.sclst)]
+
+    def _collect_refs(self, compartments: list) -> list:  # noqa: PLR6301
+        """Pre-store variable reference pointers for fast access at compute time.
+
+        Default returns empty (no pre-caching). Override in subclasses that need
+        fast repeated access to compartment variables (e.g. LFPReport).
+        This is an instance method (not static) because subclasses override it.
+        """
+        return []
 
     def _build_beta_matrix(
         self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
@@ -613,6 +624,9 @@ class LFPReport(WeightedSummationReport):
         return self._lfp_reader.get_scaling_matrix(gid, (pop_name, pop_offset))
 
     def _read_inputs(self, gid_idx: int) -> np.ndarray:
-        """Read i_membrane_ from each compartment and return as numpy array."""
-        compartments = self._compartments[gid_idx]
-        return np.array([comp.i_membrane_ for comp in compartments])
+        """Read i_membrane_ from pre-stored refs (avoids per-segment attribute lookup)."""
+        return np.array([r[0] for r in self._refs[gid_idx]])
+
+    def _collect_refs(self, compartments: list) -> list:  # noqa: PLR6301
+        """Pre-store _ref_i_membrane_ pointers for fast access during compute."""
+        return [comp._ref_i_membrane_ for comp in compartments]
