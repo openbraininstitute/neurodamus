@@ -2,6 +2,23 @@
 Change Log
 ==========
 
+Version 4.2.4
+=============
+**30 June 2026**
+
+*Improvements*
+
+    * remove unused `--experimental-stims` (#546)
+    * Add unit-local tox env for testing with locally-built NEURON (#544)
+    * Update repo banner with OBI logo (#552)
+    * Reorganize data directory (#547)
+    * fix lints after ruff release (#556)
+    * Fix complex dtype crash in contour2centroid with NumPy 2.5.0+ (#558)
+    * Fix GitVersion parser for shallow-clone builds (#565)
+    * LFP: pass electrode_offsets vector for multi-report support (#541)
+    * Add `neurodamus-compile-mods` command to simplify building of NEURON models (#555)
+    * Randomize gaba rise time only when randomize_gaba_rise_time is True (#568)
+
 Version 4.2.3
 =============
 **4 June 2026**
