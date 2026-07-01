@@ -325,6 +325,7 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
         "extra_config": {
             "target_simulator": "CORENEURON",
             "run": {"tstop": 1},
+            "output": {"output_dir": "out"},
             "reports": {"soma_report": "delete_field"},
         },
     },
