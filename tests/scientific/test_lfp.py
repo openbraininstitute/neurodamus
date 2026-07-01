@@ -319,29 +319,34 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
                         err_msg="Report B differs from single-report reference")
 
 
-@pytest.mark.parametrize("create_tmp_simulation_config_file", [
-    {
-        "simconfig_fixture": "v5_sonata_config",
+@pytest.mark.forked
+def test_v5_coreneuron_no_lfp_smoke(test_weights_file, create_simulation_config_file_factory,
+                                    tmp_path):
+    """Exact copy of test_v5_sonata_lfp to verify it passes."""
+    import json
+    from neurodamus import Neurodamus
+
+    _, lfp_weights_file = test_weights_file
+    with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
+        sim_config_data = json.load(f)
+    params = {
         "extra_config": {
+            "network": str(SIM_DIR / "v5_sonata" / "sub_mini5" / "circuit_config.json"),
             "target_simulator": "CORENEURON",
-            "run": {"tstop": 1},
             "reports": {
                 "override_field": 1,
-                "soma_report": {
-                    "type": "compartment",
+                "lfp": {
+                    "type": "lfp",
                     "cells": "Mosaic",
-                    "variable_name": "v",
+                    "electrodes_file": lfp_weights_file,
                     "dt": 0.1,
                     "start_time": 0.0,
-                    "end_time": 1.0,
+                    "end_time": 1.0
                 }
-            },
-        },
-    },
-], indirect=True)
-@pytest.mark.forked
-def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
-    """Smoke test: CoreNEURON on mini5 without LFP (isolates output_spikes crash)."""
-    from neurodamus import Neurodamus
-    nd = Neurodamus(create_tmp_simulation_config_file)
+            }
+        }
+    }
+    config_file = create_simulation_config_file_factory(params, tmp_path, sim_config_data)
+
+    nd = Neurodamus(config_file)
     nd.run()
