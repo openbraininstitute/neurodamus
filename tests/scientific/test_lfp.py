@@ -317,3 +317,21 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
                         err_msg="Report A differs from single-report reference")
     npt.assert_allclose(result_data_B.data, ref_B[1].data, rtol=1e-5,
                         err_msg="Report B differs from single-report reference")
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "v5_sonata_config",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "run": {"tstop": 1},
+            "reports": {"soma_report": "delete_field"},
+        },
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
+    """Smoke test: CoreNEURON on mini5 without LFP (isolates output_spikes crash)."""
+    from neurodamus import Neurodamus
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
