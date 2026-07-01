@@ -324,12 +324,13 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
         "simconfig_fixture": "v5_sonata_config",
         "extra_config": {
             "target_simulator": "CORENEURON",
+            "run": {"tstop": 10},
         }
     },
 ], indirect=True)
 @pytest.mark.forked
 def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
-    """Smoke test: v5_sonata with CoreNEURON, default tstop=100, default soma_report."""
+    """Smoke test: tstop=10 < end_time=40, report.conf will have stop=10."""
     from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
