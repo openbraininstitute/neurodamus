@@ -324,23 +324,13 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
         "simconfig_fixture": "v5_sonata_config",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "reports": {
-                "override_field": 1,
-                "soma_report": {
-                    "type": "compartment",
-                    "cells": "Mosaic",
-                    "variable_name": "v",
-                    "dt": 0.1,
-                    "start_time": 0.0,
-                    "end_time": 1.0
-                }
-            }
+            "run": {"tstop": 1},
         }
     },
 ], indirect=True)
 @pytest.mark.forked
 def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
-    """Smoke test: switch to parametrize fixture."""
+    """Smoke test: use base soma_report (end_time=40) with tstop=1."""
     from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
