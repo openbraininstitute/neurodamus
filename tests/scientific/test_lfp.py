@@ -325,7 +325,17 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
         "extra_config": {
             "target_simulator": "CORENEURON",
             "run": {"tstop": 1},
-            "output": {"output_dir": "out"},
+            "reports": {
+                "override_field": 1,
+                "soma_report": {
+                    "type": "compartment",
+                    "cells": "Mosaic",
+                    "variable_name": "v",
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 1.0,
+                }
+            },
         },
     },
 ], indirect=True)
