@@ -322,7 +322,7 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_v5_coreneuron_no_lfp_smoke(test_weights_file, create_simulation_config_file_factory,
                                     tmp_path):
-    """Exact copy of test_v5_sonata_lfp to verify it passes."""
+    """Exact copy of test_v5_sonata_lfp but with compartment report instead of lfp."""
     import json
     from neurodamus import Neurodamus
 
@@ -335,10 +335,10 @@ def test_v5_coreneuron_no_lfp_smoke(test_weights_file, create_simulation_config_
             "target_simulator": "CORENEURON",
             "reports": {
                 "override_field": 1,
-                "lfp": {
-                    "type": "lfp",
+                "soma_report": {
+                    "type": "compartment",
                     "cells": "Mosaic",
-                    "electrodes_file": lfp_weights_file,
+                    "variable_name": "v",
                     "dt": 0.1,
                     "start_time": 0.0,
                     "end_time": 1.0
