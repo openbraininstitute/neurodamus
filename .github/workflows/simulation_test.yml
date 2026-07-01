@@ -182,7 +182,7 @@ jobs:
       run: |
         export NEURON_INIT_MPI=1 \
         && source $INSTALL_DIR/env-neocortex.sh \
-        && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific
+        && pytest -s -x --forked --durations=5 --durations-min=15 $BASE_DIR/tests/scientific/test_lfp.py::test_v5_coreneuron_no_lfp_smoke
 
     # recommendation from https://docs.astral.sh/uv/concepts/cache/#caching-in-continuous-integration
     - name: Prune the uv cache

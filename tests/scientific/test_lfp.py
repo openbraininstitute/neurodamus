@@ -330,7 +330,8 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
 ], indirect=True)
 @pytest.mark.forked
 def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
-    """Smoke test: use base soma_report (end_time=40) with tstop=1."""
+    """Smoke test: reproduces buffer overflow when end_time(40) > tstop(1)."""
     from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
     nd.run()
