@@ -970,7 +970,7 @@ class Node:
             check_report_parameters(
                 rep_params,
                 Nd.dt,
-                lfp_active=bool(rep_conf.electrodes_file) and SimConfig.use_coreneuron,
+                lfp_active=bool(rep_conf.electrodes_file),
                 cumulative_error=cumulative_error,
             )
             if cumulative_error.is_error_appended:
@@ -1062,7 +1062,7 @@ class Node:
             )
         else:
             sections, compartments = rep_params.sections, rep_params.compartments
-            if (
+            if rep_params.type == libsonata.SimulationConfig.Report.Type.lfp or (
                 rep_params.type == libsonata.SimulationConfig.Report.Type.summation
                 and sections == libsonata.SimulationConfig.Report.Sections.soma
             ):

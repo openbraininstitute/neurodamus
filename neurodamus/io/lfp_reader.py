@@ -65,22 +65,6 @@ class LFPFileReader:
             )
             return 0
 
-    def _get_node_subsets(self, node_id: int, population_name: str) -> np.ndarray:
-        """Retrieve the scaling factor matrix for a single node.
-
-        Args:
-            node_id: The 0-based SONATA node identifier.
-            population_name: The population group name in the HDF5 file.
-
-        Returns:
-            2D array of shape (n_compartments, n_electrodes).
-        """
-        node_ids = self._file[population_name]["node_ids"]
-        index = np.where(np.array(node_ids) == node_id)[0][0]
-        offsets = self._file[population_name]["offsets"]
-        scaling = self._file["electrodes"][population_name]["scaling_factors"]
-        return scaling[offsets[index] : offsets[index + 1], :]
-
     def get_scaling_matrix(self, gid: int, population_info: tuple[str, int]) -> np.ndarray | None:
         """Read LFP scaling factors for a given gid as a numpy array.
 
@@ -105,6 +89,22 @@ class LFPFileReader:
                 e,
             )
             return None
+
+    def _get_node_subsets(self, node_id: int, population_name: str) -> np.ndarray:
+        """Retrieve the scaling factor matrix for a single node.
+
+        Args:
+            node_id: The 0-based SONATA node identifier.
+            population_name: The population group name in the HDF5 file.
+
+        Returns:
+            2D array of shape (n_compartments, n_electrodes).
+        """
+        node_ids = self._file[population_name]["node_ids"]
+        index = np.where(np.array(node_ids) == node_id)[0][0]
+        offsets = self._file[population_name]["offsets"]
+        scaling = self._file["electrodes"][population_name]["scaling_factors"]
+        return scaling[offsets[index] : offsets[index + 1], :]
 
     def close(self) -> None:
         self._file.close()

@@ -1,9 +1,13 @@
+import ctypes
 import logging
 
 import libsonata
+import numpy as np
 
 from .core import NeuronWrapper as Nd
+from .io.lfp_reader import LFPFileReader
 from .report_parameters import ReportParameters
+from .target_manager import TargetPointList
 from .utils.pyutils import cache_errors
 
 
@@ -28,17 +32,11 @@ class ReportManager:
         """Factory method to create a Report instance for the given parameters.
 
         Returns:
-            Report instance for the given type, or None if the type is known
-            but unimplemented (e.g., LFP). Returning None causes the report
-            to be skipped downstream.
+            Report instance for the given type.
 
         Raises:
             ValueError: If the report type is unknown.
         """
-        # LFP is recognized but not implemented; skip it
-        if params.type == libsonata.SimulationConfig.Report.Type.lfp:
-            return None
-
         report_cls = cls._report_types.get(params.type)
         if report_cls is None:
             raise ValueError(f"Unknown report type: {params.type.name}")
@@ -443,3 +441,205 @@ class SynapseReport(Report):
             except AttributeError as e:
                 msg = f"Variable '{variable}' not found at '{synapse.hname()}'."
                 raise AttributeError(msg) from e
+
+
+class WeightedSummationReport(Report):
+    """Report that computes weighted summation of NEURON variables using numpy.
+
+    Mathematical model:
+        result[e] = Sum_compartments beta[e, c] * (Sum_variables var_i[c] * alpha_i)
+
+    For LFP: single variable (i_membrane), alpha=1, beta = electrode scaling factors.
+
+    Uses a pre-record callback in SonataReportHelper to compute values
+    before sonata_record_data samples at report_dt.
+    """
+
+    def __init__(self, params, use_coreneuron):
+        """Initialize the weighted summation report.
+
+        Args:
+            params: ReportParameters with name, dt, start, end, output_dir, unit, report_on.
+            use_coreneuron: Boolean indicating if CoreNEURON is enabled.
+        """
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+
+        self._compartments: list[list] = []
+        self._refs: list[list] = []  # pre-stored _ref_i_membrane_ pointers per GID
+        self._betas: list[np.ndarray | None] = []
+        self._output_vecs: list = []  # keeps Vectors alive for SonataReport
+        self._output_nps: list[np.ndarray] = []  # cached numpy views (avoids repeated as_numpy())
+        self._ctypes_callback: ctypes.CFUNCTYPE | None = None  # prevent GC
+
+    @cache_errors
+    def setup(self, rep_params, global_manager):
+        """Set up the report and register the pre-record callback."""
+        super().setup(rep_params, global_manager)
+        self.register_pre_record_callback()
+
+    def register_gid_section(
+        self,
+        cell_obj,
+        point,
+        vgid,
+        pop_name,
+        pop_offset,
+        sections: libsonata.SimulationConfig.Report.Sections,
+    ):
+        """Collect compartments and load beta weights for a single GID."""
+        gid = cell_obj.gid
+
+        compartments = self._collect_compartments(point)
+        n_compartments = len(compartments)
+        if n_compartments == 0:
+            logging.warning("GID %d has no compartments for report, skipping.", gid)
+            return
+
+        beta_matrix = self._build_beta_matrix(gid, pop_name, pop_offset, n_compartments)
+        n_outputs = beta_matrix.shape[0] if beta_matrix is not None else 1
+
+        output_vec = Nd.Vector(n_outputs)
+        output_np = output_vec.as_numpy()
+
+        self.report.AddNode(gid, pop_name, pop_offset)
+        for out_idx in range(n_outputs):
+            self.report.AddVar(output_vec._ref_x[out_idx], out_idx, gid, pop_name)
+
+        self._compartments.append(compartments)
+        self._refs.append(self._collect_refs(compartments))
+        self._betas.append(beta_matrix)
+        self._output_vecs.append(output_vec)
+        self._output_nps.append(output_np)
+
+    @staticmethod
+    def _collect_compartments(point: TargetPointList) -> list:
+        """Collect compartment references (NEURON segments) from a point's section list."""
+        return [sc.sec(point.x[i]) for i, sc in enumerate(point.sclst)]
+
+    def _collect_refs(self, compartments: list) -> list:  # noqa: PLR6301
+        """Pre-store variable reference pointers for fast access at compute time.
+
+        Default returns empty (no pre-caching). Override in subclasses that need
+        fast repeated access to compartment variables (e.g. LFPReport).
+        This is an instance method (not static) because subclasses override it.
+        """
+        return []
+
+    def _build_beta_matrix(
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Build the beta matrix for a GID.
+
+        Returns:
+            np.ndarray (n_outputs, n_compartments): weighted output.
+            None: no beta provided, use plain summation.
+
+        Raises:
+            ValueError: if beta shape doesn't match compartment count.
+        """
+        beta_raw = self._get_beta_for_gid(gid, pop_name, pop_offset, n_compartments)
+        if beta_raw is not None:
+            beta_arr = np.asarray(beta_raw, dtype=np.float64)
+            if beta_arr.shape[0] != n_compartments:
+                raise ValueError(
+                    f"GID {gid}: beta matrix rows ({beta_arr.shape[0]}) "
+                    f"!= compartments ({n_compartments})."
+                )
+            return beta_arr.T  # (n_outputs, n_compartments)
+        return None
+
+    def _get_beta_for_gid(  # noqa: PLR6301
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Get beta weights for a GID. Override in subclasses for custom sources.
+
+        Subclasses should return a numpy array of shape (n_compartments, n_outputs)
+        or None. None means beta=1 (plain summation to a single output value).
+        """
+        return None
+
+    def register_pre_record_callback(self) -> None:
+        """Register _compute as a pre-record callback in SonataReportHelper.
+
+        Uses ctypes to register a C function pointer that will be called
+        before sonata_record_data at each report timestep.
+        """
+        import os
+        import sys
+
+        # On Linux, NEURON's nrn_load_dll uses dlopen with RTLD_LOCAL, hiding
+        # libnrnmech.so symbols from the global symbol table.  Re-open the
+        # already-loaded library with RTLD_GLOBAL so ctypes.CDLL(None) can
+        # find MOD-defined C functions.  This is only needed for the NEURON
+        # path (CoreNEURON never reaches here).
+        if sys.platform == "linux":
+            nrnmech_lib = os.environ.get("NRNMECH_LIB_PATH")
+            if nrnmech_lib:
+                ctypes.CDLL(nrnmech_lib.split(":")[0].strip(), mode=ctypes.RTLD_GLOBAL)
+
+        CALLBACK_TYPE = ctypes.CFUNCTYPE(None)
+        self._ctypes_callback = CALLBACK_TYPE(self._compute)
+
+        register = ctypes.CDLL(None).sonata_report_helper_register_pre_record_callback
+        register.argtypes = [CALLBACK_TYPE]
+        register.restype = ctypes.c_int
+        result = register(self._ctypes_callback)
+        if result != 0:
+            raise RuntimeError("Failed to register pre-record callback")
+
+    def _compute(self) -> None:
+        """Compute weighted summation for all report GIDs on this rank."""
+        for idx, (beta, output_np) in enumerate(zip(self._betas, self._output_nps, strict=True)):
+            values = self._read_inputs(idx)
+
+            if beta is not None:
+                np.dot(beta, values, out=output_np)
+            else:
+                output_np[0] = values.sum()
+
+    def _read_inputs(self, gid_idx: int) -> np.ndarray:
+        """Read input values from compartments and return as numpy array.
+
+        Override in subclasses to provide variable-specific reading logic.
+        """
+        raise NotImplementedError("Subclasses must implement _read_inputs")
+
+
+@ReportManager.register_type(libsonata.SimulationConfig.Report.Type.lfp)
+class LFPReport(WeightedSummationReport):
+    """LFP report: weighted summation with electrode scaling factors from HDF5.
+
+    Specializes WeightedSummationReport by loading beta (electrode factors)
+    lazily from the electrodes file specified in ReportParameters.
+    """
+
+    def __init__(self, params: ReportParameters, use_coreneuron):
+        """Initialize the LFP report.
+
+        Args:
+            params: ReportParameters (must be LFP type with electrodes_file set).
+            use_coreneuron: Boolean indicating if CoreNEURON is enabled.
+        """
+        super().__init__(params=params, use_coreneuron=use_coreneuron)
+        self._lfp_reader = LFPFileReader(params.electrodes_file)
+
+    @cache_errors
+    def setup(self, rep_params, global_manager):
+        """Set up the LFP report. No-op when CoreNEURON handles LFP natively."""
+        if self.use_coreneuron:
+            return
+        super().setup(rep_params, global_manager)
+
+    def _get_beta_for_gid(
+        self, gid: int, pop_name: str, pop_offset: int, n_compartments: int
+    ) -> np.ndarray | None:
+        """Load electrode scaling factors from the electrodes file for this GID."""
+        return self._lfp_reader.get_scaling_matrix(gid, (pop_name, pop_offset))
+
+    def _read_inputs(self, gid_idx: int) -> np.ndarray:
+        """Read i_membrane_ from pre-stored refs (avoids per-segment attribute lookup)."""
+        return np.array([r[0] for r in self._refs[gid_idx]])
+
+    def _collect_refs(self, compartments: list) -> list:  # noqa: PLR6301
+        """Pre-store _ref_i_membrane_ pointers for fast access during compute."""
+        return [comp._ref_i_membrane_ for comp in compartments]
