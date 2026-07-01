@@ -5,6 +5,7 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM python:${PYTHON_VERSION}-slim
 
 ENV SCCACHE_DIR=/var/cache/sccache
+
 # Docker Args are: LIBSONATAREPORT_COMMIT LIBSONATA_COMMIT NEURON_COMMIT NEURODAMUS_COMMIT
 # they are defined at the point of usage, to reduce the layers that need to be rebuilt
 
@@ -42,15 +43,19 @@ RUN --mount=type=bind,source=ci/scripts/install-python-dependencies.sh,target=/t
     && PIP='uv pip' install-python-dependencies
 
 RUN --mount=type=bind,source=ci/scripts/install-sccache.sh,target=/tmp/install-sccache.sh \
+    --mount=type=cache,target=/var/cache/sccache \
     source /tmp/install-sccache.sh \
 	&& install-sccache
 
 RUN --mount=type=bind,source=ci/scripts/install-hdf5.sh,target=/tmp/install-hdf5.sh \
+    --mount=type=cache,target=/var/cache/sccache \
     source $USER_VENV/bin/activate \
     && source /tmp/install-hdf5.sh \
-	&& install-hdf5
+	&& install-hdf5 \
+    && rm -rf /$BUILD_DIR/hdf5
 
 RUN --mount=type=bind,source=ci/scripts/install-h5py.sh,target=/tmp/install-h5py.sh \
+    --mount=type=cache,target=/root/.cache/uv \
     mkdir -p /tmp/stable-build \
     && source /tmp/install-h5py.sh \
     && source $USER_VENV/bin/activate \
@@ -62,26 +67,29 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/bui
     --mount=type=cache,target=/var/cache/sccache \
     source /tmp/build-libsonatareport.sh \
     && source $USER_VENV/bin/activate \
-    && build-libsonatareport $LIBSONATAREPORT_COMMIT
+    && build-libsonatareport $LIBSONATAREPORT_COMMIT \
+    && rm -rf /$BUILD_DIR/libsonatareport
 
-ARG LIBSONATA_COMMIT=v0.1.35
+ARG LIBSONATA_COMMIT=v0.1.37
 
 RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-libsonata.sh \
     --mount=type=cache,target=/root/.cache/uv \
     source /tmp/build-libsonata.sh \
     && source $USER_VENV/bin/activate \
-    && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT
+    && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT \
+    && rm -rf /$BUILD_DIR/libsonata
 
-ARG NEURON_COMMIT=9.0.1
+ARG NEURON_COMMIT=2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
 
 RUN --mount=type=bind,source=ci/scripts/build-neuron.sh,target=/tmp/build-neuron.sh \
     --mount=type=cache,target=/var/cache/sccache \
     --mount=type=cache,target=/root/.cache/uv \
     source /tmp/build-neuron.sh \
     && source $USER_VENV/bin/activate \
-    && PIP='uv pip' build-neuron $NEURON_COMMIT
+    && PIP='uv pip' build-neuron $NEURON_COMMIT \
+    && rm -rf /$BUILD_DIR/nrn/
 
-ARG NEURODAMUS_COMMIT=c46a58f9bcf72522732fe0dbc2c1456484a8c737
+ARG NEURODAMUS_COMMIT=4b162c5c8870e2a7d1beeb472cf9850886a253b3
 
 RUN --mount=type=bind,source=ci/scripts/build-neurodamus.sh,target=/tmp/build-neurodamus.sh \
     --mount=type=cache,target=/root/.cache/uv \
@@ -98,4 +106,4 @@ RUN --mount=type=bind,source=ci/scripts/make-neocortex-env.sh,target=/tmp/make-n
     source $USER_VENV/bin/activate \
     && export PATH=/opt/obi:$PATH \
     && source /tmp/make-neocortex-env.sh \
-    && make-neocortex-env
+    && BASE_DIR=/tmp/neurodamus make-neocortex-env
