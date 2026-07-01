@@ -324,14 +324,12 @@ def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
         "simconfig_fixture": "v5_sonata_config",
         "extra_config": {
             "target_simulator": "CORENEURON",
-            "run": {"tstop": 1},
         }
     },
 ], indirect=True)
 @pytest.mark.forked
 def test_v5_coreneuron_no_lfp_smoke(create_tmp_simulation_config_file):
-    """Smoke test: reproduces buffer overflow when end_time(40) > tstop(1)."""
+    """Smoke test: v5_sonata with CoreNEURON, default tstop=100, default soma_report."""
     from neurodamus import Neurodamus
     nd = Neurodamus(create_tmp_simulation_config_file)
-    nd.run()
     nd.run()
