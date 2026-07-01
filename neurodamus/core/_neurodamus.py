@@ -101,38 +101,6 @@ class _NeuronWrapper(_Neuron):
                 " are custom synapse models loaded instead?",
             )
 
-        # On Linux, NEURON's nrn_load_dll uses dlopen with RTLD_LOCAL, so symbols
-        # from libnrnmech.so are not visible in the global symbol table.  This
-        # prevents ctypes.CDLL(None) from finding MOD-defined C functions.
-        # Re-open the library with RTLD_GLOBAL to promote its symbols.
-        cls._promote_mech_symbols()
-
-    @classmethod
-    def _promote_mech_symbols(cls):
-        """Re-open NRNMECH_LIB_PATH libraries with RTLD_GLOBAL on Linux.
-
-        NEURON's nrn_load_dll uses dlopen with RTLD_LOCAL, hiding symbols from
-        the global symbol table.  This makes them inaccessible via
-        ctypes.CDLL(None), which is needed to call MOD-defined C functions
-        (e.g. sonata_report_helper_register_pre_record_callback).
-
-        Re-opening the already-loaded library with RTLD_GLOBAL promotes its
-        symbols without loading anything new.
-        """
-        if sys.platform != "linux":
-            return
-
-        import ctypes
-
-        mechlib = os.environ.get("NRNMECH_LIB_PATH")
-        if not mechlib:
-            return
-
-        for libpath in mechlib.split(":"):
-            libpath = libpath.strip()
-            if os.path.isfile(libpath):
-                ctypes.CDLL(libpath, mode=ctypes.RTLD_GLOBAL)
-
     @property
     def pc(self):
         self._pc or self._init()

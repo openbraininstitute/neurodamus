@@ -564,6 +564,19 @@ class WeightedSummationReport(Report):
         Uses ctypes to register a C function pointer that will be called
         before sonata_record_data at each report timestep.
         """
+        import os
+        import sys
+
+        # On Linux, NEURON's nrn_load_dll uses dlopen with RTLD_LOCAL, hiding
+        # libnrnmech.so symbols from the global symbol table.  Re-open the
+        # already-loaded library with RTLD_GLOBAL so ctypes.CDLL(None) can
+        # find MOD-defined C functions.  This is only needed for the NEURON
+        # path (CoreNEURON never reaches here).
+        if sys.platform == "linux":
+            nrnmech_lib = os.environ.get("NRNMECH_LIB_PATH")
+            if nrnmech_lib:
+                ctypes.CDLL(nrnmech_lib.split(":")[0].strip(), mode=ctypes.RTLD_GLOBAL)
+
         CALLBACK_TYPE = ctypes.CFUNCTYPE(None)
         self._ctypes_callback = CALLBACK_TYPE(self._compute)
 
