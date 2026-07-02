@@ -21,7 +21,11 @@ on:
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
   LIBSONATA_COMMIT: v0.1.37
+<<<<<<< Updated upstream
   NEURON_COMMIT: b0dcd70f923449245c854d9b65b246b28bcb4878
+=======
+  NEURON_COMMIT: 4a478b1ee23ba45cbc20a2feb1ae03b1ffb21eab
+>>>>>>> Stashed changes
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
