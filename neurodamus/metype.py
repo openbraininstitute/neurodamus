@@ -155,10 +155,7 @@ class BaseCell:
         Yields (section_id, section) tuples in the order the section list provides.
         This is the canonical way to enumerate sections within a single type.
         """
-        section_attr = getattr(self._cellref, sec_list_name, None)
-        if not section_attr:
-            return
-        for sec in section_attr:
+        for sec in getattr(self._cellref, sec_list_name, ()):
             yield self.get_section_id(sec), sec
 
     def iter_sections(self):
