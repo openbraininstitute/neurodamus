@@ -19,7 +19,6 @@ ENV CMAKE_BUILD_TYPE=RelWithDebugInfo
 COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_=PYTHON_DOWNLOADSnever \
     UV_PYTHON=python${PYTHON_VERSION}
 
 SHELL ["/bin/bash", "-c"]
