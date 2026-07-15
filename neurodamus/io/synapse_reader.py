@@ -99,7 +99,7 @@ class SynapseParameters:
         """Scale 'U' and other vars using constrained Hill function based on
         extracellular calcium.
         """
-        if len(syn_params) == 0 or extra_cellular_calcium is None:
+        if extra_cellular_calcium is None or "u_hill_coefficient" not in syn_params.dtype.names:
             return
 
         scale_factors = SynapseParameters._constrained_hill(

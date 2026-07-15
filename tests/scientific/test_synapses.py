@@ -113,6 +113,8 @@ def test_synapses_params():
             self.U = np.array(a)
             self.u_hill_coefficient = np.array(b)
             assert self.U.size == self.u_hill_coefficient.size
+            fields = list( {"U": np.float64, "u_hill_coefficient": np.float64}.items() )
+            self.dtype = np.dtype(fields)
 
         def __len__(self):
             return self.U.size

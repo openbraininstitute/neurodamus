@@ -131,3 +131,27 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     assert spikes[1].size() == 2
     assert spikes[1][0] == 0
     assert spikes[0][0] == pytest.approx(21.025)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "src_dir": str(SIM_DIR / "v5_gapjunctions"),
+        "simconfig_file": "simulation_config.json",
+        "extra_config": {
+            "conditions": {
+                "v_init": -80,
+                "extracellular_calcium": 1.1
+            }
+        }
+    }
+], indirect=True)
+def test_v5_gap_junction_with_conditions(create_tmp_simulation_config_file):
+    import numpy as np
+    from neurodamus import Neurodamus
+    from neurodamus.gap_junction import GapJunctionManager
+
+    config_file = create_tmp_simulation_config_file
+
+    # Regression test: having condition extracellular_calcium should not fail since
+    # gap junctions don't have u_hill_coefficient.
+    Neurodamus(config_file, disable_reports=True)
