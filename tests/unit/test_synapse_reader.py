@@ -104,24 +104,3 @@ def test_conn_manager_syn_stats():
     assert total_synapses == total_synapses_metype_x + additional_synapses
     assert stats.metype_cell_syn_average["metype-x"] == 2
     assert stats.metype_cell_syn_average["metype-y"] == 2
-
-
-def test_no_hill():
-    """
-    Regression test to make sure that syanpse types may not have a
-    u_hill_coefficient parameter. e.g. Gap junction electrical type
-    """
-    class NoHill:
-        def __init__(self):
-            self.U = np.array([0.5])
-            self.dtype = np.dtype([("U", np.float64)])
-
-        def __len__(self):
-            return len(self.U)
-
-    obj = NoHill()
-
-    from neurodamus.io.synapse_reader import SynapseParameters
-
-    # Should simply return without raising an error
-    SynapseParameters._patch_scale_U_param(obj, 1.1, [])

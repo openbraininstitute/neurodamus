@@ -20,27 +20,9 @@ class SynapseParameters:
     https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#edge-file
     """
 
-    _fields = {
-        "sgid": np.int64,
-        "delay": np.float64,
-        "isec": np.int32,
-        "ipt": np.int32,
-        "offset": np.float64,
-        "weight": np.float64,
-        "U": np.float64,
-        "D": np.float64,
-        "F": np.float64,
-        "DTC": np.float64,
-        "synType": np.int32,
-        "nrrp": np.int32,
-        "u_hill_coefficient": np.float64,
-        "conductance_ratio": np.float64,
-        "maskValue": np.float64,
-        "location": np.float64,
-    }
-
-    _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0}
-    _reserved = {"maskValue": -1.0, "location": 0.5}
+    _fields = { "location": np.float64 }
+    _reserved = {"location": 0.5}
+    _optional = {}
 
     @classmethod
     def all_fields(cls):
@@ -83,40 +65,8 @@ class SynapseParameters:
         dt = Nd.dt
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
-    @staticmethod
-    def _constrained_hill(K_half, y):  # noqa: N803
-        """Constrained Hill function for scaling synaptic parameters.
-
-        Note: it is iused only in scale_U_param. It is its own function
-        because it deserves to be tested separately.
-        """
-        K4 = K_half**4
-        y4 = y**4
-        return (K4 + 16) / 16 * y4 / (K4 + y4)
-
-    @staticmethod
-    def _patch_scale_U_param(syn_params, extra_cellular_calcium, extra_scale_vars):
-        """Scale 'U' and other vars using constrained Hill function based on
-        extracellular calcium.
-        """
-        if extra_cellular_calcium is None or "u_hill_coefficient" not in syn_params.dtype.names:
-            return
-
-        scale_factors = SynapseParameters._constrained_hill(
-            syn_params.u_hill_coefficient, extra_cellular_calcium
-        )
-        syn_params.U *= scale_factors
-        for var in extra_scale_vars:
-            syn_params[var] *= scale_factors
-
     @classmethod
-    def make_synapse_parameters_array(
-        cls,
-        data: dict,
-        extra_fields: list[str],
-        extra_cellular_calcium: float | None,
-        extra_scale_vars: list[str],
-    ):
+    def make_synapse_parameters_array(cls, data: dict, extra_fields: list[str]):
         """Create a recarray from data with optional extra fields and apply patches."""
         if not data:
             return np.recarray(0, dtype=cls.dtype(extra_fields=None))
@@ -134,7 +84,6 @@ class SynapseParameters:
                 raise AttributeError(f"Missing mandatory attribute {name} in the SONATA edge file")
 
         cls._patch_delay_fp_inaccuracies(arr)
-        cls._patch_scale_U_param(arr, extra_cellular_calcium, extra_scale_vars)
 
         return arr
 
@@ -171,14 +120,15 @@ class SonataReader:
     }
 
     def __init__(self, edge_file, population=None, *_, **kw):
-        self._ca_concentration = kw.get("extracellular_calcium")
         self._syn_params = {}  # Parameters cache by post-gid (previously loadedMap)
         self._open_file(edge_file, population, kw.get("verbose", False))
-        # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
-        # while u_hill_coefficient can always be readif avail, conductance reader may not.
-        self._uhill_property_avail = self.has_property("u_hill_coefficient")
         self._extra_fields = set()
-        self._extra_scale_vars = []
+
+    @staticmethod
+    def _get_override_attributes(mod_override, suffix):
+        """Return formatted attribute names ("attr1;attr2;attr3") from HOC helper in a list."""
+        attr_names = getattr(Nd, f"{mod_override}Helper_{suffix}", None)
+        return attr_names.split(";") if attr_names else []
 
     def configure_override(self, mod_override):
         if not mod_override:
@@ -187,20 +137,22 @@ class SonataReader:
         override_helper = mod_override + "Helper"
         Nd.load_hoc(override_helper)
 
-        # Read attribute names with format "attr1;attr2;attr3"
-        attr_names = getattr(Nd, override_helper + "_NeededAttributes", None)
-        if attr_names:
+        needed_attrs = self._get_override_attributes(mod_override, "NeededAttributes")
+        if needed_attrs:
             log_verbose(
-                'Reading parameters "{}" for mod override: {}'.format(
-                    ", ".join(attr_names.split(";")), mod_override
-                )
+                'Reading parameters "%s" for mod override: %s',
+                ", ".join(needed_attrs),
+                mod_override,
             )
-            self._extra_fields = set(attr_names.split(";"))
+            self._extra_fields = set(needed_attrs)
 
-        # Read attribute names with format "attr1;attr2;attr3"
-        attr_names = getattr(Nd, override_helper + "_UHillScaleVariables", None)
-        if attr_names:
-            self._extra_scale_vars = attr_names.split(";")
+    def _make_synapse_parameters_array(self, data) -> np.recarray:
+        """Create a synapse parameter array from raw SONATA data.
+
+        Subclasses may override this method to provide additional simulation state
+        required when constructing the parameter array.
+        """
+        return self.Parameters.make_synapse_parameters_array(data, self._extra_fields)
 
     def get_synapse_parameters(self, gid) -> np.recarray:
         """Return the synapse parameters record array for the given gid,
@@ -214,10 +166,9 @@ class SonataReader:
                 self._preload_data_chunk([gid])
                 data = self._data[gid]
 
-            # create the synapse parameters array, already patched
-            syn_params = self.Parameters.make_synapse_parameters_array(
-                data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
-            )
+            # create the synapse parameters array, allowing custom logic in derived classes
+            syn_params = self._make_synapse_parameters_array(data)
+
             # cache the results
             self._syn_params[gid] = syn_params
         return syn_params
@@ -490,3 +441,89 @@ class SonataReader:
                 self._counts[tgid] = tgid_counts
 
         return {tgid: self._counts.get(tgid, self.EMPTY_DATA) for tgid in tgids}
+
+
+class ChemicalSynapseParameters(SynapseParameters):
+
+    _fields = {
+        "sgid": np.int64,
+        "delay": np.float64,
+        "isec": np.int32,
+        "ipt": np.int32,
+        "offset": np.float64,
+        "weight": np.float64,
+        "U": np.float64,
+        "D": np.float64,
+        "F": np.float64,
+        "DTC": np.float64,
+        "synType": np.int32,
+        "nrrp": np.int32,
+        "u_hill_coefficient": np.float64,
+        "conductance_ratio": np.float64,
+        "maskValue": np.float64,
+        "location": np.float64,
+    }
+
+    _optional = {"u_hill_coefficient": 0.0, "conductance_ratio": -1.0}
+    _reserved = {"maskValue": -1.0, "location": 0.5}
+
+    @staticmethod
+    def _constrained_hill(K_half, y):  # noqa: N803
+        """Constrained Hill function for scaling synaptic parameters.
+
+        Note: it is used only in scale_U_param. It is its own function
+        because it deserves to be tested separately.
+        """
+        K4 = K_half**4
+        y4 = y**4
+        return (K4 + 16) / 16 * y4 / (K4 + y4)
+
+    @classmethod
+    def _patch_scale_U_param(cls, syn_params, extra_cellular_calcium, extra_scale_vars):
+        """Scale 'U' and other vars using constrained Hill function based on
+        extracellular calcium.
+        """
+        if len(syn_params) == 0 or extra_cellular_calcium is None:
+            return
+
+        scale_factors = cls._constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
+        syn_params.U *= scale_factors
+        for var in extra_scale_vars:
+            syn_params[var] *= scale_factors
+
+    @classmethod
+    def make_synapse_parameters_array(
+        cls,
+        data: dict,
+        extra_fields: list[str],
+        extra_cellular_calcium: float | None,
+        extra_scale_vars: list[str],
+    ):
+        """Create a recarray from data with optional extra fields and apply patches."""
+        arr = super().make_synapse_parameters_array(data, extra_fields)
+
+        cls._patch_scale_U_param(arr, extra_cellular_calcium, extra_scale_vars)
+
+        return arr
+
+
+class ChemicalSynapseReader(SonataReader):
+    Parameters = ChemicalSynapseParameters
+
+    def __init__(self, edge_file, population=None, *_, **kw):
+        super().__init__(edge_file, population, *_, **kw)
+        self._ca_concentration = kw.get("extracellular_calcium")
+        self._extra_scale_vars = []
+
+    def configure_override(self, mod_override):
+        super().configure_override(mod_override)
+        if mod_override:
+            self._extra_scale_vars = self._get_override_attributes(
+                mod_override, "UHillScaleVariables"
+            )
+
+    def _make_synapse_parameters_array(self, data) -> np.recarray:
+        """Create synapse parameters and apply chemical-synapse scaling."""
+        return self.Parameters.make_synapse_parameters_array(
+            data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
+        )
