@@ -20,7 +20,7 @@ class SynapseParameters:
     https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#edge-file
     """
 
-    _fields = { "location": np.float64 }
+    _fields = {}
     _reserved = {"location": 0.5}
     _optional = {}
 
@@ -444,7 +444,6 @@ class SonataReader:
 
 
 class ChemicalSynapseParameters(SynapseParameters):
-
     _fields = {
         "sgid": np.int64,
         "delay": np.float64,
