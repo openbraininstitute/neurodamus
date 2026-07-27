@@ -211,8 +211,7 @@ def test_parse_connections(create_tmp_simulation_config):
 ], indirect=True)
 def test_parse_ouput(create_tmp_simulation_config):
     SimConfig.init(create_tmp_simulation_config, {})
-    # output section
-    assert SimConfig.run_conf.spikes_file == "spikes.h5"
+    assert SimConfig.run_conf.spikes_file == f"{create_tmp_simulation_config.base_path}/spikes.h5"
     assert SimConfig.run_conf.spikes_sort_order == libsonata.SimulationConfig.Output.SpikesSortOrder.by_time
 
 
