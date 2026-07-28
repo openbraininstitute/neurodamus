@@ -146,7 +146,6 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_v5_gap_junction_with_conditions(create_tmp_simulation_config_file):
-    import numpy as np
     from neurodamus import Neurodamus
     from neurodamus.gap_junction import GapJunctionManager
 

@@ -13,14 +13,15 @@ from neurodamus.utils.pyutils import gen_ranges
 
 
 class SynapseParameters:
-    """Synapse parameter names and dtypes for numpy recarrays
-    following the SONATA specification.
+    """Synapse parameter names and dtypes for numpy recarrays.
+    Subclasses override `_fields`, `_reserved`, and `_optional` as needed to
+    match the corresponding SONATA specification.
 
-    For detailed info on the parameters, see:
+    For detailed information on parameters for supported synapse types, see:
     https://sonata-extension.readthedocs.io/en/latest/sonata_tech.html#edge-file
     """
 
-    _fields = {}
+    _fields = {"delay": np.float64, "location": np.float64}
     _reserved = {"location": 0.5}
     _optional = {}
 
@@ -166,7 +167,6 @@ class SonataReader:
                 self._preload_data_chunk([gid])
                 data = self._data[gid]
 
-            # create the synapse parameters array, allowing custom logic in derived classes
             syn_params = self._make_synapse_parameters_array(data)
 
             # cache the results
@@ -482,7 +482,7 @@ class ChemicalSynapseParameters(SynapseParameters):
         """Scale 'U' and other vars using constrained Hill function based on
         extracellular calcium.
         """
-        if len(syn_params) == 0 or extra_cellular_calcium is None:
+        if extra_cellular_calcium is None:
             return
 
         scale_factors = cls._constrained_hill(syn_params.u_hill_coefficient, extra_cellular_calcium)
