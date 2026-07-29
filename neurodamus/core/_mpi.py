@@ -46,7 +46,7 @@ class _MPI:
             time.sleep(0.01 * cls._rank)  # Order errors
 
             # exception should be set, hence the exc_info
-            logging.critical(str(value), exc_info=True)  # noqa: LOG014
+            logging.critical(str(value), exc_info=True)  # ruff: ignore[exc-info-outside-except-handler]
 
             if cls._rank == 0:
                 import traceback

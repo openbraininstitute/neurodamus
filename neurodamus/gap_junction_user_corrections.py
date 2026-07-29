@@ -53,7 +53,7 @@ non_stochastic_mechs = [
 stochastic_mechs = ["StochKv", "StochKv2", "StochKv3"]
 
 
-def load_user_modifications(gj_manager):  # noqa: C901
+def load_user_modifications(gj_manager):  # ruff: ignore[complex-structure]
     """Apply user modifications on gap junction connections, designed by @Oren Amsalem
     The modification parameters should be in the "beta_features" section of
     the simulation config file.
@@ -217,7 +217,7 @@ def _load_holding_ic(node_manager, filename, gjc):
             )
             holding_ic_per_gid[final_gid].dur = 9e9
             try:
-                holding_ic_per_gid[final_gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]  # noqa: E501 #fmt: skip
+                holding_ic_per_gid[final_gid].amp = holding_per_gid["holding_per_gid"][str(gjc)][agid][()]  # ruff: ignore[line-too-long] #fmt: skip
             except Exception as e:
                 raise ConfigurationError(
                     f"Failed to load data in g_pas file {filename}: {e}"

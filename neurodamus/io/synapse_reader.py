@@ -84,7 +84,7 @@ class SynapseParameters:
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @staticmethod
-    def _constrained_hill(K_half, y):  # noqa: N803
+    def _constrained_hill(K_half, y):  # ruff: ignore[invalid-argument-name]
         """Constrained Hill function for scaling synaptic parameters.
 
         Note: it is iused only in scale_U_param. It is its own function
@@ -267,7 +267,7 @@ class SonataReader:
         for start, end in ProgressBar.iter(ranges, name="Prefetching"):
             self._preload_data_chunk(gids[start:end], minimal_mode)
 
-    def _preload_data_chunk(self, gids, minimal_mode=False):  # noqa: C901
+    def _preload_data_chunk(self, gids, minimal_mode=False):  # ruff: ignore[complex-structure]
         """Preload all synapses for a number of gids, respecting Parameters and _extra_fields"""
         compute_fields = {"sgid", "tgid", *self.SYNAPSE_INDEX_NAMES}
         orig_needed_gids_set = set(gids) - set(self._data.keys())

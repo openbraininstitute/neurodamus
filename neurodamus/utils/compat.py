@@ -25,7 +25,7 @@ class Vector(array):
         return self
 
 
-class List(list):  # noqa: FURB189
+class List(list):  # ruff: ignore[subclass-builtin]
     """Behavior similar to Hoc List"""
 
     __slots__ = ()

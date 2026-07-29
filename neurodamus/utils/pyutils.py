@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import subprocess  # noqa: S404
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import weakref
 from bisect import bisect_left
 from enum import EnumMeta, IntEnum
@@ -78,7 +78,7 @@ def docopt_sanitize(docopt_opts):
     return opts
 
 
-class WeakList(list):  # noqa: FURB189
+class WeakList(list):  # ruff: ignore[subclass-builtin]
     def append(self, item):
         list.append(self, weakref.ref(item, self.remove))
 
@@ -231,8 +231,8 @@ def rmtree(path):
     Note: shutils.rmtree wouldn't complete for directories with many files.
     See:
     https://github.com/openbraininstitute/neurodamus/pull/247/files/e9d12100b22bf512fdcd624022d9d999cb50db77#r2079776328  # noqa: E501
-    """  # noqa: E501
-    subprocess.call(["/bin/rm", "-rf", path])  # noqa: S603
+    """  # ruff: ignore[line-too-long]
+    subprocess.call(["/bin/rm", "-rf", path])  # ruff: ignore[subprocess-without-shell-equals-true]
 
 
 def cache_errors(func):

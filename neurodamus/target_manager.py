@@ -246,7 +246,7 @@ class TargetManager:
 
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
-    @lru_cache  # noqa: B019
+    @lru_cache  # ruff: ignore[cached-instance-method]
     def intersecting(self, target1_spec: TargetSpec, target2_spec: TargetSpec):
         """Checks whether two targets intersect"""
         if target1_spec.disjoint_populations(target2_spec):
