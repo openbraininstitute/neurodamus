@@ -1,5 +1,7 @@
-import pytest
+import os
 from pathlib import Path
+
+import pytest
 
 pytestmark = pytest.mark.forked  # independent processes
 
@@ -9,6 +11,7 @@ pytestmark = pytest.mark.forked  # independent processes
         "simconfig_fixture": "sonata_config",
         "extra_config": {
             "output": {
+                "output_dir": ".",
                 "log_file": "my_pydamus.log"
             }
         }
@@ -19,7 +22,7 @@ def test_sonata_logfile(create_tmp_simulation_config_file):
     # create a tmp json file to test the user defined log_file
     _ = Node(create_tmp_simulation_config_file)
 
-    assert Path("my_pydamus.log").exists()
+    assert (Path(create_tmp_simulation_config_file).parent / "my_pydamus.log").exists()
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
