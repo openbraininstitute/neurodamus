@@ -606,7 +606,7 @@ class ConnectionManagerBase:
             return {"synapse_index": syn_index}
         return {}
 
-    def _iterate_conn_params(  # noqa: PLR0914
+    def _iterate_conn_params(  # ruff: ignore[too-many-locals]
         self,
         src_target,
         dst_target,
@@ -697,7 +697,7 @@ class ConnectionManagerBase:
                 pathway_repr = f"Pathway {src_target.name} -> {dst_target.name}"
             logging.info(" * %s. Created %d connections", pathway_repr, all_created)
 
-    def _get_conn_stats(self, dst_target, src_target=None):  # noqa: PLR0914
+    def _get_conn_stats(self, dst_target, src_target=None):  # ruff: ignore[too-many-locals]
         """Estimates the number of synapses for the given destination and source nodesets
 
         Args:

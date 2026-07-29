@@ -42,7 +42,7 @@ def mpi_no_errors(f):
     return mpi_ok_wrapper
 
 
-class run_only_rank0:  # noqa: N801
+class run_only_rank0:  # ruff: ignore[invalid-class-name]
     """Decorator that makes a given func to run only in rank 0.
 
     It will broadcast results IFF the user specifies return type notation.
@@ -54,7 +54,7 @@ class run_only_rank0:  # noqa: N801
     def __new__(cls, f):
         has_return = signature(f).return_annotation != Signature.empty
 
-        @wraps(f)  # noqa: RET503
+        @wraps(f)  # ruff: ignore[implicit-return]
         def rank0_wrapper(*args, **kw):
             # Situation we dont need/want the broadcast
             if MPI.size == 1 or cls.nested_depth > 0:
@@ -90,7 +90,7 @@ class SimulationProgress:
         if (current_time - self.last_time_check > 0.75) and (sim_t > 0):
             self.last_time_check = current_time
             sec_remain = (self.last_time_check - self.sim_start) * (sim_tstop / sim_t - 1)
-            print(  # noqa: T201
+            print(  # ruff: ignore[print]
                 f"\r[t={sim_t:5.2f}] Completed {sim_t * 100 / sim_tstop:2.0f}%"
                 f" ETA: {timedelta(seconds=int(sec_remain))}  ",
                 end="",

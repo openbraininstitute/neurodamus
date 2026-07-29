@@ -1,7 +1,7 @@
 """Main module for handling and instantiating synaptical connections"""
 
 import logging
-import pickle  # noqa: S403
+import pickle  # ruff: ignore[suspicious-pickle-import]
 from pathlib import Path
 
 import numpy as np

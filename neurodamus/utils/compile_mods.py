@@ -5,7 +5,7 @@ import json
 import logging
 import platform
 import shutil
-import subprocess  # noqa: S404
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
@@ -177,7 +177,7 @@ def _build_mod_files(
 
     cmd.append(str(mod_dir))
 
-    res = subprocess.run(cmd, cwd=str(output_dir), stdout=sys.stderr, check=False)  # noqa: S603
+    res = subprocess.run(cmd, cwd=str(output_dir), stdout=sys.stderr, check=False)  # ruff: ignore[subprocess-without-shell-equals-true]
 
     if res.returncode:
         raise RuntimeError("Failed to compile")
@@ -266,9 +266,9 @@ def compile_mods():
 
     match args.output_type:
         case "json":
-            print(json.dumps(env))  # noqa: T201
+            print(json.dumps(env))  # ruff: ignore[print]
         case "shell":
-            print("\n".join(f"{k}={v}" for k, v in env.items()))  # noqa: T201
+            print("\n".join(f"{k}={v}" for k, v in env.items()))  # ruff: ignore[print]
 
 
 if __name__ == "__main__":

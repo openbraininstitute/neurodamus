@@ -158,10 +158,10 @@ class SignalSource:
         self._add_point(self._base_amp)
         return self
 
-    def add_shot_noise(  # noqa: PLR0914
+    def add_shot_noise(  # ruff: ignore[too-many-locals]
         self,
-        tau_D,  # noqa: N803
-        tau_R,  # noqa: N803
+        tau_D,  # ruff: ignore[invalid-argument-name]
+        tau_R,  # ruff: ignore[invalid-argument-name]
         rate,
         amp_mean,
         amp_var,
@@ -346,7 +346,7 @@ class SignalSource:
         return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
 
     @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # noqa: N803
+    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # ruff: ignore[invalid-argument-name]
         return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
 
     @classmethod
