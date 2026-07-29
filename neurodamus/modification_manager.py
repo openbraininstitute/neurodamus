@@ -131,7 +131,7 @@ class ConfigureAllSectionsModification:
                 sec = sc.sec
                 if all(hasattr(sec, x) for x in config_attrs):  # if has all attributes
                     # unsafe but sanitized
-                    exec(config, {"__builtins__": None}, {"sec": sec})  # noqa: S102
+                    exec(config, {"__builtins__": None}, {"sec": sec})  # ruff: ignore[exec-builtin]
                     napply += 1
 
         log_verbose(f"Applied to {napply} sections")

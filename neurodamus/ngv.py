@@ -87,7 +87,7 @@ class Astrocyte(BaseCell):
         parent_id: int,
         length: float,
         diameter: float,
-        R0pas: float,  # noqa: N803
+        R0pas: float,  # ruff: ignore[invalid-argument-name]
     ) -> bool:
         """Initialize an endfoot NEURON section with custom geometry and mechanisms.
 
@@ -144,7 +144,7 @@ class Astrocyte(BaseCell):
             return self._cellref.endfeet
         return Nd.SectionList()
 
-    def add_endfeet(self, parent_ids, lengths, diameters, R0passes):  # noqa: N803
+    def add_endfeet(self, parent_ids, lengths, diameters, R0passes):  # ruff: ignore[invalid-argument-name]
         assert len(parent_ids) == len(lengths) == len(diameters) == len(R0passes)
         self._cellref.execute_commands(
             [
@@ -365,7 +365,7 @@ class NeuroGliaConnManager(ConnectionManagerBase):
                 pc.cell(synapse_gid, netcon)
                 if GlobalConfig.verbosity >= LogLevel.DEBUG:
                     netcon.record(
-                        lambda tgid=conn.tgid, synapse_gid=synapse_gid: print(  # noqa: T201
+                        lambda tgid=conn.tgid, synapse_gid=synapse_gid: print(  # ruff: ignore[print]
                             f"[gid={tgid}] Ustate netcon event. Spiking via v-gid={synapse_gid}"
                         )
                     )

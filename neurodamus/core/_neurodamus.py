@@ -1,7 +1,7 @@
-from pathlib import Path
 import logging
 import os
 import sys
+from pathlib import Path
 from time import strftime
 
 from ._engine import EngineBase

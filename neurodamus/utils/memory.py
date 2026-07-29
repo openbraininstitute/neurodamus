@@ -10,7 +10,7 @@ import math
 import multiprocessing
 import operator
 import os
-import pickle  # noqa: S403
+import pickle  # ruff: ignore[suspicious-pickle-import]
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -330,7 +330,7 @@ class DryRunStats:
         if self._alloc_cache is None or ignore_cache:
             logging.warning("Loading allocation stats from %s...", filename)
             with gzip.open(filename, "rb") as f:
-                data = pickle.load(f)  # noqa: S301
+                data = pickle.load(f)  # ruff: ignore[suspicious-pickle-usage]
             DryRunStats._alloc_cache = convert_to_standard_types(data)
         else:
             logging.warning("Using cached allocation stats.")
