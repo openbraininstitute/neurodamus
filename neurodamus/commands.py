@@ -109,7 +109,7 @@ def neurodamus(args=None):
         return 1
     except OtherRankError:
         return 1  # no need for _mpi_abort, error is being handled by all ranks
-    except:  # noqa: E722
+    except:  # ruff: ignore[bare-except]
         show_exception_abort("Unhandled Exception. Terminating...", sys.exc_info())
         return 1
     return 0
@@ -125,7 +125,7 @@ def _pop_log_level(options):
     if log_level >= LogLevel.VERBOSE:
         from pprint import pprint
 
-        pprint(options)  # noqa: T203
+        pprint(options)  # ruff: ignore[p-print]
 
     return log_level
 
@@ -175,7 +175,7 @@ def _attempt_launch_special(config_file):
             "-> DO NOT USE WITH PRODUCTION RUNS"
         )
         return
-    print("::INIT:: Special available. Replacing binary...")  # noqa: T201
+    print("::INIT:: Special available. Replacing binary...")  # ruff: ignore[print]
     os.environ["NEURODAMUS_SPECIAL"] = "1"
     init_script = os.path.join(neurodamus_py_root, "init.py")
     os.execl(special, "-mpi", "-python", init_script, "--configFile=" + config_file, *sys.argv[2:])

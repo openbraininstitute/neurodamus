@@ -23,7 +23,7 @@ import libsonata
 
 # Internal Engine imports
 from . import (
-    allen_point as _allen_point,  # noqa: F401
+    allen_point as _allen_point,  # ruff: ignore[unused-import]
     ngv as _ngv,
 )
 from .allen_point import Exp2SynSynapseRuleManager
@@ -374,7 +374,7 @@ class Node:
         self._target_manager = TargetManager(self._run_conf)
         self._target_spec = TargetSpec(self._run_conf.nodeset_name, self._run_conf.population_name)
         if SimConfig.use_neuron or SimConfig.coreneuron_direct_mode:
-            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # noqa: FBT003
+            self._sonatareport_helper = Nd.SonataReportHelper(Nd.dt, True)  # ruff: ignore[boolean-positional-value-in-call]
         self._sonata_circuits = SimConfig.sonata_circuits
         self._dump_cell_state_gids = get_debug_cell_gids(options)
         self._core_replay_file = ""
@@ -923,7 +923,7 @@ class Node:
 
     # @mpi_no_errors - not required since theres a call inside before make_comm()
     @timeit(name="Enable Reports")
-    def enable_reports(self):  # noqa: C901, PLR0912, PLR0915
+    def enable_reports(self):  # ruff: ignore[complex-structure, too-many-branches, too-many-statements]
         """Iterate over reports defined in the config file and instantiate them."""
         log_stage("Reports Enabling")
 

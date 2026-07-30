@@ -5,7 +5,7 @@ import psutil
 
 from neurodamus.utils.pyutils import rmtree
 
-SHM = "/dev/shm"  # noqa: S108
+SHM = "/dev/shm"  # ruff: ignore[hardcoded-temp-file]
 
 
 class SHMUtil:

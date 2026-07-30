@@ -252,7 +252,7 @@ class METype(BaseCell):
             self._cellref.clear()  # cut cyclic reference
 
 
-class Cell_V6(METype):  # noqa: N801
+class Cell_V6(METype):  # ruff: ignore[invalid-class-name]
     __slots__ = ("local_to_global_matrix", "segment_global_coords", "segment_local_coords")
 
     def __init__(self, gid, meinfo, circuit_conf):
@@ -391,7 +391,7 @@ class PointCell:
 
     CellRef = property(lambda self: self)
     CCell = property(lambda self: self)
-    nSecAll = property(lambda _self: 1)  # noqa: N815
+    nSecAll = property(lambda _self: 1)  # ruff: ignore[mixed-case-variable-in-class-scope]
     all = property(lambda self: self.soma)
     input_resistance = property(lambda _self: 1)
 
@@ -497,7 +497,7 @@ def vector_rotate_translate(points, transform_matrix):
     return np.einsum("ijk,ik->ij", rot_matrix, points) + translation
 
 
-class METypeManager(dict):  # noqa: FURB189
+class METypeManager(dict):  # ruff: ignore[subclass-builtin]
     """Map to hold specific METype info and provide retrieval by gid"""
 
     def insert(self, gid, morph_name, *me_data, **kwargs):

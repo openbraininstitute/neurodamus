@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 from time import strftime
 
 from ._engine import EngineBase
@@ -38,6 +39,7 @@ class _NeuronWrapper(_Neuron):
         # Init logging
         log_filename = log_filename or LOG_FILENAME
         if MPI.rank == 0:
+            Path(log_filename).parent.mkdir(exist_ok=True, parents=True)
             open(log_filename, "w", encoding="utf-8").close()  # Truncate
         MPI.barrier()  # Sync so that all processes see the file
         setup_logging(GlobalConfig.verbosity, log_filename, MPI.rank, use_color=log_use_color)

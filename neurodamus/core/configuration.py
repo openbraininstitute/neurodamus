@@ -132,7 +132,7 @@ class CliOptions(ConfigT):
 class CircuitConfig(ConfigT):
     name = None
     Engine = None
-    nrnPath = ConfigT.REQUIRED  # noqa: N815
+    nrnPath = ConfigT.REQUIRED  # ruff: ignore[mixed-case-variable-in-class-scope]
     CellLibraryFile = ConfigT.REQUIRED
     METypePath = None
     MorphologyType = None

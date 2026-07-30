@@ -154,7 +154,7 @@ class SonataConfig:
     def parsedConditions(self):
         return self._sim_conf.conditions
 
-    def _extract_circuits_info(self) -> dict:  # noqa: C901
+    def _extract_circuits_info(self) -> dict:  # ruff: ignore[complex-structure]
         """Extract the circuits information from confile file with libsonata.CircuitConfig parser,
         return a dictionary of circuit info as:
         {
