@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
+from dataclasses import dataclass
 
 import libsonata
 import numpy as np
@@ -10,6 +12,14 @@ import numpy as np
 from neurodamus.core import NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar
 from neurodamus.utils.logging import log_verbose
 from neurodamus.utils.pyutils import gen_ranges
+
+
+@dataclass
+class SynapseCreationContext:
+    """Simulation state required when constructing synapse parameters.
+
+    Subclasses extend this context with state for specific synapse types
+    """
 
 
 class SynapseParameters:
@@ -67,7 +77,12 @@ class SynapseParameters:
         records.delay = (records.delay / dt + 1e-5).astype("i4") * dt
 
     @classmethod
-    def make_synapse_parameters_array(cls, data: dict, extra_fields: list[str]):
+    def make_synapse_parameters_array(
+        cls,
+        data: dict,
+        extra_fields: list[str],
+        _creation_context: SynapseCreationContext | None = None,
+    ):
         """Create a recarray from data with optional extra fields and apply patches."""
         if not data:
             return np.recarray(0, dtype=cls.dtype(extra_fields=None))
@@ -124,6 +139,7 @@ class SonataReader:
         self._syn_params = {}  # Parameters cache by post-gid (previously loadedMap)
         self._open_file(edge_file, population, kw.get("verbose", False))
         self._extra_fields = set()
+        self.creation_context: SynapseCreationContext | None = None
 
     @staticmethod
     def _get_override_attributes(mod_override, suffix):
@@ -153,7 +169,9 @@ class SonataReader:
         Subclasses may override this method to provide additional simulation state
         required when constructing the parameter array.
         """
-        return self.Parameters.make_synapse_parameters_array(data, self._extra_fields)
+        return self.Parameters.make_synapse_parameters_array(
+            data, self._extra_fields, self.creation_context
+        )
 
     def get_synapse_parameters(self, gid) -> np.recarray:
         """Return the synapse parameters record array for the given gid,
@@ -443,6 +461,12 @@ class SonataReader:
         return {tgid: self._counts.get(tgid, self.EMPTY_DATA) for tgid in tgids}
 
 
+@dataclass
+class ChemicalSynapseCreationContext(SynapseCreationContext):
+    ca_concentration: float | None
+    extra_scale_vars: list[str] = dataclasses.field(default_factory=list)
+
+
 class ChemicalSynapseParameters(SynapseParameters):
     _fields = {
         "sgid": np.int64,
@@ -492,16 +516,14 @@ class ChemicalSynapseParameters(SynapseParameters):
 
     @classmethod
     def make_synapse_parameters_array(
-        cls,
-        data: dict,
-        extra_fields: list[str],
-        extra_cellular_calcium: float | None,
-        extra_scale_vars: list[str],
+        cls, data: dict, extra_fields: list[str], creation_context: ChemicalSynapseCreationContext
     ):
         """Create a recarray from data with optional extra fields and apply patches."""
-        arr = super().make_synapse_parameters_array(data, extra_fields)
+        arr = super().make_synapse_parameters_array(data, extra_fields, creation_context)
 
-        cls._patch_scale_U_param(arr, extra_cellular_calcium, extra_scale_vars)
+        cls._patch_scale_U_param(
+            arr, creation_context.ca_concentration, creation_context.extra_scale_vars
+        )
 
         return arr
 
@@ -511,18 +533,18 @@ class ChemicalSynapseReader(SonataReader):
 
     def __init__(self, edge_file, population=None, *_, **kw):
         super().__init__(edge_file, population, *_, **kw)
-        self._ca_concentration = kw.get("extracellular_calcium")
-        self._extra_scale_vars = []
+
+        self.creation_context = ChemicalSynapseCreationContext(kw.get("extracellular_calcium"))
 
     def configure_override(self, mod_override):
         super().configure_override(mod_override)
         if mod_override:
-            self._extra_scale_vars = self._get_override_attributes(
+            self.creation_context.extra_scale_vars = self._get_override_attributes(
                 mod_override, "UHillScaleVariables"
             )
 
     def _make_synapse_parameters_array(self, data) -> np.recarray:
         """Create synapse parameters and apply chemical-synapse scaling."""
         return self.Parameters.make_synapse_parameters_array(
-            data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
+            data, self._extra_fields, self.creation_context
         )
