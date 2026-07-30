@@ -144,6 +144,7 @@ def test_coreneuron(create_tmp_simulation_config_file):
         f"{coreneuron_data} should be empty."
     )
 
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
@@ -186,3 +187,45 @@ def test_enable_soma_stimulation(create_tmp_simulation_config_file):
 
     # RingA has one cell with a soma of 3 compartments and 2 other soma with single compartments. We should expect 3 stim and not 5
     assert( stimList.count() == 3 )
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_data": {
+                "network": "circuit_config.json",
+                "node_sets_file": "nodesets.json",
+                "run":
+                {
+                    "random_seed": 12345,
+                    "dt": 0.05,
+                    "tstop": 10
+                },
+                "target_simulator": "NEURON",
+                "conditions": {
+                   "extracellular_calcium": 1.2
+                }
+            },
+            "src_dir": RINGTEST_DIR
+        }
+    ],
+    indirect=True,
+)
+def test_condition_extracellular_calcium_applies_uhill_patch(create_tmp_simulation_config_file):
+    """Verify that configuring extracellular calcium condition updates Use for chemical synapses.
+    """
+    from neurodamus import Neurodamus
+    from neurodamus.core.configuration import SimConfig
+    from neurodamus.io.synapse_reader import ChemicalSynapseParameters
+    n = Neurodamus(create_tmp_simulation_config_file)
+    assert SimConfig.extracellular_calcium == 1.2
+
+    tgt = n._target_manager.get_target("RingA:oneCell")
+    postgid = tgt.gids(raw_gids=True)[0]
+
+    expected_use = 16*ChemicalSynapseParameters._constrained_hill(-1.0, 1.2)
+
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(postgid)
+    syn = cellref.synlist.o(0)
+    assert syn.Use == pytest.approx(expected_use)

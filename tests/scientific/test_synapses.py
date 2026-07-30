@@ -20,7 +20,7 @@ def test_synapses_params():
 
     from neurodamus.core import NeuronWrapper as Nd
     from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
-    from neurodamus.io.synapse_reader import SynapseParameters
+    from neurodamus.io.synapse_reader import ChemicalSynapseParameters
     from neurodamus.node import Node
     from neurodamus.utils.logging import log_verbose
 
@@ -119,7 +119,7 @@ def test_synapses_params():
 
     for df in dfs.values():
         tmp = wrapU(df["u_syn"], df["u_hill_coefficient"])
-        SynapseParameters._patch_scale_U_param(tmp, SimConfig.extracellular_calcium, [])
+        ChemicalSynapseParameters._patch_scale_U_param(tmp, SimConfig.extracellular_calcium, [])
         df["u_syn"] = tmp.U
 
     # 2) get values from NEURON
@@ -215,7 +215,7 @@ def get_edge_properties(edge_pop, selection, properties=[]):
 
 
 def test__constrained_hill():
-    from neurodamus.io.synapse_reader import SynapseParameters
+    from neurodamus.io.synapse_reader import ChemicalSynapseParameters
 
     # original functions
     def hill(ca_conc, y, K_half):
@@ -232,11 +232,11 @@ def test__constrained_hill():
     a = 10 * rng.random(100)
     b = 10 * rng.random(100)
 
-    npt.assert_allclose(scale_factors(a, 2), SynapseParameters._constrained_hill(a, 2))
+    npt.assert_allclose(scale_factors(a, 2), ChemicalSynapseParameters._constrained_hill(a, 2))
     npt.assert_allclose(
-        scale_factors(a, 2.2), SynapseParameters._constrained_hill(a, 2.2)
+        scale_factors(a, 2.2), ChemicalSynapseParameters._constrained_hill(a, 2.2)
     )
-    npt.assert_allclose(scale_factors(a, b), SynapseParameters._constrained_hill(a, b))
+    npt.assert_allclose(scale_factors(a, b), ChemicalSynapseParameters._constrained_hill(a, b))
 
 
 def get_target_raw_gids(target_manager, target_name):
