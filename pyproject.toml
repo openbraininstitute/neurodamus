@@ -95,7 +95,6 @@ ignore = [
     "N802",    # function name should be lowercase
     "PLE1205", # Too many arguments for `logging` format string
     "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
-    "RUF105",  # Allow 'noqa' to be used until we are ready to migrate to ruff:ignore
     "S104",    # Possible binding to all interfaces
     "FIX002",  # Line contains TODO, consider resolving the issue
     "TD",      # TODOs

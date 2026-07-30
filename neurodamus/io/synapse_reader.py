@@ -467,7 +467,7 @@ class ChemicalSynapseParameters(SynapseParameters):
     _reserved = {"maskValue": -1.0, "location": 0.5}
 
     @staticmethod
-    def _constrained_hill(K_half, y):  # noqa: N803
+    def _constrained_hill(K_half, y):  # ruff: ignore[invalid-argument-name]
         """Constrained Hill function for scaling synaptic parameters.
 
         Note: it is used only in scale_U_param. It is its own function
