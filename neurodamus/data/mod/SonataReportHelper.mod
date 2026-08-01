@@ -24,6 +24,38 @@ VERBATIM
         sonata_refresh_pointers(nrn_recalc_ptr); //tell bin report library to update its pointers using nrn_recalc_ptr function
     }
 #endif
+
+static void (**pre_record_callbacks)(void) = NULL;
+static int num_pre_record_callbacks = 0;
+static int cap_pre_record_callbacks = 0;
+
+/* Legacy single-callback API (kept for backward compatibility) */
+static void (*pre_record_callback)(void) = NULL;
+
+extern "C" void sonata_report_helper_set_pre_record_callback(void (*cb)(void)) {
+    pre_record_callback = cb;
+}
+
+/* Register an additional pre-record callback. Returns 0 on success, -1 on failure. */
+extern "C" int sonata_report_helper_register_pre_record_callback(void (*cb)(void)) {
+    if (num_pre_record_callbacks >= cap_pre_record_callbacks) {
+        int new_cap = cap_pre_record_callbacks == 0 ? 8 : cap_pre_record_callbacks * 2;
+        void (**new_arr)(void) = (void (**)(void))realloc(
+            pre_record_callbacks, (size_t)new_cap * sizeof(void (*)(void)));
+        if (new_arr == NULL) return -1;
+        pre_record_callbacks = new_arr;
+        cap_pre_record_callbacks = new_cap;
+    }
+    pre_record_callbacks[num_pre_record_callbacks++] = cb;
+    return 0;
+}
+
+/* Reset all registered callbacks (for test isolation) */
+extern "C" void sonata_report_helper_clear_pre_record_callbacks(void) {
+    num_pre_record_callbacks = 0;
+    pre_record_callback = NULL;
+}
+
 #endif
 #endif
 ENDVERBATIM
@@ -45,6 +77,14 @@ NET_RECEIVE(w) {
 VERBATIM
 #ifndef CORENEURON_BUILD
 #ifndef DISABLE_REPORTINGLIB
+    /* Call all registered pre-record callbacks */
+    for (int i = 0; i < num_pre_record_callbacks; i++) {
+        pre_record_callbacks[i]();
+    }
+    /* Legacy fallback for single callback API */
+    if (num_pre_record_callbacks == 0 && pre_record_callback != NULL) {
+        pre_record_callback();
+    }
     sonata_record_data(activeStep);
     activeStep++;
 #endif

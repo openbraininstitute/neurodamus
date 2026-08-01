@@ -10,6 +10,7 @@ from ._neuron import MComplexLoadBalancer, Neuron
 from ._utils import (
     ProgressBarRank0,
     SimulationProgress,
+    ensure_mod_symbols_visible,
     mpi_no_errors,
     return_neuron_timings,
     run_only_rank0,
@@ -24,6 +25,7 @@ __all__ = [
     "OtherRankError",
     "ProgressBarRank0",
     "SimulationProgress",
+    "ensure_mod_symbols_visible",
     "mpi_no_errors",
     "return_neuron_timings",
     "run_only_rank0",

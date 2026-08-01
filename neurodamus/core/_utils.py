@@ -123,3 +123,24 @@ def return_neuron_timings(f):
         return tdat
 
     return timings_wrapper
+
+
+def ensure_mod_symbols_visible(env_var: str) -> None:
+    """Ensure MOD-defined C symbols are visible to ctypes.CDLL(None).
+
+    On Linux, NEURON's nrn_load_dll uses dlopen with RTLD_LOCAL, hiding symbols
+    from the global symbol table. This re-opens the already-loaded library with
+    RTLD_GLOBAL so ctypes can resolve MOD-defined functions (e.g. callbacks
+    registered from SonataReportHelper.mod).
+
+    On macOS symbols are already globally visible, but re-opening is harmless
+    and keeps behavior uniform across platforms.
+
+    No-op when the environment variable is unset.
+    """
+    import ctypes
+    import os
+
+    lib_path = os.environ.get(env_var)
+    if lib_path:
+        ctypes.CDLL(lib_path.split(":")[0].strip(), mode=ctypes.RTLD_GLOBAL)

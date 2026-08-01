@@ -585,6 +585,11 @@ class NodesetTarget:
         For each section, either the center (0.5) or all segment positions are
         included depending on compartment_type.
 
+        When section_type is ``Sections.all``, sections are iterated in
+        ``BaseCell.SECTION_TYPES`` order (soma, axon, dend, apic, …) to ensure
+        a deterministic, type-grouped ordering independent of cell construction
+        order.
+
         Args:
             cell_manager: cell manager providing access to cells.
             section_type: section category to extract.
@@ -612,25 +617,25 @@ class NodesetTarget:
         for gid in self.get_local_gids():
             point_list = TargetPointList(gid)
             cell = cell_manager.get_cell(gid)
-            secs = list(getattr(cell.CellRef, section_type_str))
 
-            nsecs = len(secs)
-            isecs = section_local_ids if section_local_ids is not None else range(nsecs)
+            if section_type == Sections.all:
+                sections = cell.iter_sections()
+            else:
+                secs = list(getattr(cell.CellRef, section_type_str))
+                nsecs = len(secs)
+                isecs = section_local_ids if section_local_ids is not None else range(nsecs)
+                # Note: certain external morphologies may contain only 1 axon
+                # and a 2nd axon is added by our emodel without index v(0.0001),
+                # e.g. allen v1. get_section_id may raise for such cases.
+                sections = ((cell.get_section_id(secs[i]), secs[i]) for i in isecs if i < nsecs)
 
-            for isec in isecs:
-                if isec >= nsecs:
-                    break
-                sec = secs[isec]
-
-                # Note: certain external mophology may contain only 1 axon
-                # and 2nd axon is added by our emodel without index v(0.0001), e.g. allen v1
-                # An error would be raised at get_section_id for compartment report including axons
-                section_id = cell.get_section_id(sec)
-                if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
+            for section_id, sec in sections:
+                if compartment_type == Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
                         point_list.append(section_id, Nd.SectionRef(sec), seg.x)
+
             point_lists.append(point_list)
 
         return point_lists
