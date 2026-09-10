@@ -1,5 +1,4 @@
 """Unit tests for StimulusManager to handle various stimulus types"""
-
 import logging
 
 import numpy as np
@@ -10,6 +9,7 @@ from tests.conftest import RINGTEST_DIR
 
 import neurodamus.core.stimuli as st
 import neurodamus.stimulus_manager as smng
+from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.node import Neurodamus, Node
 
@@ -197,8 +197,6 @@ def test_hyperpolarizing(ringtest_stimulus_manager):
 )
 def test_seclamp(create_tmp_simulation_config_file):
     """SECLamp Stimlus"""
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n.stim_manager._stimulus[0]
     assert isinstance(stimulus, smng.SEClamp)
@@ -243,8 +241,6 @@ def test_seclamp(create_tmp_simulation_config_file):
 )
 def test_seclamp_levels(create_tmp_simulation_config_file):
     """SECLamp Stimlus with level lists"""
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n.stim_manager._stimulus[0]
     seclamp = stimulus.stimList[0]
@@ -312,8 +308,6 @@ def test_seclamp_levels(create_tmp_simulation_config_file):
 )
 def test_seclamp_override_initial_voltage(create_tmp_simulation_config_file):
     """SECLamp Stimlus with level lists, the initial voltage is overriden by the lists"""
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n.stim_manager._stimulus[0]
     seclamp = stimulus.stimList[0]

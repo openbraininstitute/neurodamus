@@ -26,6 +26,7 @@ build-neuron() {
     fi
 
     ( cd $NRN && \
+	git tag -l | xargs -r git tag -d;
         git reset --hard &&
         git fetch --depth 1 origin $COMMIT --tags &&
         git checkout FETCH_HEAD &&

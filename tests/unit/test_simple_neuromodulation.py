@@ -6,7 +6,6 @@ The post synatic cell RingB gid 0 has 2 synapses:
 The neuromodulatory spikes are injected via replay from virtual neuron gid 1
 Therefore, the neuromodulator applies netcon to the synapse from connection RingB->RingB : 1->0
 """
-
 from itertools import chain
 
 import numpy as np
@@ -14,6 +13,7 @@ import pytest
 
 from ..conftest import RINGTEST_DIR
 from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.neuromodulation_manager import NeuroModulationConnection, NeuroModulationManager
 
 
@@ -65,8 +65,6 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     """
     # the import of neuron must be at function level,
     # otherwise impact other tests even done in forked process
-    from neurodamus.core import NeuronWrapper as Nrn
-
     nd = Neurodamus(create_tmp_simulation_config_file)
 
     gid = 1000
@@ -85,7 +83,7 @@ def test_neuromodulation(create_tmp_simulation_config_file):
     # check netcons targeting cell gid 1001, it should have 3 netcons,
     # 2 from the synapse objects from the neuron connections (B->B, A->B)
     # 1 from the replay via the neuromodulatory project (virtual_neurons->B)
-    nclist = Nrn.cvode.netconlist("", cell, "")
+    nclist = Nd.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     assert nclist[0].srcgid() == 0
     assert nclist[1].srcgid() == 1001
@@ -193,15 +191,13 @@ def test_override_strength_dtc(create_tmp_simulation_config_file):
     Test the overriding of neuromodulation_strength and neuromodulation_dtc
       via simulation config file
     """
-    from neurodamus.core import NeuronWrapper as Nrn
-
     nd = Neurodamus(create_tmp_simulation_config_file)
 
     cell = nd._pc.gid2cell(1000)
     # check cell gid 1001 has 2 syns from neurons,
     # neuromodulatory projection don't create addition synapses
     assert cell.synlist.count() == 2
-    nclist = Nrn.cvode.netconlist("", cell, "")
+    nclist = Nd.cvode.netconlist("", cell, "")
     assert len(nclist) == 3
     replay_netcon = nclist[2]
     assert replay_netcon.pre().hname() == "VecStim[0]"  # source obj is VecStim

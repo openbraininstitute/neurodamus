@@ -1,15 +1,16 @@
-
 from pathlib import Path
 
-import numpy as np
 import pytest
 from libsonata import EdgeStorage
 
-from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.core.configuration import SimConfig
 from tests import utils
 
+import neurodamus
 from ..conftest import RINGTEST_DIR
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.configuration import SimConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig
+from neurodamus.utils.dump_cellstate import dump_cellstate
 
 
 def check_cell(cell):
@@ -37,10 +38,7 @@ def check_cell(cell):
     }
 ], indirect=True)
 def test_dump_RingB_2cells(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
-    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    n = neurodamus.Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
     edge_storage = EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
@@ -79,11 +77,7 @@ def test_dump_RingB_2cells(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_dump_RingA_RingB(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
-    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
-    from neurodamus.utils.dump_cellstate import dump_cellstate
+    n = neurodamus.Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
 
     connections = [
         [("RingA", 2), ("RingA", 0)],
@@ -134,9 +128,7 @@ def test_dump_RingA_RingB(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_coreneuron(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
-    n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
+    n = neurodamus.Neurodamus(create_tmp_simulation_config_file, disable_reports=True,
                    coreneuron_direct_mode=True, keep_build=True)
     n.run()
     coreneuron_data = Path(CoreConfig.datadir)
@@ -177,7 +169,6 @@ def test_coreneuron(create_tmp_simulation_config_file):
 def test_enable_soma_stimulation(create_tmp_simulation_config_file):
     """When inserting a stimulus, confirm impact, especially when the soma have mulitple compartments
     """
-    import neurodamus
     n = neurodamus.Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()

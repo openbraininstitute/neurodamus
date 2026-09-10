@@ -1,8 +1,7 @@
 import pytest
 
-from neurodamus.core.configuration import SimConfig
-from neurodamus.core.configuration import CellPermute
-
+from neurodamus import Neurodamus
+from neurodamus.core.configuration import CellPermute, SimConfig
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 
 
@@ -16,7 +15,6 @@ from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
     indirect=True,
 )
 def test_cli_cell_permute_simple_setting(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, cell_permute="node-adjacency", keep_build=True)
     assert SimConfig.cell_permute == CellPermute.NODE_ADJACENCY
     sim_conf = CoreSimulationConfig.load("build/sim.conf")
@@ -32,9 +30,7 @@ def test_cli_cell_permute_simple_setting(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_cli_cell_permute_default(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
     Neurodamus(create_tmp_simulation_config_file, keep_build=True)
     assert SimConfig.cell_permute == CellPermute.UNPERMUTED
     sim_conf = CoreSimulationConfig.load("build/sim.conf")
     assert sim_conf.cell_permute == 0
-
