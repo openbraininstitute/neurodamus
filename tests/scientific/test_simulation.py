@@ -1,7 +1,12 @@
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
 import pytest
-from pathlib import Path
+from scipy.signal import find_peaks
+
+from neurodamus import Neurodamus
+from neurodamus.gap_junction import GapJunctionManager
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
@@ -13,7 +18,6 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
     }
 ], indirect=True)
 def test_simulation_sonata_config(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
     config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
@@ -39,10 +43,6 @@ def test_simulation_sonata_config(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_v5_sonata_config(create_tmp_simulation_config_file):
-    import numpy as np
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
-
     config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
@@ -67,10 +67,7 @@ def test_v5_sonata_config(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_v5_gap_junction(create_tmp_simulation_config_file):
-    import numpy as np
-    from neurodamus import Neurodamus
-    from neurodamus.gap_junction import GapJunctionManager
-
+    from neuron import h
     config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
 
@@ -105,7 +102,6 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
 
     # P2: Assert simulation went well
     # Check voltages
-    from neuron import h
     c = cell_manager.get_cell(0)
     voltage_vec = h.Vector()
     voltage_vec.record(c._cellref.soma[0](0.5)._ref_v, 0.125)
@@ -115,7 +111,6 @@ def test_v5_gap_junction(create_tmp_simulation_config_file):
 
     # The second order derivate get us the v increase rate (happen after a spike)
     # On a plot we clearly see the peaks. scipy can find them for us
-    from scipy.signal import find_peaks
     v = voltage_vec.as_numpy()
     v_increase_rate = np.diff(v, 2)
     v_peaks, _heights = find_peaks(v_increase_rate, 2)

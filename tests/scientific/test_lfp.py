@@ -1,8 +1,15 @@
-import pytest
-import h5py
-import numpy as np
+import json
 from pathlib import Path
+
+import h5py
+import libsonata
+import numpy as np
+import numpy.testing as npt
+import pytest
+
 from ..conftest import RINGTEST_DIR
+from neurodamus import Neurodamus
+from neurodamus.core.coreneuron_configuration import CoreConfig
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 LFP_3ELEC_RINGA_FILE = str(RINGTEST_DIR / "lfp_3elec_ringA.h5")
@@ -21,7 +28,6 @@ _COMMON_INPUTS = {
         "frequency": 50,
     }
 }
-
 
 
 @pytest.fixture
@@ -62,7 +68,6 @@ def test_weights_file(tmp_path):
 
 
 def _read_sonata_lfp_file(lfp_file):
-    import libsonata
     report = libsonata.ElementReportReader(lfp_file)
     lfp_data = {}
     for pop_name in report.get_population_names():
@@ -73,11 +78,6 @@ def _read_sonata_lfp_file(lfp_file):
 
 
 def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory, tmp_path):
-    import numpy.testing as npt
-    import json
-    from neurodamus import Neurodamus
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     _, lfp_weights_file = test_weights_file
     with open(str(SIM_DIR / "v5_sonata" / "simulation_config_mini.json")) as f:
         sim_config_data = json.load(f)
@@ -147,10 +147,6 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
     },
 ], indirect=True)
 def test_ringcircuit_lfp(create_tmp_simulation_config_file):
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
@@ -201,10 +197,6 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
     """Run with only report A (RingA, 3 electrodes) and compare to reference."""
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
@@ -241,10 +233,6 @@ def test_multi_lfp_report_single_A(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
     """Run with only report B (RingA_Cell0, 2 electrodes) and compare to reference."""
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 
@@ -289,10 +277,6 @@ def test_multi_lfp_report_single_B(create_tmp_simulation_config_file):
 @pytest.mark.forked
 def test_multi_lfp_report_combined(create_tmp_simulation_config_file):
     """Run with both reports and verify each matches its single-report run."""
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()
 

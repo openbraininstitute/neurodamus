@@ -7,7 +7,7 @@ from tests import utils
 from tests.conftest import ALLEN_V1_DIR
 
 from neurodamus import Neurodamus
-from neurodamus.core import MPI
+from neurodamus.core import MPI, NeuronWrapper as Nd
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.utils.dump_cellstate import dump_cellstate
 
@@ -25,8 +25,6 @@ rank = MPI.rank
 )
 @pytest.mark.mpi(ranks=2)
 def test_cell_states(capsys, create_tmp_simulation_config_file, mpi_ranks):
-    from neurodamus.core import NeuronWrapper as Nd
-
     assert mpi_ranks == 2
     n = Neurodamus(create_tmp_simulation_config_file)
 

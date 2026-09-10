@@ -1,10 +1,12 @@
-"""Tests load balance."""
-# Since a good deal of load balance tests are e2e we put all of them together in this group
 from pathlib import Path
 
 import numpy as np
 import numpy.testing as npt
 import pytest
+
+from neurodamus import Neurodamus
+from neurodamus.core.configuration import GlobalConfig
+from neurodamus.replay import SpikeManager
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
@@ -53,9 +55,6 @@ def _read_complexity_file(base_dir, pattern, cx_pattern):
 def test_loadbal_integration(create_tmp_simulation_config_file):
     """Ensure given the right files are in the lbal dir, the correct situation is detected
     """
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import GlobalConfig
-    from neurodamus.replay import SpikeManager
     GlobalConfig.verbosity = 2
 
     # Add connection_overrides for the virtual population so the offsets are calculated before LB
@@ -74,7 +73,6 @@ def test_loadbal_integration(create_tmp_simulation_config_file):
     # Gid should be without offset (1 instead of 1001)
     assert int(lines[3].split()[0]) == 1, "gid 1 not found."
 
-    # check the spikes
     spike_dat = Path(nd._run_conf.output_root) / nd._run_conf.spikes_file
 
     timestamps_A, gids_A = SpikeManager._read_spikes_sonata(spike_dat, "NodeA")
