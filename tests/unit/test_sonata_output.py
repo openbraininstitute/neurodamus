@@ -1,9 +1,9 @@
-import os
 from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.forked  # independent processes
+from neurodamus.core.configuration import ConfigurationError
+from neurodamus.node import Node
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -18,7 +18,6 @@ pytestmark = pytest.mark.forked  # independent processes
     }
 ], indirect=True)
 def test_sonata_logfile(create_tmp_simulation_config_file):
-    from neurodamus.node import Node
     # create a tmp json file to test the user defined log_file
     _ = Node(create_tmp_simulation_config_file)
 
@@ -36,8 +35,5 @@ def test_sonata_logfile(create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_throw_spike_sort_order(create_tmp_simulation_config_file):
-    from neurodamus.node import Node
-    from neurodamus.core.configuration import ConfigurationError
-
     with pytest.raises(ConfigurationError, match=r"Unsupported spikes sort order by_id"):
         _ = Node(create_tmp_simulation_config_file)

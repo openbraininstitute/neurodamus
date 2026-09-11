@@ -1,8 +1,12 @@
-import pytest
 import libsonata
 import numpy as np
+import pytest
+
+from neurodamus import Neurodamus
+
 Sections = libsonata.SimulationConfig.Report.Sections
 Compartments = libsonata.SimulationConfig.Report.Compartments
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -11,12 +15,10 @@ Compartments = libsonata.SimulationConfig.Report.Compartments
 )
 def test_get_point_list_variants(create_tmp_simulation_config_file):
     """Test get_point_list with various configurations
-    
+
     It is just one matrioska test because calling the fixture for multiple tests
     takes some time. I think this setup is still sufficiently clear and is faster
     """
-    from neurodamus import Neurodamus
-
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     tgt = n.target_manager.get_target("RingA")
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -56,12 +58,12 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
          {"dend[0]", "dend[1]"}),
     ]
 
-    for section_type, compartment_type,  section_local_ids, expected, check_names in test_cases:
+    for section_type, compartment_type, section_local_ids, expected, check_names in test_cases:
         pts = tgt.get_point_list(
             cell_manager=cell_manager,
             section_type=section_type,
             compartment_type=compartment_type,
-            section_local_ids= section_local_ids
+            section_local_ids=section_local_ids
         )
 
         assert len(pts) == len(expected)
@@ -85,8 +87,6 @@ def test_get_point_list_variants(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_get_point_list_invalid_section_local_ids(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     tgt = n.target_manager.get_target("RingA")
     cell_manager = n.circuits.get_node_manager("RingA")

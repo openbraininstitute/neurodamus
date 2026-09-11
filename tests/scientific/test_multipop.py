@@ -1,12 +1,13 @@
-import numpy
-import pytest
 from pathlib import Path
 
-USECASE3 = Path(__file__).parent.absolute() / "usecase3"
+import numpy as np
+import pytest
 
-"""
-Test multiple simulated populations, with/without interconnections
-"""
+from neurodamus import Neurodamus
+from neurodamus.connection_manager import Nd, SynapseRuleManager
+from neurodamus.core.configuration import Feature
+
+USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -38,10 +39,6 @@ def test_multipop_simple(create_tmp_simulation_config_file):
     """
     Test that two populations are correctly set for running in parallel, with offsetting
     """
-    from neurodamus.connection_manager import SynapseRuleManager
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.SynConfigure],  # use config verboseLevel as Flag
@@ -117,10 +114,6 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     """
     Test that two populations are correctly set for running in parallel, with offsetting
     """
-    from neurodamus.connection_manager import Nd, SynapseRuleManager
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_features=[Feature.Replay, Feature.SynConfigure],  # use config verboseLevel as Flag
@@ -194,7 +187,7 @@ def test_multipop_full_conn(create_tmp_simulation_config_file):
     nd.run()
 
     # Find impact on voltage. See test_spont_minis for an explanation
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.03)[0]
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], "valid")
+    strong_reduction_pos = np.nonzero(window_sum < -0.03)[0]
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))

@@ -1,9 +1,10 @@
 import json
+import os
 import subprocess
 from pathlib import Path
-import pytest
 
 import libsonata
+import pytest
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "v5_sonata"
 CONFIG_FILE_MINI = "simulation_config_mini.json"
@@ -40,6 +41,7 @@ def test_cli_disable_reports(tmp_path):
     for name in sc.list_report_names:
         report_path = Path(sc.report(name).file_name)
         assert report_path.is_file(), f"File '{report_path}' not found."
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file", [
@@ -78,9 +80,7 @@ def test_cli_disable_reports(tmp_path):
 ], indirect=True,
 )
 def test_cli_report_buff_size(create_tmp_simulation_config_file):
-    tmp_path = Path(create_tmp_simulation_config_file).parent
-    from os import environ
-    custom_env = environ.copy()
+    custom_env = os.environ.copy()
     custom_env["SPDLOG_LEVEL"] = "debug"
     result = subprocess.run(
         ["neurodamus", create_tmp_simulation_config_file, "--report-buffer-size=64"],

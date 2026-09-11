@@ -1,7 +1,7 @@
 import numpy.testing as npt
 
 from neurodamus.core.nodeset import SelectionNodeSet
-from neurodamus.target_manager import TargetSpec
+from neurodamus.target_manager import NodesetTarget, TargetSpec
 
 null_target_spec = TargetSpec(None, None)
 
@@ -37,7 +37,6 @@ def test_targetspec_overlap():
 
 
 def test_nodeset_target_intersect():
-    from neurodamus.target_manager import NodesetTarget
     nodes_popA = SelectionNodeSet([1, 2]).register_global("pop_A")
     nodes2_popA = SelectionNodeSet([2, 3]).register_global("pop_A")
     nodes3_popA = SelectionNodeSet([11, 12]).register_global("pop_A")
@@ -57,7 +56,6 @@ def test_nodeset_target_intersect():
 
 
 def test_nodeset_gids():
-    from neurodamus.target_manager import NodesetTarget
     local_nodes_popA = SelectionNodeSet(range(5, 10)).register_global("pop_A")
     local_nodes_popB = SelectionNodeSet(range(6)).register_global("pop_B")
     nodes_popA = SelectionNodeSet(range(7)).register_global("pop_A")

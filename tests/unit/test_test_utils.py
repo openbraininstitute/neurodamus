@@ -1,12 +1,16 @@
+import json
 from collections import defaultdict
 from pathlib import Path
 
-import pytest
+import libsonata
 import numpy as np
-from libsonata import EdgeStorage
+import pytest
 
-from neurodamus.core.configuration import SimConfig
 from tests import utils
+
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.configuration import SimConfig
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "ringtest"
 REF_DIR = SIM_DIR / "reference"
@@ -15,13 +19,9 @@ CONFIG_FILE = str(SIM_DIR / "simulation_config.json")
 
 def get_edges_data(create_tmp_simulation_config_file):
     """ Convenience function to extract some basic info about the circuit """
-
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     edges_file, edge_pop = SimConfig.sonata_circuits["RingB"].nrnPath.split(":")
-    edge_storage = EdgeStorage(edges_file)
+    edge_storage = libsonata.EdgeStorage(edges_file)
     edges = edge_storage.open_population(edge_pop)
     sgid, tgid = 0, 1
     cell = n._pc.gid2cell(tgid)
@@ -196,11 +196,13 @@ def test_merge_dicts_delete_field_simple():
     expected = {"A": 2}
     assert utils.merge_dicts(parent, child) == expected
 
+
 def test_merge_dicts_delete_field_nested():
     parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
     child = {"A": {"q": {"x": 2, "z": "delete_field"}}, "C": 4}
     expected = {"A": {"q": {"x": 2, "y": 2}}, "B": 3, "C": 4}
     assert utils.merge_dicts(parent, child) == expected
+
 
 def test_merge_dicts_delete_field_heavily_nested():
     parent = {"A": {"q": {"x": 1., "y": 2}}, "B": 3}
@@ -208,11 +210,13 @@ def test_merge_dicts_delete_field_heavily_nested():
     expected = {"A": {}, "B": 3, "C": 4}
     assert utils.merge_dicts(parent, child) == expected
 
+
 def test_merge_dicts_override_field_simple():
     parent = {"A": 1, "B": {"x": 1}}
     child = {"override_field": 1, "x": 10}
     expected = {"x": 10}
     assert utils.merge_dicts(parent, child) == expected
+
 
 def test_merge_dicts_override_field_nested():
     parent = {"A": 1, "B": {"x": 1}}
@@ -220,11 +224,13 @@ def test_merge_dicts_override_field_nested():
     expected = {"A": 2, "B": {"y": 2}}
     assert utils.merge_dicts(parent, child) == expected
 
+
 def test_merge_dicts_override_field_heavily_nested():
     parent = {"A": {"e": 1, "q": {"x": 1., "y": {"p": 1}}}, "B": 3}
     child = {"A": {"w": 1, "q": {"x": 2, "y": {"override_field": 1, "q": 1}}}, "C": 4}
     expected = {"A": {"w": 1, "e": 1, "q": {"x": 2, "y": {"q": 1}}}, "C": 4, "B": 3}
     assert utils.merge_dicts(parent, child) == expected
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -239,8 +245,7 @@ def test_merge_dicts_override_field_heavily_nested():
     }
 ], indirect=True)
 def test_merge_simulation_configs(create_tmp_simulation_config_file):
-    import json
-    with open(create_tmp_simulation_config_file, "r") as f:
+    with open(create_tmp_simulation_config_file) as f:
         config_data = json.load(f)
         assert config_data["run"]["tstop"] == 32
         assert np.isclose(config_data["run"]["dt"], 0.1)
@@ -250,7 +255,7 @@ def test_merge_simulation_configs(create_tmp_simulation_config_file):
 
 def test_compare_outdat_files_identical(tmp_path):
     content = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3"""
-    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1, file2 = tmp_path / "out1.dat", tmp_path / "out2.dat"
     file1.write_text(content)
     file2.write_text(content)
 
@@ -260,7 +265,7 @@ def test_compare_outdat_files_identical(tmp_path):
 def test_compare_outdat_files_different(tmp_path):
     content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3"""
     content2 = """5.1 1\n5.1 2\n5.1 4\n25.1 1\n25.1 2\n25.1 3"""
-    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1, file2 = tmp_path / "out1.dat", tmp_path / "out2.dat"
     file1.write_text(content1)
     file2.write_text(content2)
 
@@ -270,7 +275,7 @@ def test_compare_outdat_files_different(tmp_path):
 def test_compare_outdat_files_time_filtered_match(tmp_path):
     content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 4"""
     content2 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n35.0 5"""
-    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1, file2 = tmp_path / "out1.dat", tmp_path / "out2.dat"
     file1.write_text(content1)
     file2.write_text(content2)
 
@@ -280,7 +285,7 @@ def test_compare_outdat_files_time_filtered_match(tmp_path):
 def test_compare_outdat_files_time_filtered_mismatch(tmp_path):
     content1 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 4"""
     content2 = """5.1 1\n5.1 2\n5.1 3\n25.1 1\n25.1 2\n25.1 3\n30.0 5"""
-    file1, file2 = tmp_path / 'out1.dat', tmp_path / 'out2.dat'
+    file1, file2 = tmp_path / "out1.dat", tmp_path / "out2.dat"
     file1.write_text(content1)
     file2.write_text(content2)
 

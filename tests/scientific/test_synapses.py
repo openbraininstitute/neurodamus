@@ -1,11 +1,17 @@
 import re
 from pathlib import Path
 
+import libsonata
 import numpy as np
 import numpy.testing as npt
 import pytest
 
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
 from neurodamus.io.sonata_config import ConnectionOverride
+from neurodamus.io.synapse_reader import SynapseParameters
+from neurodamus.node import Node
+from neurodamus.utils.logging import log_verbose
 
 USECASE3 = Path(__file__).parent.parent.absolute() / "simulations" / "usecase3"
 SSCX_V7 = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
@@ -16,14 +22,6 @@ def test_synapses_params():
     """
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
-    from libsonata import EdgeStorage
-
-    from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
-    from neurodamus.io.synapse_reader import SynapseParameters
-    from neurodamus.node import Node
-    from neurodamus.utils.logging import log_verbose
-
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE
     config_file = str(SSCX_V7 / "simulation_config_base.json")
@@ -53,17 +51,16 @@ def test_synapses_params():
     n.load_targets()
     n.create_cells()
     n.create_synapses()
+
     # init
-    base_seed = n._run_conf.base_seed  # base seed for synapse RNG
     for syn_manager in n._circuits.all_synapse_managers():
-        syn_manager.finalize(base_seed)
+        syn_manager.finalize(n._run_conf.base_seed)
     n.sim_init()
 
     # 1) get synapse parameters from libsonata
-    target_manager = n.target_manager
-    pop1, pre_L5_BC = get_target_raw_gids(target_manager, "pre_L5_BC")[0]
-    pop2, post_L5_PC = get_target_raw_gids(target_manager, "post_L5_PC")[0]
-    pop3, pre_L5_PC = get_target_raw_gids(target_manager, "pre_L5_PC")[0]
+    pop1, pre_L5_BC = get_target_raw_gids(n.target_manager, "pre_L5_BC")[0]
+    pop2, post_L5_PC = get_target_raw_gids(n.target_manager, "post_L5_PC")[0]
+    _, pre_L5_PC = get_target_raw_gids(n.target_manager, "pre_L5_PC")[0]
     assert pop1 == pop2
     dfs = {}
     properties = [
@@ -90,7 +87,7 @@ def test_synapses_params():
     ]
 
     edges_file, edge_pop = n._sonata_circuits[pop1].nrnPath.split(":")
-    storage = EdgeStorage(edges_file)
+    storage = libsonata.EdgeStorage(edges_file)
     edge_pop = storage.open_population(edge_pop)
     sel1 = edge_pop.connecting_edges(pre_L5_BC, post_L5_PC)
     sel2 = edge_pop.connecting_edges(pre_L5_PC, post_L5_PC)
@@ -215,8 +212,6 @@ def get_edge_properties(edge_pop, selection, properties=[]):
 
 
 def test__constrained_hill():
-    from neurodamus.io.synapse_reader import SynapseParameters
-
     # original functions
     def hill(ca_conc, y, K_half):
         return y * ca_conc**4 / (K_half**4 + ca_conc**4)
@@ -259,8 +254,6 @@ def get_target_raw_gids(target_manager, target_name):
     indirect=True,
 )
 def test_no_edge_creation(capsys, create_tmp_simulation_config_file):
-    from neurodamus.node import Node
-
     n = Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()

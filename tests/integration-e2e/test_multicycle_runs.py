@@ -1,10 +1,14 @@
-import numpy as np
-import pytest
 from pathlib import Path
+
+import numpy as np
+import numpy.testing as npt
+import pytest
 
 from tests.utils import read_sonata_spike_file
 
 from ..conftest import SIM_DIR, USECASE3
+from neurodamus import Neurodamus
+
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
@@ -16,8 +20,6 @@ from ..conftest import SIM_DIR, USECASE3
     }
 ], indirect=True)
 def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
 
     config_file = create_tmp_simulation_config_file
 
@@ -39,6 +41,7 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     captured = capsys.readouterr()
     assert "MULTI-CYCLE RUN: 3 Cycles" in captured.out
 
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "src_dir": str(USECASE3),
@@ -46,8 +49,6 @@ def test_v5_sonata_multisteps(capsys, create_tmp_simulation_config_file):
     }
 ], indirect=True)
 def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
-    import numpy.testing as npt
-    from neurodamus import Neurodamus
 
     config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, modelbuilding_steps=2)
@@ -63,6 +64,6 @@ def test_usecase3_sonata_multisteps(create_tmp_simulation_config_file):
     ])
     spike_file = Path(nd._run_conf.output_root) / nd._run_conf.spikes_file
     obtained_timestamps, obtained_spike_gids = read_sonata_spike_file(spike_file)
-    
+
     npt.assert_allclose(spike_gids, obtained_spike_gids)
     npt.assert_allclose(timestamps, obtained_timestamps)

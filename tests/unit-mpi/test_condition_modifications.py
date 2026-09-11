@@ -7,6 +7,10 @@ from mpi4py import MPI
 
 from tests.conftest import RINGTEST_DIR
 
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
+
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -58,10 +62,6 @@ def test_modifications_with_neuron_and_coreneuron_mpi_multiple_types(
     CoreNeuron with MPI.
     """
     assert size == mpi_ranks
-
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-
     modif_config = ringtest_baseconfig
     modif_config["target_simulator"] = simulator
 

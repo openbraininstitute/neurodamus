@@ -5,6 +5,7 @@ import pytest
 from neurodamus.core.configuration import GlobalConfig, LogLevel, SimConfig
 from neurodamus.io.sonata_config import ConnectionOverride
 from neurodamus.node import Node
+from neurodamus.core import NeuronWrapper as Nd
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations" / "sscx-v7-plasticity"
 CONFIG_FILE = SIM_DIR / "simulation_config_base.json"
@@ -15,7 +16,6 @@ def test_eager_caching():
     """
     A test of the impact of eager caching of synaptic parameters. BBPBGLIB-813
     """
-    from neurodamus.core import NeuronWrapper as Nd
 
     # create Node from config
     GlobalConfig.verbosity = LogLevel.VERBOSE

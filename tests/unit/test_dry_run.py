@@ -1,14 +1,17 @@
-import json
-import pytest
-import numpy as np
-import numpy.testing as npt
 import unittest.mock
 from pathlib import Path
 
+import numpy as np
+import numpy.testing as npt
+import pytest
+
 from tests.utils import defaultdict_to_standard_types
+
 from ..conftest import NGV_DIR, PLATFORM_SYSTEM
 from neurodamus import Neurodamus
-from neurodamus.utils.memory import CellMemoryUsage
+from neurodamus.io.cell_readers import _retrieve_unique_metypes, dry_run_distribution
+from neurodamus.utils.memory import CellMemoryUsage, DryRunStats
+
 
 class DummyNodeReader:
     """ Fake dummy class to mock the NodeReader class
@@ -153,8 +156,6 @@ def test_dry_run_distribution():
     returns the inner lists of the gid_metype_bundle as a single list
     with round robin distribution on the inner lists.
     """
-    from neurodamus.io.cell_readers import dry_run_distribution
-
     # Sample of a typical gid_metype_bundle
     gid_metype_bundle = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]
 
@@ -175,8 +176,6 @@ def test_dry_run_distribution():
 
 @pytest.mark.forked
 def test_retrieve_unique_metypes():
-    from neurodamus.io.cell_readers import _retrieve_unique_metypes
-
     # Define test inputs
     node_reader = DummyNodeReader()
     all_gids = list(range(5))
@@ -197,7 +196,6 @@ def test_retrieve_unique_metypes():
     assert metype_counts == expected_metype_counts
 
 def test_distribute_cells_multi_pop_multi_cycle(fixed_memory_measurements):
-    from neurodamus.utils.memory import DryRunStats
     """
     Test that the distribute_cells_with_validation function works with multiple pops and cycles
     """

@@ -1,18 +1,18 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 from libsonata import SonataError
-
-from neurodamus.core.configuration import SimConfig
-from neurodamus.core.coreneuron_configuration import CoreConfig
-from neurodamus.utils.pyutils import CumulativeError
-from neurodamus.node import Node
-from tests.utils import (read_ascii_report,
-                         record_compartment_reports, write_ascii_reports)
-
-import numpy as np
 from scipy.signal import find_peaks
 
+from tests.utils import read_ascii_report, record_compartment_reports, write_ascii_reports
+
+from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
+from neurodamus.core.configuration import SimConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig
+from neurodamus.node import Node
+from neurodamus.utils.pyutils import CumulativeError
 
 
 @pytest.mark.parametrize(
@@ -117,6 +117,7 @@ def test_config_addional_errors(create_tmp_simulation_config_file):
     n.create_cells()
     with pytest.raises(CumulativeError, match="reports requires exactly one variable, but received"):
         n.enable_reports()
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -242,6 +243,7 @@ def test_report_disabled(create_tmp_simulation_config_file):
     n.enable_reports()
     assert len(n.reports) == 0
 
+
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -302,10 +304,6 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     instead we use custom functions to record and write report vectors in ASCII format,
     but currently only for compartment reports
     """
-    from neurodamus import Neurodamus
-    from neurodamus.core import NeuronWrapper as Nd
-    from neurodamus.core.configuration import SimConfig
-
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 3
     ascii_recorders = record_compartment_reports(n._target_manager)
@@ -333,8 +331,8 @@ def test_neuron_compartment_ASCIIReport(create_tmp_simulation_config_file):
     cell_current_vec = [vec[3] for vec in data if vec[0] == 1000]
 
     peaks_pos = find_peaks(cell_current_vec, prominence=0.05)[0]
-    np.testing.assert_allclose(peaks_pos, [9,  29,  50,  70, 110, 132, 152, 173, 193])
-    
+    np.testing.assert_allclose(peaks_pos, [9, 29, 50, 70, 110, 132, 152, 173, 193])
+
     compartment_pas_report = Path(n._run_conf.output_root) / ("compartment_pas.txt")
     assert compartment_pas_report.exists()
     data = read_ascii_report(compartment_pas_report)
@@ -391,8 +389,6 @@ def test_enable_summation_report(create_tmp_simulation_config_file):
     1. Neuron, sum_currents_into_soma = True(sections=soma, compartments=center)
     2. Neuron, sum_currents_into_soma = False(sections=all, compartments=all)
     """
-    from neurodamus import Neurodamus
-
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
     assert n.reports[0].variables == [("i_membrane_", "i"), ("IClamp", "i")]
@@ -448,8 +444,6 @@ def test_enable_coreneuron_report(create_tmp_simulation_config_file):
     1. compartment report, sections = soma
     2. summation report, sections = all
     """
-    from neurodamus import Neurodamus
-
     n = Neurodamus(create_tmp_simulation_config_file)
     assert len(n.reports) == 1
     assert Path(CoreConfig.report_config_file_save).exists()

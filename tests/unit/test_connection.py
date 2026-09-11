@@ -1,7 +1,7 @@
-""" Test the Connection object """
 import numpy as np
 import pytest
 
+from neurodamus import Neurodamus
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.node import Node
 
@@ -24,8 +24,6 @@ def test_synapse_location(create_tmp_simulation_config_file):
       - `_synapse_sections`: Stores the sections where synapses are located.
       - `_synapse_points_x`: Stores the relative positions of synapses within sections.
     """
-    from neurodamus import Neurodamus
-
     src_pop, tgt_pop = "RingA", "RingB"
     tgid = 1000  # Target cell ID
 

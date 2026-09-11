@@ -14,6 +14,7 @@ from tests.utils import (
 )
 
 from neurodamus import Neurodamus
+from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import ConfigurationError
 from neurodamus.core.stimuli import ElectrodeSource
 from neurodamus.stimulus_manager import SpatiallyUniformEField
@@ -21,8 +22,6 @@ from neurodamus.stimulus_manager import SpatiallyUniformEField
 
 def test_interpolate_axon_coordinates():
     """Test interpolate axon's coordinates along y-axis from the soma position"""
-    from neurodamus.core import NeuronWrapper as Nd
-
     soma_position = [-0.60355, 4.2, 2.0]
     section = Nd.h.Section(name="TestCell[0].axon[0]")
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
@@ -42,8 +41,6 @@ def test_interpolate_axon_coordinates():
 
 def test_interpolate_myelin_coordinates():
     """Test interpolate myelin's coordinates along y-axis from the soma position"""
-    from neurodamus.core import NeuronWrapper as Nd
-
     soma_position = [-0.60355, 4.2, 2.0]
     section = Nd.h.Section(name="TestCell[0].myelin[0]")
     position = SpatiallyUniformEField.get_segment_position([], soma_position, section, x=0)
@@ -86,8 +83,6 @@ def test_one_field_noramp(create_tmp_simulation_config_file):
     2. check potentials of 1st segment should be 0 (soma), and a cosine wave for 4th segment
     3. check the potential amplitude of soma and 4th segment
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
@@ -151,8 +146,6 @@ def test_one_field_withramp(create_tmp_simulation_config_file):
     3. check potentials of 1st segment should be 0 (soma),
     and a cosine wave with 3 ramp up steps and 4 ramp down steps for 4th segment
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
@@ -213,8 +206,6 @@ def test_one_constant_field(create_tmp_simulation_config_file):
     2. check potential of 1st segment should be 0 (soma),
     and a constant vec for 4th segment including ramp up and down
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
@@ -279,8 +270,6 @@ def test_two_fields(create_tmp_simulation_config_file):
     3. check an extracellar mechanism is added to each segment
     4. check the long/unused vectors of ElectrodeSource object are cleaned at the end
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     assert isinstance(stimulus, SpatiallyUniformEField)
@@ -342,8 +331,6 @@ def test_two_fields_delay(create_tmp_simulation_config_file):
     """
     Check the delay is applied correctly into the stimulus segment_potentials and time_vec
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -396,8 +383,6 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
     """
     Check three fields in the stimlus, cosine + constant + cosine with small freq(almost constant)
     """
-    from neurodamus.core import NeuronWrapper as Nd
-
     n = Neurodamus(create_tmp_simulation_config_file)
     stimulus = n._stim_manager._stimulus[0]
     cell_manager = n.circuits.get_node_manager("RingA")
@@ -558,10 +543,6 @@ def test_three_fields_delay(create_tmp_simulation_config_file):
 def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak):
     """2 NEURON integration tests, with and without the electric field stimulus.
     Check the compartment ASCII reports without different reference peak position"""
-    from neurodamus.core import (
-        NeuronWrapper as Nd,
-    )  # Import at function level, otherwise will impact other tests
-
     n = Neurodamus(create_tmp_simulation_config_file)
     ascii_recorders = record_compartment_reports(n._target_manager)
     Nd.finitialize()  # reinit for the recordings to be registered
@@ -609,8 +590,6 @@ def test_neuron_report_with_efields(create_tmp_simulation_config_file, ref_peak)
     indirect=True,
 )
 def test_coreneuron_exception(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     with pytest.raises(
         ConfigurationError,
         match="CoreNEURON cannot simulate a model that contains the extracellular mechanism",

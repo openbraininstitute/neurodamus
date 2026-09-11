@@ -17,10 +17,9 @@ from neurodamus.core import EngineBase
 from neurodamus.io.synapse_reader import SynapseParameters
 from neurodamus.io.cell_readers import split_round_robin
 from neurodamus.metype import BaseCell
+from neurodamus.core import NeuronWrapper as Nd
 
-#
 # Launching of the engine as a test
-#
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
@@ -33,7 +32,6 @@ class ACellType(BaseCell):
 
     def __init__(self, gid, cell_info, circuit_conf):
         """Instantiate a new Cell from node info"""
-        from neurodamus.core import NeuronWrapper as Nd  # dont load top-level because of pytest
         super().__init__(gid, cell_info, circuit_conf)
         self.gid = gid
         self.section = Nd.Section(name="soma", cell=self.CellName("a" + str(gid)))
@@ -41,7 +39,6 @@ class ACellType(BaseCell):
         self.f1 = cell_info[1]
 
     def connect2target(self, target_pp=None):
-        from neurodamus.core import NeuronWrapper as Nd
         return Nd.NetCon(self.section(1)._ref_v, target_pp, sec=self.section)
 
 
@@ -84,7 +81,6 @@ class ACellConnection(ConnectionBase):
         self._synapse_params = np.concatenate((self._synapse_params, syn_params))
 
     def finalize(self, target_cell, *_):
-        from neurodamus.core import NeuronWrapper as Nd
         syn = Nd.ExpSyn(target_cell.section(0.5))
         self._synapses = (syn,)
         self._netcons = []

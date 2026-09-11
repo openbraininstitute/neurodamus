@@ -4,6 +4,8 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
+from neurodamus import Neurodamus
+
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
 
@@ -36,13 +38,10 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
     indirect=True,
 )
 def test_efields_stimulus_neuron(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-
     config_file = create_tmp_simulation_config_file
     nd = Neurodamus(config_file, disable_reports=True)
     nd.run()
 
-    # compare spikes with refs
     ref_spike_gids = np.array(
         [
             0.0,

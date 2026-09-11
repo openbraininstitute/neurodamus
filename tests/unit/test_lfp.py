@@ -1,8 +1,12 @@
-import pytest
 from pathlib import Path
+
 import libsonata
+import pytest
 
 from ..conftest import RINGTEST_DIR
+from neurodamus import Neurodamus
+from neurodamus.core.configuration import SimConfig
+from neurodamus.core.coreneuron_configuration import CoreConfig
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -38,10 +42,6 @@ from ..conftest import RINGTEST_DIR
 ], indirect=True)
 @pytest.mark.forked
 def test_lfp_reports(create_tmp_simulation_config_file):
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import SimConfig
-    from neurodamus.core.coreneuron_configuration import CoreConfig
-
     nd = Neurodamus(create_tmp_simulation_config_file)
 
     assert Path(CoreConfig.report_config_file_save).exists()
@@ -70,7 +70,5 @@ def test_lfp_reports(create_tmp_simulation_config_file):
 ], indirect=True)
 def test_missing_electrodes_file(create_tmp_simulation_config_file):
     """Test that a missing electrodes_file does not crash when no LFP reports are configured."""
-    from neurodamus import Neurodamus
-
     nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
     nd.run()

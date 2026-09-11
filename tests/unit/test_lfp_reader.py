@@ -1,9 +1,12 @@
-import numpy.testing as npt
-import numpy as np
-import pytest
 import h5py
+import numpy as np
+import numpy.testing as npt
+import pytest
 
 from ..conftest import RINGTEST_DIR
+from neurodamus.core.coreneuron_configuration import CompartmentMapping
+from neurodamus.io.lfp_reader import LFPFileReader, LFPFileValidationError
+
 LFP_FILE = RINGTEST_DIR / "lfp_file.h5"
 
 
@@ -11,8 +14,6 @@ def test_lfp_file_reader_open():
     """
     Test that LFPFileReader opens and validates the electrodes file structure.
     """
-    from neurodamus.io.lfp_reader import LFPFileReader, LFPFileValidationError
-
     # Valid file opens without error
     reader = LFPFileReader(str(LFP_FILE))
     assert reader._file
@@ -32,8 +33,6 @@ def test_get_scaling_matrix():
     Test that get_scaling_matrix correctly extracts the scaling factors
     as a 2D numpy array (n_compartments, n_electrodes).
     """
-    from neurodamus.io.lfp_reader import LFPFileReader
-
     reader = LFPFileReader(str(LFP_FILE))
 
     # Test with valid inputs for both populations
@@ -67,8 +66,6 @@ def test_number_electrodes():
     Test that get_number_electrodes correctly extracts the number of
     electrodes in the weights file for a certain gid.
     """
-    from neurodamus.io.lfp_reader import LFPFileReader
-
     reader = LFPFileReader(str(LFP_FILE))
 
     # Test with valid input
@@ -93,12 +90,8 @@ def test_number_electrodes():
     reader.close()
 
 
-
 def test_interleave_lfp_factors():
     """Test that _interleave_lfp_factors correctly interleaves per-report matrices."""
-    from neurodamus.io.lfp_reader import LFPFileReader
-    from neurodamus.core.coreneuron_configuration import CompartmentMapping
-
     reader_A = LFPFileReader(str(RINGTEST_DIR / "lfp_3elec_ringA.h5"))
     reader_B = LFPFileReader(str(RINGTEST_DIR / "lfp_2elec_ringA_cell0.h5"))
 

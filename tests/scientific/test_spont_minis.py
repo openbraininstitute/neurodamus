@@ -1,5 +1,9 @@
-import numpy
+import numpy as np
 import pytest
+
+from neurodamus import Neurodamus
+from neurodamus.connection_manager import Nd, SynapseRuleManager
+from neurodamus.core.configuration import Feature
 
 SPONT_RATE = 100
 
@@ -27,10 +31,6 @@ SPONT_RATE = 100
     }
 ], indirect=True)
 def test_spont_minis(create_tmp_simulation_config_file):
-    from neurodamus.connection_manager import Nd, SynapseRuleManager
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
     nd = Neurodamus(
         create_tmp_simulation_config_file,
         restrict_node_populations=["NodeA"],
@@ -55,9 +55,9 @@ def test_spont_minis(create_tmp_simulation_config_file):
     # When we get an event the voltage drops
     # We find that looking at the acceleration of the voltage drop
     # We do a convolution to weight in neighbor points and have a smoother line
-    v_increase_rate = numpy.diff(voltage_vec, 2)
-    window_sum = numpy.convolve(v_increase_rate, [1, 2, 4, 2, 1], 'valid')
+    v_increase_rate = np.diff(voltage_vec, 2)
+    window_sum = np.convolve(v_increase_rate, [1, 2, 4, 2, 1], "valid")
     # print(numpy.array_str(window_sum, suppress_small=True))
-    strong_reduction_pos = numpy.nonzero(window_sum < -0.01)[0]
+    strong_reduction_pos = np.nonzero(window_sum < -0.01)[0]
     # At least one such point, at most 2% of all points
     assert 1 <= len(strong_reduction_pos) <= int(0.02 * len(window_sum))

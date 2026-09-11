@@ -1,5 +1,11 @@
-import pytest
 from pathlib import Path
+
+import pytest
+from neuron import nrn
+
+from neurodamus import Node
+from neurodamus.cell_distributor import CellDistributor
+from neurodamus.metype import PointCell
 
 SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
 
@@ -11,11 +17,6 @@ SIM_DIR = Path(__file__).parent.parent.absolute() / "simulations"
     }
 ], indirect=True)
 def test_crash_test_loading(create_tmp_simulation_config_file):
-    from neurodamus import Node
-    from neurodamus.cell_distributor import CellDistributor
-    from neurodamus.metype import PointCell
-    from neuron import nrn
-
     n = Node(create_tmp_simulation_config_file, {"crash_test": True})
     n.load_targets()
     n.create_cells()

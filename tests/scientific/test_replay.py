@@ -1,15 +1,16 @@
 import json
-import numpy
-import numpy.testing as npt
-import os
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+
+import numpy.testing as npt
+
+from neurodamus import Neurodamus
+from neurodamus.core.configuration import Feature
 
 USECASE3 = Path(__file__).parent.absolute() / "usecase3"
 SAMPLE_DATA_DIR = Path(__file__).parent.parent.absolute() / "sample_data"
 
 
-def replay_sim_config(sonata_config, replay_files):
+def replay_sim_config(tmp_path, sonata_config, replay_files):
     sonata_config["inputs"] = {}
     for i, replay_file in enumerate(replay_files):
         sonata_config["inputs"][f"spikeReplay{i}"] = {
@@ -22,17 +23,14 @@ def replay_sim_config(sonata_config, replay_files):
         }
 
     # create a tmp json file to read usecase3/no_edge_circuit_config.json
-    with NamedTemporaryFile("w", suffix='.json', delete=False) as config_file:
+    with (tmp_path / "config.json").open("w") as config_file:
         json.dump(sonata_config, config_file)
 
     return config_file
 
 
-def test_replay_sim(sonata_config):
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
-    config_file = replay_sim_config(sonata_config, [str(USECASE3 / "input.h5")])
+def test_replay_sim(sonata_config, tmp_path):
+    config_file = replay_sim_config(tmp_path, sonata_config, [str(USECASE3 / "input.h5")])
     nd = Neurodamus(
         config_file.name,
         restrict_node_populations=["NodeA"],
@@ -61,17 +59,12 @@ def test_replay_sim(sonata_config):
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
     assert gids[0] == 2
-    assert numpy.allclose(times, [0.75])
-
-    os.unlink(config_file.name)
+    npt.assert_allclose(times, [0.75])
 
 
-def test_many_replay_sim(sonata_config):
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
+def test_many_replay_sim(sonata_config, tmp_path):
     replay_files = [str(USECASE3 / file) for file in ["input.h5", "input1.h5", "input2.h5"]]
-    config_file = replay_sim_config(sonata_config, replay_files)
+    config_file = replay_sim_config(tmp_path, sonata_config, replay_files)
     nd = Neurodamus(
         config_file.name,
         restrict_node_populations=["NodeA"],
@@ -100,18 +93,12 @@ def test_many_replay_sim(sonata_config):
     times = nd._spike_vecs[0][0].as_numpy()
     assert 1 == len(gids) == len(times)
     assert gids[0] == 2
-    assert numpy.allclose(times, [0.75])
-
-    os.unlink(config_file.name)
+    npt.assert_allclose(times, [0.75])
 
 
-# A more comprehensive example, using Sonata replay with two populations
-# ======================================================================
-def test_replay_sonata_spikes(sonata_config):
-    from neurodamus import Neurodamus
-    from neurodamus.core.configuration import Feature
-
-    config_file = replay_sim_config(sonata_config, [str(SAMPLE_DATA_DIR / "out.h5")])
+def test_replay_sonata_spikes(sonata_config, tmp_path):
+    """A more comprehensive example, using Sonata replay with two populations"""
+    config_file = replay_sim_config(tmp_path, sonata_config, [str(SAMPLE_DATA_DIR / "out.h5")])
     nd = Neurodamus(
         config_file.name,
         restrict_features=[Feature.Replay],
@@ -140,5 +127,3 @@ def test_replay_sonata_spikes(sonata_config):
     time_vec = conn_1_1000._replay.time_vec.as_numpy()
     assert len(time_vec) == 11
     npt.assert_allclose(time_vec[:8], [0.175, 3.025, 5.7, 8.975, 13.95, 20.15, 26.125, 31.725])
-
-    os.unlink(config_file.name)

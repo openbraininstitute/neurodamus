@@ -1,9 +1,11 @@
 """A collection of tests for advanced stimulus generated with the help of Neuron."""
 
-import pytest
-import neurodamus.core.stimuli as st
-from neurodamus.core.random import Random123
 import numpy as np
+import pytest
+
+import neurodamus.core.stimuli as st
+from neurodamus.core import Neuron
+from neurodamus.core.random import Random123
 
 
 class TestSignalSource:
@@ -398,8 +400,6 @@ class TestSignalSource:
 
 
 def create_ball_and_stick():
-    from neurodamus.core import Neuron
-
     sec1 = Neuron.h.Section(name="sec1")
     sec1.nseg = 5
     soma = Neuron.h.Section(name="soma")
