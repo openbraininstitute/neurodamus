@@ -1,11 +1,17 @@
 """A collection of tests for advanced stimulus generated with the help of Neuron."""
 
+from functools import partial
+
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import neurodamus.core.stimuli as st
 from neurodamus.core import Neuron
 from neurodamus.core.random import Random123
+
+
+assert_allclose = partial(npt.assert_allclose, rtol=1e-5, atol=1e-8)
 
 
 class TestSignalSource:
@@ -33,9 +39,9 @@ class TestSignalSource:
         D1, D2 = 2.0, 7.0
         self.stim.add_segment(A1, D1, A2)
         self.stim.add_segment(A3, D2)
-        assert np.allclose(self.stim.stim_vec, [self.base_amp, A1, A2, A3, A3])
+        assert_allclose(self.stim.stim_vec, [self.base_amp, A1, A2, A3, A3])
         expected = np.array([-self.base_delay, 0.0, D1, D1, D1 + D2]) + self.base_delay
-        assert np.allclose(self.stim.time_vec, expected)
+        assert_allclose(self.stim.time_vec, expected)
 
     def test_add_pulse_and_ramp(self):
         """Add a pulse/ramp segment and verify correct amplitude and timing."""
@@ -48,7 +54,7 @@ class TestSignalSource:
             np.array([-self.base_delay, 0.0, 0.0, D1, D1, D1, D1, D1 + D2, D1 + D2])
             + self.base_delay
         )
-        assert np.allclose(self.stim.time_vec, expected)
+        assert_allclose(self.stim.time_vec, expected)
         expected = [
             self.base_amp,
             self.base_amp,
@@ -60,7 +66,7 @@ class TestSignalSource:
             A3,
             new_base_amp,
         ]
-        assert np.allclose(list(self.stim.stim_vec), expected)
+        assert_allclose(list(self.stim.stim_vec), expected)
 
     @pytest.mark.parametrize("base_amp", [-1, 0, 1.5])
     def test_pulse_diff_base(self, base_amp):
@@ -68,8 +74,8 @@ class TestSignalSource:
         stimulus vectors."""
         self.stim.add_pulse(1.2, 10, base_amp=base_amp)
         expected = np.array([-self.base_delay, 0, 0, 10, 10]) + self.base_delay
-        assert np.allclose(list(self.stim.time_vec), expected)
-        assert np.allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
+        assert_allclose(list(self.stim.time_vec), expected)
+        assert_allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
 
     def test_add_train(self):
         """Add train of pulses.
@@ -101,11 +107,11 @@ class TestSignalSource:
             total_duration=total_duration,
             base_amp=base_amp,
         )
-        assert np.allclose(
+        assert_allclose(
             self.stim.time_vec,
             [0.0, 1.0, 1.0, 1.6, 1.6, 3.0, 3.0, 3.6, 3.6, 5.0, 5.0, 5.5, 5.5, 5.5],
         )
-        assert np.allclose(
+        assert_allclose(
             self.stim.stim_vec,
             [
                 2.0,
@@ -155,8 +161,8 @@ class TestSignalSource:
             )
             + self.base_delay
         )
-        assert np.allclose(self.stim.time_vec, expected)
-        assert np.allclose(
+        assert_allclose(self.stim.time_vec, expected)
+        assert_allclose(
             self.stim.stim_vec,
             [self.base_amp] + [self.base_amp, 1.2, 1.2, self.base_amp] * 4 + [self.base_amp],
         )
@@ -170,8 +176,8 @@ class TestSignalSource:
             10000,
         )
         expected = np.array([-self.base_delay, 0, 0.025, 0.05, 0.075, 0.1, 0.1]) + self.base_delay
-        assert np.allclose(self.stim.time_vec, expected)
-        assert np.allclose(self.stim.stim_vec, [self.base_amp, 0, 1, 0, -1, 0, self.base_amp])
+        assert_allclose(self.stim.time_vec, expected)
+        assert_allclose(self.stim.stim_vec, [self.base_amp, 0, 1, 0, -1, 0, self.base_amp])
 
     def test_long_add_sin(self):
         """Test `add_sin` with longer duration, validating time and sinusoidal stimulus vectors."""
@@ -180,8 +186,8 @@ class TestSignalSource:
             np.array([-self.base_delay, 0, 25, 50, 75, 100, 125, 150, 175, 200, 200])
             + self.base_delay
         )
-        assert np.allclose(self.stim.time_vec, expected)
-        assert np.allclose(
+        assert_allclose(self.stim.time_vec, expected)
+        assert_allclose(
             self.stim.stim_vec, [self.base_amp] + [0, 1, 0, -1] * 2 + [0, self.base_amp]
         )
 
@@ -193,8 +199,8 @@ class TestSignalSource:
             np.array([-self.base_delay, 0, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5])
             + self.base_delay
         )
-        assert np.allclose(self.stim.time_vec, expected)
-        assert np.allclose(
+        assert_allclose(self.stim.time_vec, expected)
+        assert_allclose(
             self.stim.stim_vec,
             [
                 self.base_amp,
@@ -221,7 +227,7 @@ class TestSignalSource:
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
-        assert np.allclose(self.stim.time_vec, expected_time_vec)
+        assert_allclose(self.stim.time_vec, expected_time_vec)
         expected_stim_vec = [
             self.base_amp,
             self.base_amp,
@@ -236,7 +242,7 @@ class TestSignalSource:
             0.1207344,
             self.base_amp,
         ]
-        assert np.allclose(self.stim.stim_vec, expected_stim_vec)
+        assert_allclose(self.stim.stim_vec, expected_stim_vec)
 
     def test_add_shot_noise_no_rng(self):
         """Try the same as add_snot_noise but with the standard rng."""
@@ -261,7 +267,7 @@ class TestSignalSource:
             )
             + self.base_delay
         )
-        assert np.allclose(no_rng_stim.time_vec, expected)
+        assert_allclose(no_rng_stim.time_vec, expected)
         expected = [
             self.base_amp,
             self.base_amp,
@@ -276,7 +282,7 @@ class TestSignalSource:
             0.10523273,
             self.base_amp,
         ]
-        assert np.allclose(no_rng_stim.stim_vec, expected)
+        assert_allclose(no_rng_stim.stim_vec, expected)
 
     def test_add_shot_noise_negative_A(self):
         """Test with negative amplitude."""
@@ -284,7 +290,7 @@ class TestSignalSource:
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
-        assert np.allclose(self.stim.time_vec, expected_time_vec)
+        assert_allclose(self.stim.time_vec, expected_time_vec)
         expected_stim_vec = [
             self.base_amp,
             self.base_amp,
@@ -299,7 +305,7 @@ class TestSignalSource:
             -0.1207344,
             self.base_amp,
         ]
-        assert np.allclose(self.stim.stim_vec, expected_stim_vec)
+        assert_allclose(self.stim.stim_vec, expected_stim_vec)
 
     def test_add_shot_noise_wrong_inputs(self):
         """The edge case where a shot noise has same tau rise and decay is not implemented yet."""
@@ -312,7 +318,7 @@ class TestSignalSource:
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
-        assert np.allclose(self.stim.time_vec, expected_time_vec)
+        assert_allclose(self.stim.time_vec, expected_time_vec)
         expected_stim_vec = [
             self.base_amp,
             self.base_amp,
@@ -327,7 +333,7 @@ class TestSignalSource:
             0.03049419,
             self.base_amp,
         ]
-        assert np.allclose(self.stim.stim_vec, expected_stim_vec)
+        assert_allclose(self.stim.stim_vec, expected_stim_vec)
 
     def test_ornstein_uhlenbeck_white_noise(self):
         """Test OU process when tau is too small and we add simple white noise."""
@@ -335,7 +341,7 @@ class TestSignalSource:
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
-        assert np.allclose(self.stim.time_vec, expected_time_vec)
+        assert_allclose(self.stim.time_vec, expected_time_vec)
         expected_stim_vec = [
             self.base_amp,
             self.base_amp,
@@ -350,9 +356,11 @@ class TestSignalSource:
             0.022358363086789193,
             self.base_amp,
         ]
-        assert np.allclose(
-            self.stim.stim_vec, expected_stim_vec
-        ), f"{list(self.stim.stim_vec)}, {list(expected_stim_vec)}"
+        assert_allclose(
+            self.stim.stim_vec,
+            expected_stim_vec,
+            err_msg=f"{list(self.stim.stim_vec)}, {list(expected_stim_vec)}",
+        )
 
     def test_plot(self):
         import matplotlib
@@ -423,7 +431,7 @@ def clamp_attach_detach(stim, clamp_type):
     assert len(stim._clamps) == 1
     # we placed it at 0.28. Neuron snaps it to the center of the location
     # compartment. We have 5 real comartments. One center is in 0.3
-    assert np.allclose(clamp02.clamp.get_loc(), 0.3)
+    assert_allclose(clamp02.clamp.get_loc(), 0.3)
     clamp02.detach()
     assert clamp_type not in soma.psection()["point_processes"]
     assert clamp_type not in sec1.psection()["point_processes"]
@@ -519,4 +527,4 @@ class TestConductanceSource:
             1e9,
             self.base_amp,
         ]
-        np.testing.assert_allclose(np.array(dynclamp.stim_vec), expected_stim_vec)
+        assert_allclose(np.array(dynclamp.stim_vec), expected_stim_vec)
