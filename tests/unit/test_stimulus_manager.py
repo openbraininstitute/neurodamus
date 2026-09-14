@@ -1,6 +1,8 @@
 """Unit tests for StimulusManager to handle various stimulus types"""
 import logging
+from pathlib import Path
 
+import h5py
 import libsonata
 import numpy as np
 import numpy.testing as npt
@@ -28,6 +30,29 @@ def ringtest_stimulus_manager():
         cell.setThreshold(66)
         cell.setHypAmp(88)
     return smng.StimulusManager(n._target_manager)
+
+
+def _write_single_compartment_report(path, t_vec, values, population, node_id):
+    times = np.asarray(t_vec, dtype=np.float32)
+    data = np.asarray(values, dtype=np.float32).reshape(-1, 1)
+    dt = float(times[1] - times[0])
+    string_dtype = h5py.string_dtype(encoding="utf-8")
+
+    with h5py.File(path, "w") as h5f:
+        h5f.create_group("report")
+        gpop = h5f.create_group(f"/report/{population}")
+        ddata = gpop.create_dataset("data", data=data, dtype=np.float32)
+        ddata.attrs.create("units", data="nA", dtype=string_dtype)
+
+        gmapping = h5f.create_group(f"/report/{population}/mapping")
+        dnodes = gmapping.create_dataset("node_ids", data=[node_id], dtype=np.uint64)
+        dnodes.attrs.create("sorted", data=True, dtype=np.uint8)
+        gmapping.create_dataset("index_pointers", data=[0, 1], dtype=np.uint64)
+        gmapping.create_dataset("element_ids", data=[0], dtype=np.uint32)
+        dtimes = gmapping.create_dataset(
+            "time", data=[times[0], times[-1], dt], dtype=np.double
+        )
+        dtimes.attrs.create("units", data="ms", dtype=string_dtype)
 
 
 def test_linear(ringtest_stimulus_manager):
@@ -707,33 +732,74 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
 
 
-def test_current_replay(ringtest_stimulus_manager):
-    report_path = RINGTEST_DIR / "reference/reports/summation_i_membrane.h5"
-    stim_info = {
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_current_replay(create_tmp_simulation_config_file, tmp_path):
+    sin_stim = {
+        "Pattern": "Sinusoidal",
+        "Mode": "Current",
+        "AmpStart": 1.0,
+        "Frequency": 10.0,
+        "Duration": 20.0,
+        "Delay": 5.0,
+        "Dt": 0.1,
+        "RepresentsPhysicalElectrode": True,
+    }
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    src_manager = smng.StimulusManager(nd._target_manager)
+    src_manager.interpret(target_onecell, sin_stim)
+    src_stimulus = src_manager._stimulus[0]
+    src_source = src_stimulus.stimList[0]
+    src_clamp = next(iter(src_source._clamps)).clamp
+
+    src_t = Nd.Vector()
+    src_i = Nd.Vector()
+    src_t.record(Nd._ref_t)
+    src_i.record(src_clamp._ref_amp)
+
+    Nd.finitialize()
+    nd.run()
+
+    report_path = tmp_path / "sinusoidal_replay.h5"
+    _write_single_compartment_report(report_path, src_t, src_i, population="RingA", node_id=0)
+
+    #path = Path(__file__).parent / "sinusoidal_replay.h5"
+    #sr = libsonata.SomaReportReader("/o/tests/unit/sinusoidal_replay.h5")
+    #src_t = sr["RingA"].get(libsonata.Selection((0, 1))).times
+    #src_i = sr["RingA"].get(libsonata.Selection((0, 1))).data
+
+    replay_stim = {
         "Pattern": "Replay",
         "Mode": "Current",
-        "Duration": 20,
-        "Delay": 5,
+        "Duration": 5.0 + 20.5,
+        "Delay": 0.0,
+        #"Path": str(path),
         "Path": str(report_path),
+        "RepresentsPhysicalElectrode": True,
     }
-    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
-    assert len(ringtest_stimulus_manager._stimulus) == 1
-    stimulus = ringtest_stimulus_manager._stimulus[0]
-    assert isinstance(stimulus, smng.Replay)
-    assert len(stimulus.stimList) == 1
 
-    signal_source = stimulus.stimList[0]
-    assert isinstance(signal_source, st.CurrentSource)
-    assert not signal_source._represents_physical_electrode
+    nd_replay = Neurodamus(create_tmp_simulation_config_file)
+    replay_manager = smng.StimulusManager(nd_replay._target_manager)
+    replay_manager.interpret("RingA_Cell0", replay_stim)
+    replay_source = replay_manager._stimulus[0].stimList[0]
+    replay_clamp = next(iter(replay_source._clamps)).clamp
 
-    frame = libsonata.ElementReportReader(str(report_path))["RingA"].get(
-        libsonata.Selection([1]), tstart=0.0, tstop=20.0
-    )
-    expected_values = frame.data[:, 0]
-    expected_times = frame.times + stim_info["Delay"]
+    replay_t = Nd.Vector()
+    replay_i = Nd.Vector()
+    replay_t.record(Nd._ref_t)
+    replay_i.record(replay_clamp._ref_amp)
 
-    npt.assert_allclose(signal_source.stim_vec, [0, 0, *expected_values, 0])
-    npt.assert_allclose(signal_source.time_vec, [0, 5, *expected_times, expected_times[-1]])
+    Nd.finitialize()
+    nd_replay.run()
+
+    breakpoint() # XXX BREAKPOINT
+
+    npt.assert_allclose(replay_t.as_numpy(), src_t.as_numpy())
+    npt.assert_allclose(replay_i.as_numpy(), src_i.as_numpy(), rtol=1e-6, atol=1e-8)
 
 
 def test_error_unknown_pattern(ringtest_stimulus_manager):

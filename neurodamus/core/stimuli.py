@@ -128,6 +128,7 @@ class SignalSource:
         base_amp = self._base_amp if base_amp is None else base_amp
 
         tvec = Nd.h.Vector()
+        breakpoint() # XXX BREAKPOINT
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
         self.delay(total_duration)
