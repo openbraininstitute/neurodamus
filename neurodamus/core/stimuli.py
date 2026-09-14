@@ -139,6 +139,35 @@ class SignalSource:
         self._add_point(base_amp)  # Last point
         return self
 
+    def add_samples(self, times, values, duration=None, **kw):
+        """Adds an arbitrary sampled signal."""
+        base_amp = kw.get("base_amp", self._base_amp)
+        times = [float(t) for t in times]
+        values = [float(v) for v in values]
+
+        if len(times) != len(values):
+            raise ValueError("times and values must have the same length")
+        if not times:
+            raise ValueError("times and values must be non-empty")
+        if times[0] < 0:
+            raise ValueError("times must be non-negative")
+        #if any(t2 < t1 for t1, t2 in zip(times, times[1:], strict=True)):
+        #    raise ValueError("times must be monotonically non-decreasing")
+
+        replay_duration = float(duration) if duration is not None else times[-1]
+        if replay_duration < times[-1]:
+            raise ValueError("duration cannot be smaller than the last sample time")
+        if replay_duration > times[-1]:
+            times.append(replay_duration)
+            values.append(values[-1])
+
+        self._add_point(base_amp)
+        self.time_vec.append(Nd.h.Vector([self._cur_t + t for t in times]))
+        self.stim_vec.append(Nd.h.Vector(values))
+        self._cur_t += replay_duration
+        self._add_point(base_amp)
+        return self
+
     def add_noise(self, mean, variance, duration, dt=0.5):
         """Adds a noise component to the signal."""
         rng = self._rng or RNG()  # Creates a default RNG

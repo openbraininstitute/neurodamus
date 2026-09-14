@@ -1,6 +1,7 @@
 """Unit tests for StimulusManager to handle various stimulus types"""
 import logging
 
+import libsonata
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -704,6 +705,35 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
         signal_source.stim_vec, [0.1, 5, 4.839424, 5.020966, 5.083812, 4.941851, 0.1]
     )
     npt.assert_allclose(signal_source.time_vec, [0, 0, 0.5, 1.0, 1.5, 2, 2])
+
+
+def test_current_replay(ringtest_stimulus_manager):
+    report_path = RINGTEST_DIR / "reference/reports/summation_i_membrane.h5"
+    stim_info = {
+        "Pattern": "Replay",
+        "Mode": "Current",
+        "Duration": 20,
+        "Delay": 5,
+        "Path": str(report_path),
+    }
+    ringtest_stimulus_manager.interpret(target_onecell, stim_info)
+    assert len(ringtest_stimulus_manager._stimulus) == 1
+    stimulus = ringtest_stimulus_manager._stimulus[0]
+    assert isinstance(stimulus, smng.Replay)
+    assert len(stimulus.stimList) == 1
+
+    signal_source = stimulus.stimList[0]
+    assert isinstance(signal_source, st.CurrentSource)
+    assert not signal_source._represents_physical_electrode
+
+    frame = libsonata.ElementReportReader(str(report_path))["RingA"].get(
+        libsonata.Selection([1]), tstart=0.0, tstop=20.0
+    )
+    expected_values = frame.data[:, 0]
+    expected_times = frame.times + stim_info["Delay"]
+
+    npt.assert_allclose(signal_source.stim_vec, [0, 0, *expected_values, 0])
+    npt.assert_allclose(signal_source.time_vec, [0, 5, *expected_times, expected_times[-1]])
 
 
 def test_error_unknown_pattern(ringtest_stimulus_manager):

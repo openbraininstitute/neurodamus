@@ -1012,3 +1012,88 @@ class SpatiallyUniformEField:
         seg_z = np.interp(x, lens, zpos)
 
         return np.array([seg_x, seg_y, seg_z])
+
+
+@StimulusManager.register_type
+class Replay(BaseStim):
+    """Replay a SONATA compartment report onto the soma center."""
+
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
+
+        self.stimList = []
+        self.parse_check_all_parameters(stim_info)
+
+        report = libsonata.ElementReportReader(self.path)
+        populations = set(report.get_population_names())
+
+        for target_point_list in target_points:
+            if not target_point_list.sclst:
+                continue
+
+            gid = target_point_list.gid
+            pop_name, pop_offset = self._get_population_info(cell_manager, gid)
+            report_pop_name = self._resolve_report_population(pop_name, populations)
+            raw_gid = gid - pop_offset
+            frame = self._read_gid_soma_report(report[report_pop_name], raw_gid)
+
+            sample_times = np.asarray(frame.times, dtype=float)
+            sample_times -= sample_times[0]
+            sample_values = frame.data[:, 0]
+            source = CurrentSource.samples(
+                sample_times,
+                sample_values,
+                duration=float(sample_times[-1]),
+                delay=self.delay,
+                represents_physical_electrode=self.represents_physical_electrode,
+            )
+            source.attach_to(target_point_list.sclst[0].sec, target_point_list.x[0])
+            self.stimList.append(source)
+
+    def parse_check_all_parameters(self, stim_info: dict):
+        if stim_info["Mode"] != "Current":
+            raise ConfigurationError(f"{self.__class__.__name__} only supports mode Current")
+
+        self.path = stim_info.get("Path") or stim_info.get("InputFile") or stim_info.get("File")
+        if not self.path:
+            raise ConfigurationError(
+                f"{self.__class__.__name__} requires a Path to a SONATA report"
+            )
+
+        self.report_population = stim_info.get("ReportPopulation") or stim_info.get("Population")
+
+    @staticmethod
+    def _get_population_info(cell_manager, gid):
+        if hasattr(cell_manager, "getPopulationInfo"):
+            return cell_manager.getPopulationInfo(gid)
+        return getattr(cell_manager, "population_name", None), 0
+
+    def _resolve_report_population(self, population_name, available_populations):
+        if self.report_population:
+            if self.report_population not in available_populations:
+                raise ConfigurationError(
+                    f"Replay report population not found: {self.report_population}"
+                )
+            return self.report_population
+        if population_name in available_populations:
+            return population_name
+        if len(available_populations) == 1:
+            return next(iter(available_populations))
+        raise ConfigurationError(
+            f"Could not resolve Replay report population for {population_name}"
+        )
+
+    def _read_gid_soma_report(self, population_report, raw_gid):
+        tstart, tstop, _tstep = population_report.times
+        if self.duration > 0:
+            tstop = min(tstop, tstart + self.duration)
+        frame = population_report.get(libsonata.Selection([raw_gid]), tstart=tstart, tstop=tstop)
+        if frame.data.shape[0] == 0:
+            raise ConfigurationError(f"Replay report contains no samples for gid {raw_gid}")
+        if frame.data.shape[1] == 0:
+            raise ConfigurationError(f"Replay report contains no compartments for gid {raw_gid}")
+        if frame.data.shape[1] != 1:
+            raise ConfigurationError(
+                f"Replay currently expects exactly one compartment for gid {raw_gid}"
+            )
+        return frame
