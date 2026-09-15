@@ -9,6 +9,10 @@ from neurodamus.io.sonata_config import EField
 
 
 class SignalSource:
+    # using `self.stim_vec.play(...)` requires that the vectors stay alive;
+    # so the objects holding them have to stay alive
+    _all_sources = []
+
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
         """Creates a new signal source, which can create composed signals
         Args:
@@ -17,9 +21,8 @@ class SignalSource:
             represents_physical_electrode: Whether the source represents a phsyical
             electrode or missing synaptic input
         """
-        h = Nd.h
-        self.stim_vec = h.Vector()
-        self.time_vec = h.Vector()
+        self.stim_vec = Nd.h.Vector()
+        self.time_vec = Nd.h.Vector()
         self._cur_t = 0
         self._base_amp = base_amp
         self._rng = rng
@@ -307,7 +310,6 @@ class SignalSource:
 
         return self
 
-    # PLOTTING
     def plot(self, ylims=None):
         from matplotlib import pyplot as plt
 
@@ -321,8 +323,6 @@ class SignalSource:
 
 
 class CurrentSource(SignalSource):
-    _all_sources = []
-
     def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
         """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
@@ -338,13 +338,11 @@ class CurrentSource(SignalSource):
         def __init__(
             self,
             cell_section,
-            position=0.5,
-            clamp_container=None,
-            stim_vec_mode=True,
-            time_vec=None,
-            stim_vec=None,
-            represents_physical_electrode=False,
-            **clamp_params,
+            position,
+            clamp_container,
+            time_vec,
+            stim_vec,
+            represents_physical_electrode,
         ):
             # Checks if source does not represent physical electrode,
             # otherwise fall back to IClamp.
@@ -354,31 +352,18 @@ class CurrentSource(SignalSource):
                 else Nd.h.MembraneCurrentSource(position, sec=cell_section)
             )
 
-            if stim_vec_mode:
-                assert time_vec is not None
-                assert stim_vec is not None
-                self.clamp.dur = time_vec[-1]
-                stim_vec.play(self.clamp._ref_amp, time_vec, 1)
-            else:
-                # this is probably unused
-                for param, val in clamp_params.items():
-                    setattr(self.clamp, param, val)
+            self.clamp.dur = time_vec[-1]
+            stim_vec.play(self.clamp._ref_amp, time_vec, 1)
 
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
             clamp_container.add(self)
 
-        def detach(self):
-            """Detaches a clamp from a cell, destroying it"""
-            self._all_clamps.discard(self)
-            del self.clamp  # Force del on the clamp (there might be references to self)
-
     def attach_to(self, section, position=0.5):
         return CurrentSource._Clamp(
-            section,
-            position,
-            self._clamps,
-            stim_vec_mode=True,
+            cell_section=section,
+            position=position,
+            clamp_container=self._clamps,
             time_vec=self.time_vec,
             stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
@@ -386,8 +371,6 @@ class CurrentSource(SignalSource):
 
 
 class ConductanceSource(SignalSource):
-    _all_sources = []
-
     def __init__(self, reversal=0.0, *, delay=0.0, rng=None, represents_physical_electrode=False):
         """Creates a new conductance source that injects a conductance by driving
         the rs of an SEClamp at a given reversal potential.
@@ -409,12 +392,12 @@ class ConductanceSource(SignalSource):
         def __init__(
             self,
             cell_section,
-            position=0.5,
-            clamp_container=None,
-            time_vec=None,
-            stim_vec=None,
-            reversal=0.0,
-            represents_physical_electrode=False,
+            position,
+            clamp_container,
+            time_vec,
+            stim_vec,
+            reversal,
+            represents_physical_electrode,
         ):
             # source does not represent physical electrode,
             # otherwise fall back to SEClamp.
@@ -424,8 +407,6 @@ class ConductanceSource(SignalSource):
                 else Nd.h.ConductanceSource(position, sec=cell_section)
             )
 
-            assert time_vec is not None
-            assert stim_vec is not None
             self.clamp.dur1 = time_vec[-1]
             self.clamp.amp1 = reversal
             # support delay with initial zero
@@ -442,19 +423,14 @@ class ConductanceSource(SignalSource):
             self._all_clamps = clamp_container
             clamp_container.add(self)
 
-        def detach(self):
-            """Detaches a clamp from a cell, destroying it"""
-            self._all_clamps.discard(self)
-            del self.clamp  # Force del on the clamp (there might be references to self)
-
     def attach_to(self, section, position=0.5):
         return ConductanceSource._DynamicClamp(
-            section,
-            position,
-            self._clamps,
-            self.time_vec,
-            self.stim_vec,
-            self._reversal,
+            cell_section=section,
+            position=position,
+            clamp_container=self._clamps,
+            time_vec=self.time_vec,
+            stim_vec=self.stim_vec,
+            reversal=self._reversal,
             represents_physical_electrode=self._represents_physical_electrode,
         )
 
