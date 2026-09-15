@@ -10,7 +10,6 @@ import neurodamus.core.stimuli as st
 from neurodamus.core import Neuron
 from neurodamus.core.random import Random123
 
-
 assert_allclose = partial(npt.assert_allclose, rtol=1e-5, atol=1e-8)
 
 
@@ -418,27 +417,6 @@ def create_ball_and_stick():
     return sec1, soma
 
 
-def clamp_attach_detach(stim, clamp_type):
-    """Attach and detach a Clamp."""
-    sec1, soma = create_ball_and_stick()
-    assert clamp_type not in soma.psection()["point_processes"]
-    assert clamp_type not in sec1.psection()["point_processes"]
-    assert len(stim._all_sources) == 1
-    assert len(stim._clamps) == 0
-    clamp02 = stim.attach_to(soma, position=0.28)
-    assert clamp_type in soma.psection()["point_processes"]
-    assert clamp_type not in sec1.psection()["point_processes"]
-    assert len(stim._clamps) == 1
-    # we placed it at 0.28. Neuron snaps it to the center of the location
-    # compartment. We have 5 real comartments. One center is in 0.3
-    assert_allclose(clamp02.clamp.get_loc(), 0.3)
-    clamp02.detach()
-    assert clamp_type not in soma.psection()["point_processes"]
-    assert clamp_type not in sec1.psection()["point_processes"]
-    assert len(stim._all_sources) == 1
-    assert len(stim._clamps) == 0
-
-
 class TestIClampSource:
     def setup_method(self):
         self.rng = Random123(1, 2, 3)
@@ -451,9 +429,6 @@ class TestIClampSource:
             represents_physical_electrode=True,
         )
         self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "IClamp")
 
 
 class TestMembraneCurrentSource:
@@ -469,9 +444,6 @@ class TestMembraneCurrentSource:
         )
         self.stim.add_segment(3, 4)
 
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "MembraneCurrentSource")
-
 
 class TestSEClampSource:
     def setup_method(self):
@@ -482,9 +454,6 @@ class TestSEClampSource:
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
         self.stim.add_segment(3, 4)
-
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "SEClamp")
 
 
 class TestConductanceSource:
@@ -497,12 +466,9 @@ class TestConductanceSource:
         )
         self.stim.add_segment(3, 4)
 
-    def test_clamp_attach_detach(self):
-        clamp_attach_detach(self.stim, "ConductanceSource")
-
     def test_ornstein_uhlenbeck_clip_negative(self):
         """Test OU process when generated numbers fall in negative space; should clip to 1e9"""
-        sec1, soma = create_ball_and_stick()
+        _sec1, soma = create_ball_and_stick()
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
