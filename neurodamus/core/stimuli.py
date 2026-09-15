@@ -153,7 +153,7 @@ class SignalSource:
             raise ValueError("times and values must be non-empty")
         if times[0] < 0:
             raise ValueError("times must be non-negative")
-        #if any(t2 < t1 for t1, t2 in zip(times, times[1:], strict=True)):
+        # if any(t2 < t1 for t1, t2 in zip(times, times[1:], strict=True)):
         #    raise ValueError("times must be monotonically non-decreasing")
 
         replay_duration = float(duration) if duration is not None else times[-1]
