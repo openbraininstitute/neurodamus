@@ -1,6 +1,7 @@
 """Stimuli sources. inc current and conductance sources which can be attached to cells"""
 
 import logging
+from math import exp, isclose, log, sqrt
 
 from .random import RNG, gamma
 from neurodamus.core import NeuronWrapper as Nd
@@ -52,28 +53,28 @@ class SignalSource:
         self._add_point(amp if amp2 is None else amp2)
         return self
 
-    def add_pulse(self, max_amp, duration, **kw):
+    def add_pulse(self, max_amp, duration, *, base_amp):
         """Add a constant-amplitude pulse.
 
         Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
         This is a special case of `add_ramp` with no amplitude change over time.
         """
-        return self.add_ramp(max_amp, max_amp, duration, **kw)
+        return self.add_ramp(max_amp, max_amp, duration, base_amp=base_amp)
 
-    def add_ramp(self, amp1, amp2, duration, **kw):
+    def add_ramp(self, amp1, amp2, duration, *, base_amp):
         """Add a linear amplitude ramp.
 
         Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
         the given `duration`. All intermediate values between the start and end times
         are linearly interpolated.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
+        base_amp = self._base_amp if base_amp is None else base_amp
         self._add_point(base_amp)
         self.add_segment(amp1, duration, amp2)
         self._add_point(base_amp)
         return self
 
-    def add_train(self, amp, frequency, pulse_duration, total_duration, **kw):
+    def add_train(self, amp, frequency, pulse_duration, total_duration, *, base_amp):
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
@@ -86,7 +87,7 @@ class SignalSource:
         Returns:
             SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
-        base_amp = kw.get("base_amp", self._base_amp)
+        base_amp = self._base_amp if base_amp is None else base_amp
         tau = 1000 / frequency
         delay = tau - pulse_duration
 
@@ -115,7 +116,7 @@ class SignalSource:
         self._add_point(base_amp)
         return self
 
-    def add_sin(self, amp, total_duration, freq, step=0.025, **kw):
+    def add_sin(self, amp, total_duration, freq, step=0.025, *, base_amp):
         """Builds a sinusoidal signal.
 
         Args:
@@ -124,10 +125,9 @@ class SignalSource:
             freq: The wave frequency, in Hz
             step: The step, in ms (default: 0.025)
         """
-        base_amp = kw.get("base_amp", self._base_amp)
+        base_amp = self._base_amp if base_amp is None else base_amp
 
         tvec = Nd.h.Vector()
-        breakpoint() # XXX BREAKPOINT
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
         self.delay(total_duration)
@@ -139,9 +139,8 @@ class SignalSource:
         self._add_point(base_amp)  # Last point
         return self
 
-    def add_samples(self, times, values, duration=None, **kw):
+    def add_samples(self, times, values, duration=None):
         """Adds an arbitrary sampled signal."""
-        base_amp = kw.get("base_amp", self._base_amp)
         times = [float(t) for t in times]
         values = [float(v) for v in values]
 
@@ -161,11 +160,11 @@ class SignalSource:
             times.append(replay_duration)
             values.append(values[-1])
 
-        self._add_point(base_amp)
+        self._add_point(0)
         self.time_vec.append(Nd.h.Vector([self._cur_t + t for t in times]))
         self.stim_vec.append(Nd.h.Vector(values))
         self._cur_t += replay_duration
-        self._add_point(base_amp)
+        self._add_point(0)
         return self
 
     def add_noise(self, mean, variance, duration, dt=0.5):
@@ -209,8 +208,6 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, isclose, log, sqrt
-
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for shot noise generation")
@@ -351,41 +348,6 @@ class SignalSource:
         if ylims:
             ax.set_ylim(*ylims)
         fig.show()
-
-    # ==== Helpers =====
-    # Helper methods forward generic kwargs to base class, like rng and delay
-
-    @classmethod
-    def pulse(cls, max_amp, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_pulse(max_amp, duration)
-
-    @classmethod
-    def ramp(cls, amp1, amp2, duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ramp(amp1, amp2, duration)
-
-    @classmethod
-    def train(cls, amp, frequency, pulse_duration, total_duration, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_train(amp, frequency, pulse_duration, total_duration)
-
-    @classmethod
-    def sin(cls, amp, total_duration, freq, step=0.025, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_sin(amp, total_duration, freq, step)
-
-    @classmethod
-    def samples(cls, times, values, duration=None, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_samples(times, values, duration, base_amp=base_amp)
-
-    @classmethod
-    def noise(cls, mean, variance, duration, dt=0.5, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_noise(mean, variance, duration, dt)
-
-    @classmethod
-    def shot_noise(cls, tau_D, tau_R, rate, amp_mean, var, duration, dt=0.25, base_amp=0.0, **kw):  # ruff: ignore[invalid-argument-name]
-        return cls(base_amp, **kw).add_shot_noise(tau_D, tau_R, rate, amp_mean, var, duration, dt)
-
-    @classmethod
-    def ornstein_uhlenbeck(cls, tau, sigma, mean, duration, dt=0.25, base_amp=0.0, **kw):
-        return cls(base_amp, **kw).add_ornstein_uhlenbeck(tau, sigma, mean, duration, dt)
 
 
 class CurrentSource(SignalSource):
