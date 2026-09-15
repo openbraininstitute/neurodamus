@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+from math import exp, log
 from typing import TYPE_CHECKING
 
 import libsonata
@@ -92,7 +93,11 @@ class StimulusManager:
                 section_type=libsonata.SimulationConfig.Report.Sections.all,
                 compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
             )
-        return target.get_point_list(cell_manager=cell_manager)
+        return target.get_point_list(
+            cell_manager=cell_manager,
+            section_type=libsonata.SimulationConfig.Report.Sections.soma,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.center,
+        )
 
     @staticmethod
     def reset_helpers():
@@ -400,8 +405,6 @@ class ShotNoise(BaseStim):
         Analytical result derived from a generalization of Campbell's theorem present in
         Rice, S.O., "Mathematical Analysis of Random Noise", BSTJ 23, 3 Jul 1944.
         """
-        from math import exp, log
-
         # bi-exponential time to peak [ms]
         t_peak = log(self.tau_D / self.tau_R) / (1 / self.tau_R - 1 / self.tau_D)
         # bi-exponential peak height [1]
@@ -1032,23 +1035,27 @@ class Replay(BaseStim):
                 continue
 
             gid = target_point_list.gid
-            pop_name, pop_offset = self._get_population_info(cell_manager, gid)
-            report_pop_name = self._resolve_report_population(pop_name, populations)
+            pop_name, pop_offset = cell_manager.getPopulationInfo(gid)
+            if pop_name not in populations:
+                continue
+
             raw_gid = gid - pop_offset
-            frame = self._read_gid_soma_report(report[report_pop_name], raw_gid)
+            frame = self._read_gid_soma_report(report[pop_name], raw_gid)
 
             sample_times = np.asarray(frame.times, dtype=float)
             sample_times -= sample_times[0]
             sample_values = frame.data[:, 0]
-            source = CurrentSource.samples(
+
+            cs = CurrentSource(
+                delay=self.delay,
+                represents_physical_electrode=self.represents_physical_electrode,
+            ).add_samples(
                 sample_times,
                 sample_values,
                 duration=float(sample_times[-1]),
-                delay=self.delay,
-                represents_physical_electrode=self.represents_physical_electrode,
             )
-            source.attach_to(target_point_list.sclst[0].sec, target_point_list.x[0])
-            self.stimList.append(source)
+            cs.attach_to(target_point_list.sclst[0].sec, target_point_list.x[0])
+            self.stimList.append(cs)
 
     def parse_check_all_parameters(self, stim_info: dict):
         if stim_info["Mode"] != "Current":
@@ -1061,12 +1068,6 @@ class Replay(BaseStim):
             )
 
         self.report_population = stim_info.get("ReportPopulation") or stim_info.get("Population")
-
-    @staticmethod
-    def _get_population_info(cell_manager, gid):
-        if hasattr(cell_manager, "getPopulationInfo"):
-            return cell_manager.getPopulationInfo(gid)
-        return getattr(cell_manager, "population_name", None), 0
 
     def _resolve_report_population(self, population_name, available_populations):
         if self.report_population:
