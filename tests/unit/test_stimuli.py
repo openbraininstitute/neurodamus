@@ -37,17 +37,17 @@ class TestSignalSource:
         A1, A2, A3 = 1.0, 2.0, 4.0
         D1, D2 = 2.0, 7.0
         self.stim.add_segment(A1, D1, A2)
-        self.stim.add_segment(A3, D2)
+        self.stim.add_segment(A3, D2, A3)
         assert_allclose(self.stim.stim_vec, [self.base_amp, A1, A2, A3, A3])
         expected = np.array([-self.base_delay, 0.0, D1, D1, D1 + D2]) + self.base_delay
         assert_allclose(self.stim.time_vec, expected)
 
     def test_add_pulse_and_ramp(self):
         """Add a pulse/ramp segment and verify correct amplitude and timing."""
-        A1, A2, A3, new_base_amp = 3.0, 4.0, 2.5, 5.0
+        A1, A2, A3 = 3.0, 4.0, 2.5
         D1, D2 = 0.5, 0.8
-        self.stim.add_pulse(A1, D1, self.base_amp)
-        self.stim.add_ramp(A2, A3, D2, base_amp=new_base_amp)
+        self.stim.add_pulse(A1, D1)
+        self.stim.add_ramp(A2, A3, D2)
 
         expected = (
             np.array([-self.base_delay, 0.0, 0.0, D1, D1, D1, D1, D1 + D2, D1 + D2])
@@ -60,21 +60,12 @@ class TestSignalSource:
             A1,
             A1,
             self.base_amp,
-            new_base_amp,
+            self.base_amp,
             A2,
             A3,
-            new_base_amp,
+            self.base_amp,
         ]
         assert_allclose(list(self.stim.stim_vec), expected)
-
-    @pytest.mark.parametrize("base_amp", [-1, 0, 1.5])
-    def test_pulse_diff_base(self, base_amp):
-        """Sweep test of `add_pulse` with varying `base_amp` values, verifying expected time and
-        stimulus vectors."""
-        self.stim.add_pulse(1.2, 10, base_amp=base_amp)
-        expected = np.array([-self.base_delay, 0, 0, 10, 10]) + self.base_delay
-        assert_allclose(list(self.stim.time_vec), expected)
-        assert_allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
 
     def test_add_train(self):
         """Add train of pulses.
@@ -365,7 +356,7 @@ class TestSignalSource:
 
     def test_direct_construction(self):
         """Test direct construction plus add_* methods."""
-        assert isinstance(st.SignalSource(base_amp=0.0).add_pulse(5.0, 10, self.base_amp), st.SignalSource)
+        assert isinstance(st.SignalSource(base_amp=0.0).add_pulse(5.0, 10), st.SignalSource)
         assert isinstance(st.SignalSource(base_amp=0.0).add_ramp(1.0, 5.0, 10), st.SignalSource)
         assert isinstance(
             st.SignalSource(base_amp=0.0).add_train(1.0, 50, 10, 100), st.SignalSource
@@ -420,7 +411,7 @@ class TestMembraneCurrentSource:
             delay=self.base_delay,
             represents_physical_electrode=False,
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
 
 class TestSEClampSource:
@@ -431,7 +422,7 @@ class TestSEClampSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
 
 class TestConductanceSource:
@@ -442,7 +433,7 @@ class TestConductanceSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=False
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
     def test_ornstein_uhlenbeck_clip_negative(self):
         """Test OU process when generated numbers fall in negative space; should clip to 1e9"""
