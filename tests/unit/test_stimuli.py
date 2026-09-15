@@ -46,7 +46,7 @@ class TestSignalSource:
         """Add a pulse/ramp segment and verify correct amplitude and timing."""
         A1, A2, A3, new_base_amp = 3.0, 4.0, 2.5, 5.0
         D1, D2 = 0.5, 0.8
-        self.stim.add_pulse(A1, D1)
+        self.stim.add_pulse(A1, D1, self.base_amp)
         self.stim.add_ramp(A2, A3, D2, base_amp=new_base_amp)
 
         expected = (
@@ -81,13 +81,10 @@ class TestSignalSource:
 
         Check for negative delays.
         """
-        amp, frequency, pulse_duration, total_duration, base_amp = (
-            0.3,
-            5000,
-            3,
-            4.5,
-            0.22,
-        )
+        amp = 0.3
+        frequency = 5000
+        pulse_duration = 3
+        total_duration = 4.5
 
         with pytest.raises(ValueError):
             self.stim.add_train(
@@ -95,7 +92,6 @@ class TestSignalSource:
                 frequency=frequency,
                 pulse_duration=pulse_duration,
                 total_duration=total_duration,
-                base_amp=base_amp,
             )
 
         frequency, pulse_duration = 500, 0.6
@@ -104,7 +100,6 @@ class TestSignalSource:
             frequency=frequency,
             pulse_duration=pulse_duration,
             total_duration=total_duration,
-            base_amp=base_amp,
         )
         assert_allclose(
             self.stim.time_vec,
@@ -112,27 +107,12 @@ class TestSignalSource:
         )
         assert_allclose(
             self.stim.stim_vec,
-            [
-                2.0,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-            ],
+            [2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0],
         )
 
     def test_long_add_train(self):
         """Test `add_train` with long duration, verifying correct time and stimulus vectors."""
-        self.stim.add_train(1.2, 10, 20, 350)
+        self.stim.add_train(amp=1.2, frequency=10, pulse_duration=20, total_duration=350)
         # At 10Hz pulses have T=100ms
         # We end up with 4 pulses, the last one with reduced rest phase
         expected = (
@@ -156,7 +136,7 @@ class TestSignalSource:
                     320,
                     320,
                     350,
-                ]
+                    ]
             )
             + self.base_delay
         )
@@ -169,18 +149,14 @@ class TestSignalSource:
     def test_add_sin(self):
         """Test `add_sin` with short duration, ensuring expected time and sinusoidal stimulus
         vectors."""
-        self.stim.add_sin(
-            1,
-            0.1,
-            10000,
-        )
+        self.stim.add_sin(1, 0.1, 10000, step=0.025)
         expected = np.array([-self.base_delay, 0, 0.025, 0.05, 0.075, 0.1, 0.1]) + self.base_delay
         assert_allclose(self.stim.time_vec, expected)
         assert_allclose(self.stim.stim_vec, [self.base_amp, 0, 1, 0, -1, 0, self.base_amp])
 
     def test_long_add_sin(self):
         """Test `add_sin` with longer duration, validating time and sinusoidal stimulus vectors."""
-        self.stim.add_sin(1, 200, 10, 25)
+        self.stim.add_sin(1, 200, 10, step=25)
         expected = (
             np.array([-self.base_delay, 0, 25, 50, 75, 100, 125, 150, 175, 200, 200])
             + self.base_delay
@@ -313,7 +289,7 @@ class TestSignalSource:
 
     def test_ornstein_uhlenbeck(self):
         """Test the OU process."""
-        self.stim.add_ornstein_uhlenbeck(2.8, 0.0042, 0.029, 2)
+        self.stim.add_ornstein_uhlenbeck(2.8, 0.0042, 0.029, 2, dt=0.25)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
@@ -336,7 +312,7 @@ class TestSignalSource:
 
     def test_ornstein_uhlenbeck_white_noise(self):
         """Test OU process when tau is too small and we add simple white noise."""
-        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.0042, 0.029, 2)
+        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.0042, 0.029, 2, dt=0.25)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
@@ -389,12 +365,14 @@ class TestSignalSource:
 
     def test_direct_construction(self):
         """Test direct construction plus add_* methods."""
-        assert isinstance(st.SignalSource(base_amp=0.0).add_pulse(5.0, 10), st.SignalSource)
+        assert isinstance(st.SignalSource(base_amp=0.0).add_pulse(5.0, 10, self.base_amp), st.SignalSource)
         assert isinstance(st.SignalSource(base_amp=0.0).add_ramp(1.0, 5.0, 10), st.SignalSource)
         assert isinstance(
             st.SignalSource(base_amp=0.0).add_train(1.0, 50, 10, 100), st.SignalSource
         )
-        assert isinstance(st.SignalSource(base_amp=0.0).add_sin(1.0, 100, 50), st.SignalSource)
+        assert isinstance(
+            st.SignalSource(base_amp=0.0).add_sin(1.0, 100, 50, step=0.025), st.SignalSource
+        )
         assert isinstance(
             st.SignalSource(base_amp=0.0).add_noise(0.0, 1.0, 100, dt=0.5), st.SignalSource
         )
@@ -472,8 +450,8 @@ class TestConductanceSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
-        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.042, 0.029, 2)
-        dynclamp = self.stim.attach_to(soma)
+        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.042, 0.029, 2, dt=0.25)
+        dynclamp = self.stim.attach_to(soma, position=0.5)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
