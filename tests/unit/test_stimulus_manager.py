@@ -32,29 +32,6 @@ def ringtest_stimulus_manager():
     return smng.StimulusManager(n._target_manager)
 
 
-def _write_single_compartment_report(path, t_vec, values, population, node_id):
-    times = np.asarray(t_vec, dtype=np.float32)
-    data = np.asarray(values, dtype=np.float32).reshape(-1, 1)
-    dt = float(times[1] - times[0])
-    string_dtype = h5py.string_dtype(encoding="utf-8")
-
-    with h5py.File(path, "w") as h5f:
-        h5f.create_group("report")
-        gpop = h5f.create_group(f"/report/{population}")
-        ddata = gpop.create_dataset("data", data=data, dtype=np.float32)
-        ddata.attrs.create("units", data="nA", dtype=string_dtype)
-
-        gmapping = h5f.create_group(f"/report/{population}/mapping")
-        dnodes = gmapping.create_dataset("node_ids", data=[node_id], dtype=np.uint64)
-        dnodes.attrs.create("sorted", data=True, dtype=np.uint8)
-        gmapping.create_dataset("index_pointers", data=[0, 1], dtype=np.uint64)
-        gmapping.create_dataset("element_ids", data=[0], dtype=np.uint32)
-        dtimes = gmapping.create_dataset(
-            "time", data=[times[0], times[-1], dt], dtype=np.double
-        )
-        dtimes.attrs.create("units", data="ms", dtype=string_dtype)
-
-
 def test_linear(ringtest_stimulus_manager):
     """Linear Stimulus"""
 
@@ -737,41 +714,11 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
     [{"simconfig_fixture": "ringtest_baseconfig"}],
     indirect=True,
 )
-def test_current_replay(create_tmp_simulation_config_file, tmp_path):
-    if 0:
-        sin_stim = {
-            "Pattern": "Sinusoidal",
-            "Mode": "Current",
-            "AmpStart": 1.0,
-            "Frequency": 10.0,
-            "Duration": 20.0,
-            "Delay": 5.0,
-            "Dt": 0.1,
-            "RepresentsPhysicalElectrode": True,
-        }
-
-        nd = Neurodamus(create_tmp_simulation_config_file)
-        src_manager = smng.StimulusManager(nd._target_manager)
-        src_manager.interpret(target_onecell, sin_stim)
-        src_stimulus = src_manager._stimulus[0]
-        src_source = src_stimulus.stimList[0]
-        src_clamp = next(iter(src_source._clamps)).clamp
-
-        src_t = Nd.Vector()
-        src_i = Nd.Vector()
-        src_t.record(Nd._ref_t)
-        src_i.record(src_clamp._ref_amp)
-
-        Nd.finitialize()
-        nd.run()
-
-        report_path = tmp_path / "sinusoidal_replay.h5"
-        _write_single_compartment_report(report_path, src_t, src_i, population="RingA", node_id=0)
-    else:
-        path = Path(__file__).parent / "sinusoidal_replay.h5"
-        sr = libsonata.SomaReportReader("/o/tests/unit/sinusoidal_replay.h5")
-        src_t = sr["RingA"].get(libsonata.Selection((0, 1))).times
-        src_i = sr["RingA"].get(libsonata.Selection((0, 1))).data
+def test_current_replay(create_tmp_simulation_config_file):
+    path = Path(__file__).parent / "sinusoidal_replay.h5"
+    sr = libsonata.SomaReportReader(path)
+    src_t = sr["RingA"].get(libsonata.Selection((0, 1))).times
+    src_i = sr["RingA"].get(libsonata.Selection((0, 1))).data
 
     replay_stim = {
         "Pattern": "Replay",
@@ -779,7 +726,6 @@ def test_current_replay(create_tmp_simulation_config_file, tmp_path):
         "Duration": 5.0 + 20.5,
         "Delay": 0.0,
         "Path": str(path),
-        #"Path": str(report_path),
         "RepresentsPhysicalElectrode": True,
     }
 
@@ -798,12 +744,12 @@ def test_current_replay(create_tmp_simulation_config_file, tmp_path):
     nd_replay.run()
 
     npt.assert_allclose(replay_t.as_numpy()[:500].astype(np.float32), src_t)
-    got = replay_i.as_numpy()[:500].astype(np.float32)
+    res = replay_i.as_numpy()[:500].astype(np.float32)
     # we have interpolation on in NEURON, and the SONATA report format can't
     # encode a two observations for the same timestamp, so we'll have to
     # accept that at the last point, there is a discontinuity
-    got[251] = 0.
-    npt.assert_allclose(got, src_i.reshape(-1), rtol=1e-6, atol=1e-8)
+    res[251] = 0.
+    npt.assert_allclose(res, src_i.reshape(-1), rtol=1e-6, atol=1e-8)
 
 
 def test_error_unknown_pattern(ringtest_stimulus_manager):

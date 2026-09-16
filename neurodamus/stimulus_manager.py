@@ -1042,6 +1042,9 @@ class Replay(BaseStim):
             raw_gid = gid - pop_offset
             frame = self._read_gid_soma_report(report[pop_name], raw_gid)
 
+            if not len(frame.times):
+                continue
+
             sample_times = np.asarray(frame.times, dtype=float)
             sample_times -= sample_times[0]
             sample_values = frame.data[:, 0]
@@ -1069,32 +1072,9 @@ class Replay(BaseStim):
 
         self.report_population = stim_info.get("ReportPopulation") or stim_info.get("Population")
 
-    def _resolve_report_population(self, population_name, available_populations):
-        if self.report_population:
-            if self.report_population not in available_populations:
-                raise ConfigurationError(
-                    f"Replay report population not found: {self.report_population}"
-                )
-            return self.report_population
-        if population_name in available_populations:
-            return population_name
-        if len(available_populations) == 1:
-            return next(iter(available_populations))
-        raise ConfigurationError(
-            f"Could not resolve Replay report population for {population_name}"
-        )
-
     def _read_gid_soma_report(self, population_report, raw_gid):
         tstart, tstop, _tstep = population_report.times
         if self.duration > 0:
             tstop = min(tstop, tstart + self.duration)
         frame = population_report.get(libsonata.Selection([raw_gid]), tstart=tstart, tstop=tstop)
-        if frame.data.shape[0] == 0:
-            raise ConfigurationError(f"Replay report contains no samples for gid {raw_gid}")
-        if frame.data.shape[1] == 0:
-            raise ConfigurationError(f"Replay report contains no compartments for gid {raw_gid}")
-        if frame.data.shape[1] != 1:
-            raise ConfigurationError(
-                f"Replay currently expects exactly one compartment for gid {raw_gid}"
-            )
         return frame

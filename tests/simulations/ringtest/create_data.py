@@ -3,15 +3,72 @@
 # dependencies = ['h5py', 'libsonata', 'numpy']
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
+import itertools as it
 import sys
 from pathlib import Path
-import itertools as it
+
 import h5py
+import numpy as np
 
 # Add path for local imports
 if __name__ == "__main__":
     sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from utils import Edges, make_nodes, make_edges
+
+
+def _write_single_compartment_report(path, t_vec, values, population, node_id):
+    times = np.asarray(t_vec, dtype=np.float32)
+    data = np.asarray(values, dtype=np.float32).reshape(-1, 1)
+    dt = float(times[1] - times[0])
+    string_dtype = h5py.string_dtype(encoding="utf-8")
+
+    with h5py.File(path, "w") as h5f:
+        h5f.create_group("report")
+        gpop = h5f.create_group(f"/report/{population}")
+        ddata = gpop.create_dataset("data", data=data, dtype=np.float32)
+        ddata.attrs.create("units", data="nA", dtype=string_dtype)
+
+        gmapping = h5f.create_group(f"/report/{population}/mapping")
+        dnodes = gmapping.create_dataset("node_ids", data=[node_id], dtype=np.uint64)
+        dnodes.attrs.create("sorted", data=True, dtype=np.uint8)
+        gmapping.create_dataset("index_pointers", data=[0, 1], dtype=np.uint64)
+        gmapping.create_dataset("element_ids", data=[0], dtype=np.uint32)
+        dtimes = gmapping.create_dataset(
+            "time", data=[times[0], times[-1], dt], dtype=np.double
+        )
+        dtimes.attrs.create("units", data="ms", dtype=string_dtype)
+
+
+def create_current_stimulus():
+    sin_stim = {
+        "Pattern": "Sinusoidal",
+        "Mode": "Current",
+        "AmpStart": 1.0,
+        "Frequency": 10.0,
+        "Duration": 20.0,
+        "Delay": 5.0,
+        "Dt": 0.1,
+        "RepresentsPhysicalElectrode": True,
+    }
+
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    src_manager = smng.StimulusManager(nd._target_manager)
+    src_manager.interpret(target_onecell, sin_stim)
+    src_stimulus = src_manager._stimulus[0]
+    src_source = src_stimulus.stimList[0]
+    src_clamp = next(iter(src_source._clamps)).clamp
+
+    src_t = Nd.Vector()
+    src_i = Nd.Vector()
+    src_t.record(Nd._ref_t)
+    src_i.record(src_clamp._ref_amp)
+
+    Nd.finitialize()
+    nd.run()
+
+    report_path = tmp_path / "sinusoidal_replay.h5"
+    _write_single_compartment_report(report_path, src_t, src_i, population="RingA", node_id=0)
 
 
 def make_lfp_weights():
