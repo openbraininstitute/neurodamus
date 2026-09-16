@@ -176,14 +176,14 @@ class OrnsteinUhlenbeck(BaseStim):
                     )
 
                 cs.add_ornstein_uhlenbeck(
-                    self.tau,
-                    self.sigma,
-                    self.mean,
-                    self.duration,
+                    tau=self.tau,
+                    sigma=self.sigma,
+                    mean=self.mean,
+                    duration=self.duration,
                     dt=self.dt,
                 )
                 # attach source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save source
 
         OrnsteinUhlenbeck.stim_count += 1  # increment global count
@@ -323,16 +323,16 @@ class ShotNoise(BaseStim):
                         represents_physical_electrode=self.represents_physical_electrode,
                     )
                 cs.add_shot_noise(
-                    self.tau_D,
-                    self.tau_R,
-                    self.rate,
-                    self.amp_mean,
-                    self.amp_var,
-                    self.duration,
+                    tau_D=self.tau_D,
+                    tau_R=self.tau_R,
+                    rate=self.rate,
+                    amp_mean=self.amp_mean,
+                    amp_var=self.amp_var,
+                    duration=self.duration,
                     dt=self.dt,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
         ShotNoise.stim_count += 1  # increment global count
@@ -538,12 +538,12 @@ class Linear(BaseStim):
                     delay=self.delay,
                     represents_physical_electrode=self.represents_physical_electrode,
                 ).add_ramp(
-                    self.amp_start,
-                    self.amp_end,
-                    self.duration,
+                    amp1=self.amp_start,
+                    amp2=self.amp_end,
+                    duration=self.duration,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):
@@ -663,13 +663,13 @@ class Noise(BaseStim):
                     rng=rng,
                     represents_physical_electrode=self.represents_physical_electrode,
                 ).add_noise(
-                    self.mean,
-                    self.var,
-                    self.duration,
+                    mean=self.mean,
+                    variance=self.var,
+                    duration=self.duration,
                     dt=self.dt,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
         Noise.stim_count += 1  # increment global count
@@ -745,13 +745,13 @@ class Pulse(BaseStim):
                     delay=self.delay,
                     represents_physical_electrode=self.represents_physical_electrode,
                 ).add_train(
-                    self.amp,
-                    self.freq,
-                    self.width,
-                    self.duration,
+                    amp=self.amp,
+                    frequency=self.freq,
+                    pulse_duration=self.width,
+                    total_duration=self.duration,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):
@@ -786,13 +786,13 @@ class Sinusoidal(BaseStim):
                     delay=self.delay,
                     represents_physical_electrode=self.represents_physical_electrode,
                 ).add_sin(
-                    self.amp,
-                    self.duration,
-                    self.freq,
+                    amp=self.amp,
+                    total_duration=self.duration,
+                    freq=self.freq,
                     step=self.dt,
                 )
                 # attach current source to section
-                cs.attach_to(sc.sec, target_point_list.x[sec_id])
+                cs.attach_to(section=sc.sec, position=target_point_list.x[sec_id])
                 self.stimList.append(cs)  # save CurrentSource
 
     def parse_check_all_parameters(self, stim_info: dict):

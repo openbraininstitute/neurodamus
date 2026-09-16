@@ -37,17 +37,17 @@ class TestSignalSource:
         A1, A2, A3 = 1.0, 2.0, 4.0
         D1, D2 = 2.0, 7.0
         self.stim.add_segment(A1, D1, A2)
-        self.stim.add_segment(A3, D2)
+        self.stim.add_segment(A3, D2, A3)
         assert_allclose(self.stim.stim_vec, [self.base_amp, A1, A2, A3, A3])
         expected = np.array([-self.base_delay, 0.0, D1, D1, D1 + D2]) + self.base_delay
         assert_allclose(self.stim.time_vec, expected)
 
     def test_add_pulse_and_ramp(self):
         """Add a pulse/ramp segment and verify correct amplitude and timing."""
-        A1, A2, A3, new_base_amp = 3.0, 4.0, 2.5, 5.0
+        A1, A2, A3 = 3.0, 4.0, 2.5
         D1, D2 = 0.5, 0.8
         self.stim.add_pulse(A1, D1)
-        self.stim.add_ramp(A2, A3, D2, base_amp=new_base_amp)
+        self.stim.add_ramp(A2, A3, D2)
 
         expected = (
             np.array([-self.base_delay, 0.0, 0.0, D1, D1, D1, D1, D1 + D2, D1 + D2])
@@ -60,34 +60,22 @@ class TestSignalSource:
             A1,
             A1,
             self.base_amp,
-            new_base_amp,
+            self.base_amp,
             A2,
             A3,
-            new_base_amp,
+            self.base_amp,
         ]
         assert_allclose(list(self.stim.stim_vec), expected)
-
-    @pytest.mark.parametrize("base_amp", [-1, 0, 1.5])
-    def test_pulse_diff_base(self, base_amp):
-        """Sweep test of `add_pulse` with varying `base_amp` values, verifying expected time and
-        stimulus vectors."""
-        self.stim.add_pulse(1.2, 10, base_amp=base_amp)
-        expected = np.array([-self.base_delay, 0, 0, 10, 10]) + self.base_delay
-        assert_allclose(list(self.stim.time_vec), expected)
-        assert_allclose(list(self.stim.stim_vec), [self.base_amp, base_amp, 1.2, 1.2, base_amp])
 
     def test_add_train(self):
         """Add train of pulses.
 
         Check for negative delays.
         """
-        amp, frequency, pulse_duration, total_duration, base_amp = (
-            0.3,
-            5000,
-            3,
-            4.5,
-            0.22,
-        )
+        amp = 0.3
+        frequency = 5000
+        pulse_duration = 3
+        total_duration = 4.5
 
         with pytest.raises(ValueError):
             self.stim.add_train(
@@ -95,7 +83,6 @@ class TestSignalSource:
                 frequency=frequency,
                 pulse_duration=pulse_duration,
                 total_duration=total_duration,
-                base_amp=base_amp,
             )
 
         frequency, pulse_duration = 500, 0.6
@@ -104,7 +91,6 @@ class TestSignalSource:
             frequency=frequency,
             pulse_duration=pulse_duration,
             total_duration=total_duration,
-            base_amp=base_amp,
         )
         assert_allclose(
             self.stim.time_vec,
@@ -112,27 +98,12 @@ class TestSignalSource:
         )
         assert_allclose(
             self.stim.stim_vec,
-            [
-                2.0,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-                0.3,
-                0.3,
-                0.22,
-                0.22,
-            ],
+            [2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0, 0.3, 0.3, 2.0, 2.0],
         )
 
     def test_long_add_train(self):
         """Test `add_train` with long duration, verifying correct time and stimulus vectors."""
-        self.stim.add_train(1.2, 10, 20, 350)
+        self.stim.add_train(amp=1.2, frequency=10, pulse_duration=20, total_duration=350)
         # At 10Hz pulses have T=100ms
         # We end up with 4 pulses, the last one with reduced rest phase
         expected = (
@@ -156,7 +127,7 @@ class TestSignalSource:
                     320,
                     320,
                     350,
-                ]
+                    ]
             )
             + self.base_delay
         )
@@ -169,18 +140,14 @@ class TestSignalSource:
     def test_add_sin(self):
         """Test `add_sin` with short duration, ensuring expected time and sinusoidal stimulus
         vectors."""
-        self.stim.add_sin(
-            1,
-            0.1,
-            10000,
-        )
+        self.stim.add_sin(1, 0.1, 10000, step=0.025)
         expected = np.array([-self.base_delay, 0, 0.025, 0.05, 0.075, 0.1, 0.1]) + self.base_delay
         assert_allclose(self.stim.time_vec, expected)
         assert_allclose(self.stim.stim_vec, [self.base_amp, 0, 1, 0, -1, 0, self.base_amp])
 
     def test_long_add_sin(self):
         """Test `add_sin` with longer duration, validating time and sinusoidal stimulus vectors."""
-        self.stim.add_sin(1, 200, 10, 25)
+        self.stim.add_sin(1, 200, 10, step=25)
         expected = (
             np.array([-self.base_delay, 0, 25, 50, 75, 100, 125, 150, 175, 200, 200])
             + self.base_delay
@@ -313,7 +280,7 @@ class TestSignalSource:
 
     def test_ornstein_uhlenbeck(self):
         """Test the OU process."""
-        self.stim.add_ornstein_uhlenbeck(2.8, 0.0042, 0.029, 2)
+        self.stim.add_ornstein_uhlenbeck(2.8, 0.0042, 0.029, 2, dt=0.25)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
@@ -336,7 +303,7 @@ class TestSignalSource:
 
     def test_ornstein_uhlenbeck_white_noise(self):
         """Test OU process when tau is too small and we add simple white noise."""
-        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.0042, 0.029, 2)
+        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.0042, 0.029, 2, dt=0.25)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
@@ -394,7 +361,9 @@ class TestSignalSource:
         assert isinstance(
             st.SignalSource(base_amp=0.0).add_train(1.0, 50, 10, 100), st.SignalSource
         )
-        assert isinstance(st.SignalSource(base_amp=0.0).add_sin(1.0, 100, 50), st.SignalSource)
+        assert isinstance(
+            st.SignalSource(base_amp=0.0).add_sin(1.0, 100, 50, step=0.025), st.SignalSource
+        )
         assert isinstance(
             st.SignalSource(base_amp=0.0).add_noise(0.0, 1.0, 100, dt=0.5), st.SignalSource
         )
@@ -442,7 +411,7 @@ class TestMembraneCurrentSource:
             delay=self.base_delay,
             represents_physical_electrode=False,
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
 
 class TestSEClampSource:
@@ -453,7 +422,7 @@ class TestSEClampSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
 
 class TestConductanceSource:
@@ -464,7 +433,7 @@ class TestConductanceSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=False
         )
-        self.stim.add_segment(3, 4)
+        self.stim.add_segment(3, 4, 3)
 
     def test_ornstein_uhlenbeck_clip_negative(self):
         """Test OU process when generated numbers fall in negative space; should clip to 1e9"""
@@ -472,8 +441,8 @@ class TestConductanceSource:
         self.stim = st.ConductanceSource(
             reversal=0.5, rng=self.rng, delay=self.base_delay, represents_physical_electrode=True
         )
-        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.042, 0.029, 2)
-        dynclamp = self.stim.attach_to(soma)
+        self.stim.add_ornstein_uhlenbeck(0.5e-9, 0.042, 0.029, 2, dt=0.25)
+        dynclamp = self.stim.attach_to(soma, position=0.5)
         base_time_vec = np.array([0, 0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.0])
         expected_time_vec = base_time_vec + self.base_delay
         expected_time_vec = np.concatenate(([0], expected_time_vec))
