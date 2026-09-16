@@ -2,7 +2,6 @@
 import logging
 from pathlib import Path
 
-import h5py
 import libsonata
 import numpy as np
 import numpy.testing as npt
@@ -743,12 +742,12 @@ def test_current_replay(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd_replay.run()
 
-    npt.assert_allclose(replay_t.as_numpy()[:500].astype(np.float32), src_t)
-    res = replay_i.as_numpy()[:500].astype(np.float32)
-    # we have interpolation on in NEURON, and the SONATA report format can't
-    # encode a two observations for the same timestamp, so we'll have to
-    # accept that at the last point, there is a discontinuity
-    res[251] = 0.
+    # clamp comparison to the length of the simulus; we're recording longer,
+    # so `res` will have trailing 0s
+    stim_len = len(src_t)
+
+    npt.assert_allclose(replay_t.as_numpy()[:stim_len].astype(np.float32), src_t)
+    res = replay_i.as_numpy()[:stim_len].astype(np.float32)
     npt.assert_allclose(res, src_i.reshape(-1), rtol=1e-6, atol=1e-8)
 
 

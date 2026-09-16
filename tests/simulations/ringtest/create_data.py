@@ -3,6 +3,7 @@
 # dependencies = ['h5py', 'libsonata', 'numpy']
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
+import json
 import itertools as it
 import sys
 from pathlib import Path
@@ -10,16 +11,14 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-# Add path for local imports
-if __name__ == "__main__":
-    sys.path.append(str(Path(__file__).resolve().parent.parent))
+_file = __file__
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils import Edges, make_nodes, make_edges
 
 
-def _write_single_compartment_report(path, t_vec, values, population, node_id):
-    times = np.asarray(t_vec, dtype=np.float32)
-    data = np.asarray(values, dtype=np.float32).reshape(-1, 1)
+def _write_single_compartment_report(path, times, data, population, node_id):
     dt = float(times[1] - times[0])
     string_dtype = h5py.string_dtype(encoding="utf-8")
 
@@ -40,35 +39,18 @@ def _write_single_compartment_report(path, t_vec, values, population, node_id):
         dtimes.attrs.create("units", data="ms", dtype=string_dtype)
 
 
-def create_current_stimulus():
-    sin_stim = {
-        "Pattern": "Sinusoidal",
-        "Mode": "Current",
-        "AmpStart": 1.0,
-        "Frequency": 10.0,
-        "Duration": 20.0,
-        "Delay": 5.0,
-        "Dt": 0.1,
-        "RepresentsPhysicalElectrode": True,
-    }
+def create_current_stimulus(output_file):
+    """To create this dataset, we use neuron and neurodamus to make its sinusoidal input
 
-    nd = Neurodamus(create_tmp_simulation_config_file)
-    src_manager = smng.StimulusManager(nd._target_manager)
-    src_manager.interpret(target_onecell, sin_stim)
-    src_stimulus = src_manager._stimulus[0]
-    src_source = src_stimulus.stimList[0]
-    src_clamp = next(iter(src_source._clamps)).clamp
+    cd tests/simulations/ringtest
+    python -c 'import create_data; create_data.create_current_stimulus("/tmp/sinusoidal_replay.h5")'
+    """
+    from neurodamus.core.stimuli import SignalSource
 
-    src_t = Nd.Vector()
-    src_i = Nd.Vector()
-    src_t.record(Nd._ref_t)
-    src_i.record(src_clamp._ref_amp)
-
-    Nd.finitialize()
-    nd.run()
-
-    report_path = tmp_path / "sinusoidal_replay.h5"
-    _write_single_compartment_report(report_path, src_t, src_i, population="RingA", node_id=0)
+    ss = SignalSource().add_sin(amp=1.0, total_duration=20.0, freq=10.0, step=0.1)
+    times = np.asarray(ss.time_vec.as_numpy(), dtype=np.float32)
+    data = np.asarray(ss.stim_vec.as_numpy(), dtype=np.float32).reshape(-1, 1)
+    _write_single_compartment_report(output_file, times, data, population="RingA", node_id=0)
 
 
 def make_lfp_weights():
@@ -305,6 +287,7 @@ def make_ringtest_edges():
         count=2, wanted_attributes=wanted)
 
 
-make_ringtest_nodes()
-make_ringtest_edges()
-make_lfp_weights()
+if __name__ == "__main__":
+    make_ringtest_nodes()
+    make_ringtest_edges()
+    make_lfp_weights()
