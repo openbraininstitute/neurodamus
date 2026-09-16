@@ -46,38 +46,34 @@ class SignalSource:
         self._cur_t += duration
         return self
 
-    def add_segment(self, amp, duration, amp2=None):
-        """Sets a linear signal for a certain duration.
-
-        If amp2 is None (default) then we have constant signal
-        """
+    def add_segment(self, amp, duration, amp2):
+        """Sets a linear signal for a certain duration."""
         self._add_point(amp)
         self.delay(duration)
-        self._add_point(amp if amp2 is None else amp2)
+        self._add_point(amp2)
         return self
 
-    def add_pulse(self, max_amp, duration, *, base_amp):
+    def add_pulse(self, max_amp, duration):
         """Add a constant-amplitude pulse.
 
         Generates a pulse with a constant amplitude (`max_amp`) for the specified `duration`.
         This is a special case of `add_ramp` with no amplitude change over time.
         """
-        return self.add_ramp(max_amp, max_amp, duration, base_amp=base_amp)
+        return self.add_ramp(max_amp, max_amp, duration)
 
-    def add_ramp(self, amp1, amp2, duration, *, base_amp):
+    def add_ramp(self, amp1, amp2, duration):
         """Add a linear amplitude ramp.
 
         Creates a ramp signal that linearly changes amplitude from `amp1` to `amp2` over
         the given `duration`. All intermediate values between the start and end times
         are linearly interpolated.
         """
-        base_amp = self._base_amp if base_amp is None else base_amp
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
         self.add_segment(amp1, duration, amp2)
-        self._add_point(base_amp)
+        self._add_point(self._base_amp)
         return self
 
-    def add_train(self, amp, frequency, pulse_duration, total_duration, *, base_amp):
+    def add_train(self, amp, frequency, pulse_duration, total_duration):
         """Stimulus with repeated pulse injections at a specified frequency.
 
         Args:
@@ -85,13 +81,11 @@ class SignalSource:
             frequency (float): Number of pulses per second (Hz).
             pulse_duration (float): Duration of a single pulse (peak time) in milliseconds.
             total_duration (float): Total duration of the pulse train in milliseconds.
-            base_amp (float, optional): Base amplitude (default is 0.0).
 
         Returns:
             SignalSource: The instance of the SignalSource class with the configured pulse train.
         """
-        base_amp = self._base_amp if base_amp is None else base_amp
-        tau = 1000 / frequency
+        tau = 1000.0 / frequency
         delay = tau - pulse_duration
 
         # we cannot have overlapping pulses otherwise we may go back in time.
@@ -105,21 +99,21 @@ class SignalSource:
 
         number_pulses = int(total_duration / tau)
         for _ in range(number_pulses):
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(delay)
 
         # Add final pulse, possibly partial
         remaining_time = total_duration - number_pulses * tau
         if pulse_duration <= remaining_time:
-            self.add_pulse(amp, pulse_duration, base_amp=base_amp)
+            self.add_pulse(amp, pulse_duration)
             self.delay(min(delay, remaining_time - pulse_duration))
         else:
-            self.add_pulse(amp, remaining_time, base_amp=base_amp)
-        # Last point
-        self._add_point(base_amp)
+            self.add_pulse(amp, remaining_time)
+
+        self._add_point(self._base_amp)  # Last point
         return self
 
-    def add_sin(self, amp, total_duration, freq, step=0.025, *, base_amp):
+    def add_sin(self, amp, total_duration, freq, step):
         """Builds a sinusoidal signal.
 
         Args:
@@ -128,8 +122,6 @@ class SignalSource:
             freq: The wave frequency, in Hz
             step: The step, in ms (default: 0.025)
         """
-        base_amp = self._base_amp if base_amp is None else base_amp
-
         tvec = Nd.h.Vector()
         tvec.indgen(self._cur_t, self._cur_t + total_duration, step)
         self.time_vec.append(tvec)
@@ -139,7 +131,7 @@ class SignalSource:
         stim.sin(freq, 0.0, step)
         stim.mul(amp)
         self.stim_vec.append(stim)
-        self._add_point(base_amp)  # Last point
+        self._add_point(self._base_amp)  # Last point
         return self
 
     def add_samples(self, times, values, duration=None):
@@ -293,7 +285,7 @@ class SignalSource:
 
         return self
 
-    def add_ornstein_uhlenbeck(self, tau, sigma, mean, duration, dt=0.25):
+    def add_ornstein_uhlenbeck(self, tau, sigma, mean, duration, dt):
         """Adds an Ornstein-Uhlenbeck process with given correlation time,
         standard deviation and mean value.
 
@@ -303,8 +295,6 @@ class SignalSource:
         duration: duration of signal [ms]
         dt: timestep [ms]
         """
-        from math import exp, sqrt
-
         rng = self._rng or RNG()  # Creates a default RNG
         if not self._rng:
             logging.warning("Using a default RNG for Ornstein-Uhlenbeck process")
@@ -389,7 +379,7 @@ class CurrentSource(SignalSource):
             self._all_clamps = clamp_container
             clamp_container.add(self)
 
-    def attach_to(self, section, position=0.5):
+    def attach_to(self, section, position):
         return CurrentSource._Clamp(
             cell_section=section,
             position=position,
@@ -407,14 +397,13 @@ class ConductanceSource(SignalSource):
 
         reversal: reversal potential of conductance (mV)
         """
-        # set SignalSource's base_amp to zero
         super().__init__(
-            reversal,
+            base_amp=reversal,
             delay=delay,
             rng=rng,
             represents_physical_electrode=represents_physical_electrode,
         )
-        self._reversal = reversal  # set reversal from base_amp parameter in classmethods
+        self._reversal = reversal
         self._clamps = set()
         self._all_sources.append(self)
 
@@ -453,7 +442,7 @@ class ConductanceSource(SignalSource):
             self._all_clamps = clamp_container
             clamp_container.add(self)
 
-    def attach_to(self, section, position=0.5):
+    def attach_to(self, section, position):
         return ConductanceSource._DynamicClamp(
             cell_section=section,
             position=position,
