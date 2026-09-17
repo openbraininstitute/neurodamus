@@ -99,6 +99,7 @@ class SynapseParameters:
         """Scale 'U' and other vars using constrained Hill function based on
         extracellular calcium.
         """
+        breakpoint() # XXX BREAKPOINT
         if (
             len(syn_params) == 0
             or extra_cellular_calcium is None
@@ -109,6 +110,7 @@ class SynapseParameters:
         scale_factors = SynapseParameters._constrained_hill(
             syn_params.u_hill_coefficient, extra_cellular_calcium
         )
+
         syn_params.U *= scale_factors
         for var in extra_scale_vars:
             syn_params[var] *= scale_factors
@@ -223,6 +225,7 @@ class SonataReader:
                 self._preload_data_chunk([gid])
                 data = self._data[gid]
 
+            breakpoint() # XXX BREAKPOINT
             ca = self._ca_concentration if self._uhill_property_avail else None
 
             syn_params = self.Parameters.make_synapse_parameters_array(

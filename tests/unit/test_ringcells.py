@@ -188,18 +188,11 @@ def test_enable_soma_stimulation(create_tmp_simulation_config_file):
             "simconfig_data": {
                 "network": "circuit_config.json",
                 "node_sets_file": "nodesets.json",
-                "run":
-                {
-                    "random_seed": 12345,
-                    "dt": 0.05,
-                    "tstop": 10
-                },
+                "run": {"random_seed": 12345, "dt": 0.05, "tstop": 10},
                 "target_simulator": "NEURON",
-                "conditions": {
-                   "extracellular_calcium": 1.2
-                }
+                "conditions": {"extracellular_calcium": 1.2},
             },
-            "src_dir": RINGTEST_DIR
+            "src_dir": RINGTEST_DIR,
         }
     ],
     indirect=True,
@@ -209,6 +202,7 @@ def test_condition_extracellular_calcium_applies_uhill_patch(create_tmp_simulati
     n = Neurodamus(create_tmp_simulation_config_file)
     assert SimConfig.extracellular_calcium == 1.2
 
+    breakpoint() # XXX BREAKPOINT
     gid = 1
 
     # 16 is the `Use` for gid 1
