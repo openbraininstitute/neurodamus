@@ -202,11 +202,7 @@ def test_condition_extracellular_calcium_applies_uhill_patch(create_tmp_simulati
     n = Neurodamus(create_tmp_simulation_config_file)
     assert SimConfig.extracellular_calcium == 1.2
 
-    breakpoint() # XXX BREAKPOINT
-    gid = 1
-
-    # 16 is the `Use` for gid 1
-    expected_use = 16 * SynapseParameters._constrained_hill(-1.0, SimConfig.extracellular_calcium)
-
-    cellref = n.circuits.get_node_manager("RingA").get_cellref(gid)
-    assert cellref.synlist.o(0).Use == pytest.approx(expected_use)
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(gid=1)
+    # 16 is the `Use` for gid 1; since ringtest does not have
+    # `u_hill_coefficient`, no scaling should be applied
+    assert cellref.synlist.o(0).Use == 16.0
