@@ -55,8 +55,12 @@ def test_current_replay_linear(create_tmp_simulation_config_file, tmp_path):
     ss = st.SignalSource().add_ramp(amp1=ssc.amp_start, amp2=ssc.amp_end, duration=ssc.duration)
 
     times = ss.time_vec.as_numpy().astype(np.float32)
-    data = ss.stim_vec.as_numpy().astype(np.float32).reshape(-1, 1)
-    utils.write_single_compartment_report(path, times, data, population="RingA", node_id=0)
+    data = ss.stim_vec.as_numpy().astype(np.float32)
+    utils.write_single_compartment_report(path,
+                                          times,
+                                          [data, data, data],
+                                          population="RingA",
+                                          node_ids=[0, 1, 2])
 
     with open(create_tmp_simulation_config_file, encoding="utf-8") as fd:
         sim_config_data = json.load(fd)
@@ -68,7 +72,7 @@ def test_current_replay_linear(create_tmp_simulation_config_file, tmp_path):
             "delay": 0.0,
             "duration": 50.0,
             "path": str(path),
-            "node_set": "RingA"
+            "node_set": "RingA"  #XXX should do all of them?
             }
         }
 
@@ -84,3 +88,5 @@ def test_current_replay_linear(create_tmp_simulation_config_file, tmp_path):
         check=True,
         capture_output=True,
     )
+    breakpoint() # XXX BREAKPOINT
+    # compare reports

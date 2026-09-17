@@ -1026,7 +1026,6 @@ class Replay(BaseStim):
 
         report = libsonata.ElementReportReader(self.path)
         populations = set(report.get_population_names())
-        breakpoint() # XXX BREAKPOINT
 
         for target_point_list in target_points:
             if not target_point_list.sclst:
@@ -1050,6 +1049,7 @@ class Replay(BaseStim):
             cs = CurrentSource(
                 delay=self.delay,
                 represents_physical_electrode=self.represents_physical_electrode,
+                interpolate=False
             ).add_samples(
                 sample_times,
                 sample_values,
