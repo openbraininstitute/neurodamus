@@ -18,41 +18,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from utils import Edges, make_nodes, make_edges
 
 
-def _write_single_compartment_report(path, times, data, population, node_id):
-    dt = float(times[1] - times[0])
-    string_dtype = h5py.string_dtype(encoding="utf-8")
-
-    with h5py.File(path, "w") as h5f:
-        h5f.create_group("report")
-        gpop = h5f.create_group(f"/report/{population}")
-        ddata = gpop.create_dataset("data", data=data, dtype=np.float32)
-        ddata.attrs.create("units", data="nA", dtype=string_dtype)
-
-        gmapping = h5f.create_group(f"/report/{population}/mapping")
-        dnodes = gmapping.create_dataset("node_ids", data=[node_id], dtype=np.uint64)
-        dnodes.attrs.create("sorted", data=True, dtype=np.uint8)
-        gmapping.create_dataset("index_pointers", data=[0, 1], dtype=np.uint64)
-        gmapping.create_dataset("element_ids", data=[0], dtype=np.uint32)
-        dtimes = gmapping.create_dataset(
-            "time", data=[times[0], times[-1], dt], dtype=np.double
-        )
-        dtimes.attrs.create("units", data="ms", dtype=string_dtype)
-
-
-def create_current_stimulus(output_file):
-    """To create this dataset, we use neuron and neurodamus to make its sinusoidal input
-
-    cd tests/simulations/ringtest
-    python -c 'import create_data; create_data.create_current_stimulus("/tmp/sinusoidal_replay.h5")'
-    """
-    from neurodamus.core.stimuli import SignalSource
-
-    ss = SignalSource().add_sin(amp=1.0, total_duration=20.0, freq=10.0, step=0.1)
-    times = np.asarray(ss.time_vec.as_numpy(), dtype=np.float32)
-    data = np.asarray(ss.stim_vec.as_numpy(), dtype=np.float32).reshape(-1, 1)
-    _write_single_compartment_report(output_file, times, data, population="RingA", node_id=0)
-
-
 def make_lfp_weights():
     filename = "lfp_file.h5"
     with h5py.File(filename, "w") as h5:

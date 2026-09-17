@@ -1,18 +1,19 @@
 """Unit tests for StimulusManager to handle various stimulus types"""
 import logging
-from pathlib import Path
 
 import libsonata
 import numpy as np
 import numpy.testing as npt
 import pytest
 
+from tests import utils
 from tests.conftest import RINGTEST_DIR
 
 import neurodamus.core.stimuli as st
 import neurodamus.stimulus_manager as smng
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import ConfigurationError
+from neurodamus.core.stimuli import SignalSource
 from neurodamus.node import Neurodamus, Node
 
 target_name = "RingA"
@@ -713,11 +714,13 @@ def test_relative_ornstein_uhlenbeck(ringtest_stimulus_manager):
     [{"simconfig_fixture": "ringtest_baseconfig"}],
     indirect=True,
 )
-def test_current_replay(create_tmp_simulation_config_file):
-    path = Path(__file__).parent / "sinusoidal_replay.h5"
-    sr = libsonata.SomaReportReader(path)
-    src_t = sr["RingA"].get(libsonata.Selection((0, 1))).times
-    src_i = sr["RingA"].get(libsonata.Selection((0, 1))).data
+def test_current_replay(create_tmp_simulation_config_file, tmp_path):
+    path = tmp_path / "sin.h5"
+
+    ss = SignalSource().add_sin(amp=1.0, total_duration=20.0, freq=10.0, step=0.1)
+    times = np.asarray(ss.time_vec.as_numpy(), dtype=np.float32)
+    data = np.asarray(ss.stim_vec.as_numpy(), dtype=np.float32).reshape(-1, 1)
+    utils.write_single_compartment_report(path, times, data, population="RingA", node_id=0)
 
     replay_stim = {
         "Pattern": "Replay",
@@ -742,13 +745,21 @@ def test_current_replay(create_tmp_simulation_config_file):
     Nd.finitialize()
     nd_replay.run()
 
-    # clamp comparison to the length of the simulus; we're recording longer,
-    # so `res` will have trailing 0s
-    stim_len = len(src_t)
-
-    npt.assert_allclose(replay_t.as_numpy()[:stim_len].astype(np.float32), src_t)
+    # the `times` (and therefore `data`) can have multiple values for the same timestemp
+    # thus, at len(times), the same value is used twice make the signal return
+    # to 0 at the end, from NEURON: `Note that if there are discontinuities in
+    # the function itself, then tvec should have adjacent elements with the
+    # same time value.`
+    # (https://www.neuronsimulator.org/en/9.0.0/progref/programming/math/vector.html#Vector.play)
+    # unfortunately, the SONATA report format can't duplicate the times, so
+    # there is a small inconsistency at the end point
+    stim_len = len(times) - 1
     res = replay_i.as_numpy()[:stim_len].astype(np.float32)
-    npt.assert_allclose(res, src_i.reshape(-1), rtol=1e-6, atol=1e-8)
+
+    npt.assert_allclose(replay_t.as_numpy()[:stim_len].astype(np.float32), times[:stim_len])
+
+    # the endpoint discontinuity means the last two points are averaged
+    npt.assert_allclose(res[:stim_len - 1], data.reshape(-1)[:stim_len - 1], rtol=1e-6, atol=1e-8)
 
 
 def test_error_unknown_pattern(ringtest_stimulus_manager):

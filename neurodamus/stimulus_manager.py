@@ -37,11 +37,8 @@ if TYPE_CHECKING:
 
 
 class StimulusManager:
-    """A manager for synaptic artificial Stimulus.
-    Old stimulus resort to hoc implementation
-    """
-
-    _stim_types = {}  # stimulus handled in Python
+    """A manager for synaptic artificial Stimulus."""
+    _stim_types = {}
 
     def __init__(self, target_manager):
         self._target_manager = target_manager
@@ -1029,6 +1026,7 @@ class Replay(BaseStim):
 
         report = libsonata.ElementReportReader(self.path)
         populations = set(report.get_population_names())
+        breakpoint() # XXX BREAKPOINT
 
         for target_point_list in target_points:
             if not target_point_list.sclst:

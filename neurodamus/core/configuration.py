@@ -552,6 +552,7 @@ def _stimulus_params(config: _SimConfig):
             "AbsoluteShotNoise",
             "RelativeOrnsteinUhlenbeck",
             "SpatiallyUniformEField",
+            "Replay",
         },
     }
     for stim in config.stimuli:
