@@ -35,7 +35,7 @@ install-hdf5() {
         -DHDF5_BUILD_TOOLS=OFF \
         -DHDF5_ENABLE_SZIP_ENCODING=OFF \
         -DHDF5_ENABLE_SZIP_SUPPORT=OFF \
-        -DHDF5_ENABLE_Z_LIB_SUPPORT=OFF \
+        -DHDF5_ENABLE_Z_LIB_SUPPORT=ON \
     )
 
     if [[ -n $SCCACHE_DIR ]]; then
