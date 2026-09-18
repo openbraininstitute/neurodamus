@@ -19,7 +19,7 @@ ENV CMAKE_BUILD_TYPE=RelWithDebugInfo
 COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_=PYTHON_DOWNLOADSnever \
+    UV_PYTHON_DOWNLOADS=never \
     UV_PYTHON=python${PYTHON_VERSION}
 
 SHELL ["/bin/bash", "-c"]
@@ -70,7 +70,7 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/bui
     && build-libsonatareport $LIBSONATAREPORT_COMMIT \
     && rm -rf /$BUILD_DIR/libsonatareport
 
-ARG LIBSONATA_COMMIT=v0.1.37
+ARG LIBSONATA_COMMIT=v0.2.1
 
 RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-libsonata.sh \
     --mount=type=cache,target=/root/.cache/uv \
