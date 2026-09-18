@@ -450,7 +450,7 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
     return ref
 
 
-class ReportReader:  # noqa: PLW1641
+class ReportReader:  # ruff: ignore[eq-without-hash]
     def __init__(self, file: str):
         self._reader = ElementReportReader(file)
         self.populations: dict[str, tuple[list[int], pd.DataFrame]] = {}
@@ -630,7 +630,3 @@ def write_single_compartment_report(path, times, data, population, node_ids):
             "time", data=[times[0], times[-1] + dt, dt], dtype=np.double
         )
         dtimes.attrs.create("units", data="ms", dtype=string_dtype)
-
-    breakpoint() # XXX BREAKPOINT
-    pass
-

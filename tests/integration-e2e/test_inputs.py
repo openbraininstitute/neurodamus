@@ -72,7 +72,8 @@ def test_current_replay_linear(create_tmp_simulation_config_file, tmp_path):
             "delay": 0.0,
             "duration": 50.0,
             "path": str(path),
-            "node_set": "RingA"  #XXX should do all of them?
+            "interpolate": False,
+            "node_set": "RingA",
             }
         }
 
@@ -84,9 +85,11 @@ def test_current_replay_linear(create_tmp_simulation_config_file, tmp_path):
             "neurodamus",
             create_tmp_simulation_config_file,
             f"--output-path={tmp_path}/current-replay",
-            ],
+        ],
         check=True,
         capture_output=True,
     )
-    breakpoint() # XXX BREAKPOINT
-    # compare reports
+
+    stimulated_report = utils.ReportReader(tmp_path / "input/report.h5")
+    replayed_report = utils.ReportReader(tmp_path / "current-replay/report.h5")
+    assert stimulated_report == replayed_report

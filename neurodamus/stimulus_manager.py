@@ -1049,7 +1049,7 @@ class Replay(BaseStim):
             cs = CurrentSource(
                 delay=self.delay,
                 represents_physical_electrode=self.represents_physical_electrode,
-                interpolate=False
+                interpolate=stim_info["Interpolate"],
             ).add_samples(
                 sample_times,
                 sample_values,
