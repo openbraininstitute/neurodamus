@@ -397,7 +397,7 @@ class CurrentSource(SignalSource):
             time_vec=self.time_vec,
             stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
-            interpolate=self.interpolate
+            interpolate=self.interpolate,
         )
 
 

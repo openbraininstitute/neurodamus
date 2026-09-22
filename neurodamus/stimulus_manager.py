@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 class StimulusManager:
     """A manager for synaptic artificial Stimulus."""
+
     _stim_types = {}
 
     def __init__(self, target_manager):
