@@ -70,7 +70,7 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/bui
     && build-libsonatareport $LIBSONATAREPORT_COMMIT \
     && rm -rf /$BUILD_DIR/libsonatareport
 
-ARG LIBSONATA_COMMIT=v0.2.1
+ARG LIBSONATA_COMMIT=v0.2.2
 
 RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-libsonata.sh \
     --mount=type=cache,target=/root/.cache/uv \
