@@ -7,6 +7,7 @@ from tests import utils
 
 import neurodamus
 from ..conftest import RINGTEST_DIR
+from neurodamus import Neurodamus
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.core.configuration import SimConfig
 from neurodamus.core.coreneuron_configuration import CoreConfig
@@ -174,6 +175,31 @@ def test_enable_soma_stimulation(create_tmp_simulation_config_file):
     n.enable_stimulus()
     stimList = neurodamus.core.NeuronWrapper.List("MembraneCurrentSource")
 
-    # RingA has one cell with a soma of 3 compartments and 2 other soma with single compartments.
-    # We should expect 3 stim and not 5
     assert stimList.count() == 3
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [
+        {
+            "simconfig_data": {
+                "network": "circuit_config.json",
+                "node_sets_file": "nodesets.json",
+                "run": {"random_seed": 12345, "dt": 0.05, "tstop": 10},
+                "target_simulator": "NEURON",
+                "conditions": {"extracellular_calcium": 1.2},
+            },
+            "src_dir": RINGTEST_DIR,
+        }
+    ],
+    indirect=True,
+)
+def test_condition_extracellular_calcium_applies_uhill_patch(create_tmp_simulation_config_file):
+    """Configuring extracellular calcium condition updates `Use` for chemical synapses."""
+    n = Neurodamus(create_tmp_simulation_config_file)
+    assert SimConfig.extracellular_calcium == 1.2
+
+    cellref = n.circuits.get_node_manager("RingA").get_cellref(gid=1)
+    # 16 is the `Use` for gid 1; since ringtest does not have
+    # `u_hill_coefficient`, no scaling should be applied
+    assert cellref.synlist.o(0).Use == 16.0

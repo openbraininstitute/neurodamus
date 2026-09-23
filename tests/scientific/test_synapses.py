@@ -114,6 +114,8 @@ def test_synapses_params():
         def __len__(self):
             return self.U.size
 
+        dtype = np.dtype({"names": properties, "formats": ["f8"] * len(properties)})
+
     for df in dfs.values():
         tmp = wrapU(df["u_syn"], df["u_hill_coefficient"])
         SynapseParameters._patch_scale_U_param(tmp, SimConfig.extracellular_calcium, [])
