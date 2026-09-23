@@ -719,8 +719,8 @@ def test_current_replay(create_tmp_simulation_config_file, tmp_path):
 
     ss = SignalSource().add_sin(amp=1.0, total_duration=20.0, freq=10.0, step=0.1)
     times = np.asarray(ss.time_vec.as_numpy(), dtype=np.float32)
-    data = np.asarray(ss.stim_vec.as_numpy(), dtype=np.float32).reshape(-1, 1)
-    utils.write_single_compartment_report(path, times, data, population="RingA", node_id=0)
+    data = np.asarray(ss.stim_vec.as_numpy(), dtype=np.float32)
+    utils.write_single_compartment_report(path, times, [data], population="RingA", node_ids=[0])
 
     replay_stim = {
         "Pattern": "Replay",
@@ -729,6 +729,7 @@ def test_current_replay(create_tmp_simulation_config_file, tmp_path):
         "Delay": 0.0,
         "Path": str(path),
         "RepresentsPhysicalElectrode": True,
+        "Interpolate": True,
     }
 
     nd_replay = Neurodamus(create_tmp_simulation_config_file)
