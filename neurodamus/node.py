@@ -795,17 +795,17 @@ class Node:
         for stim in SimConfig.stimuli:
             target_spec = TargetSpec(stim.get("Target"), None)
 
-            stim_name = stim["Name"]
             stim_pattern = stim["Pattern"]
             if stim_pattern == "SynapseReplay":
                 continue  # Handled by enable_replay
             logging.info(
                 " * [STIM] %s (%s): -> %s",
-                stim_name,
+                stim["Name"],
                 stim_pattern,
                 target_spec,
             )
             self._stim_manager.interpret(target_spec, stim)
+
         if SimConfig.has_extracellular_stimulus:
             logging.info("Inject extracellular stimuli")
             SpatiallyUniformEField.apply_all_stimuli(self._target_manager._cell_manager)
