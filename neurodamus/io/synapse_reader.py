@@ -99,12 +99,17 @@ class SynapseParameters:
         """Scale 'U' and other vars using constrained Hill function based on
         extracellular calcium.
         """
-        if len(syn_params) == 0 or extra_cellular_calcium is None:
+        if (
+            len(syn_params) == 0
+            or extra_cellular_calcium is None
+            or "u_hill_coefficient" not in syn_params.dtype.names
+        ):
             return
 
         scale_factors = SynapseParameters._constrained_hill(
             syn_params.u_hill_coefficient, extra_cellular_calcium
         )
+
         syn_params.U *= scale_factors
         for var in extra_scale_vars:
             syn_params[var] *= scale_factors
@@ -172,13 +177,19 @@ class SonataReader:
 
     def __init__(self, edge_file, population=None, *_, **kw):
         self._ca_concentration = kw.get("extracellular_calcium")
-        self._syn_params = {}  # Parameters cache by post-gid (previously loadedMap)
-        self._open_file(edge_file, population, kw.get("verbose", False))
+        self._syn_params = {}  # Parameters cache by post-gid
+        self._population = self._open_file(edge_file, population, kw.get("verbose", False))
         # NOTE u_hill_coefficient and conductance_scale_factor are optional, BUT
-        # while u_hill_coefficient can always be readif avail, conductance reader may not.
+        # while u_hill_coefficient can always be read if avail, conductance reader may not.
         self._uhill_property_avail = self.has_property("u_hill_coefficient")
         self._extra_fields = set()
         self._extra_scale_vars = []
+
+        # A cache which stores all the fields for each gid. E.g. {1: {"sgid": property_numpy}}
+        self._data = {}
+
+        # A cache for connection counts, used mostly in dry run
+        self._counts = {}
 
     def configure_override(self, mod_override):
         if not mod_override:
@@ -208,21 +219,21 @@ class SonataReader:
         """
         syn_params = self._syn_params.get(gid)
         if syn_params is None:
-            # prepare data for the gid
             data = self._data.get(gid)
-            if data is None:  # not in _data
+            if data is None:
                 self._preload_data_chunk([gid])
                 data = self._data[gid]
 
-            # create the synapse parameters array, already patched
+            ca_concentration = self._ca_concentration if self._uhill_property_avail else None
+
             syn_params = self.Parameters.make_synapse_parameters_array(
-                data, self._extra_fields, self._ca_concentration, self._extra_scale_vars
+                data, self._extra_fields, ca_concentration, self._extra_scale_vars
             )
-            # cache the results
             self._syn_params[gid] = syn_params
         return syn_params
 
-    def _open_file(self, src, population, _):
+    @staticmethod
+    def _open_file(src, population, _):
         """Initializes the reader, opens the synapse file"""
         try:
             from mpi4py import MPI
@@ -237,11 +248,8 @@ class SonataReader:
         if not population:
             assert len(storage.population_names) == 1, f"Populations: {storage.population_names}"
             population = next(iter(storage.population_names))
-        self._population = storage.open_population(population)
-        # A cache which stores all the fields for each gid. E.g. {1: {"sgid": property_numpy}}
-        self._data = {}
-        # A cache for connection counts, used mostly in dry run
-        self._counts = {}
+
+        return storage.open_population(population)
 
     def has_property(self, field_name):
         """Checks whether source data has the given additional field."""
