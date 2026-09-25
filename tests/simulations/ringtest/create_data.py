@@ -3,15 +3,11 @@
 # dependencies = ['h5py', 'libsonata', 'numpy']
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
-import json
 import itertools as it
 import sys
 from pathlib import Path
 
 import h5py
-import numpy as np
-
-_file = __file__
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
