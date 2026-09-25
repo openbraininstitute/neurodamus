@@ -1,4 +1,3 @@
-from neurodamus.io.synapse_reader import SynapseParameters
 from pathlib import Path
 
 import pytest
@@ -169,16 +168,14 @@ def test_coreneuron(create_tmp_simulation_config_file):
     indirect=True,
 )
 def test_enable_soma_stimulation(create_tmp_simulation_config_file):
-    """When inserting a stimulus, confirm impact, especially when the soma have mulitple compartments
-    """
+    """Check correct stimulus with soma with mulitple compartments."""
     n = neurodamus.Node(create_tmp_simulation_config_file)
     n.load_targets()
     n.create_cells()
     n.enable_stimulus()
     stimList = neurodamus.core.NeuronWrapper.List("MembraneCurrentSource")
 
-    # RingA has one cell with a soma of 3 compartments and 2 other soma with single compartments. We should expect 3 stim and not 5
-    assert( stimList.count() == 3 )
+    assert stimList.count() == 3
 
 
 @pytest.mark.parametrize(

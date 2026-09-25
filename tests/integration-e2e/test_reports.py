@@ -1,150 +1,146 @@
-
+import copy
 from pathlib import Path
 
-import libsonata
-import numpy.testing as npt
 import pytest
 
+from ..conftest import RINGTEST_DIR, V5_SONATA
+from ..utils import ReportReader
 from neurodamus import Neurodamus
 from neurodamus.core.configuration import SimConfig
-from ..conftest import V5_SONATA, RINGTEST_DIR
-from ..utils import ReportReader
-import copy
-from neurodamus.utils.pyutils import CumulativeError
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
-
+from neurodamus.utils.pyutils import CumulativeError
 
 _BASE_EXTRA_CONFIG = {
-            "simconfig_fixture": "TO_BE_REPLACED",
-            "extra_config": {
-                "target_simulator": "TO_BE_REPLACED",
-                "inputs": {
-                    "override_field": 1,
-                    "Stimulus": {
-                        "module": "pulse",
-                        "input_type": "current_clamp",
-                        "represents_physical_electrode": True,
-                        "amp_start": 3,
-                        "width": 10,
-                        "frequency": 50,
-                        "delay": 0,
-                        "duration": 50,
-                        "node_set": "TO_BE_REPLACED",
-                    },
+    "simconfig_fixture": "TO_BE_REPLACED",
+    "extra_config": {
+        "target_simulator": "TO_BE_REPLACED",
+        "inputs": {
+            "override_field": 1,
+            "Stimulus": {
+                "module": "pulse",
+                "input_type": "current_clamp",
+                "represents_physical_electrode": True,
+                "amp_start": 3,
+                "width": 10,
+                "frequency": 50,
+                "delay": 0,
+                "duration": 50,
+                "node_set": "TO_BE_REPLACED",
                 },
-                "reports": {
-                    "compartment_v": {
-                        "type": "compartment",
-                        "cells": "Mosaic",
-                        "variable_name": "v",
-                        "sections": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none"
-                    },
-                    "summation_v": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "v",
-                        "sections": "soma",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "compartment_i_membrane": {
-                        "type": "compartment",
-                        "cells": "Mosaic",
-                        "variable_name": "i_membrane",
-                        "sections": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                    },
-                    "summation_i_membrane": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "i_membrane",
-                        "sections": "soma",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "compartment_pas": {
-                        "type": "compartment",
-                        "cells": "Mosaic",
-                        "variable_name": "pas",
-                        "sections": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                    },
-                    "summation_pas": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "pas",
-                        "sections": "soma",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "summation_v_area_scaling": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "v",
-                        "sections": "soma",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                    },
-                    "summation_IClamp": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "IClamp",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "summation_i_membrane_IClamp": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "i_membrane,IClamp",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "summation_IClamp_i_membrane": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "IClamp,i_membrane",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
-                    "summation_ProbAMPANMDA_EMS": {
-                        "type": "summation",
-                        "cells": "Mosaic",
-                        "variable_name": "ProbAMPANMDA_EMS",
-                        "sections": "all",
-                        "compartments": "all",
-                        "dt": 1,
-                        "start_time": 0.0,
-                        "end_time": 40.0,
-                        "scaling": "none",
-                    },
+            },
+        "reports": {
+            "compartment_v": {
+                "type": "compartment",
+                "cells": "Mosaic",
+                "variable_name": "v",
+                "sections": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none"
                 },
+            "summation_v": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "v",
+                "sections": "soma",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "compartment_i_membrane": {
+                "type": "compartment",
+                "cells": "Mosaic",
+                "variable_name": "i_membrane",
+                "sections": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                },
+            "summation_i_membrane": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "i_membrane",
+                "sections": "soma",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "compartment_pas": {
+                "type": "compartment",
+                "cells": "Mosaic",
+                "variable_name": "pas",
+                "sections": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                },
+            "summation_pas": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "pas",
+                "sections": "soma",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "summation_v_area_scaling": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "v",
+                "sections": "soma",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                },
+            "summation_IClamp": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "IClamp",
+                "sections": "all",
+                "compartments": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "summation_i_membrane_IClamp": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "i_membrane,IClamp",
+                "sections": "all",
+                "compartments": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "summation_IClamp_i_membrane": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "IClamp,i_membrane",
+                "sections": "all",
+                "compartments": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            "summation_ProbAMPANMDA_EMS": {
+                "type": "summation",
+                "cells": "Mosaic",
+                "variable_name": "ProbAMPANMDA_EMS",
+                "sections": "all",
+                "compartments": "all",
+                "dt": 1,
+                "start_time": 0.0,
+                "end_time": 40.0,
+                "scaling": "none",
+                },
+            },
             },
         }
 def make_extra_config(base, simulator):
@@ -276,15 +272,15 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
     # coreneuron does not have exactly the same results, we use the loose tols in that case
     loose_tol_files = {"summation_i_membrane.h5"}
     for ref_file in reference_dir.glob("*.h5"):
-        r_reference = ReportReader(ref_file)   
-        file = output_dir / ref_file.name 
+        r_reference = ReportReader(ref_file)
+        file = output_dir / ref_file.name
         r = ReportReader(file)
 
         assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"
 
     # compartment vs compartment_set
     # magic list of positions in the full compartment list. It was done by hand because there isn't a clear cut way
-    # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the 
+    # to associate columns among compartment and compartment_sets. In particular there is no compartment_id in the
     # reports (nor offset)
     if is_v5_sonata:
         ids = [0, 7, 7, 8, 190, 206, 348, 360]
@@ -303,10 +299,11 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
         r_compartment_set_B = ReportReader(output_dir / "compartment_set_B_v.h5")
         assert r_compartment_B == r_compartment_set_B
 
+
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
     [
-{
+        {
             "simconfig_fixture": "ringtest_baseconfig",
             "extra_config": {
                 "target_simulator": "NEURON",
@@ -321,21 +318,22 @@ def test_reports_compartment_vs_summation_reference_compartment_set(create_tmp_s
                         "start_time": 0.0,
                         "end_time": 40.0,
                         "scaling": "none",
+                        },
                     },
                 },
-            },
-        }
-    ],
+            }
+        ],
     indirect=True,
-)
+    )
 @pytest.mark.slow
 def test_compartment_missing_ref(create_tmp_simulation_config_file):
     """
-    Compartment reports should raise an error when requesting a reference value 
+    Compartment reports should raise an error when requesting a reference value
     that is not present in all compartments.
     """
-    with pytest.raises(CumulativeError, match="No reference found for variable 'i' of mechanism 'IClamp' at location 0.5"): 
+    with pytest.raises(CumulativeError, match="No reference found for variable 'i' of mechanism 'IClamp' at location 0.5"):
         Neurodamus(create_tmp_simulation_config_file)
+
 
 @pytest.mark.parametrize(
     "create_tmp_simulation_config_file",
@@ -365,10 +363,10 @@ def test_compartment_missing_ref(create_tmp_simulation_config_file):
 @pytest.mark.slow
 def test_compartment_missing_ref(create_tmp_simulation_config_file):
     """
-    Compartment reports should raise an error when requesting a reference value 
+    Compartment reports should raise an error when requesting a reference value
     that is not present in all compartments.
     """
-    with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"): 
+    with pytest.raises(CumulativeError, match="Expected one reference for variable 'i' of mechanism 'ProbAMPANMDA_EMS' at location 0.5, but found 8"):
         Neurodamus(create_tmp_simulation_config_file)
 
 
@@ -429,7 +427,7 @@ def test_results_are_identical_with_single_report(create_tmp_simulation_config_f
 
     # Compare files to reference
     file_name = "compartment_set_A_v.h5"
-    r_reference = ReportReader(reference_dir / file_name)   
+    r_reference = ReportReader(reference_dir / file_name)
     r = ReportReader(output_dir / file_name )
     assert r_reference == r
 
@@ -459,8 +457,8 @@ def test_reports_cell_permute(create_tmp_simulation_config_file):
     # coreneuron does not have exactly the same results, we use the loose tols in that case
     loose_tol_files = {"summation_i_membrane.h5"}
     for ref_file in reference_dir.glob("*.h5"):
-        r_reference = ReportReader(ref_file)   
-        file = output_dir / ref_file.name 
+        r_reference = ReportReader(ref_file)
+        file = output_dir / ref_file.name
         r = ReportReader(file)
 
         assert r.allclose(r_reference, **(loose_tols if ref_file.name in loose_tol_files else {})), f"The reports differ:\n{file}\n{ref_file}"

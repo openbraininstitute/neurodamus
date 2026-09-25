@@ -20,7 +20,7 @@ on:
 
 env:
   LIBSONATAREPORT_COMMIT: 2.0.0
-  LIBSONATA_COMMIT: v0.1.37
+  LIBSONATA_COMMIT: v0.2.2
   NEURON_COMMIT: 2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
 
   RDMAV_FORK_SAFE: '1'
@@ -107,7 +107,8 @@ jobs:
     - name: Install HDF5 (parallel, from source)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        source $BASE_DIR/ci/scripts/install-hdf5.sh \
+        source venv/bin/activate \
+        && source $BASE_DIR/ci/scripts/install-hdf5.sh \
         && install-hdf5
 
     - name: Build h5py
@@ -189,8 +190,8 @@ jobs:
       run: |
         uv -vv cache prune --ci
 
-    # - name: live debug session, comment out
-    #   if: failure()
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #    timeout-minutes: 60  # or any other value you need
+    #- name: live debug session, comment out
+    #  if: ${{ failure() }}
+    #  uses: mxschmitt/action-tmate@v3
+    #  with:
+    #   timeout-minutes: 60  # or any other value you need

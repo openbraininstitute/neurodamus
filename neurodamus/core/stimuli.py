@@ -134,6 +134,32 @@ class SignalSource:
         self._add_point(self._base_amp)  # Last point
         return self
 
+    def add_samples(self, times, values, duration=None):
+        """Adds an arbitrary sampled signal."""
+        times = [float(t) for t in times]
+        values = [float(v) for v in values]
+
+        if len(times) != len(values):
+            raise ValueError("times and values must have the same length")
+        if not times:
+            raise ValueError("times and values must be non-empty")
+        if times[0] < 0:
+            raise ValueError("times must be non-negative")
+
+        replay_duration = float(duration) if duration is not None else times[-1]
+        if replay_duration < times[-1]:
+            raise ValueError("duration cannot be smaller than the last sample time")
+        if replay_duration > times[-1]:
+            times.append(replay_duration)
+            values.append(values[-1])
+
+        self._add_point(0)
+        self.time_vec.append(Nd.h.Vector([self._cur_t + t for t in times]))
+        self.stim_vec.append(Nd.h.Vector(values))
+        self._cur_t += replay_duration
+        self._add_point(0)
+        return self
+
     def add_noise(self, mean, variance, duration, dt=0.5):
         """Adds a noise component to the signal."""
         rng = self._rng or RNG()  # Creates a default RNG
@@ -315,7 +341,15 @@ class SignalSource:
 
 
 class CurrentSource(SignalSource):
-    def __init__(self, base_amp=0.0, *, delay=0, rng=None, represents_physical_electrode=False):
+    def __init__(
+        self,
+        base_amp=0.0,
+        *,
+        delay=0,
+        rng=None,
+        represents_physical_electrode=False,
+        interpolate=True,
+    ):
         """Creates a new current source that injects a signal under IClamp"""
         super().__init__(
             base_amp,
@@ -325,6 +359,7 @@ class CurrentSource(SignalSource):
         )
         self._clamps = set()
         self._all_sources.append(self)
+        self.interpolate = interpolate
 
     class _Clamp:
         def __init__(
@@ -335,6 +370,7 @@ class CurrentSource(SignalSource):
             time_vec,
             stim_vec,
             represents_physical_electrode,
+            interpolate,
         ):
             # Checks if source does not represent physical electrode,
             # otherwise fall back to IClamp.
@@ -345,7 +381,7 @@ class CurrentSource(SignalSource):
             )
 
             self.clamp.dur = time_vec[-1]
-            stim_vec.play(self.clamp._ref_amp, time_vec, 1)
+            stim_vec.play(self.clamp._ref_amp, time_vec, int(interpolate))
 
             # Clamps must be kept otherwise they are garbage-collected
             self._all_clamps = clamp_container
@@ -359,6 +395,7 @@ class CurrentSource(SignalSource):
             time_vec=self.time_vec,
             stim_vec=self.stim_vec,
             represents_physical_electrode=self._represents_physical_electrode,
+            interpolate=self.interpolate,
         )
 
 
