@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+from math import exp, log
 from typing import TYPE_CHECKING
 
 import libsonata
@@ -36,11 +37,9 @@ if TYPE_CHECKING:
 
 
 class StimulusManager:
-    """A manager for synaptic artificial Stimulus.
-    Old stimulus resort to hoc implementation
-    """
+    """A manager for synaptic artificial Stimulus."""
 
-    _stim_types = {}  # stimulus handled in Python
+    _stim_types = {}
 
     def __init__(self, target_manager):
         self._target_manager = target_manager
@@ -92,7 +91,11 @@ class StimulusManager:
                 section_type=libsonata.SimulationConfig.Report.Sections.all,
                 compartment_type=libsonata.SimulationConfig.Report.Compartments.all,
             )
-        return target.get_point_list(cell_manager=cell_manager)
+        return target.get_point_list(
+            cell_manager=cell_manager,
+            section_type=libsonata.SimulationConfig.Report.Sections.soma,
+            compartment_type=libsonata.SimulationConfig.Report.Compartments.center,
+        )
 
     @staticmethod
     def reset_helpers():
@@ -400,8 +403,6 @@ class ShotNoise(BaseStim):
         Analytical result derived from a generalization of Campbell's theorem present in
         Rice, S.O., "Mathematical Analysis of Random Noise", BSTJ 23, 3 Jul 1944.
         """
-        from math import exp, log
-
         # bi-exponential time to peak [ms]
         t_peak = log(self.tau_D / self.tau_R) / (1 / self.tau_R - 1 / self.tau_D)
         # bi-exponential peak height [1]
@@ -1012,3 +1013,67 @@ class SpatiallyUniformEField:
         seg_z = np.interp(x, lens, zpos)
 
         return np.array([seg_x, seg_y, seg_z])
+
+
+@StimulusManager.register_type
+class Replay(BaseStim):
+    """Replay a SONATA compartment report onto the soma center."""
+
+    def __init__(self, target_points: list[TargetPointList], stim_info: dict, cell_manager):
+        super().__init__(target_points, stim_info, cell_manager)
+
+        self.stimList = []
+        self.parse_check_all_parameters(stim_info)
+
+        report = libsonata.ElementReportReader(self.path)
+        populations = set(report.get_population_names())
+
+        for target_point_list in target_points:
+            if not target_point_list.sclst:
+                continue
+
+            gid = target_point_list.gid
+            pop_name, pop_offset = cell_manager.getPopulationInfo(gid)
+            if pop_name not in populations:
+                continue
+
+            raw_gid = gid - pop_offset
+            frame = self._read_gid_soma_report(report[pop_name], raw_gid)
+
+            if not len(frame.times):
+                continue
+
+            sample_times = np.asarray(frame.times, dtype=float)
+            sample_times -= sample_times[0]
+            sample_values = frame.data[:, 0]
+
+            cs = CurrentSource(
+                delay=self.delay,
+                represents_physical_electrode=self.represents_physical_electrode,
+                interpolate=stim_info["Interpolate"],
+            ).add_samples(
+                sample_times,
+                sample_values,
+                duration=float(sample_times[-1]),
+            )
+            cs.attach_to(target_point_list.sclst[0].sec, target_point_list.x[0])
+            self.stimList.append(cs)
+
+    def parse_check_all_parameters(self, stim_info: dict):
+        if stim_info["Mode"] != "Current":
+            raise ConfigurationError(f"{self.__class__.__name__} only supports mode Current")
+
+        self.path = stim_info.get("Path") or stim_info.get("InputFile") or stim_info.get("File")
+        if not self.path:
+            raise ConfigurationError(
+                f"{self.__class__.__name__} requires a Path to a SONATA report"
+            )
+
+        self.report_population = stim_info.get("ReportPopulation") or stim_info.get("Population")
+
+    def _read_gid_soma_report(self, population_report, raw_gid):
+        tstart, tstop, _tstep = population_report.times
+        if self.duration > 0:
+            tstop = min(tstop, tstart + self.duration)
+        frame = population_report.get(libsonata.Selection([raw_gid]), tstart=tstart, tstop=tstop)
+        return frame

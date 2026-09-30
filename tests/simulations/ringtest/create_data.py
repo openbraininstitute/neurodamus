@@ -3,14 +3,14 @@
 # dependencies = ['h5py', 'libsonata', 'numpy']
 # ///
 # the above allows one to run `uv run create_data.py` without a virtualenv
+import itertools as it
 import sys
 from pathlib import Path
-import itertools as it
+
 import h5py
 
-# Add path for local imports
-if __name__ == "__main__":
-    sys.path.append(str(Path(__file__).resolve().parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from utils import Edges, make_nodes, make_edges
 
 
@@ -248,6 +248,7 @@ def make_ringtest_edges():
         count=2, wanted_attributes=wanted)
 
 
-make_ringtest_nodes()
-make_ringtest_edges()
-make_lfp_weights()
+if __name__ == "__main__":
+    make_ringtest_nodes()
+    make_ringtest_edges()
+    make_lfp_weights()

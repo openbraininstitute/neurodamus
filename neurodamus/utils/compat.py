@@ -1,6 +1,9 @@
 """Compatibility Classes to work similar to HOC types, recreating or wrapping them"""
 
 from array import array
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
 
 
 class Vector(array):
@@ -25,15 +28,15 @@ class Vector(array):
         return self
 
 
-class List(list):  # ruff: ignore[subclass-builtin]
+class List(list, Generic[T]):
     """Behavior similar to Hoc List"""
 
     __slots__ = ()
 
-    def count(self, obj=None):
+    def count(self, obj=None) -> int:
         return super().count(obj) if obj else len(self)
 
-    def o(self, idx):
+    def o(self, idx) -> T:
         return self[int(idx)]
 
 

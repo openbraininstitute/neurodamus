@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 from libsonata import EdgeStorage, ElementReportReader, SimulationConfig, SpikeReader
@@ -449,7 +450,7 @@ def get_expected_extracellular_potentials(tot_tvec, efi, fields: list[EField]):
     return ref
 
 
-class ReportReader:  # noqa: PLW1641
+class ReportReader:  # ruff: ignore[eq-without-hash]
     def __init__(self, file: str):
         self._reader = ElementReportReader(file)
         self.populations: dict[str, tuple[list[int], pd.DataFrame]] = {}
@@ -595,3 +596,37 @@ class ReportReader:  # noqa: PLW1641
         new_report._reader = None  # or keep from self if needed
 
         return new_report
+
+
+def write_single_compartment_report(path, times, data, population, node_ids):
+    keep = np.append(times[:-1] != times[1:], True)
+    indices = np.nonzero(keep)[0]
+    assert len(data) == len(node_ids)
+    assert all(len(data[0]) == len(d) for d in data)
+
+    times = times[indices]
+    data = [d[indices] for d in data]
+
+    dt = float(times[1] - times[0])
+    assert dt > 0
+    string_dtype = h5py.string_dtype(encoding="utf-8")
+
+    with h5py.File(path, "w") as h5f:
+        h5f.create_group("report")
+        gpop = h5f.create_group(f"/report/{population}")
+        ddata = gpop.create_dataset("data", data=np.array(data).T, dtype=np.float32)
+        ddata.attrs.create("units", data="nA", dtype=string_dtype)
+
+        gmapping = h5f.create_group(f"/report/{population}/mapping")
+        dnodes = gmapping.create_dataset("node_ids", data=node_ids, dtype=np.uint64)
+        dnodes.attrs.create("sorted", data=True, dtype=np.uint8)
+        gmapping.create_dataset(
+            "index_pointers",
+            data=np.arange(len(node_ids) + 1),
+            dtype=np.uint64,
+        )
+        gmapping.create_dataset("element_ids", data=[0] * len(node_ids), dtype=np.uint32)
+        dtimes = gmapping.create_dataset(
+            "time", data=[times[0], times[-1] + dt, dt], dtype=np.double
+        )
+        dtimes.attrs.create("units", data="ms", dtype=string_dtype)

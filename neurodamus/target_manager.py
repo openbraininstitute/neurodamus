@@ -14,9 +14,6 @@ from .core.nodeset import SelectionNodeSet
 from .utils import compat
 from .utils.logging import log_verbose
 
-# libsonata exposes SimulationConfig via pybind as attributes, not importable modules.
-# Without these aliases, Ruff expands the type annotations to fully-qualified names,
-# formats them onto a single long line, and then tox -e format fails on E501.
 Sections = libsonata.SimulationConfig.Report.Sections
 Compartments = libsonata.SimulationConfig.Report.Compartments
 
@@ -626,7 +623,7 @@ class NodesetTarget:
                 # and 2nd axon is added by our emodel without index v(0.0001), e.g. allen v1
                 # An error would be raised at get_section_id for compartment report including axons
                 section_id = cell.get_section_id(sec)
-                if compartment_type == libsonata.SimulationConfig.Report.Compartments.center:
+                if compartment_type == Compartments.center:
                     point_list.append(section_id, Nd.SectionRef(sec), 0.5)
                 else:
                     for seg in sec:
