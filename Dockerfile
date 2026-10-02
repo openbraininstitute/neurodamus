@@ -54,12 +54,14 @@ RUN --mount=type=bind,source=ci/scripts/install-hdf5.sh,target=/tmp/install-hdf5
 	&& install-hdf5 \
     && rm -rf /$BUILD_DIR/hdf5
 
+ARG H5PY_VERSION=3.16.0
+
 RUN --mount=type=bind,source=ci/scripts/install-h5py.sh,target=/tmp/install-h5py.sh \
     --mount=type=cache,target=/root/.cache/uv \
     mkdir -p /tmp/stable-build \
     && source /tmp/install-h5py.sh \
     && source $USER_VENV/bin/activate \
-    && PIP='uv pip' install-h5py
+    && PIP='uv pip' install-h5py $H5PY_VERSION
 
 ARG LIBSONATAREPORT_COMMIT=2.0.0
 
