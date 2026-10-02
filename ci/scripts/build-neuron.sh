@@ -9,11 +9,13 @@
 #   CMAKE_BUILD_TYPE CMake build type (e.g. RelWithDebugInfo)
 #   PIP              pip command to use (e.g. "uv pip")
 #   SCCACHE_DIR      If set, enables sccache for compilation
+#   NEURON_VERSION   Version the build is published as (e.g. 9.0.0)
 
 build-neuron() {
     PRE || true
 
     : "${PIP:?PIP is not set}"
+    : "${NEURON_VERSION:?NEURON_VERSION is not set}"
 
     local COMMIT=${1:-HEAD}
 
@@ -71,8 +73,24 @@ build-neuron() {
         )
     fi
 
-    CMAKE_ARGS="${CMAKE_ARGS[@]}" \
+    # setuptools_scm derives the version from `git describe`, which varies with clone
+    # depth and is 0.1.dev1 when no tag is reachable. Identify the build by its commit
+    # instead; the local segment satisfies `>=$NEURON_VERSION`, so it is not replaced.
+    local REVISION
+    REVISION=$(git -C $NRN rev-parse HEAD)
+    local VERSION=$NEURON_VERSION+g$REVISION
+
+    SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION \
+      CMAKE_ARGS="${CMAKE_ARGS[@]}" \
       $PIP install -v $NRN
+
+    local INSTALLED
+    INSTALLED=$($PIP show neuron 2>/dev/null | awk '/^Version:/{print $2}')
+    if [[ $INSTALLED != "$VERSION" ]]; then
+        echo "NEURON version is '$INSTALLED', expected '$VERSION'." >&2
+        return 1
+    fi
+    echo "Built NEURON $INSTALLED from $REVISION"
 
     if [[ -n $SCCACHE_DIR ]]; then
         sccache --show-stats

@@ -82,6 +82,8 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-lib
     && rm -rf /$BUILD_DIR/libsonata
 
 ARG NEURON_COMMIT=2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
+# Version the build is published as; bump together with NEURON_COMMIT.
+ARG NEURON_VERSION=9.0.0
 
 RUN --mount=type=bind,source=ci/scripts/build-neuron.sh,target=/tmp/build-neuron.sh \
     --mount=type=cache,target=/var/cache/sccache \
