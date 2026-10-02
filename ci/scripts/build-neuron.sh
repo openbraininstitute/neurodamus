@@ -9,7 +9,7 @@
 #   CMAKE_BUILD_TYPE CMake build type (e.g. RelWithDebugInfo)
 #   PIP              pip command to use (e.g. "uv pip")
 #   SCCACHE_DIR      If set, enables sccache for compilation
-#   NEURON_VERSION   Release the pinned commit derives from (e.g. 9.0.2)
+#   NEURON_VERSION   Version the build is published as (e.g. 9.0.0)
 
 build-neuron() {
     PRE || true
