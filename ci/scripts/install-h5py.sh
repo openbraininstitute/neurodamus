@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Install h5py with MPI support, building from source against the available HDF5 library.
 #
+# Arguments:
+#   $1          h5py version to install (e.g. 3.16.0)
+#
 # Environment variables:
 #   PRE         called on function entry
 #   INSTALL_DIR Prefix where HDF5 may be installed (checked first)
@@ -8,6 +11,8 @@
 
 install-h5py() {
     PRE || true
+
+    local VERSION=${1:?h5py version is not set}
 
     if [[ -e $INSTALL_DIR/include/H5Epublic.h ]]; then
         HDF5_INCLUDEDIR=$INSTALL_DIR/include/
@@ -28,5 +33,5 @@ install-h5py() {
      HDF5_MPI="ON" \
      HDF5_INCLUDEDIR=$HDF5_INCLUDEDIR \
      HDF5_LIBDIR=$HDF5_LIBDIR \
-     $PIP install -v --no-binary=h5py h5py
+     $PIP install -v --no-binary=h5py h5py==$VERSION
 }
