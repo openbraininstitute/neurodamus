@@ -25,13 +25,32 @@ For instance:
 Will compile the files within `some-mod-dir` along with the support MOD files since `--with-internal-mods` was specified.
 The compiled files will be put in the `output` directory.
 
+Use ``--simulator`` to select which binary to compile:
+
+* ``neuron`` (default): compile NEURON mechanisms (``libnrnmech``)
+* ``coreneuron``: compile CoreNEURON mechanisms (``libcorenrnmech``)
+* ``both``: compile both
+
+.. code-block:: bash
+
+   neurodamus-compile-mods \
+    --input-dir some-mod-dir \
+    --simulator both \
+    --output-dir output
+
 Finally, the `--output-type` specifies what the tool will return on its ``STDOUT``.
 If `shell` is chosen, then environment variable setting is output:
 
-EX::
+EX (``--simulator neuron``)::
 
     NRNMECH_LIB_PATH=/path/to/libnrnmech.so
     SPECIALS_PATH=/some/path/to/where/the/specials/are
+
+EX (``--simulator both``)::
+
+    NRNMECH_LIB_PATH=/path/to/libnrnmech.so
+    SPECIALS_PATH=/some/path/to/where/the/specials/are
+    CORENEURONLIB=/path/to/libcorenrnmech.so
 
 
 Alternatively, `json` can be chosen, at which point a `json` object is printed.

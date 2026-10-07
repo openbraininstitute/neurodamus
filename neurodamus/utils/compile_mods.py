@@ -16,7 +16,7 @@ from pathlib import Path
 import libsonata
 
 L = logging.getLogger(__name__)
-VERSION = 1
+VERSION = 2
 
 # Path within output dir where mod files are moved
 MOD_FILES_PATH = "mod_files"
@@ -25,6 +25,7 @@ MOD_FILES_PATH = "mod_files"
 class Simulator(Enum):
     neuron = "neuron"
     coreneuron = "coreneuron"
+    both = "both"
 
 
 @dataclass
@@ -96,6 +97,14 @@ def _get_dynamic_file(output_dir: Path, name: str) -> Path:
     return base / f"{name}{ext}"
 
 
+def _needs_neuron(simulator: Simulator) -> bool:
+    return simulator in (Simulator.neuron, Simulator.both)
+
+
+def _needs_coreneuron(simulator: Simulator) -> bool:
+    return simulator in (Simulator.coreneuron, Simulator.both)
+
+
 def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
     """See if if we have a cache hit."""
     metadata = _metadata_path(output_dir)
@@ -109,14 +118,12 @@ def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options)
     if old != new:
         return False
 
-    libnrnmech = _get_dynamic_file(output_dir, "libnrnmech")
+    if _needs_neuron(options.simulator):
+        if not _get_dynamic_file(output_dir, "libnrnmech").exists():
+            return False
 
-    if not libnrnmech.exists():
-        return False
-
-    if options.simulator == Simulator.coreneuron:
-        coreneuronlib = _get_dynamic_file(output_dir, "libcorenrnmech")
-        if not coreneuronlib.exists():
+    if _needs_coreneuron(options.simulator):
+        if not _get_dynamic_file(output_dir, "libcorenrnmech").exists():
             return False
 
     return True
@@ -163,9 +170,8 @@ def _build_mod_files(
 
     cmd = [nrnivmodl]
 
-    match options.simulator:
-        case Simulator.coreneuron:
-            cmd.append("-coreneuron")
+    if _needs_coreneuron(options.simulator):
+        cmd.append("-coreneuron")
 
     if options.incflags:
         cmd.extend(["-incflags", f"{options.incflags}"])
@@ -192,19 +198,20 @@ def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
     base = (output_dir / platform.machine()).absolute()
     ext = ".dylib" if sys.platform == "darwin" else ".so"
 
-    libnrnmech = base / f"libnrnmech{ext}"
-    if not libnrnmech.exists():
-        msg = f"{libnrnmech} does not exist, error running nrnivmodl?"
-        raise RuntimeError(msg)
+    ret: dict[str, str] = {"SPECIALS_PATH": str(base)}
 
-    ret = {"NRNMECH_LIB_PATH": str(libnrnmech), "SPECIALS_PATH": str(base)}
+    if _needs_neuron(options.simulator):
+        libnrnmech = base / f"libnrnmech{ext}"
+        if not libnrnmech.exists():
+            msg = f"{libnrnmech} does not exist, error running nrnivmodl?"
+            raise RuntimeError(msg)
+        ret["NRNMECH_LIB_PATH"] = str(libnrnmech)
 
-    if options.simulator == Simulator.coreneuron:
+    if _needs_coreneuron(options.simulator):
         coreneuronlib = base / f"libcorenrnmech{ext}"
         if not coreneuronlib.exists():
             msg = f"{coreneuronlib} does not exist, error running nrnivmodl?"
             raise RuntimeError(msg)
-
         ret["CORENEURONLIB"] = str(coreneuronlib)
 
     return ret
@@ -239,7 +246,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
     parser.add_argument("--output-dir", required=True, help="Output path")
     parser.add_argument(
-        "--simulator", type=Simulator, choices=list(Simulator), default=Simulator.neuron
+        "--simulator",
+        type=Simulator,
+        choices=list(Simulator),
+        default=Simulator.neuron,
+        help="Which binary to compile: neuron, coreneuron, or both",
     )
     parser.add_argument("--incflags", help="`--incflags` passed to nrnivmodl")
     parser.add_argument("--loadflags", help="`--loadflags` passed to nrnivmodl")

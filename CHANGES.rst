@@ -18,6 +18,8 @@ Version 4.2.4
     * LFP: pass electrode_offsets vector for multi-report support (#541)
     * Add `neurodamus-compile-mods` command to simplify building of NEURON models (#555)
     * Randomize gaba rise time only when randomize_gaba_rise_time is True (#568)
+    * `neurodamus-compile-mods --simulator` supports `neuron`, `coreneuron`, or `both`
+      (**breaking**: `coreneuron` now compiles CoreNEURON only; use `both` for the previous behavior)
 
 Version 4.2.3
 =============
