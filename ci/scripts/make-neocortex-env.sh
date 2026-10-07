@@ -17,7 +17,7 @@ make-neocortex-env() {
         --output-dir $INSTALL_DIR/neocortex
         --with-internal-mods
         --output-type shell
-        --simulator=coreneuron
+        --simulator=both
     )
     exports=$(${CMD[@]})
 
