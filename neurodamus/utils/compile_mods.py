@@ -98,11 +98,11 @@ def _get_dynamic_file(output_dir: Path, name: str) -> Path:
 
 
 def _needs_neuron(simulator: Simulator) -> bool:
-    return simulator in (Simulator.neuron, Simulator.both)
+    return simulator in {Simulator.neuron, Simulator.both}
 
 
 def _needs_coreneuron(simulator: Simulator) -> bool:
-    return simulator in (Simulator.coreneuron, Simulator.both)
+    return simulator in {Simulator.coreneuron, Simulator.both}
 
 
 def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
@@ -118,15 +118,14 @@ def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options)
     if old != new:
         return False
 
-    if _needs_neuron(options.simulator):
-        if not _get_dynamic_file(output_dir, "libnrnmech").exists():
-            return False
-
-    if _needs_coreneuron(options.simulator):
-        if not _get_dynamic_file(output_dir, "libcorenrnmech").exists():
-            return False
-
-    return True
+    neuron_ok = (
+        not _needs_neuron(options.simulator) or _get_dynamic_file(output_dir, "libnrnmech").exists()
+    )
+    coreneuron_ok = (
+        not _needs_coreneuron(options.simulator)
+        or _get_dynamic_file(output_dir, "libcorenrnmech").exists()
+    )
+    return neuron_ok and coreneuron_ok
 
 
 def _write_cache(mod_files: dict[Path, str], output_dir: Path, options: Options):
