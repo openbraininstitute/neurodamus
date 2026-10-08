@@ -25,12 +25,11 @@ MOD_FILES_PATH = "mod_files"
 class Simulator(Enum):
     neuron = "neuron"
     coreneuron = "coreneuron"
-    both = "both"
 
 
 @dataclass
 class Options:
-    simulator: Simulator
+    simulators: frozenset[Simulator]
     incflags: str
     loadflags: str
 
@@ -80,7 +79,15 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
     """Create metadata about the compiled mod files, used to track cache hit."""
 
     def factory(pairs):
-        return {k: v.value if isinstance(v, Enum) else v for k, v in pairs}
+        result = {}
+        for k, v in pairs:
+            if isinstance(v, Enum):
+                result[k] = v.value
+            elif isinstance(v, (set, frozenset)):
+                result[k] = sorted(x.value if isinstance(x, Enum) else x for x in v)
+            else:
+                result[k] = v
+        return result
 
     return {
         "version": VERSION,
@@ -97,12 +104,12 @@ def _get_dynamic_file(output_dir: Path, name: str) -> Path:
     return base / f"{name}{ext}"
 
 
-def _needs_neuron(simulator: Simulator) -> bool:
-    return simulator in {Simulator.neuron, Simulator.both}
+def _needs_neuron(simulators: frozenset[Simulator]) -> bool:
+    return Simulator.neuron in simulators
 
 
-def _needs_coreneuron(simulator: Simulator) -> bool:
-    return simulator in {Simulator.coreneuron, Simulator.both}
+def _needs_coreneuron(simulators: frozenset[Simulator]) -> bool:
+    return Simulator.coreneuron in simulators
 
 
 def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
@@ -119,10 +126,11 @@ def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options)
         return False
 
     neuron_ok = (
-        not _needs_neuron(options.simulator) or _get_dynamic_file(output_dir, "libnrnmech").exists()
+        not _needs_neuron(options.simulators)
+        or _get_dynamic_file(output_dir, "libnrnmech").exists()
     )
     coreneuron_ok = (
-        not _needs_coreneuron(options.simulator)
+        not _needs_coreneuron(options.simulators)
         or _get_dynamic_file(output_dir, "libcorenrnmech").exists()
     )
     return neuron_ok and coreneuron_ok
@@ -169,7 +177,7 @@ def _build_mod_files(
 
     cmd = [nrnivmodl]
 
-    if _needs_coreneuron(options.simulator):
+    if _needs_coreneuron(options.simulators):
         cmd.append("-coreneuron")
 
     if options.incflags:
@@ -199,14 +207,14 @@ def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
 
     ret: dict[str, str] = {"SPECIALS_PATH": str(base)}
 
-    if _needs_neuron(options.simulator):
+    if _needs_neuron(options.simulators):
         libnrnmech = base / f"libnrnmech{ext}"
         if not libnrnmech.exists():
             msg = f"{libnrnmech} does not exist, error running nrnivmodl?"
             raise RuntimeError(msg)
         ret["NRNMECH_LIB_PATH"] = str(libnrnmech)
 
-    if _needs_coreneuron(options.simulator):
+    if _needs_coreneuron(options.simulators):
         coreneuronlib = base / f"libcorenrnmech{ext}"
         if not coreneuronlib.exists():
             msg = f"{coreneuronlib} does not exist, error running nrnivmodl?"
@@ -248,8 +256,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--simulator",
         type=Simulator,
         choices=list(Simulator),
-        default=Simulator.neuron,
-        help="Which binary to compile: neuron, coreneuron, or both",
+        action="append",
+        help="Simulator to compile for; can be repeated (default: neuron)",
     )
     parser.add_argument("--incflags", help="`--incflags` passed to nrnivmodl")
     parser.add_argument("--loadflags", help="`--loadflags` passed to nrnivmodl")
@@ -271,7 +279,8 @@ def compile_mods():
     if args.with_internal_mods:
         input_dirs.extend(_internal_mods_path())
 
-    options = Options(incflags=args.incflags, loadflags=args.loadflags, simulator=args.simulator)
+    simulators = frozenset(args.simulator) if args.simulator else frozenset({Simulator.neuron})
+    options = Options(incflags=args.incflags, loadflags=args.loadflags, simulators=simulators)
     env = _build_mod_files(input_dirs, output_dir, args.nrnivmodl, options)
 
     match args.output_type:

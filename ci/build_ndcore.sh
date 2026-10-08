@@ -28,7 +28,7 @@ CMD=(
     )
 
 if [ "$CORENEURON" = true ]; then
-    CMD+=(--simulator=both)
+    CMD+=(--simulator=neuron --simulator=coreneuron)
 fi
 
 exports=$(${CMD[@]})

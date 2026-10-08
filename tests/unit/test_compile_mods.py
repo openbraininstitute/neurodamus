@@ -77,24 +77,24 @@ def test__generate_mod_metadata(tmp_path):
     path = write(tmp_path / "a.mod", b"mod content")
 
     mod_files = {path: "abc123"}
-    options = Options(simulator=Simulator.neuron, incflags="-DFOO", loadflags="")
+    options = Options(simulators=frozenset({Simulator.neuron}), incflags="-DFOO", loadflags="")
 
     meta = test_module._generate_mod_metadata(mod_files, options)
     assert meta["version"] == 2
     assert meta["hashes"] == [["a.mod", "abc123"]]
-    assert meta["simulator"] == "neuron"
+    assert meta["simulators"] == ["neuron"]
     assert meta["incflags"] == "-DFOO"
 
 
 def test__check_cache_missing(tmp_path):
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulators=frozenset({Simulator.neuron}), incflags="", loadflags="")
     assert not test_module._check_cache({}, tmp_path, options)
 
 
 def test__write_cache_and_check_cache(tmp_path):
     path = write(tmp_path / "a.mod", b"content")
     mod_files = {path: "hash1"}
-    options0 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="")
+    options0 = Options(simulators=frozenset({Simulator.neuron}), incflags="-DX", loadflags="")
 
     test_module._write_cache(mod_files, tmp_path, options0)
     assert test_module._metadata_path(tmp_path).exists()
@@ -104,18 +104,24 @@ def test__write_cache_and_check_cache(tmp_path):
     write(test_module._get_dynamic_file(tmp_path, "libnrnmech"), b"")
     assert test_module._check_cache(mod_files, tmp_path, options0)
 
-    options1 = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="")
+    options1 = Options(simulators=frozenset({Simulator.coreneuron}), incflags="-DX", loadflags="")
     test_module._write_cache(mod_files, tmp_path, options1)
     assert not test_module._check_cache(mod_files, tmp_path, options1)
 
     write(test_module._get_dynamic_file(tmp_path, "libcorenrnmech"), b"")
     assert test_module._check_cache(mod_files, tmp_path, options1)
 
-    options_both = Options(simulator=Simulator.both, incflags="-DX", loadflags="")
+    options_both = Options(
+        simulators=frozenset({Simulator.neuron, Simulator.coreneuron}),
+        incflags="-DX",
+        loadflags="",
+    )
     test_module._write_cache(mod_files, tmp_path, options_both)
     assert test_module._check_cache(mod_files, tmp_path, options_both)
 
-    options2 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="-different")
+    options2 = Options(
+        simulators=frozenset({Simulator.neuron}), incflags="-DX", loadflags="-different"
+    )
     assert not test_module._check_cache(mod_files, tmp_path, options2)
 
 
@@ -126,20 +132,24 @@ def test__output_files(tmp_path):
     base.mkdir()
     write(base / f"libnrnmech{ext}", b"")
 
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulators=frozenset({Simulator.neuron}), incflags="", loadflags="")
     res = test_module._output_files(tmp_path, options)
     assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
     assert res["SPECIALS_PATH"] == str(base)
     assert "CORENEURONLIB" not in res
 
     write(base / f"libcorenrnmech{ext}", b"")
-    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+    options = Options(simulators=frozenset({Simulator.coreneuron}), incflags="", loadflags="")
     res = test_module._output_files(tmp_path, options)
     assert "NRNMECH_LIB_PATH" not in res
     assert res["SPECIALS_PATH"] == str(base)
     assert res["CORENEURONLIB"] == str(base / f"libcorenrnmech{ext}")
 
-    options = Options(simulator=Simulator.both, incflags="", loadflags="")
+    options = Options(
+        simulators=frozenset({Simulator.neuron, Simulator.coreneuron}),
+        incflags="",
+        loadflags="",
+    )
     res = test_module._output_files(tmp_path, options)
     assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
     assert res["SPECIALS_PATH"] == str(base)
@@ -153,7 +163,7 @@ def test__output_files_coreneuron(tmp_path):
     base.mkdir()
     write(base / f"libcorenrnmech{ext}", b"")
 
-    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+    options = Options(simulators=frozenset({Simulator.coreneuron}), incflags="", loadflags="")
     res = test_module._output_files(tmp_path, options)
     assert "CORENEURONLIB" in res
     assert "NRNMECH_LIB_PATH" not in res
@@ -167,7 +177,7 @@ def test__internal_mods_path():
 
 
 def test__build_mod_filess(tmp_path):
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulators=frozenset({Simulator.neuron}), incflags="", loadflags="")
     input_dirs = []
     with patch("neurodamus.utils.compile_mods.subprocess.run") as mock_run:
         with pytest.raises(RuntimeError, match="No mod files selected to be compiled"):
@@ -195,7 +205,7 @@ def test__build_mod_files_coreneuron_flag(tmp_path):
         mock_run.return_value = subprocess.CompletedProcess(
             args=[], returncode=0, stdout="ok", stderr=""
         )
-        options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+        options = Options(simulators=frozenset({Simulator.coreneuron}), incflags="", loadflags="")
         test_module._build_mod_files([input_dir], tmp_path, "echo", options)
         assert "-coreneuron" in mock_run.call_args.args[0]
 
@@ -207,7 +217,11 @@ def test__build_mod_files_coreneuron_flag(tmp_path):
         mock_run.return_value = subprocess.CompletedProcess(
             args=[], returncode=0, stdout="ok", stderr=""
         )
-        options = Options(simulator=Simulator.both, incflags="", loadflags="")
+        options = Options(
+            simulators=frozenset({Simulator.neuron, Simulator.coreneuron}),
+            incflags="",
+            loadflags="",
+        )
         test_module._build_mod_files([input_dir], both_dir, "echo", options)
         assert "-coreneuron" in mock_run.call_args.args[0]
 
@@ -216,20 +230,23 @@ def test__build_parser():
     parser = test_module.build_parser()
     assert isinstance(parser, argparse.ArgumentParser)
     args = parser.parse_args(["--output-dir", "out"])
-    assert args.simulator == Simulator.neuron
-    args = parser.parse_args(["--output-dir", "out", "--simulator", "both"])
-    assert args.simulator == Simulator.both
+    assert args.simulator is None
+    args = parser.parse_args(
+        ["--output-dir", "out", "--simulator", "neuron", "--simulator", "coreneuron"]
+    )
+    assert args.simulator == [Simulator.neuron, Simulator.coreneuron]
     args = parser.parse_args(["--output-dir", "out", "--simulator", "coreneuron"])
-    assert args.simulator == Simulator.coreneuron
+    assert args.simulator == [Simulator.coreneuron]
 
 
 def test__needs_helpers():
-    assert test_module._needs_neuron(Simulator.neuron)
-    assert not test_module._needs_coreneuron(Simulator.neuron)
-    assert not test_module._needs_neuron(Simulator.coreneuron)
-    assert test_module._needs_coreneuron(Simulator.coreneuron)
-    assert test_module._needs_neuron(Simulator.both)
-    assert test_module._needs_coreneuron(Simulator.both)
+    assert test_module._needs_neuron(frozenset({Simulator.neuron}))
+    assert not test_module._needs_coreneuron(frozenset({Simulator.neuron}))
+    assert not test_module._needs_neuron(frozenset({Simulator.coreneuron}))
+    assert test_module._needs_coreneuron(frozenset({Simulator.coreneuron}))
+    both = frozenset({Simulator.neuron, Simulator.coreneuron})
+    assert test_module._needs_neuron(both)
+    assert test_module._needs_coreneuron(both)
 
 
 def test__extract_mechanisms_dir(tmp_path):
