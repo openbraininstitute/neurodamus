@@ -1,6 +1,13 @@
 from logging import config
+from types import SimpleNamespace
+
+import libsonata
 import pytest
-from neurodamus.core.coreneuron_report_config import CoreReportConfigEntry, CoreReportConfig
+from neurodamus.core.coreneuron_report_config import (
+    CoreReportConfig,
+    CoreReportConfigEntry,
+    coreneuron_report_name,
+)
 
 def test_init_positional_and_kwargs():
     # positional only
@@ -177,5 +184,46 @@ def test_update_file_failures(tmp_path):
         CoreReportConfig.update_file(file_path, {"r1": {"buffer_size": "wrong_type"}})
 
 
+def test_coreneuron_report_name_replaces_whitespace():
+    assert coreneuron_report_name("Recording 0.h5") == "Recording_0.h5"
+    assert coreneuron_report_name("Default: All\tCells") == "Default:_All_Cells"
+    assert coreneuron_report_name("soma_v.h5") == "soma_v.h5"
 
 
+def _report_params(name, target_name):
+    report = libsonata.SimulationConfig.Report
+    return SimpleNamespace(
+        name=name,
+        target=SimpleNamespace(name=target_name, gids=lambda raw_gids: [1, 2]),
+        type=report.Type.compartment,
+        report_on="v",
+        unit="mV",
+        format="SONATA",
+        sections=report.Sections.soma,
+        compartments=report.Compartments.center,
+        dt=0.1,
+        start=0.0,
+        end=10.0,
+        buffer_size=8,
+        scaling=report.Scaling.area,
+    )
+
+
+def test_names_holding_whitespace_survive_a_dump_and_load(tmp_path):
+    """report.conf is read split on whitespace, by CoreNEURON as by CoreReportConfig.load."""
+    file_path = tmp_path / "report.conf"
+    report_config = CoreReportConfig()
+    report_config.add_entry(
+        CoreReportConfigEntry.from_report_params(
+            _report_params("Recording 0.h5", "Default: All Cells")
+        )
+    )
+    report_config.set_pop_offsets({"pop1": 0})
+    report_config.dump(file_path)
+
+    (report,) = CoreReportConfig.load(file_path).reports.values()
+
+    assert report.report_name == "Recording_0.h5"
+    assert report.target_name == "Default:_All_Cells"
+    assert report.report_type == "compartment"
+    assert report.gids == [1, 2]
