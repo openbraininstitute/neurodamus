@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 import argparse
+import fcntl
 import hashlib
+import importlib.metadata
 import json
 import logging
+import os
 import platform
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
+import time
 from collections.abc import Iterable
+from contextlib import contextmanager, nullcontext
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -16,10 +21,28 @@ from pathlib import Path
 import libsonata
 
 L = logging.getLogger(__name__)
-VERSION = 1
+VERSION = 2
 
 # Path within output dir where mod files are moved
 MOD_FILES_PATH = "mod_files"
+
+# Lock file within a cache slot, serializing concurrent builders
+LOCK_FILE = ".lock"
+
+# How long to wait for a concurrent build of the same slot before giving up. A compile
+# takes minutes; waiting much longer than that means the holder is stuck, not slow.
+DEFAULT_LOCK_TIMEOUT_SECONDS = 1800.0
+
+# Backoff bounds while polling for the lock, and how often to report that we are waiting
+_LOCK_POLL_MIN_SECONDS = 0.05
+_LOCK_POLL_MAX_SECONDS = 5.0
+_LOCK_HEARTBEAT_SECONDS = 60.0
+
+# Distribution names under which NEURON may be installed
+NEURON_DISTRIBUTIONS = ("NEURON", "neuron", "neuron-nightly")
+
+# Default age, in days, past which `--prune` discards a cache slot
+DEFAULT_MAX_AGE_DAYS = 30.0
 
 
 class Simulator(Enum):
@@ -32,6 +55,9 @@ class Options:
     simulator: Simulator
     incflags: str
     loadflags: str
+    # Identity of the build toolchain; see `_toolchain_id`. Part of the cache key so that
+    # a NEURON upgrade does not silently resolve to an ABI-incompatible cached library.
+    toolchain: str = ""
 
 
 def _metadata_path(output_dir: Path):
@@ -83,9 +109,194 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
     return {
         "version": VERSION,
-        "hashes": [[p.name, hash_] for p, hash_ in mod_files.items()],
+        # Sorted, so the identity of a build does not depend on the order in which the
+        # input directories were given, nor on filesystem iteration order. Names are
+        # unique: `_get_mod_files` already resolved same-name collisions.
+        "hashes": sorted([p.name, hash_] for p, hash_ in mod_files.items()),
         **asdict(options, dict_factory=factory),
     }
+
+
+def _neuron_version() -> str | None:
+    """Return the installed NEURON version, or None if it cannot be determined.
+
+    Uses distribution metadata rather than `import neuron`, which is slow and has
+    side effects. NEURON installed outside of python packaging (ie: spack, modules)
+    has no metadata; `_toolchain_id` falls back to the compiler path in that case.
+    """
+
+    def version(dist: str) -> str | None:
+        try:
+            return importlib.metadata.version(dist)
+        except importlib.metadata.PackageNotFoundError:
+            return None
+
+    return next(filter(None, map(version, NEURON_DISTRIBUTIONS)), None)
+
+
+def _toolchain_id(nrnivmodl: str) -> str:
+    """Identity of the toolchain used to build the mod files.
+
+    Included in the cache key so that changing NEURON invalidates previously compiled
+    libraries, which would otherwise be loaded despite being ABI-incompatible.
+    """
+    exe = Path(nrnivmodl).resolve()
+    parts = [platform.machine(), sys.platform, str(exe)]
+
+    if version := _neuron_version():
+        parts.append(f"neuron-{version}")
+    else:
+        try:
+            st = exe.stat()
+        except OSError:
+            L.warning("Cannot stat `%s`; cache key is based on its path alone", exe)
+        else:
+            parts.append(f"size-{st.st_size}:mtime-{int(st.st_mtime)}")
+
+    return "|".join(parts)
+
+
+def _resolve_nrnivmodl(nrnivmodl_path: str | None) -> str:
+    """Find the compiler to use, preferring an explicit path, then the neurodamus wrapper."""
+    nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
+    if not nrnivmodl:
+        msg = "nrnivmodl not found in PATH"
+        raise RuntimeError(msg)
+    return nrnivmodl
+
+
+def _cache_key(mod_files: dict[Path, str], options: Options) -> str:
+    """Content hash identifying a build: the mod files plus all compilation options."""
+    metadata = _generate_mod_metadata(mod_files, options)
+    blob = json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(blob).hexdigest()
+
+
+def _cache_slot(cache_dir: Path, key: str) -> Path:
+    """Directory holding the build for `key`.
+
+    Fanned out over two levels so no single directory grows large, which matters on the
+    shared filesystems a cluster-wide cache lives on.
+    """
+    return cache_dir / key[:2] / key[2:4] / key[4:]
+
+
+def _acquire_lock(fd, lock_path: Path, timeout: float) -> bool:
+    """Take an exclusive lock on `fd`, waiting at most `timeout` seconds (0 waits forever).
+
+    Returns whether the lock is actually held: on filesystems that do not implement
+    `flock` (ie: Lustre mounted without `-o flock`) we report and carry on unlocked,
+    rather than making the tool unusable there.
+
+    Raises:
+        RuntimeError: the lock could not be taken within `timeout`.
+    """
+    deadline = None if timeout <= 0 else time.monotonic() + timeout
+    started = time.monotonic()
+    next_report = started
+    delay = _LOCK_POLL_MIN_SECONDS
+
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            pass  # held by someone else; fall through and wait
+        except OSError as e:
+            L.warning(
+                "Locking is unsupported on `%s` (%s); building without it. "
+                "Concurrent builds of this cache slot may corrupt it.",
+                lock_path,
+                e.strerror,
+            )
+            return False
+        else:
+            return True
+
+        now = time.monotonic()
+        if now >= next_report:
+            L.info(
+                "Waiting for another build to release `%s` (%.0fs elapsed)",
+                lock_path,
+                now - started,
+            )
+            next_report = now + _LOCK_HEARTBEAT_SECONDS
+
+        if deadline is not None and now >= deadline:
+            msg = (
+                f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
+                "Another process is likely stuck compiling: check for a running nrnivmodl, "
+                "and delete the lock file if none is. Use --lock-timeout to wait longer, "
+                "or 0 to wait indefinitely."
+            )
+            raise RuntimeError(msg)
+
+        if deadline is not None:
+            delay = min(delay, max(deadline - now, 0.0))
+        time.sleep(delay)
+        delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
+
+
+@contextmanager
+def _slot_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
+    """Hold an exclusive lock on a cache slot while building it.
+
+    `flock` is released by the kernel if the holder dies, so a killed build leaves no
+    stale lock; it only leaves a slot without `modules.json`, which reads as a miss.
+    A holder that hangs rather than dies does block others, hence `timeout`.
+    """
+    slot.mkdir(parents=True, exist_ok=True)
+    lock_path = slot / LOCK_FILE
+    with open(lock_path, "ab") as fd:
+        locked = _acquire_lock(fd, lock_path, timeout)
+        try:
+            yield
+        finally:
+            if locked:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+def _slot_in_use(slot: Path) -> bool:
+    """Whether another process is currently building `slot`."""
+    lock_path = slot / LOCK_FILE
+    if not lock_path.exists():
+        return False
+    with open(lock_path, "ab") as fd:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        except OSError as e:
+            # Cannot tell; assume in use rather than risk deleting a live build
+            L.debug("Cannot test `%s` (%s); assuming in use", lock_path, e.strerror)
+            return True
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    return False
+
+
+def _touch_slot(slot: Path):
+    """Refresh the slot mtime, so that `--prune` can evict by least recent use."""
+    try:
+        os.utime(slot)
+    except OSError as e:
+        L.debug("Could not update mtime of %s: %s", slot, e)
+
+
+def _prune_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
+    """Remove cache slots unused for longer than `max_age_days`. Slots being built are kept."""
+    cutoff = time.time() - max_age_days * 86400
+    removed = []
+    for slot in sorted(cache_dir.glob("*/*/*")):
+        if not slot.is_dir():
+            continue
+        if slot.stat().st_mtime >= cutoff:
+            continue
+        if _slot_in_use(slot):
+            L.info("Cache slot in use, keeping: %s", slot)
+            continue
+        L.info("Removing cache slot: %s", slot)
+        shutil.rmtree(slot, ignore_errors=True)
+        removed.append(slot)
+    return removed
 
 
 def _get_dynamic_file(output_dir: Path, name: str) -> Path:
@@ -142,24 +353,14 @@ def _place_mod_files(output_dir: Path, mod_files: Iterable[Path]):
     return mod_dir
 
 
-def _build_mod_files(
-    input_dirs: list[Path], output_dir: Path, nrnivmodl_path: str | None, options: Options
-) -> dict:
-    """Compile the mod files."""
+def _compile(
+    mod_files: dict[Path, str], output_dir: Path, nrnivmodl: str, options: Options
+) -> dict[str, str]:
+    """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    mod_files = _get_mod_files(input_dirs)
-    if not mod_files:
-        msg = "No mod files selected to be compiled"
-        raise RuntimeError(msg)
-
-    if _check_cache(mod_files, output_dir, options):
-        return _output_files(output_dir, options)
-
-    nrnivmodl = nrnivmodl_path or shutil.which("neurodamus-nrnivmodl") or shutil.which("nrnivmodl")
-    if not nrnivmodl:
-        msg = "nrnivmodl not found in PATH"
-        raise RuntimeError(msg)
+    # Mark the slot as live up front: a rebuild of an otherwise stale slot must not look
+    # prunable while it is in progress.
+    _touch_slot(output_dir)
 
     cmd = [nrnivmodl]
 
@@ -177,14 +378,57 @@ def _build_mod_files(
 
     cmd.append(str(mod_dir))
 
+    L.info("Compiling %d mod file(s) into %s", len(mod_files), output_dir)
     res = subprocess.run(cmd, cwd=str(output_dir), stdout=sys.stderr, check=False)  # ruff: ignore[subprocess-without-shell-equals-true]
 
     if res.returncode:
         raise RuntimeError("Failed to compile")
 
+    # Written last, and only on success: `modules.json` doubles as the cache-ready marker.
     _write_cache(mod_files, output_dir, options)
 
     return _output_files(output_dir, options)
+
+
+def _build_mod_files(
+    input_dirs: list[Path],
+    output_dir: Path | None,
+    nrnivmodl: str,
+    options: Options,
+    cache_dir: Path | None = None,
+    lock_timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
+) -> dict[str, str]:
+    """Compile the mod files, reusing a previous build when nothing relevant changed.
+
+    With `cache_dir`, the build location is derived from a hash of the mod files and the
+    compilation options, so unrelated builds coexist and identical ones are shared.
+    """
+    mod_files = _get_mod_files(input_dirs)
+    if not mod_files:
+        msg = "No mod files selected to be compiled"
+        raise RuntimeError(msg)
+
+    if cache_dir is not None:
+        output_dir = _cache_slot(cache_dir, _cache_key(mod_files, options))
+        L.debug("Cache slot: %s", output_dir)
+
+    assert output_dir is not None, "either output_dir or cache_dir is required"
+
+    # Fast path, so the common cache hit takes no lock and creates no directories.
+    if _check_cache(mod_files, output_dir, options):
+        L.info("Cache hit, skipping compilation: %s", output_dir)
+        _touch_slot(output_dir)
+        return _output_files(output_dir, options)
+
+    lock = _slot_lock(output_dir, lock_timeout) if cache_dir is not None else nullcontext()
+    with lock:
+        # Another builder may have completed this slot while we waited for the lock.
+        if _check_cache(mod_files, output_dir, options):
+            L.info("Cache hit after lock, skipping compilation: %s", output_dir)
+            _touch_slot(output_dir)
+            return _output_files(output_dir, options)
+
+        return _compile(mod_files, output_dir, nrnivmodl, options)
 
 
 def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
@@ -237,7 +481,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
-    parser.add_argument("--output-dir", required=True, help="Output path")
+    destination = parser.add_mutually_exclusive_group(required=True)
+    destination.add_argument("--output-dir", help="Output path")
+    destination.add_argument(
+        "--cache-dir",
+        help="Cache root; the output path is derived from a hash of the mod files and options",
+    )
     parser.add_argument(
         "--simulator", type=Simulator, choices=list(Simulator), default=Simulator.neuron
     )
@@ -247,13 +496,64 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-type", choices=["json", "shell"], default="json", help="Output type"
     )
+    parser.add_argument(
+        "--print-cache-path",
+        action="store_true",
+        help="Print the resolved output path and exit, without compiling",
+    )
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="Remove stale slots from `--cache-dir` and exit, without compiling",
+    )
+    parser.add_argument(
+        "--lock-timeout",
+        type=float,
+        default=DEFAULT_LOCK_TIMEOUT_SECONDS,
+        metavar="SECONDS",
+        help="With `--cache-dir`, how long to wait for a concurrent build of the same slot "
+        "before failing. 0 waits indefinitely",
+    )
+    parser.add_argument(
+        "--max-age-days",
+        type=float,
+        default=DEFAULT_MAX_AGE_DAYS,
+        help="With `--prune`, the age past which an unused cache slot is removed",
+    )
     return parser
 
 
+def _setup_cli_logging():
+    """Send this module's logs to stderr, regardless of any ambient logging setup.
+
+    Importing `neurodamus` installs a root handler and leaves the root level at WARNING,
+    so `basicConfig` is a no-op here. Logging on a dedicated, non-propagating handler also
+    guarantees nothing lands on stdout, which carries the machine-readable output.
+    """
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    L.handlers[:] = [handler]
+    L.setLevel(logging.INFO)
+    L.propagate = False
+
+
 def compile_mods():
-    args = build_parser().parse_args()
+    _setup_cli_logging()
+
+    parser = build_parser()
+    args = parser.parse_args()
+
+    cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
+    output_dir = Path(args.output_dir) if args.output_dir else None
+
+    if args.prune:
+        if cache_dir is None:
+            parser.error("--prune requires --cache-dir")
+        removed = _prune_cache(cache_dir, args.max_age_days)
+        L.info("Pruned %d cache slot(s) from %s", len(removed), cache_dir)
+        return
+
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
-    output_dir = Path(args.output_dir)
 
     if args.circuit_config:
         input_dirs.extend(_extract_mechanisms_dir(Path(args.circuit_config)))
@@ -261,8 +561,35 @@ def compile_mods():
     if args.with_internal_mods:
         input_dirs.extend(_internal_mods_path())
 
-    options = Options(incflags=args.incflags, loadflags=args.loadflags, simulator=args.simulator)
-    env = _build_mod_files(input_dirs, output_dir, args.nrnivmodl, options)
+    nrnivmodl = _resolve_nrnivmodl(args.nrnivmodl)
+    options = Options(
+        incflags=args.incflags,
+        loadflags=args.loadflags,
+        simulator=args.simulator,
+        toolchain=_toolchain_id(nrnivmodl),
+    )
+
+    if args.print_cache_path:
+        mod_files = _get_mod_files(input_dirs)
+        if not mod_files:
+            msg = "No mod files selected to be compiled"
+            raise RuntimeError(msg)
+        resolved = (
+            _cache_slot(cache_dir, _cache_key(mod_files, options))
+            if cache_dir is not None
+            else output_dir
+        )
+        print(resolved)  # ruff: ignore[print]
+        return
+
+    env = _build_mod_files(
+        input_dirs,
+        output_dir,
+        nrnivmodl,
+        options,
+        cache_dir=cache_dir,
+        lock_timeout=args.lock_timeout,
+    )
 
     match args.output_type:
         case "json":
