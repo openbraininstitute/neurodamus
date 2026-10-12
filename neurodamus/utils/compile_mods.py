@@ -12,7 +12,7 @@ import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import time
 from collections.abc import Iterable
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -269,7 +269,7 @@ def _get_dynamic_file(output_dir: Path, name: str) -> Path:
     return base / f"{name}{ext}"
 
 
-def _check_cache(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
+def _is_cache_entry_valid(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
     """See if if we have a cache hit."""
     metadata = _metadata_path(output_dir)
     if not metadata.exists():
@@ -351,41 +351,51 @@ def _compile(
     return _output_files(output_dir, options)
 
 
+def _copy_cache_entry(cache_entry: Path, output_dir: Path):
+    """Copy a compiled cache entry into the requested output directory."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for source in cache_entry.iterdir():
+        if source.name == LOCK_FILE:
+            continue
+        destination = output_dir / source.name
+        if source.is_dir():
+            if destination.exists():
+                shutil.rmtree(destination)
+            shutil.copytree(source, destination)
+        else:
+            shutil.copy2(source, destination)
+
+
 def _build_mod_files(
     input_dirs: list[Path],
-    output_dir: Path | None,
+    output_dir: Path,
     nrnivmodl: str,
     options: Options,
     cache_dir: Path | None = None,
     lock_timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
 ) -> dict[str, str]:
-    """Compile MOD files and reuse a matching build."""
+    """Compile MOD files and materialize a matching cache entry."""
     mod_files = _get_mod_files(input_dirs)
     if not mod_files:
         msg = "No mod files selected to be compiled"
         raise RuntimeError(msg)
 
-    if cache_dir is not None:
-        output_dir = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
-        L.debug("Cache slot: %s", output_dir)
-
-    assert output_dir is not None, "either output_dir or cache_dir is required"
-
-    # Fast path avoids locking on cache hits.
-    if _check_cache(mod_files, output_dir, options):
-        L.info("Cache hit, skipping compilation: %s", output_dir)
-        _touch_slot(output_dir)
-        return _output_files(output_dir, options)
-
-    lock = _cache_lock(output_dir, lock_timeout) if cache_dir is not None else nullcontext()
-    with lock:
-        # Recheck after waiting for another builder.
-        if _check_cache(mod_files, output_dir, options):
-            L.info("Cache hit after lock, skipping compilation: %s", output_dir)
-            _touch_slot(output_dir)
+    if cache_dir is None:
+        if _is_cache_entry_valid(mod_files, output_dir, options):
+            L.info("Cache hit, skipping compilation: %s", output_dir)
             return _output_files(output_dir, options)
-
         return _compile(mod_files, output_dir, nrnivmodl, options)
+
+    cache_entry = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
+    with _cache_lock(cache_entry, lock_timeout):
+        if _is_cache_entry_valid(mod_files, cache_entry, options):
+            L.info("Cache hit, materializing: %s", cache_entry)
+            _touch_slot(cache_entry)
+        else:
+            _compile(mod_files, cache_entry, nrnivmodl, options)
+        _copy_cache_entry(cache_entry, output_dir)
+
+    return _output_files(output_dir, options)
 
 
 def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
@@ -438,11 +448,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
-    destination = parser.add_mutually_exclusive_group(required=True)
-    destination.add_argument("--output-dir", help="Output path")
-    destination.add_argument(
+    parser.add_argument("--output-dir", required=True, help="Output path")
+    parser.add_argument(
         "--cache-dir",
-        help="Cache root; the output path is derived from a hash of the mod files and options",
+        help="Cache root; matching entries are copied into `--output-dir`",
     )
     parser.add_argument(
         "--simulator", type=Simulator, choices=list(Simulator), default=Simulator.neuron
@@ -456,7 +465,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--clear-cache",
         action="store_true",
-        help="Remove stale slots from `--cache-dir` and exit, without compiling",
+        help="Clear stale entries from `--cache-dir` before compiling",
     )
     parser.add_argument(
         "--lock-timeout",
@@ -491,7 +500,7 @@ def compile_mods():
     args = parser.parse_args()
 
     cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
-    output_dir = Path(args.output_dir) if args.output_dir else None
+    output_dir = Path(args.output_dir)
 
     if args.clear_cache and cache_dir is not None:
         removed = _clear_cache(cache_dir, args.max_age_days)

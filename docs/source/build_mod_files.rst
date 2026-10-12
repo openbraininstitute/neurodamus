@@ -27,18 +27,19 @@ Caching
 -------
 
 Compilation is skipped when MOD files, options, simulator, and toolchain match.
-``--output-dir`` reuses one directory; ``--cache-dir`` shares content-addressed
-builds without overwriting other MOD sets:
+``--output-dir`` is always the materialized output location. Add ``--cache-dir``
+to reuse compiled entries across output directories:
 
 .. code-block:: bash
 
    eval "$(neurodamus-compile-mods \
        --circuit-config circuit_config.json --with-internal-mods \
-       --cache-dir /path/to/mod-cache --output-type shell)"
+       --output-dir /path/to/output --cache-dir /path/to/mod-cache \
+       --output-type shell)"
    neurodamus simulation_config.json
 
-The generated paths point directly into the cache. ``--clear-cache --max-age-days 30``
-removes unused slots.
+A cache hit copies the entry into ``--output-dir`` and returns paths from that
+directory. ``--clear-cache --max-age-days 30`` removes unused entries.
 
 Concurrent builds of one slot are serialized. The default lock timeout is 300
 seconds; use ``--lock-timeout 0`` to wait indefinitely. Unsupported ``flock``

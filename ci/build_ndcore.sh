@@ -23,6 +23,7 @@ mkdir -p "$BUILD_DIR"
 
 CMD=(
     neurodamus-compile-mods
+    --output-dir "$BUILD_DIR"
     --with-internal-mods
     --incflags=-DDISABLE_REPORTINGLIB
     --output-type shell
@@ -34,8 +35,6 @@ fi
 
 if [[ -n "$CACHE_DIR" ]]; then
     CMD+=(--cache-dir "$CACHE_DIR")
-else
-    CMD+=(--output-dir "$BUILD_DIR")
 fi
 
 if [ "$CORENEURON" = true ]; then
