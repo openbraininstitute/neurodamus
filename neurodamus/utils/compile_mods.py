@@ -23,25 +23,20 @@ import libsonata
 L = logging.getLogger(__name__)
 VERSION = 2
 
-# Path within output dir where mod files are moved
 MOD_FILES_PATH = "mod_files"
 
-# Lock file within a cache slot, serializing concurrent builders
 LOCK_FILE = ".lock"
 
-# How long to wait for a concurrent build of the same slot before giving up. The test MOD
-# workload takes 5-14s locally; five minutes leaves ample CI headroom without hanging a job.
+# Five minutes covers the measured CI MOD builds without masking a stuck compiler.
 DEFAULT_LOCK_TIMEOUT_SECONDS = 5 * 60
 
-# Backoff bounds while polling for the lock, and how often to report that we are waiting
 _LOCK_POLL_MIN_SECONDS = 0.05
 _LOCK_POLL_MAX_SECONDS = 5.0
 _LOCK_HEARTBEAT_SECONDS = 60.0
 
-# Distribution names under which NEURON may be installed
 NEURON_DISTRIBUTIONS = ("NEURON", "neuron", "neuron-nightly")
 
-# Default age, in days, past which `--clear-cache` removes a cache slot
+# Default age for `--clear-cache`.
 DEFAULT_MAX_AGE_DAYS = 30.0
 
 
@@ -55,8 +50,7 @@ class Options:
     simulator: Simulator
     incflags: str
     loadflags: str
-    # Identity of the build toolchain; see `_toolchain_id`. Part of the cache key so that
-    # a NEURON upgrade does not silently resolve to an ABI-incompatible cached library.
+    # Included to invalidate ABI-incompatible libraries.
     toolchain: str = ""
 
 
@@ -109,9 +103,7 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
     return {
         "version": VERSION,
-        # Sorted, so the identity of a build does not depend on the order in which the
-        # input directories were given, nor on filesystem iteration order. Names are
-        # unique: `_get_mod_files` already resolved same-name collisions.
+        # Canonical order keeps equivalent file sets on one cache key.
         "hashes": sorted([p.name, hash_] for p, hash_ in mod_files.items()),
         **asdict(options, dict_factory=factory),
     }
@@ -142,8 +134,7 @@ def _toolchain_id(nrnivmodl: str) -> str:
     parts = [platform.machine(), sys.platform, compiler_path.name]
 
     if version := _neuron_version():
-        # Virtual environments have different absolute paths but the same packaged
-        # NEURON toolchain; keep shared tox caches reusable across those environments.
+        # Versioned identities are shared across virtual environments.
         parts.append(f"neuron-{version}")
     else:
         try:
@@ -201,7 +192,7 @@ def _acquire_lock(fd, lock_path: Path, timeout: float) -> bool:
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            pass  # held by someone else; fall through and wait
+            pass
         except OSError as e:
             L.warning(
                 "Locking is unsupported on `%s` (%s); building without it. "
@@ -267,7 +258,7 @@ def _slot_in_use(slot: Path) -> bool:
         except BlockingIOError:
             return True
         except OSError as e:
-            # Cannot tell; assume in use rather than risk deleting a live build
+            # Unknown lock state is treated as in use.
             L.debug("Cannot test `%s` (%s); assuming in use", lock_path, e.strerror)
             return True
         fcntl.flock(fd, fcntl.LOCK_UN)
@@ -359,8 +350,7 @@ def _compile(
 ) -> dict[str, str]:
     """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Mark the slot as live up front: a rebuild of an otherwise stale slot must not be
-    # removed while it is in progress.
+    # Keep rebuilding slots from being cleared.
     _touch_slot(output_dir)
 
     cmd = [nrnivmodl]
@@ -385,7 +375,7 @@ def _compile(
     if res.returncode:
         raise RuntimeError("Failed to compile")
 
-    # Written last, and only on success: `modules.json` doubles as the cache-ready marker.
+    # Written last so it also marks a successful build.
     _write_cache(mod_files, output_dir, options)
 
     return _output_files(output_dir, options)
@@ -415,7 +405,7 @@ def _build_mod_files(
 
     assert output_dir is not None, "either output_dir or cache_dir is required"
 
-    # Fast path, so the common cache hit takes no lock and creates no directories.
+    # Fast path avoids locking on cache hits.
     if _check_cache(mod_files, output_dir, options):
         L.info("Cache hit, skipping compilation: %s", output_dir)
         _touch_slot(output_dir)
@@ -423,7 +413,7 @@ def _build_mod_files(
 
     lock = _slot_lock(output_dir, lock_timeout) if cache_dir is not None else nullcontext()
     with lock:
-        # Another builder may have completed this slot while we waited for the lock.
+        # Recheck after waiting for another builder.
         if _check_cache(mod_files, output_dir, options):
             L.info("Cache hit after lock, skipping compilation: %s", output_dir)
             _touch_slot(output_dir)
