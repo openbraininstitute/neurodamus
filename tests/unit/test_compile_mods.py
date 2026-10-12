@@ -42,7 +42,6 @@ def test__place_mod_files(tmp_path):
     output_dir = tmp_path
     mod_dir = output_dir / test_module.MOD_FILES_PATH
 
-    # Create a pre-existing .mod file that should be cleaned
     mod_dir.mkdir(parents=True)
     (mod_dir / "old.mod").write_text("old")
 
@@ -180,7 +179,6 @@ def test__build_mod_filess(tmp_path):
         )
         test_module._build_mod_files([input_dir], tmp_path, "echo", options)
 
-        # cache exists
         test_module._build_mod_files([input_dir], tmp_path, "echo", options)
 
 
@@ -243,12 +241,10 @@ def test__toolchain_id(tmp_path):
     assert compiler_path.name in tid
     assert str(compiler_path) not in tid
 
-    # Separate virtual environments must share the same versioned toolchain identity.
     other_compiler_path = write(tmp_path / "other" / "nrnivmodl", b"different wrapper")
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
         assert tid == test_module._toolchain_id(str(other_compiler_path))
 
-    # No distribution metadata (ie: spack/module install): fall back to the binary itself
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value=None):
         tid = test_module._toolchain_id(str(compiler_path))
     assert "size-" in tid
@@ -323,7 +319,6 @@ def test__cache_key_independent_of_discovery_order(tmp_path):
     assert set(forward.values()) == set(reverse.values())
     assert test_module._cache_key(forward, options()) == test_module._cache_key(reverse, options())
 
-    # Independent of dict insertion order for a fixed set of files too
     shuffled = dict(reversed(list(forward.items())))
     assert test_module._cache_key(shuffled, options()) == test_module._cache_key(forward, options())
 
@@ -338,7 +333,6 @@ def test__slot_lock(tmp_path):
 
     with test_module._slot_lock(slot):
         assert (slot / test_module.LOCK_FILE).exists()
-        # flock is per open-file-description, so a fresh open in this process sees it held
         assert test_module._slot_in_use(slot)
 
     assert not test_module._slot_in_use(slot)
@@ -358,9 +352,8 @@ def test__slot_lock_times_out(tmp_path, caplog):
             pass
         waited = time.monotonic() - started
 
-    assert 0.2 < waited < 10  # bounded by the timeout, not by the holder
+    assert 0.2 < waited < 10
     assert "Waiting for another build to release" in caplog.text
-    # The failure has to say what to do about it
     message = str(excinfo.value)
     assert "Timed out after" in message
     assert "nrnivmodl" in message
@@ -398,7 +391,7 @@ def test__slot_lock_unsupported_filesystem(tmp_path, caplog):
         ),
         test_module._slot_lock(slot),
     ):
-        pass  # must not raise
+        pass
     assert "Locking is unsupported" in caplog.text
 
 
@@ -431,7 +424,6 @@ def test__touch_slot(tmp_path):
     test_module._touch_slot(slot)
     assert slot.stat().st_mtime > old_time
 
-    # Missing directory must not raise
     test_module._touch_slot(tmp_path / "missing")
 
 
@@ -447,7 +439,6 @@ def test__clear_cache(tmp_path):
     os.utime(stale, (old_time, old_time))
 
     with test_module._slot_lock(locked):
-        # _slot_lock creates the lock file, which bumps the directory mtime
         os.utime(locked, (old_time, old_time))
         removed = test_module._clear_cache(cache_dir, max_age_days=30)
 
@@ -496,18 +487,15 @@ def test__build_mod_files_cache_dir_miss_on_change(tmp_path):
         test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
         assert mock_run.call_count == 1
 
-        # A toolchain change must not reuse the ABI-incompatible build
         test_module._build_mod_files(
             [input_dir], None, "echo", options(toolchain="toolchain-b"), cache_dir
         )
         assert mock_run.call_count == 2
 
-        # Changed mod contents
         write(input_dir / "a.mod", b"other contents")
         test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
         assert mock_run.call_count == 3
 
-        # Both earlier builds are still cached: distinct slots, no eviction
         write(input_dir / "a.mod", b"mod file")
         test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
         assert mock_run.call_count == 3
@@ -562,7 +550,6 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
     )
     assert not test_module._metadata_path(slot).exists()
 
-    # A subsequent run retries rather than reporting a hit
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
@@ -680,7 +667,6 @@ def test__build_mod_files_shared_across_input_dirs(tmp_path):
         second = test_module._build_mod_files([second_dir], None, "echo", opts, cache_dir)
         assert mock_run.call_count == 1
 
-    # Same slot, so there is a single copy of the artifacts on disk
     assert first == second
 
 
@@ -702,7 +688,6 @@ def test__build_mod_files_stale_artifacts_do_not_shortcircuit(tmp_path):
         test_module._build_mod_files([input_dir], output_dir, "echo", opts)
         assert mock_run.call_count == 1
 
-        # Artifacts and metadata are present, but no longer describe the inputs
         assert test_module._metadata_path(output_dir).exists()
         assert test_module._get_dynamic_file(output_dir, "libnrnmech").exists()
 
@@ -710,7 +695,6 @@ def test__build_mod_files_stale_artifacts_do_not_shortcircuit(tmp_path):
         test_module._build_mod_files([input_dir], output_dir, "echo", opts)
         assert mock_run.call_count == 2
 
-        # And unchanged inputs still hit
         test_module._build_mod_files([input_dir], output_dir, "echo", opts)
         assert mock_run.call_count == 2
 
@@ -731,7 +715,6 @@ def test__build_mod_files_cache_dir_keeps_both_builds(tmp_path):
         assert mock_run.call_count == 2
 
     assert rebuilt["NRNMECH_LIB_PATH"] != built["NRNMECH_LIB_PATH"]
-    # Slots are per-content, never overwritten in place
     assert Path(built["NRNMECH_LIB_PATH"]).exists()
 
 
@@ -748,7 +731,6 @@ def test__check_cache_rejects_removed_artifacts(tmp_path):
         env = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
         assert mock_run.call_count == 1
 
-        # `modules.json` still says this slot is good, but the artifact is gone
         Path(env["NRNMECH_LIB_PATH"]).unlink()
         test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
         assert mock_run.call_count == 2
@@ -795,7 +777,6 @@ def test_compile_mods_print_cache_path(tmp_path, capsys):
 
     out = capsys.readouterr().out.strip()
     assert out.startswith(str(cache_dir))
-    # Nothing was compiled
     assert not Path(out).exists()
 
 
@@ -835,7 +816,6 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
     assert not stale.exists()
     captured = capsys.readouterr()
     assert "Cleared 1 cache slot(s)" in captured.err
-    # Logs must never pollute stdout, which is meant to be eval'd / parsed
     assert not captured.out
 
 
@@ -864,7 +844,6 @@ def test_compile_mods_cache_dir_end_to_end(tmp_path, capsys):
         assert str(cache_dir) in first.out
         assert "Compiling 1 mod file(s)" in first.err
 
-        # Second invocation reuses the slot, emitting identical stdout
         with patch.object(sys, "argv", argv):
             test_module.compile_mods()
         second = capsys.readouterr()
