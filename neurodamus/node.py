@@ -76,7 +76,11 @@ from .utils.logging import log_stage, log_verbose
 from .utils.memory import DryRunStats, free_event_queues, pool_shrink, print_mem_usage, trim_memory
 from .utils.pyutils import cache_errors
 from .utils.timeit import TimerManager, timeit
-from neurodamus.core.coreneuron_report_config import CoreReportConfig, CoreReportConfigEntry
+from neurodamus.core.coreneuron_report_config import (
+    CoreReportConfig,
+    CoreReportConfigEntry,
+    coreneuron_report_name,
+)
 from neurodamus.core.coreneuron_simulation_config import CoreSimulationConfig
 from neurodamus.stimulus_manager import SpatiallyUniformEField
 from neurodamus.utils.pyutils import CumulativeError, rmtree
@@ -977,7 +981,8 @@ class Node:
                 continue
 
             if SimConfig.restore_coreneuron:
-                substitutions[rep_params.name]["end_time"] = rep_params.end
+                # keyed as the saved report.conf names the report
+                substitutions[coreneuron_report_name(rep_params.name)]["end_time"] = rep_params.end
                 continue  # we dont even need to initialize reports
 
             # With coreneuron direct mode, enable fast membrane current calculation
@@ -1377,6 +1382,26 @@ class Node:
         CoreConfig.psolve_core(
             SimConfig.coreneuron_direct_mode,
         )
+        MPI.barrier()  # every rank has written its part of the reports
+        Node._rename_coreneuron_report_files()
+
+    @staticmethod
+    @run_only_rank0
+    def _rename_coreneuron_report_files():
+        """Give report files the names the simulation config asks for.
+
+        report.conf holds report names with whitespace replaced (see coreneuron_report_name),
+        and CoreNEURON names each report's file after that.
+        """
+        output_root = Path(CoreConfig.output_root)
+        for rep_conf in SimConfig.reports.values():
+            if not rep_conf.enabled:
+                continue
+            file_name = Path(rep_conf.file_name).name
+            written = output_root / coreneuron_report_name(file_name)
+            if written.name != file_name and written.exists():
+                written.rename(output_root / file_name)
+                logging.info("Renamed CoreNEURON report %s to %s", written.name, file_name)
 
     def _sim_event_handlers(self, tstart, tstop):
         """Create handlers for "in-simulation" events, like activating delayed

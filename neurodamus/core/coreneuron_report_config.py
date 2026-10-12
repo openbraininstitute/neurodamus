@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import struct
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields
@@ -10,6 +11,17 @@ from typing import Union, get_args, get_origin, get_type_hints
 import libsonata
 
 from ._utils import run_only_rank0
+
+
+def coreneuron_report_name(name: str) -> str:
+    """Return a report or target name as report.conf holds it: whitespace replaced by '_'.
+
+    CoreNEURON reads report.conf split on whitespace, so a name holding any, such as a SONATA
+    report or node set named "Recording 0", would shift every field after it. CoreNEURON also
+    names each report's output file after the report name, so the file is renamed back once
+    CoreNEURON has run (see Node._rename_coreneuron_report_files).
+    """
+    return re.sub(r"\s", "_", name)
 
 
 @dataclass
@@ -143,8 +155,8 @@ class CoreReportConfigEntry:
     @classmethod
     def from_report_params(cls, rep_params):
         entry = cls(
-            report_name=rep_params.name,
-            target_name=rep_params.target.name,
+            report_name=coreneuron_report_name(rep_params.name),
+            target_name=coreneuron_report_name(rep_params.target.name),
             report_type=rep_params.type.name,
             report_variable=",".join(rep_params.report_on.split()),
             unit=rep_params.unit,

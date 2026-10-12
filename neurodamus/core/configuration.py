@@ -967,6 +967,30 @@ def _lfp_electrodes_files(config: _SimConfig):
             LFPFileReader.validate(rep_conf.electrodes_file)
 
 
+@SimConfig.validator
+def _coreneuron_report_file_names(config: _SimConfig):
+    """Refuse two reports that CoreNEURON would write to the same file.
+
+    report.conf holds report names with whitespace replaced (see coreneuron_report_name), so
+    reports writing "soma v.h5" and "soma_v.h5" would both be written to "soma_v.h5".
+    """
+    from .coreneuron_report_config import coreneuron_report_name  # avoid cyclic deps
+
+    if not config.use_coreneuron or config.cli_options.disable_reports:
+        return
+    written_by = {}
+    for name, rep_conf in config.reports.items():
+        if not rep_conf.enabled:
+            continue
+        written = coreneuron_report_name(Path(rep_conf.file_name).name)
+        if written in written_by:
+            raise ConfigurationError(
+                f"Reports '{written_by[written]}' and '{name}' would both be written to "
+                f"'{written}' by CoreNEURON, which replaces whitespace in report names with '_'"
+            )
+        written_by[written] = name
+
+
 def get_debug_cell_gids(cli_options):
     """Parse the --dump-cell-state option from CLI.
 
