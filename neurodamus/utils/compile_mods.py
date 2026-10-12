@@ -11,8 +11,8 @@ import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import time
-from collections.abc import Iterable
-from contextlib import contextmanager
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -25,19 +25,27 @@ VERSION = 2
 
 MOD_FILES_PATH = "mod_files"
 
-LOCK_FILE = ".lock"
+LOCK_SUFFIX = ".lock"
 
 # Two minutes leaves CI headroom without masking a stuck compiler.
 DEFAULT_LOCK_TIMEOUT_SECONDS = 2 * 60
 
 _LOCK_POLL_MIN_SECONDS = 0.05
-_LOCK_POLL_MAX_SECONDS = 5.0
+_LOCK_POLL_MAX_SECONDS = 1.0
 _LOCK_HEARTBEAT_SECONDS = 60.0
 
 NEURON_DISTRIBUTION = "neuron"
 
+# Permissive modes, for caches shared between users.
+_LOCK_FILE_MODE = 0o666
+_CACHE_DIR_MODE = 0o777
+
 # Default age for `--clear-cache`.
 DEFAULT_MAX_AGE_DAYS = 30.0
+
+
+class CacheLockTimeoutError(RuntimeError):
+    """Raised when another build holds a cache lock for too long."""
 
 
 class Simulator(Enum):
@@ -158,81 +166,121 @@ def _cache_entry_path(cache_dir: Path, key: str) -> Path:
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
-@contextmanager
-def _cache_lock(entry: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
-    """Lock a cache entry during compilation."""
-    entry.mkdir(parents=True, exist_ok=True)
-    lock_path = entry / LOCK_FILE
+def _cache_lock_path(entry: Path) -> Path:
+    """Lock beside the entry, so clearing the entry cannot unlink a held lock."""
+    return entry.parent / f"{entry.name}{LOCK_SUFFIX}"
+
+
+def _open_lock_file(lock_path: Path) -> int:
+    """Open the lock file, keeping it usable by other users of a shared cache."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with suppress(OSError):
+        os.chmod(lock_path.parent, _CACHE_DIR_MODE)
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, _LOCK_FILE_MODE)
+    with suppress(OSError):
+        os.fchmod(fd, _LOCK_FILE_MODE)
+    return fd
+
+
+def _lock_waits(lock_path: Path, timeout: float) -> Iterator[None]:
+    """Back off between lock attempts, reporting progress and enforcing `timeout`."""
     deadline = None if timeout <= 0 else time.monotonic() + timeout
     started = time.monotonic()
     next_report = started
     delay = _LOCK_POLL_MIN_SECONDS
+
+    while True:
+        now = time.monotonic()
+        if now >= next_report:
+            L.info(
+                "Waiting for another build to release `%s` (%.0fs elapsed)",
+                lock_path,
+                now - started,
+            )
+            next_report = now + _LOCK_HEARTBEAT_SECONDS
+
+        if deadline is not None:
+            if now >= deadline:
+                msg = (
+                    f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
+                    "Another process is likely stuck compiling: check for a running "
+                    "nrnivmodl, and delete the lock file if none is. Use --lock-timeout "
+                    "to wait longer, or 0 to wait indefinitely."
+                )
+                raise CacheLockTimeoutError(msg)
+            delay = min(delay, max(deadline - now, 0.0))
+
+        time.sleep(delay)
+        delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
+        yield
+
+
+@contextmanager
+def _cache_lock(
+    entry: Path,
+    timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
+    *,
+    exclusive: bool = True,
+):
+    """Lock a cache entry, yielding whether the lock is held.
+
+    Shared locks let concurrent readers reuse an entry; only builds need exclusivity.
+    `flock` works on EFS and on Lustre mounted with `flock`; where it is unavailable the
+    build continues unlocked rather than failing.
+    """
+    lock_path = _cache_lock_path(entry)
+    operation = (fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH) | fcntl.LOCK_NB
+    waits = _lock_waits(lock_path, timeout)
     locked = False
+    fd = _open_lock_file(lock_path)
 
-    with open(lock_path, "ab") as fd:
-        try:
-            while True:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                except BlockingIOError:
-                    pass
-                except OSError as e:
-                    L.warning(
-                        "Locking is unsupported on `%s` (%s); building without it. "
-                        "Concurrent builds of this cache entry may corrupt it.",
-                        lock_path,
-                        e.strerror,
-                    )
-                    break
-                else:
-                    locked = True
-                    break
+    try:
+        while not locked:
+            try:
+                fcntl.flock(fd, operation)
+            except BlockingIOError:  # ruff: ignore[try-except-in-loop] - polling a lock
+                next(waits)
+            except OSError as e:
+                L.warning(
+                    "Locking is unsupported on `%s` (%s); building without it. "
+                    "Concurrent builds of this cache entry may corrupt it.",
+                    lock_path,
+                    e.strerror,
+                )
+                break
+            else:
+                locked = True
 
-                now = time.monotonic()
-                if now >= next_report:
-                    L.info(
-                        "Waiting for another build to release `%s` (%.0fs elapsed)",
-                        lock_path,
-                        now - started,
-                    )
-                    next_report = now + _LOCK_HEARTBEAT_SECONDS
-
-                if deadline is not None and now >= deadline:
-                    msg = (
-                        f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
-                        "Another process is likely stuck compiling: check for a running "
-                        "nrnivmodl, and delete the lock file if none is. Use --lock-timeout "
-                        "to wait longer, or 0 to wait indefinitely."
-                    )
-                    raise RuntimeError(msg)
-
-                if deadline is not None:
-                    delay = min(delay, max(deadline - now, 0.0))
-                time.sleep(delay)
-                delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
-
-            yield
-        finally:
-            if locked:
-                fcntl.flock(fd, fcntl.LOCK_UN)
+        yield locked
+    finally:
+        if locked:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 def _cache_entry_in_use(entry: Path) -> bool:
-    """Whether another process is currently building `entry`."""
-    lock_path = entry / LOCK_FILE
+    """Whether another process is currently using `entry`."""
+    lock_path = _cache_lock_path(entry)
     if not lock_path.exists():
         return False
-    with open(lock_path, "ab") as fd:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            return True
-        except OSError as e:
-            # Unknown lock state is treated as in use.
-            L.debug("Cannot test `%s` (%s); assuming in use", lock_path, e.strerror)
-            return True
+    try:
+        fd = os.open(lock_path, os.O_RDWR)
+    except OSError as e:
+        L.debug("Cannot open `%s` (%s); assuming in use", lock_path, e.strerror)
+        return True
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return True
+    except OSError as e:
+        # Unknown lock state is treated as in use.
+        L.debug("Cannot test `%s` (%s); assuming in use", lock_path, e.strerror)
+        return True
+    else:
         fcntl.flock(fd, fcntl.LOCK_UN)
-    return False
+        return False
+    finally:
+        os.close(fd)
 
 
 def _touch_cache_entry(entry: Path):
@@ -355,8 +403,6 @@ def _copy_cache_entry(cache_entry: Path, output_dir: Path):
     """Copy a compiled cache entry into the requested output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
     for source in cache_entry.iterdir():
-        if source.name == LOCK_FILE:
-            continue
         destination = output_dir / source.name
         if source.is_dir():
             if destination.exists():
@@ -387,9 +433,18 @@ def _build_mod_files(
         return _compile(mod_files, output_dir, nrnivmodl, options)
 
     cache_entry = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
-    with _cache_lock(cache_entry, lock_timeout):
+
+    # Readers only need a shared lock, so concurrent hits are not serialized.
+    with _cache_lock(cache_entry, lock_timeout, exclusive=False):
         if _is_cache_entry_valid(mod_files, cache_entry, options):
             L.info("Cache hit, materializing: %s", cache_entry)
+            _touch_cache_entry(cache_entry)
+            _copy_cache_entry(cache_entry, output_dir)
+            return _output_files(output_dir, options)
+
+    with _cache_lock(cache_entry, lock_timeout):
+        # Another builder may have finished while the shared lock was released.
+        if _is_cache_entry_valid(mod_files, cache_entry, options):
             _touch_cache_entry(cache_entry)
         else:
             _compile(mod_files, cache_entry, nrnivmodl, options)

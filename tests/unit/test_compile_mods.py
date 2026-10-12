@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import threading
@@ -333,11 +334,46 @@ def test__cache_lock(tmp_path):
     entry = tmp_path / "entry"
     assert not test_module._cache_entry_in_use(entry)
 
-    with test_module._cache_lock(entry):
-        assert (entry / test_module.LOCK_FILE).exists()
+    with test_module._cache_lock(entry) as locked:
+        assert locked
+        assert test_module._cache_lock_path(entry).exists()
         assert test_module._cache_entry_in_use(entry)
 
     assert not test_module._cache_entry_in_use(entry)
+
+
+def test__cache_lock_path_is_outside_the_entry(tmp_path):
+    """Clearing an entry must not unlink a lock another process holds."""
+    entry = tmp_path / "cache" / "ab" / "cd" / "rest"
+    lock_path = test_module._cache_lock_path(entry)
+    assert lock_path == entry.parent / "rest.lock"
+    assert lock_path.parent == entry.parent
+
+    with test_module._cache_lock(entry):
+        entry.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(entry)
+        assert lock_path.exists()
+
+
+def test__cache_lock_shared_allows_concurrent_readers(tmp_path):
+    """Cache hits take shared locks, so readers are not serialized."""
+    entry = tmp_path / "entry"
+    with (
+        test_module._cache_lock(entry, exclusive=False) as first,
+        test_module._cache_lock(entry, timeout=1, exclusive=False) as second,
+    ):
+        assert first
+        assert second
+
+
+def test__cache_lock_exclusive_blocks_shared(tmp_path):
+    entry = tmp_path / "entry"
+    with (
+        test_module._cache_lock(entry),
+        pytest.raises(test_module.CacheLockTimeoutError),
+        test_module._cache_lock(entry, timeout=0.2, exclusive=False),
+    ):
+        pass
 
 
 def test__cache_lock_times_out(tmp_path, caplog):
@@ -348,7 +384,7 @@ def test__cache_lock_times_out(tmp_path, caplog):
         started = time.monotonic()
         with (
             caplog.at_level(logging.INFO),
-            pytest.raises(RuntimeError) as excinfo,
+            pytest.raises(test_module.CacheLockTimeoutError) as excinfo,
             test_module._cache_lock(entry, timeout=0.3),
         ):
             pass
@@ -391,10 +427,18 @@ def test__cache_lock_unsupported_filesystem(tmp_path, caplog):
             "neurodamus.utils.compile_mods.fcntl.flock",
             side_effect=OSError(errno.ENOLCK, "No locks available"),
         ),
-        test_module._cache_lock(entry),
+        test_module._cache_lock(entry) as locked,
     ):
-        pass
+        assert not locked
     assert "Locking is unsupported" in caplog.text
+
+
+def test__cache_lock_file_is_group_writable(tmp_path):
+    """Shared caches are used by several accounts, so locks must stay writable."""
+    entry = tmp_path / "entry"
+    with test_module._cache_lock(entry):
+        mode = test_module._cache_lock_path(entry).stat().st_mode
+    assert mode & 0o060 == 0o060
 
 
 def test__cache_lock_zero_timeout(tmp_path):
@@ -408,7 +452,7 @@ def test__cache_entry_in_use_unsupported_filesystem(tmp_path):
     """If we cannot test the lock, assume in use rather than clear a live build."""
     entry = tmp_path / "entry"
     entry.mkdir()
-    (entry / test_module.LOCK_FILE).touch()
+    test_module._cache_lock_path(entry).touch()
     with patch(
         "neurodamus.utils.compile_mods.fcntl.flock",
         side_effect=OSError(errno.ENOLCK, "No locks available"),
@@ -447,6 +491,31 @@ def test__clear_cache(tmp_path):
     assert fresh.exists()
     assert not stale.exists()
     assert locked.exists()
+
+
+def test__build_mod_files_cache_hit_is_not_serialized(tmp_path):
+    """A cache hit must succeed while another reader holds a shared lock."""
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
+        test_module._build_mod_files([input_dir], tmp_path / "first", "echo", opts, cache_dir)
+
+    cache_entry = test_module._cache_entry_path(
+        cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
+    )
+    with (
+        test_module._cache_lock(cache_entry, exclusive=False),
+        patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl) as run,
+    ):
+        env = test_module._build_mod_files(
+            [input_dir], tmp_path / "second", "echo", opts, cache_dir, lock_timeout=2
+        )
+        run.assert_not_called()
+
+    assert env["NRNMECH_LIB_PATH"].startswith(str(tmp_path / "second"))
 
 
 def test__build_mod_files_cache_dir_hit(tmp_path):
