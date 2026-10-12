@@ -270,39 +270,39 @@ def test__resolve_nrnivmodl():
         assert test_module._resolve_nrnivmodl(None) == "/a/neurodamus-nrnivmodl"
 
 
-def test__cache_key_varies_with_inputs(tmp_path):
+def test__cache_entry_key_varies_with_inputs(tmp_path):
     mod_dir = tmp_path / "mods"
     write(mod_dir / "a.mod", b"aaa")
     mod_files = test_module._get_mod_files([mod_dir])
 
-    key = test_module._cache_key(mod_files, options())
-    assert key == test_module._cache_key(mod_files, options())
+    key = test_module._cache_entry_key(mod_files, options())
+    assert key == test_module._cache_entry_key(mod_files, options())
 
-    assert key != test_module._cache_key(mod_files, options(simulator=Simulator.coreneuron))
-    assert key != test_module._cache_key(mod_files, options(incflags="-DX"))
-    assert key != test_module._cache_key(mod_files, options(loadflags="-lfoo"))
-    assert key != test_module._cache_key(mod_files, options(toolchain="toolchain-b"))
+    assert key != test_module._cache_entry_key(mod_files, options(simulator=Simulator.coreneuron))
+    assert key != test_module._cache_entry_key(mod_files, options(incflags="-DX"))
+    assert key != test_module._cache_entry_key(mod_files, options(loadflags="-lfoo"))
+    assert key != test_module._cache_entry_key(mod_files, options(toolchain="toolchain-b"))
 
     write(mod_dir / "a.mod", b"bbb")
-    assert key != test_module._cache_key(test_module._get_mod_files([mod_dir]), options())
+    assert key != test_module._cache_entry_key(test_module._get_mod_files([mod_dir]), options())
 
     write(mod_dir / "b.mod", b"ccc")
-    assert key != test_module._cache_key(test_module._get_mod_files([mod_dir]), options())
+    assert key != test_module._cache_entry_key(test_module._get_mod_files([mod_dir]), options())
 
 
-def test__cache_key_independent_of_input_dir(tmp_path):
+def test__cache_entry_key_independent_of_input_dir(tmp_path):
     """Identical mod content in different directories must share a single cache slot."""
     d1 = tmp_path / "one"
     d2 = tmp_path / "two"
     write(d1 / "a.mod", b"same contents")
     write(d2 / "a.mod", b"same contents")
 
-    k1 = test_module._cache_key(test_module._get_mod_files([d1]), options())
-    k2 = test_module._cache_key(test_module._get_mod_files([d2]), options())
+    k1 = test_module._cache_entry_key(test_module._get_mod_files([d1]), options())
+    k2 = test_module._cache_entry_key(test_module._get_mod_files([d2]), options())
     assert k1 == k2
 
 
-def test__cache_key_independent_of_discovery_order(tmp_path):
+def test__cache_entry_key_independent_of_discovery_order(tmp_path):
     """Hash a file set independently of discovery order."""
     d1 = tmp_path / "one"
     d2 = tmp_path / "two"
@@ -313,10 +313,14 @@ def test__cache_key_independent_of_discovery_order(tmp_path):
     forward = test_module._get_mod_files([d1, d2])
     reverse = test_module._get_mod_files([d2, d1])
     assert set(forward.values()) == set(reverse.values())
-    assert test_module._cache_key(forward, options()) == test_module._cache_key(reverse, options())
+    assert test_module._cache_entry_key(forward, options()) == test_module._cache_entry_key(
+        reverse, options()
+    )
 
     shuffled = dict(reversed(list(forward.items())))
-    assert test_module._cache_key(shuffled, options()) == test_module._cache_key(forward, options())
+    assert test_module._cache_entry_key(shuffled, options()) == test_module._cache_entry_key(
+        forward, options()
+    )
 
 
 def test__cache_entry_path(tmp_path):
@@ -464,7 +468,9 @@ def test__build_mod_files_cache_dir_hit(tmp_path):
 
     slot = test_module._cache_entry_path(
         cache_dir,
-        test_module._cache_key({p: test_module._md5sum(p) for p in [input_dir / "a.mod"]}, opts),
+        test_module._cache_entry_key(
+            {p: test_module._md5sum(p) for p in [input_dir / "a.mod"]}, opts
+        ),
     )
     assert first["NRNMECH_LIB_PATH"].startswith(str(slot))
 
@@ -539,7 +545,7 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
 
     mod = input_dir / "a.mod"
     slot = test_module._cache_entry_path(
-        cache_dir, test_module._cache_key({mod: test_module._md5sum(mod)}, opts)
+        cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
     )
     assert not test_module._metadata_path(slot).exists()
 
@@ -559,7 +565,7 @@ def test__clear_cache_keeps_slot_being_rebuilt(tmp_path):
 
     mod = input_dir / "a.mod"
     slot = test_module._cache_entry_path(
-        cache_dir, test_module._cache_key({mod: test_module._md5sum(mod)}, opts)
+        cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
     )
     slot.mkdir(parents=True)
     old_time = time.time() - 60 * 86400
@@ -572,20 +578,20 @@ def test__clear_cache_keeps_slot_being_rebuilt(tmp_path):
     assert slot.exists()
 
 
-def test__cache_key_different_filename_same_content(tmp_path):
+def test__cache_entry_key_different_filename_same_content(tmp_path):
     """Renaming a mod file changes the build, even though the bytes are unchanged."""
     mod_dir = tmp_path / "mods"
     write(mod_dir / "A.mod", b"same content")
-    key_a = test_module._cache_key(test_module._get_mod_files([mod_dir]), options())
+    key_a = test_module._cache_entry_key(test_module._get_mod_files([mod_dir]), options())
 
     (mod_dir / "A.mod").unlink()
     write(mod_dir / "B.mod", b"same content")
-    key_b = test_module._cache_key(test_module._get_mod_files([mod_dir]), options())
+    key_b = test_module._cache_entry_key(test_module._get_mod_files([mod_dir]), options())
 
     assert key_a != key_b
 
 
-def test__cache_key_deterministic_across_processes(tmp_path):
+def test__cache_entry_key_deterministic_across_processes(tmp_path):
     """Keep cache keys stable across process hash seeds."""
     names = ("alpha", "beta", "gamma", "delta")
     for i, name in enumerate(names):
@@ -594,12 +600,12 @@ def test__cache_key_deterministic_across_processes(tmp_path):
     script = (
         "import sys;"
         "from pathlib import Path;"
-        "from neurodamus.utils.compile_mods import _cache_key, _get_mod_files,"
+        "from neurodamus.utils.compile_mods import _cache_entry_key, _get_mod_files,"
         " Options, Simulator;"
         "o = Options(simulator=Simulator.neuron, incflags='', loadflags='', toolchain='t');"
         # list(set(...)) mirrors _extract_mechanisms_dir: order varies per process
         "dirs = list({Path(d) for d in sys.argv[1:]});"
-        "print(_cache_key(_get_mod_files(dirs), o))"
+        "print(_cache_entry_key(_get_mod_files(dirs), o))"
     )
     keys = set()
     for seed in ("0", "1", "42", "1234"):
