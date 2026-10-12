@@ -58,7 +58,7 @@ The generated environment variables point directly into the cache; artifacts
 are not copied per simulation. ``--print-cache-path`` shows the slot without
 compiling.
 
-Concurrent builds of the same slot are serialized. Waiting is limited to 1800
+Concurrent builds of the same slot are serialized. Waiting is limited to 300
 seconds by default; change it with ``--lock-timeout`` or use
 ``--lock-timeout 0`` to wait indefinitely. If the filesystem does not support
 ``flock``, the tool warns and builds without locking; do not build the same slot
