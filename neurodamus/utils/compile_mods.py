@@ -244,7 +244,7 @@ def _touch_slot(slot: Path):
 
 
 def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
-    """Remove cache slots unused for longer than `max_age_days`. Slots being built are kept."""
+    """Remove cache entries older than `max_age_days`."""
     cutoff = time.time() - max_age_days * 86400
     removed = []
     for slot in sorted(cache_dir.glob("*/*/*")):
@@ -454,11 +454,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-type", choices=["json", "shell"], default="json", help="Output type"
     )
     parser.add_argument(
-        "--print-cache-path",
-        action="store_true",
-        help="Print the resolved output path and exit, without compiling",
-    )
-    parser.add_argument(
         "--clear-cache",
         action="store_true",
         help="Remove stale slots from `--cache-dir` and exit, without compiling",
@@ -498,12 +493,9 @@ def compile_mods():
     cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
     output_dir = Path(args.output_dir) if args.output_dir else None
 
-    if args.clear_cache:
-        if cache_dir is None:
-            parser.error("--clear-cache requires --cache-dir")
+    if args.clear_cache and cache_dir is not None:
         removed = _clear_cache(cache_dir, args.max_age_days)
         L.info("Cleared %d cache slot(s) from %s", len(removed), cache_dir)
-        return
 
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
 
@@ -520,19 +512,6 @@ def compile_mods():
         simulator=args.simulator,
         toolchain=_toolchain_id(nrnivmodl),
     )
-
-    if args.print_cache_path:
-        mod_files = _get_mod_files(input_dirs)
-        if not mod_files:
-            msg = "No mod files selected to be compiled"
-            raise RuntimeError(msg)
-        resolved = (
-            _cache_entry_path(cache_dir, _cache_key(mod_files, options))
-            if cache_dir is not None
-            else output_dir
-        )
-        print(resolved)  # ruff: ignore[print]
-        return
 
     env = _build_mod_files(
         input_dirs,
