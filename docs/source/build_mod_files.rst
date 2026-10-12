@@ -69,6 +69,6 @@ With ``--output-dir``, compiled files are materialized in the requested output d
 
 A cache entry is keyed by MOD contents, compiler options, simulator, and toolchain. On a hit, its contents are copied into ``output`` and the returned paths point there; a miss compiles into the cache first.
 
-Concurrent builds of one entry are serialized. The default lock timeout is 120 seconds; use ``--lock-timeout 0`` to wait indefinitely. Compile once before ``mpirun`` rather than from every MPI rank.
+Concurrent builds of one entry are serialized, while cache hits take a shared lock. The default lock timeout is 120 seconds; use ``--lock-timeout 0`` to wait indefinitely. Locking uses ``flock``, so a Lustre cache must be mounted with ``flock``; where it is unavailable the build warns and continues unlocked. Compile once before ``mpirun`` rather than from every MPI rank.
 
 Use ``--clear-cache --max-age-days 30`` with ``--cache-dir`` to remove unused entries before compiling.
