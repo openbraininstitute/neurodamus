@@ -34,7 +34,7 @@ _LOCK_POLL_MIN_SECONDS = 0.05
 _LOCK_POLL_MAX_SECONDS = 5.0
 _LOCK_HEARTBEAT_SECONDS = 60.0
 
-NEURON_DISTRIBUTIONS = ("NEURON", "neuron", "neuron-nightly")
+NEURON_DISTRIBUTION = "neuron"
 
 # Default age for `--clear-cache`.
 DEFAULT_MAX_AGE_DAYS = 30.0
@@ -116,12 +116,10 @@ def _neuron_version() -> str | None:
     side effects. NEURON installed outside of python packaging (ie: spack, modules)
     has no metadata; `_toolchain_id` falls back to the compiler path in that case.
     """
-    for dist in NEURON_DISTRIBUTIONS:
-        try:
-            return importlib.metadata.version(dist)
-        except importlib.metadata.PackageNotFoundError:  # ruff: ignore[try-except-in-loop] - independent fallback
-            continue
-    return None
+    try:
+        return importlib.metadata.version(NEURON_DISTRIBUTION)
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
