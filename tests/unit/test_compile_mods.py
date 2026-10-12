@@ -222,7 +222,7 @@ def test__neuron_version():
         "neurodamus.utils.compile_mods.importlib.metadata.version", return_value="8.2.6"
     ) as version:
         assert test_module._neuron_version() == "8.2.6"
-        version.assert_called_once_with(test_module.NEURON_DISTRIBUTIONS[0])
+        version.assert_called_once_with(test_module.NEURON_DISTRIBUTION)
 
     with patch(
         "neurodamus.utils.compile_mods.importlib.metadata.version",
