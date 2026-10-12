@@ -71,5 +71,5 @@ from every MPI rank. Remove unused cache slots with:
 
    neurodamus-compile-mods \
        --cache-dir /path/to/mod-cache \
-       --prune \
+       --clear-cache \
        --max-age-days 30

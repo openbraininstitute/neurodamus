@@ -13,8 +13,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-import neurodamus.utils.compile_mods as test_module
 import pytest
+
+import neurodamus.utils.compile_mods as test_module
 
 Options = test_module.Options
 Simulator = test_module.Simulator
@@ -404,7 +405,7 @@ def test__acquire_lock_zero_timeout_waits_indefinitely(tmp_path):
 
 
 def test__slot_in_use_unsupported_filesystem(tmp_path):
-    """If we cannot test the lock, assume in use rather than prune a live build."""
+    """If we cannot test the lock, assume in use rather than clear a live build."""
     slot = tmp_path / "slot"
     slot.mkdir()
     (slot / test_module.LOCK_FILE).touch()
@@ -428,7 +429,7 @@ def test__touch_slot(tmp_path):
     test_module._touch_slot(tmp_path / "missing")
 
 
-def test__prune_cache(tmp_path):
+def test__clear_cache(tmp_path):
     cache_dir = tmp_path / "cache"
     fresh = test_module._cache_slot(cache_dir, "aabbfresh")
     stale = test_module._cache_slot(cache_dir, "ccddstale")
@@ -442,7 +443,7 @@ def test__prune_cache(tmp_path):
     with test_module._slot_lock(locked):
         # _slot_lock creates the lock file, which bumps the directory mtime
         os.utime(locked, (old_time, old_time))
-        removed = test_module._prune_cache(cache_dir, max_age_days=30)
+        removed = test_module._clear_cache(cache_dir, max_age_days=30)
 
     assert removed == [stale]
     assert fresh.exists()
@@ -450,8 +451,8 @@ def test__prune_cache(tmp_path):
     assert locked.exists()
 
 
-def test__prune_cache_empty(tmp_path):
-    assert test_module._prune_cache(tmp_path / "does-not-exist", max_age_days=1) == []
+def test__clear_cache_empty(tmp_path):
+    assert test_module._clear_cache(tmp_path / "does-not-exist", max_age_days=1) == []
 
 
 def test__build_mod_files_cache_dir_hit(tmp_path):
@@ -563,8 +564,8 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
         assert mock_run.call_count == 1
 
 
-def test__prune_cache_keeps_slot_being_rebuilt(tmp_path):
-    """A rebuild of an already-stale slot must not look prunable while it runs."""
+def test__clear_cache_keeps_slot_being_rebuilt(tmp_path):
+    """A rebuild of an already-stale slot must not be removed while it runs."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -581,7 +582,7 @@ def test__prune_cache_keeps_slot_being_rebuilt(tmp_path):
     with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
         test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
 
-    assert test_module._prune_cache(cache_dir, max_age_days=30) == []
+    assert test_module._clear_cache(cache_dir, max_age_days=30) == []
     assert slot.exists()
 
 
@@ -806,26 +807,26 @@ def test_compile_mods_print_cache_path_no_mods(tmp_path):
         test_module.compile_mods()
 
 
-def test_compile_mods_prune_requires_cache_dir(tmp_path):
-    argv = ["neurodamus-compile-mods", "--output-dir", str(tmp_path), "--prune"]
+def test_compile_mods_clear_cache_requires_cache_dir(tmp_path):
+    argv = ["neurodamus-compile-mods", "--output-dir", str(tmp_path), "--clear-cache"]
     with patch.object(sys, "argv", argv), pytest.raises(SystemExit):
         test_module.compile_mods()
 
 
-def test_compile_mods_prune(tmp_path, capsys):
+def test_compile_mods_clear_cache(tmp_path, capsys):
     cache_dir = tmp_path / "cache"
     stale = test_module._cache_slot(cache_dir, "ccddstale")
     write(stale / "modules.json", b"{}")
     old_time = time.time() - 60 * 86400
     os.utime(stale, (old_time, old_time))
 
-    argv = ["neurodamus-compile-mods", "--cache-dir", str(cache_dir), "--prune"]
+    argv = ["neurodamus-compile-mods", "--cache-dir", str(cache_dir), "--clear-cache"]
     with patch.object(sys, "argv", argv):
         test_module.compile_mods()
 
     assert not stale.exists()
     captured = capsys.readouterr()
-    assert "Pruned 1 cache slot(s)" in captured.err
+    assert "Cleared 1 cache slot(s)" in captured.err
     # Logs must never pollute stdout, which is meant to be eval'd / parsed
     assert not captured.out
 
