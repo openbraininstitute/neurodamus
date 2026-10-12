@@ -291,7 +291,7 @@ def test__cache_entry_key_varies_with_inputs(tmp_path):
 
 
 def test__cache_entry_key_independent_of_input_dir(tmp_path):
-    """Identical mod content in different directories must share a single cache slot."""
+    """Identical mod content in different directories must share a single cache entry."""
     d1 = tmp_path / "one"
     d2 = tmp_path / "two"
     write(d1 / "a.mod", b"same contents")
@@ -330,26 +330,26 @@ def test__cache_entry_path(tmp_path):
 
 
 def test__cache_lock(tmp_path):
-    slot = tmp_path / "slot"
-    assert not test_module._slot_in_use(slot)
+    entry = tmp_path / "entry"
+    assert not test_module._cache_entry_in_use(entry)
 
-    with test_module._cache_lock(slot):
-        assert (slot / test_module.LOCK_FILE).exists()
-        assert test_module._slot_in_use(slot)
+    with test_module._cache_lock(entry):
+        assert (entry / test_module.LOCK_FILE).exists()
+        assert test_module._cache_entry_in_use(entry)
 
-    assert not test_module._slot_in_use(slot)
+    assert not test_module._cache_entry_in_use(entry)
 
 
 def test__cache_lock_times_out(tmp_path, caplog):
     """A holder that hangs rather than dies must not block others forever."""
-    slot = tmp_path / "slot"
+    entry = tmp_path / "entry"
 
-    with test_module._cache_lock(slot):
+    with test_module._cache_lock(entry):
         started = time.monotonic()
         with (
             caplog.at_level(logging.INFO),
             pytest.raises(RuntimeError) as excinfo,
-            test_module._cache_lock(slot, timeout=0.3),
+            test_module._cache_lock(entry, timeout=0.3),
         ):
             pass
         waited = time.monotonic() - started
@@ -361,37 +361,37 @@ def test__cache_lock_times_out(tmp_path, caplog):
     assert "nrnivmodl" in message
     assert "--lock-timeout" in message
 
-    assert not test_module._slot_in_use(slot)
+    assert not test_module._cache_entry_in_use(entry)
 
 
 def test__cache_lock_waits_then_acquires(tmp_path):
     """Waiting is not an error: the lock is taken as soon as the holder releases."""
-    slot = tmp_path / "slot"
+    entry = tmp_path / "entry"
     released = threading.Event()
 
     def holder():
-        with test_module._cache_lock(slot):
+        with test_module._cache_lock(entry):
             time.sleep(0.4)
             released.set()
 
     thread = threading.Thread(target=holder)
     thread.start()
     time.sleep(0.1)
-    with test_module._cache_lock(slot, timeout=30):
+    with test_module._cache_lock(entry, timeout=30):
         assert released.is_set()
     thread.join()
 
 
 def test__cache_lock_unsupported_filesystem(tmp_path, caplog):
     """Lustre without `-o flock` returns ENOLCK; the build must still run."""
-    slot = tmp_path / "slot"
+    entry = tmp_path / "entry"
     with (
         caplog.at_level(logging.WARNING),
         patch(
             "neurodamus.utils.compile_mods.fcntl.flock",
             side_effect=OSError(errno.ENOLCK, "No locks available"),
         ),
-        test_module._cache_lock(slot),
+        test_module._cache_lock(entry),
     ):
         pass
     assert "Locking is unsupported" in caplog.text
@@ -399,33 +399,33 @@ def test__cache_lock_unsupported_filesystem(tmp_path, caplog):
 
 def test__cache_lock_zero_timeout(tmp_path):
     """Zero timeout still acquires a free lock."""
-    slot = tmp_path / "slot"
-    with test_module._cache_lock(slot, timeout=0):
-        assert test_module._slot_in_use(slot)
+    entry = tmp_path / "entry"
+    with test_module._cache_lock(entry, timeout=0):
+        assert test_module._cache_entry_in_use(entry)
 
 
-def test__slot_in_use_unsupported_filesystem(tmp_path):
+def test__cache_entry_in_use_unsupported_filesystem(tmp_path):
     """If we cannot test the lock, assume in use rather than clear a live build."""
-    slot = tmp_path / "slot"
-    slot.mkdir()
-    (slot / test_module.LOCK_FILE).touch()
+    entry = tmp_path / "entry"
+    entry.mkdir()
+    (entry / test_module.LOCK_FILE).touch()
     with patch(
         "neurodamus.utils.compile_mods.fcntl.flock",
         side_effect=OSError(errno.ENOLCK, "No locks available"),
     ):
-        assert test_module._slot_in_use(slot) is True
+        assert test_module._cache_entry_in_use(entry) is True
 
 
-def test__touch_slot(tmp_path):
-    slot = tmp_path / "slot"
-    slot.mkdir()
+def test__touch_cache_entry(tmp_path):
+    entry = tmp_path / "entry"
+    entry.mkdir()
     old_time = time.time() - 10_000
-    os.utime(slot, (old_time, old_time))
+    os.utime(entry, (old_time, old_time))
 
-    test_module._touch_slot(slot)
-    assert slot.stat().st_mtime > old_time
+    test_module._touch_cache_entry(entry)
+    assert entry.stat().st_mtime > old_time
 
-    test_module._touch_slot(tmp_path / "missing")
+    test_module._touch_cache_entry(tmp_path / "missing")
 
 
 def test__clear_cache(tmp_path):
@@ -433,8 +433,8 @@ def test__clear_cache(tmp_path):
     fresh = test_module._cache_entry_path(cache_dir, "aabbfresh")
     stale = test_module._cache_entry_path(cache_dir, "ccddstale")
     locked = test_module._cache_entry_path(cache_dir, "eeffLocked")
-    for slot in (fresh, stale, locked):
-        write(slot / "modules.json", b"{}")
+    for entry in (fresh, stale, locked):
+        write(entry / "modules.json", b"{}")
 
     old_time = time.time() - 60 * 86400
     os.utime(stale, (old_time, old_time))
@@ -506,7 +506,7 @@ def test__build_mod_files_cache_dir_miss_on_change(tmp_path):
 
 
 def test__build_mod_files_concurrent(tmp_path):
-    """Two builders racing on one cache slot must compile exactly once."""
+    """Two builders racing on one cache entry must compile exactly once."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -556,10 +556,10 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
         test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
 
     mod = input_dir / "a.mod"
-    slot = test_module._cache_entry_path(
+    entry = test_module._cache_entry_path(
         cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
     )
-    assert not test_module._metadata_path(slot).exists()
+    assert not test_module._metadata_path(entry).exists()
 
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
@@ -568,26 +568,26 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
         assert mock_run.call_count == 1
 
 
-def test__clear_cache_keeps_slot_being_rebuilt(tmp_path):
-    """A rebuild of an already-stale slot must not be removed while it runs."""
+def test__clear_cache_keeps_entry_being_rebuilt(tmp_path):
+    """A rebuild of an already-stale entry must not be removed while it runs."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
     opts = options()
 
     mod = input_dir / "a.mod"
-    slot = test_module._cache_entry_path(
+    entry = test_module._cache_entry_path(
         cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
     )
-    slot.mkdir(parents=True)
+    entry.mkdir(parents=True)
     old_time = time.time() - 60 * 86400
-    os.utime(slot, (old_time, old_time))
+    os.utime(entry, (old_time, old_time))
 
     with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
         test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
 
     assert test_module._clear_cache(cache_dir, max_age_days=30) == []
-    assert slot.exists()
+    assert entry.exists()
 
 
 def test__cache_entry_key_different_filename_same_content(tmp_path):
@@ -656,7 +656,7 @@ def test__build_mod_files_requires_mod_files(tmp_path):
 
 
 def test__build_mod_files_shared_across_input_dirs(tmp_path):
-    """A second consumer with the same mods reuses the slot instead of recompiling."""
+    """A second consumer with the same mods reuses the entry instead of recompiling."""
     cache_dir = tmp_path / "cache"
     first_dir = tmp_path / "model-a" / "mechanisms"
     second_dir = tmp_path / "model-b" / "mechanisms"
@@ -705,7 +705,7 @@ def test__build_mod_files_stale_artifacts_do_not_shortcircuit(tmp_path):
 
 
 def test__build_mod_files_cache_dir_keeps_both_builds(tmp_path):
-    """Editing a mod file moves to a new slot without destroying the previous build."""
+    """Editing a mod file moves to a new entry without destroying the previous build."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"original")
@@ -824,7 +824,7 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
     assert not stale.exists()
     build.assert_called_once()
     captured = capsys.readouterr()
-    assert "Cleared 1 cache slot(s)" in captured.err
+    assert "Cleared 1 cache entry(s)" in captured.err
     assert captured.out.strip() == "{}"
 
 

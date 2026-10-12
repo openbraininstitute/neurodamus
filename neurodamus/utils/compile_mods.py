@@ -154,15 +154,15 @@ def _cache_entry_key(mod_files: dict[Path, str], options: Options) -> str:
 
 
 def _cache_entry_path(cache_dir: Path, key: str) -> Path:
-    """Return the cache slot for `key`."""
+    """Return the cache entry for `key`."""
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
 @contextmanager
-def _cache_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
-    """Lock a cache slot during compilation."""
-    slot.mkdir(parents=True, exist_ok=True)
-    lock_path = slot / LOCK_FILE
+def _cache_lock(entry: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
+    """Lock a cache entry during compilation."""
+    entry.mkdir(parents=True, exist_ok=True)
+    lock_path = entry / LOCK_FILE
     deadline = None if timeout <= 0 else time.monotonic() + timeout
     started = time.monotonic()
     next_report = started
@@ -179,7 +179,7 @@ def _cache_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
                 except OSError as e:
                     L.warning(
                         "Locking is unsupported on `%s` (%s); building without it. "
-                        "Concurrent builds of this cache slot may corrupt it.",
+                        "Concurrent builds of this cache entry may corrupt it.",
                         lock_path,
                         e.strerror,
                     )
@@ -217,9 +217,9 @@ def _cache_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
                 fcntl.flock(fd, fcntl.LOCK_UN)
 
 
-def _slot_in_use(slot: Path) -> bool:
-    """Whether another process is currently building `slot`."""
-    lock_path = slot / LOCK_FILE
+def _cache_entry_in_use(entry: Path) -> bool:
+    """Whether another process is currently building `entry`."""
+    lock_path = entry / LOCK_FILE
     if not lock_path.exists():
         return False
     with open(lock_path, "ab") as fd:
@@ -235,29 +235,29 @@ def _slot_in_use(slot: Path) -> bool:
     return False
 
 
-def _touch_slot(slot: Path):
-    """Refresh the slot mtime, so that ``--clear-cache`` can evict by least recent use."""
+def _touch_cache_entry(entry: Path):
+    """Refresh the entry mtime, so that ``--clear-cache`` can evict by least recent use."""
     try:
-        os.utime(slot)
+        os.utime(entry)
     except OSError as e:
-        L.debug("Could not update mtime of %s: %s", slot, e)
+        L.debug("Could not update mtime of %s: %s", entry, e)
 
 
 def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
     """Remove cache entries older than `max_age_days`."""
     cutoff = time.time() - max_age_days * 86400
     removed = []
-    for slot in sorted(cache_dir.glob("*/*/*")):
-        if not slot.is_dir():
+    for entry in sorted(cache_dir.glob("*/*/*")):
+        if not entry.is_dir():
             continue
-        if slot.stat().st_mtime >= cutoff:
+        if entry.stat().st_mtime >= cutoff:
             continue
-        if _slot_in_use(slot):
-            L.info("Cache slot in use, keeping: %s", slot)
+        if _cache_entry_in_use(entry):
+            L.info("Cache entry in use, keeping: %s", entry)
             continue
-        L.info("Removing cache slot: %s", slot)
-        shutil.rmtree(slot, ignore_errors=True)
-        removed.append(slot)
+        L.info("Removing cache entry: %s", entry)
+        shutil.rmtree(entry, ignore_errors=True)
+        removed.append(entry)
     return removed
 
 
@@ -320,8 +320,8 @@ def _compile(
 ) -> dict[str, str]:
     """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Keep rebuilding slots from being cleared.
-    _touch_slot(output_dir)
+    # Keep rebuilding entrys from being cleared.
+    _touch_cache_entry(output_dir)
 
     cmd = [nrnivmodl]
 
@@ -390,7 +390,7 @@ def _build_mod_files(
     with _cache_lock(cache_entry, lock_timeout):
         if _is_cache_entry_valid(mod_files, cache_entry, options):
             L.info("Cache hit, materializing: %s", cache_entry)
-            _touch_slot(cache_entry)
+            _touch_cache_entry(cache_entry)
         else:
             _compile(mod_files, cache_entry, nrnivmodl, options)
         _copy_cache_entry(cache_entry, output_dir)
@@ -472,14 +472,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=DEFAULT_LOCK_TIMEOUT_SECONDS,
         metavar="SECONDS",
-        help="With `--cache-dir`, how long to wait for a concurrent build of the same slot "
+        help="With `--cache-dir`, how long to wait for a concurrent build of the same entry "
         "before failing. 0 waits indefinitely",
     )
     parser.add_argument(
         "--max-age-days",
         type=float,
         default=DEFAULT_MAX_AGE_DAYS,
-        help="With `--clear-cache`, the age past which an unused cache slot is removed",
+        help="With `--clear-cache`, the age past which an unused cache entry is removed",
     )
     return parser
 
@@ -504,7 +504,7 @@ def compile_mods():
 
     if args.clear_cache and cache_dir is not None:
         removed = _clear_cache(cache_dir, args.max_age_days)
-        L.info("Cleared %d cache slot(s) from %s", len(removed), cache_dir)
+        L.info("Cleared %d cache entry(s) from %s", len(removed), cache_dir)
 
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
 
