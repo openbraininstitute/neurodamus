@@ -41,7 +41,7 @@ _LOCK_HEARTBEAT_SECONDS = 60.0
 # Distribution names under which NEURON may be installed
 NEURON_DISTRIBUTIONS = ("NEURON", "neuron", "neuron-nightly")
 
-# Default age, in days, past which `--prune` discards a cache slot
+# Default age, in days, past which `--clear-cache` removes a cache slot
 DEFAULT_MAX_AGE_DAYS = 30.0
 
 
@@ -124,14 +124,12 @@ def _neuron_version() -> str | None:
     side effects. NEURON installed outside of python packaging (ie: spack, modules)
     has no metadata; `_toolchain_id` falls back to the compiler path in that case.
     """
-
-    def version(dist: str) -> str | None:
+    for dist in NEURON_DISTRIBUTIONS:
         try:
             return importlib.metadata.version(dist)
-        except importlib.metadata.PackageNotFoundError:
-            return None
-
-    return next(filter(None, map(version, NEURON_DISTRIBUTIONS)), None)
+        except importlib.metadata.PackageNotFoundError:  # ruff: ignore[try-except-in-loop] - independent fallback
+            continue
+    return None
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
@@ -274,14 +272,14 @@ def _slot_in_use(slot: Path) -> bool:
 
 
 def _touch_slot(slot: Path):
-    """Refresh the slot mtime, so that `--prune` can evict by least recent use."""
+    """Refresh the slot mtime, so that ``--clear-cache`` can evict by least recent use."""
     try:
         os.utime(slot)
     except OSError as e:
         L.debug("Could not update mtime of %s: %s", slot, e)
 
 
-def _prune_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
+def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
     """Remove cache slots unused for longer than `max_age_days`. Slots being built are kept."""
     cutoff = time.time() - max_age_days * 86400
     removed = []
@@ -358,8 +356,8 @@ def _compile(
 ) -> dict[str, str]:
     """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Mark the slot as live up front: a rebuild of an otherwise stale slot must not look
-    # prunable while it is in progress.
+    # Mark the slot as live up front: a rebuild of an otherwise stale slot must not be
+    # removed while it is in progress.
     _touch_slot(output_dir)
 
     cmd = [nrnivmodl]
@@ -502,7 +500,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the resolved output path and exit, without compiling",
     )
     parser.add_argument(
-        "--prune",
+        "--clear-cache",
         action="store_true",
         help="Remove stale slots from `--cache-dir` and exit, without compiling",
     )
@@ -518,7 +516,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-age-days",
         type=float,
         default=DEFAULT_MAX_AGE_DAYS,
-        help="With `--prune`, the age past which an unused cache slot is removed",
+        help="With `--clear-cache`, the age past which an unused cache slot is removed",
     )
     return parser
 
@@ -546,11 +544,11 @@ def compile_mods():
     cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
     output_dir = Path(args.output_dir) if args.output_dir else None
 
-    if args.prune:
+    if args.clear_cache:
         if cache_dir is None:
-            parser.error("--prune requires --cache-dir")
-        removed = _prune_cache(cache_dir, args.max_age_days)
-        L.info("Pruned %d cache slot(s) from %s", len(removed), cache_dir)
+            parser.error("--clear-cache requires --cache-dir")
+        removed = _clear_cache(cache_dir, args.max_age_days)
+        L.info("Cleared %d cache slot(s) from %s", len(removed), cache_dir)
         return
 
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
