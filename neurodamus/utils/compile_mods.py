@@ -110,12 +110,7 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
 
 def _neuron_version() -> str | None:
-    """Return the installed NEURON version, or None if it cannot be determined.
-
-    Uses distribution metadata rather than `import neuron`, which is slow and has
-    side effects. NEURON installed outside of python packaging (ie: spack, modules)
-    has no metadata; `_toolchain_id` falls back to the compiler path in that case.
-    """
+    """Return the installed NEURON version, if available."""
     try:
         return importlib.metadata.version(NEURON_DISTRIBUTION)
     except importlib.metadata.PackageNotFoundError:
@@ -123,11 +118,7 @@ def _neuron_version() -> str | None:
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
-    """Identity of the toolchain used to build the mod files.
-
-    Included in the cache key so that changing NEURON invalidates previously compiled
-    libraries, which would otherwise be loaded despite being ABI-incompatible.
-    """
+    """Return the toolchain identity used in the cache key."""
     compiler_path = Path(nrnivmodl).resolve()
     parts = [platform.machine(), sys.platform, compiler_path.name]
 
@@ -162,83 +153,64 @@ def _cache_key(mod_files: dict[Path, str], options: Options) -> str:
     return hashlib.sha256(blob).hexdigest()
 
 
-def _cache_slot(cache_dir: Path, key: str) -> Path:
-    """Directory holding the build for `key`.
-
-    Fanned out over two levels so no single directory grows large, which matters on the
-    shared filesystems a cluster-wide cache lives on.
-    """
+def _cache_entry_path(cache_dir: Path, key: str) -> Path:
+    """Return the cache slot for `key`."""
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
-def _acquire_lock(fd, lock_path: Path, timeout: float) -> bool:
-    """Take an exclusive lock on `fd`, waiting at most `timeout` seconds (0 waits forever).
-
-    Returns whether the lock is actually held: on filesystems that do not implement
-    `flock` (ie: Lustre mounted without `-o flock`) we report and carry on unlocked,
-    rather than making the tool unusable there.
-
-    Raises:
-        RuntimeError: the lock could not be taken within `timeout`.
-    """
+@contextmanager
+def _cache_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
+    """Lock a cache slot during compilation."""
+    slot.mkdir(parents=True, exist_ok=True)
+    lock_path = slot / LOCK_FILE
     deadline = None if timeout <= 0 else time.monotonic() + timeout
     started = time.monotonic()
     next_report = started
     delay = _LOCK_POLL_MIN_SECONDS
+    locked = False
 
-    while True:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            pass
-        except OSError as e:
-            L.warning(
-                "Locking is unsupported on `%s` (%s); building without it. "
-                "Concurrent builds of this cache slot may corrupt it.",
-                lock_path,
-                e.strerror,
-            )
-            return False
-        else:
-            return True
-
-        now = time.monotonic()
-        if now >= next_report:
-            L.info(
-                "Waiting for another build to release `%s` (%.0fs elapsed)",
-                lock_path,
-                now - started,
-            )
-            next_report = now + _LOCK_HEARTBEAT_SECONDS
-
-        if deadline is not None and now >= deadline:
-            msg = (
-                f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
-                "Another process is likely stuck compiling: check for a running nrnivmodl, "
-                "and delete the lock file if none is. Use --lock-timeout to wait longer, "
-                "or 0 to wait indefinitely."
-            )
-            raise RuntimeError(msg)
-
-        if deadline is not None:
-            delay = min(delay, max(deadline - now, 0.0))
-        time.sleep(delay)
-        delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
-
-
-@contextmanager
-def _slot_lock(slot: Path, timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS):
-    """Hold an exclusive lock on a cache slot while building it.
-
-    `flock` is released by the kernel if the holder dies, so a killed build leaves no
-    stale lock; it only leaves a slot without `modules.json`, which reads as a miss.
-    A holder that hangs rather than dies does block others, hence `timeout`.
-    """
-    slot.mkdir(parents=True, exist_ok=True)
-    lock_path = slot / LOCK_FILE
     with open(lock_path, "ab") as fd:
-        locked = _acquire_lock(fd, lock_path, timeout)
         try:
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    pass
+                except OSError as e:
+                    L.warning(
+                        "Locking is unsupported on `%s` (%s); building without it. "
+                        "Concurrent builds of this cache slot may corrupt it.",
+                        lock_path,
+                        e.strerror,
+                    )
+                    break
+                else:
+                    locked = True
+                    break
+
+                now = time.monotonic()
+                if now >= next_report:
+                    L.info(
+                        "Waiting for another build to release `%s` (%.0fs elapsed)",
+                        lock_path,
+                        now - started,
+                    )
+                    next_report = now + _LOCK_HEARTBEAT_SECONDS
+
+                if deadline is not None and now >= deadline:
+                    msg = (
+                        f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
+                        "Another process is likely stuck compiling: check for a running "
+                        "nrnivmodl, and delete the lock file if none is. Use --lock-timeout "
+                        "to wait longer, or 0 to wait indefinitely."
+                    )
+                    raise RuntimeError(msg)
+
+                if deadline is not None:
+                    delay = min(delay, max(deadline - now, 0.0))
+                time.sleep(delay)
+                delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
+
             yield
         finally:
             if locked:
@@ -387,18 +359,14 @@ def _build_mod_files(
     cache_dir: Path | None = None,
     lock_timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
 ) -> dict[str, str]:
-    """Compile the mod files, reusing a previous build when nothing relevant changed.
-
-    With `cache_dir`, the build location is derived from a hash of the mod files and the
-    compilation options, so unrelated builds coexist and identical ones are shared.
-    """
+    """Compile MOD files and reuse a matching build."""
     mod_files = _get_mod_files(input_dirs)
     if not mod_files:
         msg = "No mod files selected to be compiled"
         raise RuntimeError(msg)
 
     if cache_dir is not None:
-        output_dir = _cache_slot(cache_dir, _cache_key(mod_files, options))
+        output_dir = _cache_entry_path(cache_dir, _cache_key(mod_files, options))
         L.debug("Cache slot: %s", output_dir)
 
     assert output_dir is not None, "either output_dir or cache_dir is required"
@@ -409,7 +377,7 @@ def _build_mod_files(
         _touch_slot(output_dir)
         return _output_files(output_dir, options)
 
-    lock = _slot_lock(output_dir, lock_timeout) if cache_dir is not None else nullcontext()
+    lock = _cache_lock(output_dir, lock_timeout) if cache_dir is not None else nullcontext()
     with lock:
         # Recheck after waiting for another builder.
         if _check_cache(mod_files, output_dir, options):
@@ -513,12 +481,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _setup_cli_logging():
-    """Send this module's logs to stderr, regardless of any ambient logging setup.
-
-    Importing `neurodamus` installs a root handler and leaves the root level at WARNING,
-    so `basicConfig` is a no-op here. Logging on a dedicated, non-propagating handler also
-    guarantees nothing lands on stdout, which carries the machine-readable output.
-    """
+    """Configure isolated stderr logging for the CLI."""
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     L.handlers[:] = [handler]
@@ -564,7 +527,7 @@ def compile_mods():
             msg = "No mod files selected to be compiled"
             raise RuntimeError(msg)
         resolved = (
-            _cache_slot(cache_dir, _cache_key(mod_files, options))
+            _cache_entry_path(cache_dir, _cache_key(mod_files, options))
             if cache_dir is not None
             else output_dir
         )
