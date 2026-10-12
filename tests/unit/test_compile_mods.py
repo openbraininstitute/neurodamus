@@ -234,17 +234,23 @@ def test__neuron_version():
 
 
 def test__toolchain_id(tmp_path):
-    exe = write(tmp_path / "nrnivmodl", b"#!/bin/sh\n")
+    compiler_path = write(tmp_path / "nrnivmodl", b"#!/bin/sh\n")
 
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
-        tid = test_module._toolchain_id(str(exe))
+        tid = test_module._toolchain_id(str(compiler_path))
     assert "neuron-9.0" in tid
     assert platform.machine() in tid
-    assert str(exe) in tid
+    assert compiler_path.name in tid
+    assert str(compiler_path) not in tid
+
+    # Separate virtual environments must share the same versioned toolchain identity.
+    other_compiler_path = write(tmp_path / "other" / "nrnivmodl", b"different wrapper")
+    with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
+        assert tid == test_module._toolchain_id(str(other_compiler_path))
 
     # No distribution metadata (ie: spack/module install): fall back to the binary itself
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value=None):
-        tid = test_module._toolchain_id(str(exe))
+        tid = test_module._toolchain_id(str(compiler_path))
     assert "size-" in tid
     assert "mtime-" in tid
 
@@ -760,6 +766,8 @@ def test__build_parser_destination():
     assert parser.parse_args(["--output-dir", "a"]).output_dir == "a"
     assert parser.parse_args(["--cache-dir", "b"]).cache_dir == "b"
     assert parser.parse_args(["--cache-dir", "b"]).max_age_days == test_module.DEFAULT_MAX_AGE_DAYS
+    assert test_module.DEFAULT_LOCK_TIMEOUT_SECONDS == 300
+    assert test_module.DEFAULT_MAX_AGE_DAYS == 30
     assert (
         parser.parse_args(["--cache-dir", "b"]).lock_timeout
         == test_module.DEFAULT_LOCK_TIMEOUT_SECONDS

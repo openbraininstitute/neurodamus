@@ -29,9 +29,9 @@ MOD_FILES_PATH = "mod_files"
 # Lock file within a cache slot, serializing concurrent builders
 LOCK_FILE = ".lock"
 
-# How long to wait for a concurrent build of the same slot before giving up. A compile
-# takes minutes; waiting much longer than that means the holder is stuck, not slow.
-DEFAULT_LOCK_TIMEOUT_SECONDS = 1800.0
+# How long to wait for a concurrent build of the same slot before giving up. The test MOD
+# workload takes 5-14s locally; five minutes leaves ample CI headroom without hanging a job.
+DEFAULT_LOCK_TIMEOUT_SECONDS = 5 * 60
 
 # Backoff bounds while polling for the lock, and how often to report that we are waiting
 _LOCK_POLL_MIN_SECONDS = 0.05
@@ -138,18 +138,21 @@ def _toolchain_id(nrnivmodl: str) -> str:
     Included in the cache key so that changing NEURON invalidates previously compiled
     libraries, which would otherwise be loaded despite being ABI-incompatible.
     """
-    exe = Path(nrnivmodl).resolve()
-    parts = [platform.machine(), sys.platform, str(exe)]
+    compiler_path = Path(nrnivmodl).resolve()
+    parts = [platform.machine(), sys.platform, compiler_path.name]
 
     if version := _neuron_version():
+        # Virtual environments have different absolute paths but the same packaged
+        # NEURON toolchain; keep shared tox caches reusable across those environments.
         parts.append(f"neuron-{version}")
     else:
         try:
-            st = exe.stat()
+            st = compiler_path.stat()
         except OSError:
-            L.warning("Cannot stat `%s`; cache key is based on its path alone", exe)
+            parts.append(f"path-{compiler_path}")
+            L.warning("Cannot stat `%s`; cache key is based on its path alone", compiler_path)
         else:
-            parts.append(f"size-{st.st_size}:mtime-{int(st.st_mtime)}")
+            parts.append(f"path-{compiler_path}:size-{st.st_size}:mtime-{int(st.st_mtime)}")
 
     return "|".join(parts)
 
