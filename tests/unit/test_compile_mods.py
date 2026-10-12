@@ -770,7 +770,7 @@ def test__build_parser_destination():
         parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).max_age_days
         == test_module.DEFAULT_MAX_AGE_DAYS
     )
-    assert test_module.DEFAULT_LOCK_TIMEOUT_SECONDS == 300
+    assert test_module.DEFAULT_LOCK_TIMEOUT_SECONDS == 120
     assert test_module.DEFAULT_MAX_AGE_DAYS == 30
     assert (
         parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).lock_timeout

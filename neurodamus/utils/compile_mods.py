@@ -27,8 +27,8 @@ MOD_FILES_PATH = "mod_files"
 
 LOCK_FILE = ".lock"
 
-# Five minutes covers the measured CI MOD builds without masking a stuck compiler.
-DEFAULT_LOCK_TIMEOUT_SECONDS = 5 * 60
+# Two minutes leaves CI headroom without masking a stuck compiler.
+DEFAULT_LOCK_TIMEOUT_SECONDS = 2 * 60
 
 _LOCK_POLL_MIN_SECONDS = 0.05
 _LOCK_POLL_MAX_SECONDS = 5.0
