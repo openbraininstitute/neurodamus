@@ -146,7 +146,7 @@ def _resolve_nrnivmodl(nrnivmodl_path: str | None) -> str:
     return nrnivmodl
 
 
-def _cache_key(mod_files: dict[Path, str], options: Options) -> str:
+def _cache_entry_key(mod_files: dict[Path, str], options: Options) -> str:
     """Content hash identifying a build: the mod files plus all compilation options."""
     metadata = _generate_mod_metadata(mod_files, options)
     blob = json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode()
@@ -366,7 +366,7 @@ def _build_mod_files(
         raise RuntimeError(msg)
 
     if cache_dir is not None:
-        output_dir = _cache_entry_path(cache_dir, _cache_key(mod_files, options))
+        output_dir = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
         L.debug("Cache slot: %s", output_dir)
 
     assert output_dir is not None, "either output_dir or cache_dir is required"
