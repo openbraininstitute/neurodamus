@@ -37,8 +37,7 @@ builds without overwriting other MOD sets:
        --cache-dir /path/to/mod-cache --output-type shell)"
    neurodamus simulation_config.json
 
-The generated paths point directly into the cache. ``--print-cache-path``
-resolves a slot without compiling, and ``--clear-cache --max-age-days 30``
+The generated paths point directly into the cache. ``--clear-cache --max-age-days 30``
 removes unused slots.
 
 Concurrent builds of one slot are serialized. The default lock timeout is 300
