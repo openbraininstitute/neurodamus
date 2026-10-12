@@ -97,12 +97,12 @@ def test__generate_mod_metadata(tmp_path):
     assert not meta["toolchain"]
 
 
-def test__check_cache_missing(tmp_path):
+def test__is_cache_entry_valid_missing(tmp_path):
     options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
-    assert not test_module._check_cache({}, tmp_path, options)
+    assert not test_module._is_cache_entry_valid({}, tmp_path, options)
 
 
-def test__write_cache_and_check_cache(tmp_path):
+def test__write_cache_and_is_cache_entry_valid(tmp_path):
     path = write(tmp_path / "a.mod", b"content")
     mod_files = {path: "hash1"}
     options0 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="")
@@ -110,17 +110,17 @@ def test__write_cache_and_check_cache(tmp_path):
     test_module._write_cache(mod_files, tmp_path, options0)
     assert test_module._metadata_path(tmp_path).exists()
 
-    assert not test_module._check_cache(mod_files, tmp_path, options0)
+    assert not test_module._is_cache_entry_valid(mod_files, tmp_path, options0)
 
     write(test_module._get_dynamic_file(tmp_path, "libnrnmech"), b"")
-    assert test_module._check_cache(mod_files, tmp_path, options0)
+    assert test_module._is_cache_entry_valid(mod_files, tmp_path, options0)
 
     options1 = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="")
     test_module._write_cache(mod_files, tmp_path, options1)
-    assert not test_module._check_cache(mod_files, tmp_path, options1)
+    assert not test_module._is_cache_entry_valid(mod_files, tmp_path, options1)
 
     options2 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="-different")
-    assert not test_module._check_cache(mod_files, tmp_path, options2)
+    assert not test_module._is_cache_entry_valid(mod_files, tmp_path, options2)
 
 
 def test__output_files(tmp_path):
@@ -458,21 +458,26 @@ def test__build_mod_files_cache_dir_hit(tmp_path):
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        first = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        first = test_module._build_mod_files(
+            [input_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 1
 
-        second = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        second = test_module._build_mod_files(
+            [input_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 1
 
     assert first == second
+    assert first["NRNMECH_LIB_PATH"].startswith(str(tmp_path / "output"))
 
-    slot = test_module._cache_entry_path(
+    cache_entry = test_module._cache_entry_path(
         cache_dir,
         test_module._cache_entry_key(
             {p: test_module._md5sum(p) for p in [input_dir / "a.mod"]}, opts
         ),
     )
-    assert first["NRNMECH_LIB_PATH"].startswith(str(slot))
+    assert test_module._get_dynamic_file(cache_entry, "libnrnmech").exists()
 
 
 def test__build_mod_files_cache_dir_miss_on_change(tmp_path):
@@ -483,20 +488,20 @@ def test__build_mod_files_cache_dir_miss_on_change(tmp_path):
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", options(), cache_dir)
         assert mock_run.call_count == 1
 
         test_module._build_mod_files(
-            [input_dir], None, "echo", options(toolchain="toolchain-b"), cache_dir
+            [input_dir], tmp_path / "output", "echo", options(toolchain="toolchain-b"), cache_dir
         )
         assert mock_run.call_count == 2
 
         write(input_dir / "a.mod", b"other contents")
-        test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", options(), cache_dir)
         assert mock_run.call_count == 3
 
         write(input_dir / "a.mod", b"mod file")
-        test_module._build_mod_files([input_dir], None, "echo", options(), cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", options(), cache_dir)
         assert mock_run.call_count == 3
 
 
@@ -519,7 +524,14 @@ def test__build_mod_files_concurrent(tmp_path):
         ThreadPoolExecutor(max_workers=2) as pool,
     ):
         futures = [
-            pool.submit(test_module._build_mod_files, [input_dir], None, "echo", opts, cache_dir)
+            pool.submit(
+                test_module._build_mod_files,
+                [input_dir],
+                tmp_path / "output",
+                "echo",
+                opts,
+                cache_dir,
+            )
             for _ in range(2)
         ]
         results = [f.result() for f in futures]
@@ -541,7 +553,7 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
         patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=failing),
         pytest.raises(RuntimeError, match="Failed to compile"),
     ):
-        test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
 
     mod = input_dir / "a.mod"
     slot = test_module._cache_entry_path(
@@ -552,7 +564,7 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
         assert mock_run.call_count == 1
 
 
@@ -572,7 +584,7 @@ def test__clear_cache_keeps_slot_being_rebuilt(tmp_path):
     os.utime(slot, (old_time, old_time))
 
     with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
-        test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
 
     assert test_module._clear_cache(cache_dir, max_age_days=30) == []
     assert slot.exists()
@@ -628,13 +640,15 @@ def test__build_mod_files_requires_mod_files(tmp_path):
     with patch("neurodamus.utils.compile_mods.subprocess.run") as mock_run:
         with pytest.raises(RuntimeError, match="No mod files selected to be compiled"):
             test_module._build_mod_files(
-                [tmp_path / "does-not-exist"], None, "echo", opts, tmp_path / "cache"
+                [tmp_path / "does-not-exist"], tmp_path / "output", "echo", opts, tmp_path / "cache"
             )
 
         empty = tmp_path / "empty"
         empty.mkdir()
         with pytest.raises(RuntimeError, match="No mod files selected to be compiled"):
-            test_module._build_mod_files([empty], None, "echo", opts, tmp_path / "cache")
+            test_module._build_mod_files(
+                [empty], tmp_path / "output", "echo", opts, tmp_path / "cache"
+            )
 
         mock_run.assert_not_called()
 
@@ -653,10 +667,14 @@ def test__build_mod_files_shared_across_input_dirs(tmp_path):
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        first = test_module._build_mod_files([first_dir], None, "echo", opts, cache_dir)
+        first = test_module._build_mod_files(
+            [first_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 1
 
-        second = test_module._build_mod_files([second_dir], None, "echo", opts, cache_dir)
+        second = test_module._build_mod_files(
+            [second_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 1
 
     assert first == second
@@ -693,20 +711,31 @@ def test__build_mod_files_cache_dir_keeps_both_builds(tmp_path):
     write(input_dir / "a.mod", b"original")
     opts = options()
 
+    original_entry = test_module._cache_entry_path(
+        cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
+    )
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        built = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        built = test_module._build_mod_files(
+            [input_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         write(input_dir / "a.mod", b"edited")
-        rebuilt = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        edited_entry = test_module._cache_entry_path(
+            cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
+        )
+        rebuilt = test_module._build_mod_files(
+            [input_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 2
 
-    assert rebuilt["NRNMECH_LIB_PATH"] != built["NRNMECH_LIB_PATH"]
-    assert Path(built["NRNMECH_LIB_PATH"]).exists()
+    assert rebuilt == built
+    assert test_module._get_dynamic_file(original_entry, "libnrnmech").exists()
+    assert test_module._get_dynamic_file(edited_entry, "libnrnmech").exists()
 
 
-def test__check_cache_rejects_removed_artifacts(tmp_path):
-    """A slot whose library was deleted is a miss, not a hit onto a missing file."""
+def test__cache_hit_rematerializes_removed_output(tmp_path):
+    """A cache hit restores missing files in the output directory."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -715,12 +744,15 @@ def test__check_cache_rejects_removed_artifacts(tmp_path):
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
     ) as mock_run:
-        env = test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
+        env = test_module._build_mod_files(
+            [input_dir], tmp_path / "output", "echo", opts, cache_dir
+        )
         assert mock_run.call_count == 1
 
         Path(env["NRNMECH_LIB_PATH"]).unlink()
-        test_module._build_mod_files([input_dir], None, "echo", opts, cache_dir)
-        assert mock_run.call_count == 2
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
+        assert mock_run.call_count == 1
+        assert Path(env["NRNMECH_LIB_PATH"]).exists()
 
 
 def test__build_parser_destination():
@@ -729,19 +761,22 @@ def test__build_parser_destination():
     with pytest.raises(SystemExit):
         parser.parse_args([])
 
-    with pytest.raises(SystemExit):
-        parser.parse_args(["--output-dir", "a", "--cache-dir", "b"])
+    args = parser.parse_args(["--output-dir", "a", "--cache-dir", "b"])
+    assert args.output_dir == "a"
+    assert args.cache_dir == "b"
 
     assert parser.parse_args(["--output-dir", "a"]).output_dir == "a"
-    assert parser.parse_args(["--cache-dir", "b"]).cache_dir == "b"
-    assert parser.parse_args(["--cache-dir", "b"]).max_age_days == test_module.DEFAULT_MAX_AGE_DAYS
+    assert (
+        parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).max_age_days
+        == test_module.DEFAULT_MAX_AGE_DAYS
+    )
     assert test_module.DEFAULT_LOCK_TIMEOUT_SECONDS == 300
     assert test_module.DEFAULT_MAX_AGE_DAYS == 30
     assert (
-        parser.parse_args(["--cache-dir", "b"]).lock_timeout
+        parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).lock_timeout
         == test_module.DEFAULT_LOCK_TIMEOUT_SECONDS
     )
-    assert parser.parse_args(["--cache-dir", "b", "--lock-timeout", "0"]).lock_timeout == 0
+    assert parser.parse_args(["--output-dir", "a", "--lock-timeout", "0"]).lock_timeout == 0
 
 
 def test_compile_mods_clear_cache_without_cache_dir_runs_build(tmp_path, capsys):
@@ -774,6 +809,8 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
         "neurodamus-compile-mods",
         "--cache-dir",
         str(cache_dir),
+        "--output-dir",
+        str(tmp_path / "output"),
         "--clear-cache",
         "--nrnivmodl",
         "/bin/echo",
@@ -800,6 +837,8 @@ def test_compile_mods_cache_dir_end_to_end(tmp_path, capsys):
         "neurodamus-compile-mods",
         "--cache-dir",
         str(cache_dir),
+        "--output-dir",
+        str(tmp_path / "output"),
         "--input-dir",
         str(input_dir),
         "--nrnivmodl",
@@ -813,7 +852,7 @@ def test_compile_mods_cache_dir_end_to_end(tmp_path, capsys):
         first = capsys.readouterr()
         assert "NRNMECH_LIB_PATH=" in first.out
         assert "SPECIALS_PATH=" in first.out
-        assert str(cache_dir) in first.out
+        assert str(tmp_path / "output") in first.out
         assert "Compiling 1 mod file(s)" in first.err
 
         with patch.object(sys, "argv", argv):
