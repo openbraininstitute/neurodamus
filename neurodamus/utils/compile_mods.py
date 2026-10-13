@@ -12,7 +12,7 @@ import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import time
 from collections.abc import Iterable, Iterator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -174,8 +174,7 @@ def _open_lock_file(lock_path: Path) -> int:
     """Open the lock file, keeping it usable by other users of a shared cache."""
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, _LOCK_FILE_MODE)
-    with suppress(OSError):
-        os.fchmod(fd, _LOCK_FILE_MODE)
+    os.fchmod(fd, _LOCK_FILE_MODE)
     return fd
 
 
@@ -281,11 +280,15 @@ def _cache_entry_in_use(entry: Path) -> bool:
 
 
 def _touch_cache_entry(entry: Path):
-    """Refresh the entry mtime, so that ``--clear-cache`` can evict by least recent use."""
+    """Refresh entry mtime; cleanup bookkeeping is advisory, so failures are logged."""
     try:
         os.utime(entry)
-    except OSError as e:
-        L.debug("Could not update mtime of %s: %s", entry, e)
+    except OSError as error:
+        L.warning(
+            "Could not update cache entry mtime for `%s`; cleanup age may be inaccurate: %s",
+            entry,
+            error,
+        )
 
 
 def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
