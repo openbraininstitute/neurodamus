@@ -438,7 +438,8 @@ def test__cache_lock_file_is_group_writable(tmp_path):
     entry = tmp_path / "entry"
     with test_module._cache_lock(entry):
         mode = test_module._cache_lock_path(entry).stat().st_mode
-    assert mode & 0o060 == 0o060
+    assert mode & 0o600 == 0o600
+    assert mode & 0o077 == 0
 
 
 def test__cache_lock_zero_timeout(tmp_path):
