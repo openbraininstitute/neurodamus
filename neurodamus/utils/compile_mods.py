@@ -36,9 +36,8 @@ _LOCK_HEARTBEAT_SECONDS = 60.0
 
 NEURON_DISTRIBUTION = "neuron"
 
-# Permissive modes, for caches shared between users.
-_LOCK_FILE_MODE = 0o666
-_CACHE_DIR_MODE = 0o777
+# Owner-only lock files; the same UID runs all tasks.
+_LOCK_FILE_MODE = 0o600
 
 # Default age for `--clear-cache`.
 DEFAULT_MAX_AGE_DAYS = 30.0
@@ -174,8 +173,6 @@ def _cache_lock_path(entry: Path) -> Path:
 def _open_lock_file(lock_path: Path) -> int:
     """Open the lock file, keeping it usable by other users of a shared cache."""
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with suppress(OSError):
-        os.chmod(lock_path.parent, _CACHE_DIR_MODE)
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, _LOCK_FILE_MODE)
     with suppress(OSError):
         os.fchmod(fd, _LOCK_FILE_MODE)
