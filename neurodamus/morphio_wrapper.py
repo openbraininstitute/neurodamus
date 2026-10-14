@@ -195,6 +195,18 @@ class SectionName:
         return f"{self.name}[{self.id}]"
 
 
+def execute_commands(cell, commands):
+    """Execute hoc commands in the context of the hoc object `cell`.
+
+    The loop runs in Python: a hoc loop reading the commands out of a Python
+    list (`cmds._[i]`) never frees them, about 80 bytes per command.
+    """
+    from neuron import h
+
+    for command in commands:
+        h.execute(command, cell)
+
+
 class MorphIOWrapper:
     """A class that wraps a MorphIO object and gets everything ready for HOC usage"""
 
@@ -304,8 +316,8 @@ class MorphIOWrapper:
         self._sec_typeid_distrib = np.concatenate(([(1, -1, 1)], self._sec_typeid_distrib), axis=0)
         self._sec_typeid_distrib.dtype = [("type_id", "<i8"), ("start_id", "<i8"), ("count", "<i8")]
 
-    def morph_as_hoc(self):
-        """Uses morphio object to read and generate hoc commands just like import3d_gui.hoc"""
+    def _create_commands(self):
+        """Hoc commands creating the sections, their subsets and the `all` list."""
         cmds = []
 
         """
@@ -325,6 +337,11 @@ class MorphIOWrapper:
             cmds.append(tstr1)
 
         cmds.append("forall all.append")
+        return cmds
+
+    def morph_as_hoc(self):
+        """Uses morphio object to read and generate hoc commands just like import3d_gui.hoc"""
+        cmds = self._create_commands()
 
         # generate 3D soma points commands. Order is reversed wrt NEURON's soma points.
         cmds.extend(
@@ -365,6 +382,38 @@ class MorphIOWrapper:
             )
 
         return cmds
+
+    def instantiate(self, cell):
+        """Build the morphology in the hoc object `cell`, as executing morph_as_hoc() there does.
+
+        Only the few commands creating the sections go through hoc. The sections are
+        connected and their 3D points added through NEURON's Python API, with the
+        points rounded to the 8 significant digits that the hoc commands carry.
+        """
+        from neuron import h
+
+        def add_points(sec, points, diameters):
+            columns = (*np.asarray(points).T, diameters)
+            # The values hoc parses from the commands' "%.8g" numbers
+            vectors = [h.Vector([float(f"{v:.8g}") for v in np.ravel(c).tolist()]) for c in columns]
+            h.pt3dadd(*vectors, sec=sec)
+
+        def nrn_section(name):
+            return getattr(cell, name.name)[name.id]
+
+        execute_commands(cell, self._create_commands())
+
+        soma = cell.soma[0]
+        add_points(soma, self._morph.soma.points[::-1], self._morph.soma.diameters[::-1])
+
+        for i, sec in enumerate(self._morph.sections):
+            nrn_sec = nrn_section(self._section_names[i + 1])
+            if not sec.is_root:
+                if sec.parent is not None:
+                    nrn_sec.connect(nrn_section(self._section_names[sec.parent.id + 1])(1), 0)
+            else:
+                nrn_sec.connect(soma(0.5), 0)
+            add_points(nrn_sec, sec.points, sec.diameters)
 
     """
          [START] Python versions of import3d_gui.hoc helper functions

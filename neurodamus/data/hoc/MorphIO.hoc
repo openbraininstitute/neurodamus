@@ -14,11 +14,9 @@ pyobj = new PythonObject()
  * @param $o1 Cell object to execute commands in
  * @param $o2 python List holding commands
  */
-proc execute_commands_from_pylist () { localobj cmds
-    cmds = $o2
-    for i = 0, pyobj.len(cmds) - 1 {
-        execute(cmds._[i], $o1)
-    }
+proc execute_commands_from_pylist () {
+    nrnpython("from neurodamus import morphio_wrapper")
+    pyobj.morphio_wrapper.execute_commands($o1, $o2)
 }
 
 /**
@@ -30,5 +28,5 @@ proc morphio_read() {
     if( nrnpython("from neurodamus import morphio_wrapper") == 0 ) {
         terminate( "Cannot load 'morphio_wrapper.py' from py-neurodamus" )
     }
-    execute_commands_from_pylist($o1, pyobj.morphio_wrapper.MorphIOWrapper($s2).morph_as_hoc())
+    pyobj.morphio_wrapper.MorphIOWrapper($s2).instantiate($o1)
 }
