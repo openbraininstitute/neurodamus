@@ -66,11 +66,9 @@ create soma[1], dend[1], apic[1], axon[1], myelin[1], endfoot[1]
  *
  * @param $o1 python List holding commands
  */
-proc execute_commands () { localobj cmds
-    cmds = $o1
-    for i = 0, pyobj.len(cmds) - 1 {
-        execute(cmds._[i], this)
-    }
+proc execute_commands () {
+    nrnpython("from neurodamus import morphio_wrapper")
+    pyobj.morphio_wrapper.execute_commands(this, $o1)
 }
 
 /**
