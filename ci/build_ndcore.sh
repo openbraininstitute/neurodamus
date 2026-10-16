@@ -17,21 +17,31 @@ set -- "${ARGS[@]}"
 
 BUILD_DIR="$1"
 MODS_DIR="${2:-}"
+CACHE_DIR="${NEURODAMUS_MOD_CACHE_DIR:-}"
+
+mkdir -p "$BUILD_DIR"
 
 CMD=(
     neurodamus-compile-mods
-    --input-dir $MODS_DIR
-    --output-dir $BUILD_DIR
+    --output-dir "$BUILD_DIR"
     --with-internal-mods
-    --incflags="-DDISABLE_REPORTINGLIB"
+    --incflags=-DDISABLE_REPORTINGLIB
     --output-type shell
     )
+
+if [[ -n "$MODS_DIR" ]]; then
+    CMD+=(--input-dir "$MODS_DIR")
+fi
+
+if [[ -n "$CACHE_DIR" ]]; then
+    CMD+=(--cache-dir "$CACHE_DIR")
+fi
 
 if [ "$CORENEURON" = true ]; then
     CMD+=(--simulator=coreneuron)
 fi
 
-exports=$(${CMD[@]})
+exports=$("${CMD[@]}")
 
 while IFS= read -r line; do
     export "$line"
