@@ -98,6 +98,18 @@ def test__generate_mod_metadata(tmp_path):
     assert not meta["toolchain"]
 
 
+def test__options_none_flags_match_empty_string(tmp_path):
+    """Omitted CLI flags must not fork the cache key from explicit empty strings."""
+    path = write(tmp_path / "a.mod", b"mod content")
+    mod_files = {path: "abc123"}
+    with_none = Options(simulator=Simulator.neuron, incflags=None, loadflags=None, toolchain=None)
+    with_empty = Options(simulator=Simulator.neuron, incflags="", loadflags="", toolchain="")
+    assert with_none == with_empty
+    assert test_module._cache_entry_key(mod_files, with_none) == test_module._cache_entry_key(
+        mod_files, with_empty
+    )
+
+
 def test__is_cache_entry_valid_missing(tmp_path):
     options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
     assert not test_module._is_cache_entry_valid({}, tmp_path, options)
