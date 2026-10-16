@@ -1,5 +1,4 @@
 import argparse
-import errno
 import importlib.metadata
 import json
 import logging
@@ -8,7 +7,6 @@ import platform
 import shutil
 import subprocess
 import sys
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -74,6 +72,8 @@ def test__get_mod_files(tmp_path, caplog):
         res = test_module._get_mod_files([d1, d2])
 
     assert "Already seen `x.mod`" in caplog.text
+    assert f"Already seen `x.mod` ({d1.absolute() / 'x.mod'})" in caplog.text
+    assert f"overriding with `{d2.absolute() / 'x.mod'}`" in caplog.text
     assert (
         "Already added a file with the same contents: 531ba6ac24a2ebde442987529f07e697"
         in caplog.text
@@ -200,6 +200,14 @@ def test__extract_mechanisms_dir(tmp_path):
     with circuit_config.open("w") as fd:
         json.dump(js, fd)
     res = test_module._extract_mechanisms_dir(circuit_config)
+    if not res:
+        # libsonata without mechanisms_dir support returns nothing.
+        import libsonata
+
+        cc = libsonata.CircuitConfig.from_file(circuit_config)
+        name = next(iter(cc.node_populations))
+        if not hasattr(cc.node_population_properties(name), "mechanisms_dir"):
+            pytest.skip("installed libsonata has no mechanisms_dir")
     assert len(res) == 1
     assert str(res[0]).endswith("path/to/mechs")
 
@@ -330,135 +338,81 @@ def test__cache_entry_path(tmp_path):
     )
 
 
-def test__cache_lock(tmp_path):
-    entry = tmp_path / "entry"
-    assert not test_module._cache_entry_in_use(entry)
-
-    with test_module._cache_lock(entry) as locked:
-        assert locked
-        assert test_module._cache_lock_path(entry).exists()
-        assert test_module._cache_entry_in_use(entry)
-
-    assert not test_module._cache_entry_in_use(entry)
-
-
-def test__cache_lock_path_is_outside_the_entry(tmp_path):
-    """Clearing an entry must not unlink a lock another process holds."""
+def test__staging_and_to_delete_dirs_are_beside_entry(tmp_path):
     entry = tmp_path / "cache" / "ab" / "cd" / "rest"
-    lock_path = test_module._cache_lock_path(entry)
-    assert lock_path == entry.parent / "rest.lock"
-    assert lock_path.parent == entry.parent
+    staging = test_module._staging_dir(entry)
+    to_delete = test_module._to_delete_dir(entry)
 
-    with test_module._cache_lock(entry):
-        entry.mkdir(parents=True, exist_ok=True)
-        shutil.rmtree(entry)
-        assert lock_path.exists()
-
-
-def test__cache_lock_shared_allows_concurrent_readers(tmp_path):
-    """Cache hits take shared locks, so readers are not serialized."""
-    entry = tmp_path / "entry"
-    with (
-        test_module._cache_lock(entry, exclusive=False) as first,
-        test_module._cache_lock(entry, timeout=1, exclusive=False) as second,
-    ):
-        assert first
-        assert second
+    assert staging.parent == entry.parent == to_delete.parent
+    assert staging.name.startswith(test_module._STAGING_PREFIX + "rest-")
+    assert to_delete.name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
+    assert staging != entry != to_delete
+    assert test_module._is_ephemeral_cache_dir(staging)
+    assert test_module._is_ephemeral_cache_dir(to_delete)
+    assert not test_module._is_ephemeral_cache_dir(entry)
 
 
-def test__cache_lock_exclusive_blocks_shared(tmp_path):
-    entry = tmp_path / "entry"
-    with (
-        test_module._cache_lock(entry),
-        pytest.raises(test_module.CacheLockTimeoutError),
-        test_module._cache_lock(entry, timeout=0.2, exclusive=False),
-    ):
-        pass
+def test__publish_cache_entry(tmp_path):
+    entry = tmp_path / "ab" / "cd" / "rest"
+    staging = test_module._staging_dir(entry)
+    write(staging / "modules.json", b'{"ok": true}')
+
+    assert test_module._publish_cache_entry(staging, entry) is True
+    assert entry.exists()
+    assert not staging.exists()
+    assert (entry / "modules.json").read_bytes() == b'{"ok": true}'
 
 
-def test__cache_lock_times_out(tmp_path, caplog):
-    """A holder that hangs rather than dies must not block others forever."""
-    entry = tmp_path / "entry"
+def test__publish_cache_entry_loses_race_leaves_staging(tmp_path):
+    entry = tmp_path / "ab" / "cd" / "rest"
+    write(entry / "modules.json", b'{"winner": true}')
+    staging = test_module._staging_dir(entry)
+    write(staging / "modules.json", b'{"loser": true}')
 
-    with test_module._cache_lock(entry):
-        started = time.monotonic()
-        with (
-            caplog.at_level(logging.INFO),
-            pytest.raises(test_module.CacheLockTimeoutError) as excinfo,
-            test_module._cache_lock(entry, timeout=0.3),
-        ):
-            pass
-        waited = time.monotonic() - started
-
-    assert 0.2 < waited < 10
-    assert "Waiting for another build to release" in caplog.text
-    message = str(excinfo.value)
-    assert "Timed out after" in message
-    assert "nrnivmodl" in message
-    assert "--lock-timeout" in message
-
-    assert not test_module._cache_entry_in_use(entry)
+    assert test_module._publish_cache_entry(staging, entry) is False
+    assert staging.exists()
+    assert (entry / "modules.json").read_bytes() == b'{"winner": true}'
 
 
-def test__cache_lock_waits_then_acquires(tmp_path):
-    """Waiting is not an error: the lock is taken as soon as the holder releases."""
-    entry = tmp_path / "entry"
-    released = threading.Event()
+def test__rename_then_rmtree_renames_then_deletes(tmp_path):
+    entry = tmp_path / "ab" / "cd" / "rest"
+    write(entry / "modules.json", b"{}")
 
-    def holder():
-        with test_module._cache_lock(entry):
-            time.sleep(0.4)
-            released.set()
+    with test_module._rename_then_rmtree(entry) as removed:
+        assert removed is not None
+        assert not entry.exists()
+        assert removed.exists()
+        assert removed.name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
+        assert (removed / "modules.json").read_bytes() == b"{}"
 
-    thread = threading.Thread(target=holder)
-    thread.start()
-    time.sleep(0.1)
-    with test_module._cache_lock(entry, timeout=30):
-        assert released.is_set()
-    thread.join()
+    assert not entry.exists()
+    assert list(entry.parent.glob(f"{test_module._TO_DELETE_PREFIX}*")) == []
 
 
-def test__cache_lock_unsupported_filesystem(tmp_path, caplog):
-    """Lustre without `-o flock` returns ENOLCK; the build must still run."""
-    entry = tmp_path / "entry"
-    with (
-        caplog.at_level(logging.WARNING),
-        patch(
-            "neurodamus.utils.compile_mods.fcntl.flock",
-            side_effect=OSError(errno.ENOLCK, "No locks available"),
-        ),
-        test_module._cache_lock(entry) as locked,
-    ):
-        assert not locked
-    assert "Locking is unsupported" in caplog.text
+def test__rename_then_rmtree_missing_path(tmp_path):
+    with test_module._rename_then_rmtree(tmp_path / "missing") as removed:
+        assert removed is None
 
 
-def test__cache_lock_file_is_group_writable(tmp_path):
-    """Shared caches are used by several accounts, so locks must stay writable."""
-    entry = tmp_path / "entry"
-    with test_module._cache_lock(entry):
-        mode = test_module._cache_lock_path(entry).stat().st_mode
-    assert mode & 0o600 == 0o600
-    assert mode & 0o077 == 0
+def test__remove_cache_dir_unpublishes_via_rename(tmp_path):
+    entry = tmp_path / "ab" / "cd" / "rest"
+    write(entry / "modules.json", b"{}")
 
+    renamed = []
+    real_rename = Path.rename
 
-def test__cache_lock_zero_timeout(tmp_path):
-    """Zero timeout still acquires a free lock."""
-    entry = tmp_path / "entry"
-    with test_module._cache_lock(entry, timeout=0):
-        assert test_module._cache_entry_in_use(entry)
+    def tracking_rename(self, target):
+        renamed.append((self, Path(target)))
+        return real_rename(self, target)
 
+    with patch.object(Path, "rename", tracking_rename):
+        assert test_module._remove_cache_dir(entry) is True
 
-def test__cache_entry_in_use_unsupported_filesystem(tmp_path):
-    """If we cannot test the lock, assume in use rather than clear a live build."""
-    entry = tmp_path / "entry"
-    entry.mkdir()
-    test_module._cache_lock_path(entry).touch()
-    with patch(
-        "neurodamus.utils.compile_mods.fcntl.flock",
-        side_effect=OSError(errno.ENOLCK, "No locks available"),
-    ):
-        assert test_module._cache_entry_in_use(entry) is True
+    assert not entry.exists()
+    assert list(entry.parent.glob(f"{test_module._TO_DELETE_PREFIX}*")) == []
+    assert len(renamed) == 1
+    assert renamed[0][0] == entry
+    assert renamed[0][1].name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
 
 
 def test__touch_cache_entry(tmp_path):
@@ -477,25 +431,56 @@ def test__clear_cache(tmp_path):
     cache_dir = tmp_path / "cache"
     fresh = test_module._cache_entry_path(cache_dir, "aabbfresh")
     stale = test_module._cache_entry_path(cache_dir, "ccddstale")
-    locked = test_module._cache_entry_path(cache_dir, "eeffLocked")
-    for entry in (fresh, stale, locked):
-        write(entry / "modules.json", b"{}")
+    stale_staging = test_module._staging_dir(stale)
+    fresh_staging = test_module._staging_dir(fresh)
+    for path in (fresh, stale, stale_staging, fresh_staging):
+        write(path / "modules.json", b"{}")
 
     old_time = time.time() - 60 * 86400
     os.utime(stale, (old_time, old_time))
+    os.utime(stale_staging, (old_time, old_time))
 
-    with test_module._cache_lock(locked):
-        os.utime(locked, (old_time, old_time))
-        removed = test_module._clear_cache(cache_dir, max_age_days=30)
+    removed = test_module._clear_cache(cache_dir, max_age_days=30)
 
-    assert removed == [stale]
+    assert set(removed) == {stale, stale_staging}
     assert fresh.exists()
+    assert fresh_staging.exists()
     assert not stale.exists()
-    assert locked.exists()
+    assert not stale_staging.exists()
 
 
-def test__build_mod_files_cache_hit_is_not_serialized(tmp_path):
-    """A cache hit must succeed while another reader holds a shared lock."""
+def test__build_mod_files_compiles_in_staging_then_publishes(tmp_path):
+    """A cache miss must never compile directly into the final entry path."""
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    entry = test_module._cache_entry_path(
+        cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
+    )
+
+    seen = []
+
+    def recording_nrnivmodl(cmd, cwd=None, **kwargs):
+        cwd_path = Path(cwd)
+        seen.append(cwd_path)
+        assert cwd_path != entry
+        assert cwd_path.name.startswith(test_module._STAGING_PREFIX)
+        assert not entry.exists()
+        return fake_nrnivmodl(cmd, cwd=cwd, **kwargs)
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=recording_nrnivmodl):
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
+
+    assert len(seen) == 1
+    assert entry.exists()
+    assert not seen[0].exists()
+    assert list(entry.parent.glob(f"{test_module._STAGING_PREFIX}*")) == []
+    assert test_module._is_cache_entry_valid(test_module._get_mod_files([input_dir]), entry, opts)
+
+
+def test__build_mod_files_cache_hit_concurrent_readers(tmp_path):
+    """Concurrent cache hits must both materialize without recompiling."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -504,19 +489,25 @@ def test__build_mod_files_cache_hit_is_not_serialized(tmp_path):
     with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
         test_module._build_mod_files([input_dir], tmp_path / "first", "echo", opts, cache_dir)
 
-    cache_entry = test_module._cache_entry_path(
-        cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
-    )
     with (
-        test_module._cache_lock(cache_entry, exclusive=False),
         patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl) as run,
+        ThreadPoolExecutor(max_workers=2) as pool,
     ):
-        env = test_module._build_mod_files(
-            [input_dir], tmp_path / "second", "echo", opts, cache_dir, lock_timeout=2
-        )
+        futures = [
+            pool.submit(
+                test_module._build_mod_files,
+                [input_dir],
+                tmp_path / f"out-{i}",
+                "echo",
+                opts,
+                cache_dir,
+            )
+            for i in range(2)
+        ]
+        results = [f.result() for f in futures]
         run.assert_not_called()
 
-    assert env["NRNMECH_LIB_PATH"].startswith(str(tmp_path / "second"))
+    assert all(r["NRNMECH_LIB_PATH"].startswith(str(tmp_path / "out-")) for r in results)
 
 
 def test__build_mod_files_cache_dir_hit(tmp_path):
@@ -576,7 +567,7 @@ def test__build_mod_files_cache_dir_miss_on_change(tmp_path):
 
 
 def test__build_mod_files_concurrent(tmp_path):
-    """Two builders racing on one cache entry must compile exactly once."""
+    """Racing builders may both compile; publish is atomic and both succeed."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -597,17 +588,25 @@ def test__build_mod_files_concurrent(tmp_path):
             pool.submit(
                 test_module._build_mod_files,
                 [input_dir],
-                tmp_path / "output",
+                tmp_path / f"output-{i}",
                 "echo",
                 opts,
                 cache_dir,
             )
-            for _ in range(2)
+            for i in range(2)
         ]
         results = [f.result() for f in futures]
 
-    assert len(calls) == 1
-    assert results[0] == results[1]
+    assert 1 <= len(calls) <= 2
+    assert all(Path(cwd).name.startswith(test_module._STAGING_PREFIX) for cwd in calls)
+    assert results[0]["NRNMECH_LIB_PATH"] != results[1]["NRNMECH_LIB_PATH"]
+    entry = test_module._cache_entry_path(
+        cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
+    )
+    assert test_module._is_cache_entry_valid(
+        test_module._get_mod_files([input_dir]), entry, opts
+    )
+    assert list(entry.parent.glob(f"{test_module._STAGING_PREFIX}*")) == []
 
 
 def test__build_mod_files_failure_leaves_no_cache(tmp_path):
@@ -629,7 +628,8 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
     entry = test_module._cache_entry_path(
         cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
     )
-    assert not test_module._metadata_path(entry).exists()
+    assert not entry.exists()
+    assert list(entry.parent.glob(f"{test_module._STAGING_PREFIX}*")) == []
 
     with patch(
         "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
@@ -638,8 +638,160 @@ def test__build_mod_files_failure_leaves_no_cache(tmp_path):
         assert mock_run.call_count == 1
 
 
-def test__clear_cache_keeps_entry_being_rebuilt(tmp_path):
-    """A rebuild of an already-stale entry must not be removed while it runs."""
+def test__compile_into_cache_replaces_invalid_entry(tmp_path):
+    """An incomplete final path is unpublished so rename can publish a good build."""
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+
+    mod = input_dir / "a.mod"
+    entry = test_module._cache_entry_path(
+        cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
+    )
+    entry.mkdir(parents=True)
+    write(entry / "junk.txt", b"incomplete")
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
+
+    assert test_module._is_cache_entry_valid(test_module._get_mod_files([input_dir]), entry, opts)
+    assert not (entry / "junk.txt").exists()
+
+
+def test__compile_into_cache_retries_publish_after_failed_initial_remove(tmp_path):
+    """If the first unpublish fails, publish retries once after a later successful remove."""
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    mod_files = test_module._get_mod_files([input_dir])
+    entry = test_module._cache_entry_path(cache_dir, test_module._cache_entry_key(mod_files, opts))
+    entry.mkdir(parents=True)
+    write(entry / "junk.txt", b"incomplete")
+
+    real_remove = test_module._remove_cache_dir
+    calls = {"n": 0}
+
+    def flaky_remove(path):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return False
+        return real_remove(path)
+
+    with (
+        patch("neurodamus.utils.compile_mods._remove_cache_dir", side_effect=flaky_remove),
+        patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl),
+    ):
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
+
+    assert calls["n"] == 2
+    assert test_module._is_cache_entry_valid(mod_files, entry, opts)
+
+
+def test__compile_into_cache_errors_if_invalid_leftover_cannot_be_removed(tmp_path):
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    mod_files = test_module._get_mod_files([input_dir])
+    entry = test_module._cache_entry_path(cache_dir, test_module._cache_entry_key(mod_files, opts))
+    entry.mkdir(parents=True)
+    write(entry / "junk.txt", b"incomplete")
+
+    with (
+        patch("neurodamus.utils.compile_mods._remove_cache_dir", return_value=False),
+        patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl),
+        pytest.raises(RuntimeError, match="could not be removed"),
+    ):
+        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
+
+    assert entry.exists()
+    assert list(entry.parent.glob(f"{test_module._STAGING_PREFIX}*")) == []
+
+
+def test__is_cache_entry_valid_corrupt_metadata(tmp_path):
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    mod_files = test_module._get_mod_files([input_dir])
+    entry = test_module._cache_entry_path(cache_dir, test_module._cache_entry_key(mod_files, opts))
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl) as run:
+        test_module._build_mod_files([input_dir], tmp_path / "first", "echo", opts, cache_dir)
+        assert run.call_count == 1
+
+        write(entry / "modules.json", b"not-json{")
+        assert not test_module._is_cache_entry_valid(mod_files, entry, opts)
+
+        test_module._build_mod_files([input_dir], tmp_path / "second", "echo", opts, cache_dir)
+        assert run.call_count == 2
+
+    assert test_module._is_cache_entry_valid(mod_files, entry, opts)
+
+
+def test__clear_cache_keeps_fresh_staging(tmp_path):
+    cache_dir = tmp_path / "cache"
+    entry = test_module._cache_entry_path(cache_dir, "aabbentry")
+    fresh_staging = test_module._staging_dir(entry)
+    write(fresh_staging / "modules.json", b"{}")
+
+    assert test_module._clear_cache(cache_dir, max_age_days=30) == []
+    assert fresh_staging.exists()
+
+
+def test__materialize_rebuilds_when_entry_disappears_during_copy(tmp_path, caplog):
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    mod_files = test_module._get_mod_files([input_dir])
+    entry = test_module._cache_entry_path(cache_dir, test_module._cache_entry_key(mod_files, opts))
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
+        test_module._build_mod_files([input_dir], tmp_path / "first", "echo", opts, cache_dir)
+
+    real_copy = test_module._copy_cache_entry
+    calls = {"n": 0}
+
+    def copy_once_missing(cache_entry, output_dir):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            shutil.rmtree(cache_entry)
+            raise FileNotFoundError(cache_entry)
+        return real_copy(cache_entry, output_dir)
+
+    with (
+        caplog.at_level(logging.WARNING),
+        patch("neurodamus.utils.compile_mods._copy_cache_entry", side_effect=copy_once_missing),
+        patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl) as run,
+    ):
+        env = test_module._build_mod_files(
+            [input_dir], tmp_path / "second", "echo", opts, cache_dir
+        )
+
+    assert calls["n"] == 2
+    assert run.call_count == 1
+    assert "disappeared while copying" in caplog.text
+    assert Path(env["NRNMECH_LIB_PATH"]).exists()
+
+
+def test__discard_staging_logs_at_debug(tmp_path, caplog):
+    entry = tmp_path / "entry"
+    staging = tmp_path / f"{test_module._STAGING_PREFIX}entry-1-deadbeef"
+    staging.mkdir()
+    write(staging / "modules.json", b"{}")
+
+    with caplog.at_level(logging.DEBUG, logger=test_module.L.name):
+        test_module._discard_staging(staging, entry)
+
+    assert not staging.exists()
+    assert "already published, discarding staging" in caplog.text
+
+
+def test__clear_cache_keeps_fresh_published_entry(tmp_path):
+    """A newly published entry is kept even if an invalid predecessor was old."""
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
@@ -840,13 +992,8 @@ def test__build_parser_destination():
         parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).max_age_days
         == test_module.DEFAULT_MAX_AGE_DAYS
     )
-    assert test_module.DEFAULT_LOCK_TIMEOUT_SECONDS == 120
     assert test_module.DEFAULT_MAX_AGE_DAYS == 30
-    assert (
-        parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).lock_timeout
-        == test_module.DEFAULT_LOCK_TIMEOUT_SECONDS
-    )
-    assert parser.parse_args(["--output-dir", "a", "--lock-timeout", "0"]).lock_timeout == 0
+    assert not hasattr(parser.parse_args(["--output-dir", "a"]), "lock_timeout")
 
 
 def test_compile_mods_clear_cache_without_cache_dir_runs_build(tmp_path, capsys):
@@ -894,7 +1041,7 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
     assert not stale.exists()
     build.assert_called_once()
     captured = capsys.readouterr()
-    assert "Cleared 1 cache entry(s)" in captured.err
+    assert "Cleared 1 stale cache path(s)" in captured.err
     assert captured.out.strip() == "{}"
 
 
