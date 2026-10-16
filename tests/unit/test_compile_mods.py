@@ -615,9 +615,7 @@ def test__build_mod_files_concurrent(tmp_path):
     entry = test_module._cache_entry_path(
         cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
     )
-    assert test_module._is_cache_entry_valid(
-        test_module._get_mod_files([input_dir]), entry, opts
-    )
+    assert test_module._is_cache_entry_valid(test_module._get_mod_files([input_dir]), entry, opts)
     assert list(entry.parent.glob(f"{test_module._STAGING_PREFIX}*")) == []
 
 
@@ -758,8 +756,6 @@ def test__materialize_rebuilds_when_entry_disappears_during_copy(tmp_path, caplo
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"mod file")
     opts = options()
-    mod_files = test_module._get_mod_files([input_dir])
-    entry = test_module._cache_entry_path(cache_dir, test_module._cache_entry_key(mod_files, opts))
 
     with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
         test_module._build_mod_files([input_dir], tmp_path / "first", "echo", opts, cache_dir)
