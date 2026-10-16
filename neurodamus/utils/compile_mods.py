@@ -12,7 +12,7 @@ import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import time
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -162,8 +162,7 @@ def _cache_entry_path(cache_dir: Path, key: str) -> Path:
 
 def _is_ephemeral_cache_dir(path: Path) -> bool:
     """Staging and to-delete directories are never published cache entries."""
-    name = path.name
-    return name.startswith(_STAGING_PREFIX) or name.startswith(_TO_DELETE_PREFIX)
+    return path.name.startswith((_STAGING_PREFIX, _TO_DELETE_PREFIX))
 
 
 def _staging_dir(entry: Path) -> Path:
@@ -177,7 +176,7 @@ def _to_delete_dir(entry: Path) -> Path:
 
 
 @contextmanager
-def _rename_then_rmtree(path: Path) -> Iterator[Path | None]:
+def _rename_then_rmtree(path: Path) -> Generator[Path | None, None, None]:
     """Rename `path` aside, yield the new path, then delete it.
 
     Yields `None` if `path` is missing or could not be renamed away.
@@ -220,7 +219,7 @@ def _publish_cache_entry(staging: Path, entry: Path) -> bool:
         staging.rename(entry)
     except OSError as error:
         # Linux: renaming onto an existing directory yields EEXIST / ENOTEMPTY.
-        if error.errno not in (errno.EEXIST, errno.ENOTEMPTY) and not entry.exists():
+        if error.errno not in {errno.EEXIST, errno.ENOTEMPTY} and not entry.exists():
             raise
         return False
     return True
@@ -371,6 +370,38 @@ def _discard_staging(staging: Path, entry: Path) -> None:
     shutil.rmtree(staging, ignore_errors=True)
 
 
+def _try_publish_staging(
+    staging: Path,
+    cache_entry: Path,
+    mod_files: dict[Path, str],
+    options: Options,
+) -> str | None:
+    """Publish or reuse `cache_entry`. Returns an error message, or None on success."""
+    if _publish_cache_entry(staging, cache_entry):
+        return None
+    if _is_cache_entry_valid(mod_files, cache_entry, options):
+        _discard_staging(staging, cache_entry)
+        return None
+
+    # Occupied by an invalid leftover (remove may have failed earlier); retry once.
+    L.info("Removing invalid cache entry before retrying publish: %s", cache_entry)
+    if not _remove_cache_dir(cache_entry):
+        return (
+            f"Could not publish cache entry: invalid leftover at `{cache_entry}` "
+            "could not be removed"
+        )
+
+    if _publish_cache_entry(staging, cache_entry):
+        return None
+    if _is_cache_entry_valid(mod_files, cache_entry, options):
+        _discard_staging(staging, cache_entry)
+        return None
+
+    return (
+        f"Could not publish cache entry: `{cache_entry}` is still missing or invalid after compile"
+    )
+
+
 def _compile_into_cache(
     mod_files: dict[Path, str],
     cache_entry: Path,
@@ -389,37 +420,14 @@ def _compile_into_cache(
     staging = _staging_dir(cache_entry)
     try:
         _compile(mod_files, staging, nrnivmodl, options)
-        if _publish_cache_entry(staging, cache_entry):
-            return
-        if _is_cache_entry_valid(mod_files, cache_entry, options):
-            _discard_staging(staging, cache_entry)
-            return
-
-        # Occupied by an invalid leftover (remove may have failed earlier); retry once.
-        L.info("Removing invalid cache entry before retrying publish: %s", cache_entry)
-        if not _remove_cache_dir(cache_entry):
-            shutil.rmtree(staging, ignore_errors=True)
-            msg = (
-                f"Could not publish cache entry: invalid leftover at `{cache_entry}` "
-                "could not be removed"
-            )
-            raise RuntimeError(msg)
-
-        if _publish_cache_entry(staging, cache_entry):
-            return
-        if _is_cache_entry_valid(mod_files, cache_entry, options):
-            _discard_staging(staging, cache_entry)
-            return
-
-        shutil.rmtree(staging, ignore_errors=True)
-        msg = (
-            f"Could not publish cache entry: `{cache_entry}` is still missing or invalid "
-            "after compile"
-        )
-        raise RuntimeError(msg)
+        error = _try_publish_staging(staging, cache_entry, mod_files, options)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+
+    if error:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise RuntimeError(error)
 
 
 def _materialize_cache_entry(
