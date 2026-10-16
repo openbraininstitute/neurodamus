@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import fcntl
+import errno
 import hashlib
 import importlib.metadata
 import json
 import logging
 import os
 import platform
+import secrets
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
@@ -25,26 +26,14 @@ VERSION = 2
 
 MOD_FILES_PATH = "mod_files"
 
-LOCK_SUFFIX = ".lock"
-
-# Two minutes leaves CI headroom without masking a stuck compiler.
-DEFAULT_LOCK_TIMEOUT_SECONDS = 2 * 60
-
-_LOCK_POLL_MIN_SECONDS = 0.05
-_LOCK_POLL_MAX_SECONDS = 1.0
-_LOCK_HEARTBEAT_SECONDS = 60.0
+# Ephemeral dirs live beside entries (same filesystem) so rename publish/delete works.
+_STAGING_PREFIX = ".tmp-"
+_TO_DELETE_PREFIX = ".to-delete-"
 
 NEURON_DISTRIBUTION = "neuron"
 
-# Owner-only lock files; the same UID runs all tasks.
-_LOCK_FILE_MODE = 0o600
-
 # Default age for `--clear-cache`.
 DEFAULT_MAX_AGE_DAYS = 30.0
-
-
-class CacheLockTimeoutError(RuntimeError):
-    """Raised when another build holds a cache lock for too long."""
 
 
 class Simulator(Enum):
@@ -69,7 +58,7 @@ def _metadata_path(output_dir: Path):
 def _md5sum(path: Path) -> str:
     """Get the md5sum of the contents of `path`."""
     h = hashlib.md5(usedforsecurity=False)
-    with open(path, "rb") as f:
+    with path.open("rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
@@ -87,8 +76,8 @@ def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
                 L.warning(
                     "Already seen `%s` (%s), overriding with `%s`",
                     f.name,
-                    f.absolute(),
                     files[f.name],
+                    f.absolute(),
                 )
             files[f.name] = f.absolute()
 
@@ -165,123 +154,76 @@ def _cache_entry_path(cache_dir: Path, key: str) -> Path:
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
-def _cache_lock_path(entry: Path) -> Path:
-    """Lock beside the entry, so clearing the entry cannot unlink a held lock."""
-    return entry.parent / f"{entry.name}{LOCK_SUFFIX}"
+def _is_ephemeral_cache_dir(path: Path) -> bool:
+    """Staging and to-delete directories are never published cache entries."""
+    name = path.name
+    return name.startswith(_STAGING_PREFIX) or name.startswith(_TO_DELETE_PREFIX)
 
 
-def _open_lock_file(lock_path: Path) -> int:
-    """Open the lock file, keeping it usable by other users of a shared cache."""
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, _LOCK_FILE_MODE)
-    os.fchmod(fd, _LOCK_FILE_MODE)
-    return fd
+def _staging_dir(entry: Path) -> Path:
+    """Directory for an in-progress build of `entry`, on the same filesystem."""
+    return entry.parent / f"{_STAGING_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
 
 
-def _lock_waits(lock_path: Path, timeout: float) -> Iterator[None]:
-    """Back off between lock attempts, reporting progress and enforcing `timeout`."""
-    deadline = None if timeout <= 0 else time.monotonic() + timeout
-    started = time.monotonic()
-    next_report = started
-    delay = _LOCK_POLL_MIN_SECONDS
-
-    while True:
-        now = time.monotonic()
-        if now >= next_report:
-            L.info(
-                "Waiting for another build to release `%s` (%.0fs elapsed)",
-                lock_path,
-                now - started,
-            )
-            next_report = now + _LOCK_HEARTBEAT_SECONDS
-
-        if deadline is not None:
-            if now >= deadline:
-                msg = (
-                    f"Timed out after {now - started:.0f}s waiting for `{lock_path}`. "
-                    "Another process is likely stuck compiling: check for a running "
-                    "nrnivmodl, and delete the lock file if none is. Use --lock-timeout "
-                    "to wait longer, or 0 to wait indefinitely."
-                )
-                raise CacheLockTimeoutError(msg)
-            delay = min(delay, max(deadline - now, 0.0))
-
-        time.sleep(delay)
-        delay = min(max(delay * 2, _LOCK_POLL_MIN_SECONDS), _LOCK_POLL_MAX_SECONDS)
-        yield
+def _to_delete_dir(entry: Path) -> Path:
+    """Sibling path used to atomically take `entry` out of the cache namespace."""
+    return entry.parent / f"{_TO_DELETE_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
 
 
 @contextmanager
-def _cache_lock(
-    entry: Path,
-    timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
-    *,
-    exclusive: bool = True,
-):
-    """Lock a cache entry, yielding whether the lock is held.
+def _rename_then_rmtree(path: Path) -> Iterator[Path | None]:
+    """Rename `path` aside, yield the new path, then delete it.
 
-    Shared locks let concurrent readers reuse an entry; only builds need exclusivity.
-    `flock` works on EFS and on Lustre mounted with `flock`; where it is unavailable the
-    build continues unlocked rather than failing.
+    Yields `None` if `path` is missing or could not be renamed away.
     """
-    lock_path = _cache_lock_path(entry)
-    operation = (fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH) | fcntl.LOCK_NB
-    waits = _lock_waits(lock_path, timeout)
-    locked = False
-    fd = _open_lock_file(lock_path)
+    if not path.exists():
+        yield None
+        return
+
+    removed = _to_delete_dir(path)
+    try:
+        path.rename(removed)
+    except FileNotFoundError:
+        yield None
+        return
+    except OSError as error:
+        L.warning("Could not unpublish `%s` for removal: %s", path, error)
+        yield None
+        return
 
     try:
-        while not locked:
-            try:
-                fcntl.flock(fd, operation)
-            except BlockingIOError:  # ruff: ignore[try-except-in-loop] - polling a lock
-                next(waits)
-            except OSError as e:
-                L.warning(
-                    "Locking is unsupported on `%s` (%s); building without it. "
-                    "Concurrent builds of this cache entry may corrupt it.",
-                    lock_path,
-                    e.strerror,
-                )
-                break
-            else:
-                locked = True
-
-        yield locked
+        yield removed
     finally:
-        if locked:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        os.close(fd)
+        shutil.rmtree(removed, ignore_errors=True)
 
 
-def _cache_entry_in_use(entry: Path) -> bool:
-    """Whether another process is currently using `entry`."""
-    lock_path = _cache_lock_path(entry)
-    if not lock_path.exists():
-        return False
+def _remove_cache_dir(path: Path) -> bool:
+    """Unpublish `path` via rename, then delete. Returns whether anything was removed."""
+    with _rename_then_rmtree(path) as removed:
+        return removed is not None
+
+
+def _publish_cache_entry(staging: Path, entry: Path) -> bool:
+    """Atomically publish a complete staging build to `entry`.
+
+    Returns True if this process published `staging`. Returns False if `entry` already
+    exists; `staging` is left in place for the caller to retry or discard.
+    """
+    entry.parent.mkdir(parents=True, exist_ok=True)
     try:
-        fd = os.open(lock_path, os.O_RDWR)
-    except OSError as e:
-        L.debug("Cannot open `%s` (%s); assuming in use", lock_path, e.strerror)
-        return True
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        return True
-    except OSError as e:
-        # Unknown lock state is treated as in use.
-        L.debug("Cannot test `%s` (%s); assuming in use", lock_path, e.strerror)
-        return True
-    else:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        staging.rename(entry)
+    except OSError as error:
+        # Linux: renaming onto an existing directory yields EEXIST / ENOTEMPTY.
+        if error.errno not in (errno.EEXIST, errno.ENOTEMPTY) and not entry.exists():
+            raise
         return False
-    finally:
-        os.close(fd)
+    return True
 
 
 def _touch_cache_entry(entry: Path):
     """Refresh entry mtime; cleanup bookkeeping is advisory, so failures are logged."""
     try:
+        # No Path equivalent that refreshes mtime without creating a missing path.
         os.utime(entry)
     except OSError as error:
         L.warning(
@@ -292,20 +234,22 @@ def _touch_cache_entry(entry: Path):
 
 
 def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
-    """Remove cache entries older than `max_age_days`."""
+    """Remove cache entries (and orphaned staging/to-delete dirs) older than `max_age_days`."""
     cutoff = time.time() - max_age_days * 86400
     removed = []
     for entry in sorted(cache_dir.glob("*/*/*")):
         if not entry.is_dir():
             continue
-        if entry.stat().st_mtime >= cutoff:
+        try:
+            mtime = entry.stat().st_mtime
+        except OSError:
             continue
-        if _cache_entry_in_use(entry):
-            L.info("Cache entry in use, keeping: %s", entry)
+        if mtime >= cutoff:
             continue
-        L.info("Removing cache entry: %s", entry)
-        shutil.rmtree(entry, ignore_errors=True)
-        removed.append(entry)
+        kind = "orphan" if _is_ephemeral_cache_dir(entry) else "cache entry"
+        L.info("Removing %s: %s", kind, entry)
+        if _remove_cache_dir(entry):
+            removed.append(entry)
     return removed
 
 
@@ -318,15 +262,18 @@ def _get_dynamic_file(output_dir: Path, name: str) -> Path:
 
 
 def _is_cache_entry_valid(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
-    """See if if we have a cache hit."""
-    metadata = _metadata_path(output_dir)
-    if not metadata.exists():
+    """Return True if `output_dir` is a complete cache hit for this build."""
+    metadata_path = _metadata_path(output_dir)
+    if not metadata_path.exists():
         return False
 
-    with metadata.open() as fd:
-        old = json.load(fd)
+    try:
+        old = json.loads(metadata_path.read_bytes())
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return False
 
     new = _generate_mod_metadata(mod_files, options)
+
     if old != new:
         return False
 
@@ -368,7 +315,7 @@ def _compile(
 ) -> dict[str, str]:
     """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Keep rebuilding entrys from being cleared.
+    # Keep long builds from looking stale to `--clear-cache`.
     _touch_cache_entry(output_dir)
 
     cmd = [nrnivmodl]
@@ -412,13 +359,94 @@ def _copy_cache_entry(cache_entry: Path, output_dir: Path):
             shutil.copy2(source, destination)
 
 
+def _discard_staging(staging: Path, entry: Path) -> None:
+    """Drop a staging build that lost the publish race to a valid entry."""
+    L.debug("Cache entry already published, discarding staging build: %s", entry)
+    shutil.rmtree(staging, ignore_errors=True)
+
+
+def _compile_into_cache(
+    mod_files: dict[Path, str],
+    cache_entry: Path,
+    nrnivmodl: str,
+    options: Options,
+) -> None:
+    """Build into a staging directory and atomically publish to `cache_entry`."""
+    if cache_entry.exists() and not _is_cache_entry_valid(mod_files, cache_entry, options):
+        # Incomplete leftovers cannot be replaced by rename; unpublish first.
+        L.info("Removing invalid cache entry before rebuild: %s", cache_entry)
+        _remove_cache_dir(cache_entry)
+
+    if _is_cache_entry_valid(mod_files, cache_entry, options):
+        return
+
+    staging = _staging_dir(cache_entry)
+    try:
+        _compile(mod_files, staging, nrnivmodl, options)
+        if _publish_cache_entry(staging, cache_entry):
+            return
+        if _is_cache_entry_valid(mod_files, cache_entry, options):
+            _discard_staging(staging, cache_entry)
+            return
+
+        # Occupied by an invalid leftover (remove may have failed earlier); retry once.
+        L.info("Removing invalid cache entry before retrying publish: %s", cache_entry)
+        if not _remove_cache_dir(cache_entry):
+            shutil.rmtree(staging, ignore_errors=True)
+            msg = (
+                f"Could not publish cache entry: invalid leftover at `{cache_entry}` "
+                "could not be removed"
+            )
+            raise RuntimeError(msg)
+
+        if _publish_cache_entry(staging, cache_entry):
+            return
+        if _is_cache_entry_valid(mod_files, cache_entry, options):
+            _discard_staging(staging, cache_entry)
+            return
+
+        shutil.rmtree(staging, ignore_errors=True)
+        msg = (
+            f"Could not publish cache entry: `{cache_entry}` is still missing or invalid "
+            "after compile"
+        )
+        raise RuntimeError(msg)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+
+
+def _materialize_cache_entry(
+    mod_files: dict[Path, str],
+    cache_entry: Path,
+    output_dir: Path,
+    nrnivmodl: str,
+    options: Options,
+) -> dict[str, str]:
+    """Copy `cache_entry` into `output_dir`, rebuilding once if it disappears."""
+    _touch_cache_entry(cache_entry)
+    try:
+        _copy_cache_entry(cache_entry, output_dir)
+    except FileNotFoundError:
+        L.warning("Cache entry disappeared while copying; rebuilding: %s", cache_entry)
+        _compile_into_cache(mod_files, cache_entry, nrnivmodl, options)
+        if not _is_cache_entry_valid(mod_files, cache_entry, options):
+            msg = (
+                f"Cache entry missing or invalid after compile: `{cache_entry}`. "
+                "Another process may have left an incomplete entry that could not be replaced."
+            )
+            raise RuntimeError(msg) from None
+        _touch_cache_entry(cache_entry)
+        _copy_cache_entry(cache_entry, output_dir)
+    return _output_files(output_dir, options)
+
+
 def _build_mod_files(
     input_dirs: list[Path],
     output_dir: Path,
     nrnivmodl: str,
     options: Options,
     cache_dir: Path | None = None,
-    lock_timeout: float = DEFAULT_LOCK_TIMEOUT_SECONDS,
 ) -> dict[str, str]:
     """Compile MOD files and materialize a matching cache entry."""
     mod_files = _get_mod_files(input_dirs)
@@ -434,23 +462,22 @@ def _build_mod_files(
 
     cache_entry = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
 
-    # Readers only need a shared lock, so concurrent hits are not serialized.
-    with _cache_lock(cache_entry, lock_timeout, exclusive=False):
-        if _is_cache_entry_valid(mod_files, cache_entry, options):
-            L.info("Cache hit, materializing: %s", cache_entry)
-            _touch_cache_entry(cache_entry)
-            _copy_cache_entry(cache_entry, output_dir)
-            return _output_files(output_dir, options)
+    if _is_cache_entry_valid(mod_files, cache_entry, options):
+        L.info("Cache hit, materializing: %s", cache_entry)
+        return _materialize_cache_entry(mod_files, cache_entry, output_dir, nrnivmodl, options)
 
-    with _cache_lock(cache_entry, lock_timeout):
-        # Another builder may have finished while the shared lock was released.
-        if _is_cache_entry_valid(mod_files, cache_entry, options):
-            _touch_cache_entry(cache_entry)
-        else:
-            _compile(mod_files, cache_entry, nrnivmodl, options)
-        _copy_cache_entry(cache_entry, output_dir)
+    # Miss: compile under staging, rename into place. Concurrent misses may all compile;
+    # only one rename wins and the others reuse the published entry.
+    _compile_into_cache(mod_files, cache_entry, nrnivmodl, options)
 
-    return _output_files(output_dir, options)
+    if not _is_cache_entry_valid(mod_files, cache_entry, options):
+        msg = (
+            f"Cache entry missing or invalid after compile: `{cache_entry}`. "
+            "Another process may have left an incomplete entry that could not be replaced."
+        )
+        raise RuntimeError(msg)
+
+    return _materialize_cache_entry(mod_files, cache_entry, output_dir, nrnivmodl, options)
 
 
 def _output_files(output_dir: Path, options: Options) -> dict[str, str]:
@@ -482,7 +509,8 @@ def _extract_mechanisms_dir(circuit_config_path: Path) -> list[Path]:
     paths = set()
     for name in cc.node_populations:
         properties = cc.node_population_properties(name)
-        if d := properties.mechanisms_dir:
+        # Older libsonata builds omit this attribute.
+        if d := getattr(properties, "mechanisms_dir", None):
             paths.add(Path(d).absolute())
     return list(paths)
 
@@ -523,18 +551,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Clear stale entries from `--cache-dir` before compiling",
     )
     parser.add_argument(
-        "--lock-timeout",
-        type=float,
-        default=DEFAULT_LOCK_TIMEOUT_SECONDS,
-        metavar="SECONDS",
-        help="With `--cache-dir`, how long to wait for a concurrent build of the same entry "
-        "before failing. 0 waits indefinitely",
-    )
-    parser.add_argument(
         "--max-age-days",
         type=float,
         default=DEFAULT_MAX_AGE_DAYS,
-        help="With `--clear-cache`, the age past which an unused cache entry is removed",
+        help="With `--clear-cache`, the age past which a cache entry is removed",
     )
     return parser
 
@@ -559,7 +579,7 @@ def compile_mods():
 
     if args.clear_cache and cache_dir is not None:
         removed = _clear_cache(cache_dir, args.max_age_days)
-        L.info("Cleared %d cache entry(s) from %s", len(removed), cache_dir)
+        L.info("Cleared %d stale cache path(s) from %s", len(removed), cache_dir)
 
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
 
@@ -583,7 +603,6 @@ def compile_mods():
         nrnivmodl,
         options,
         cache_dir=cache_dir,
-        lock_timeout=args.lock_timeout,
     )
 
     match args.output_type:
