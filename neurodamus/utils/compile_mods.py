@@ -44,10 +44,16 @@ class Simulator(Enum):
 @dataclass
 class Options:
     simulator: Simulator
-    incflags: str
-    loadflags: str
+    incflags: str = ""
+    loadflags: str = ""
     # Included to invalidate ABI-incompatible libraries.
     toolchain: str = ""
+
+    def __post_init__(self):
+        # argparse leaves omitted flags as None; keep cache keys stable.
+        self.incflags = self.incflags or ""
+        self.loadflags = self.loadflags or ""
+        self.toolchain = self.toolchain or ""
 
 
 def _metadata_path(output_dir: Path):
