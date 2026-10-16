@@ -320,7 +320,7 @@ def _compile(
 ) -> dict[str, str]:
     """Run the compiler and record the cache metadata on success."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Keep long builds from looking stale to `--clear-cache`.
+    # Keep long builds from looking stale to age-based cache cleanup.
     _touch_cache_entry(output_dir)
 
     cmd = [nrnivmodl]
@@ -545,7 +545,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
-    parser.add_argument("--output-dir", required=True, help="Output path")
+    parser.add_argument(
+        "--output-dir",
+        help="Output path (required to compile; not used with `--clear-cache`)",
+    )
     parser.add_argument(
         "--cache-dir",
         help="Cache root; matching entries are copied into `--output-dir`",
@@ -562,13 +565,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--clear-cache",
         action="store_true",
-        help="Clear stale entries from `--cache-dir` before compiling",
+        help="Only clear stale entries from `--cache-dir` (does not compile)",
     )
     parser.add_argument(
         "--max-age-days",
         type=float,
         default=DEFAULT_MAX_AGE_DAYS,
-        help="With `--clear-cache`, the age past which a cache entry is removed",
+        help="With `--clear-cache`, the age past which a cache path is removed",
     )
     return parser
 
@@ -588,12 +591,19 @@ def compile_mods():
     parser = build_parser()
     args = parser.parse_args()
 
-    cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
-    output_dir = Path(args.output_dir)
-
-    if args.clear_cache and cache_dir is not None:
+    if args.clear_cache:
+        if not args.cache_dir:
+            parser.error("--clear-cache requires --cache-dir")
+        cache_dir = Path(args.cache_dir).absolute()
         removed = _clear_cache(cache_dir, args.max_age_days)
         L.info("Cleared %d stale cache path(s) from %s", len(removed), cache_dir)
+        return
+
+    if not args.output_dir:
+        parser.error("--output-dir is required unless --clear-cache is set")
+
+    cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
+    output_dir = Path(args.output_dir)
 
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
 
