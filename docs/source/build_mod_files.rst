@@ -67,8 +67,6 @@ With ``--output-dir``, compiled files are materialized in the requested output d
 
    neurodamus simulation_config.json
 
-A cache entry is keyed by MOD contents, compiler options, simulator, and toolchain. On a hit, its contents are copied into ``output`` and the returned paths point there; a miss compiles into the cache first.
+A cache entry is keyed by MOD contents, compiler options, simulator, and toolchain. On a hit, its contents are copied into ``output`` and the returned paths point there; a miss compiles into a staging directory beside the final entry (same filesystem), then atomically ``rename``\ s onto the entry path so readers never see a partial build. Staging must live on the cache volume: ``rename`` cannot publish across mounts (for example from local ``/tmp`` onto networked storage). Concurrent misses may compile in parallel; only one publish wins and the others reuse that entry. Compile once before ``mpirun`` rather than from every MPI rank.
 
-Concurrent builds of one entry are serialized, while cache hits take a shared lock. The default lock timeout is 120 seconds; use ``--lock-timeout 0`` to wait indefinitely. Locking uses ``flock``, so a Lustre cache must be mounted with ``flock``; where it is unavailable the build warns and continues unlocked. Compile once before ``mpirun`` rather than from every MPI rank.
-
-Use ``--clear-cache --max-age-days 30`` with ``--cache-dir`` to remove unused entries before compiling.
+Use ``--clear-cache --max-age-days 30`` with ``--cache-dir`` to remove unused entries and orphaned staging / ``.to-delete-*`` directories before compiling. Cleanup unpublishes a path with ``rename`` before deleting it. Age is based on directory mtime; a long compile refreshes staging mtime at start, so prefer not to run aggressive clears (very small ``--max-age-days``) against a cache that may have in-flight builds. On a shared multi-user cache, directory permissions follow the process umask—ensure the cache root is group-writable (or otherwise accessible) for every account that will publish or reuse entries.
