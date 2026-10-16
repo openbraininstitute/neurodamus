@@ -988,42 +988,42 @@ def test__cache_hit_rematerializes_removed_output(tmp_path):
 def test__build_parser_destination():
     parser = test_module.build_parser()
 
-    with pytest.raises(SystemExit):
-        parser.parse_args([])
-
     args = parser.parse_args(["--output-dir", "a", "--cache-dir", "b"])
     assert args.output_dir == "a"
     assert args.cache_dir == "b"
 
     assert parser.parse_args(["--output-dir", "a"]).output_dir == "a"
     assert (
-        parser.parse_args(["--output-dir", "a", "--cache-dir", "b"]).max_age_days
+        parser.parse_args(["--cache-dir", "b", "--clear-cache"]).max_age_days
         == test_module.DEFAULT_MAX_AGE_DAYS
     )
     assert test_module.DEFAULT_MAX_AGE_DAYS == 30
     assert not hasattr(parser.parse_args(["--output-dir", "a"]), "lock_timeout")
 
 
-def test_compile_mods_clear_cache_without_cache_dir_runs_build(tmp_path, capsys):
-    argv = [
-        "neurodamus-compile-mods",
-        "--output-dir",
-        str(tmp_path),
-        "--clear-cache",
-        "--nrnivmodl",
-        "/bin/echo",
-    ]
+def test_compile_mods_requires_output_dir_unless_clearing(tmp_path):
+    argv = ["neurodamus-compile-mods", "--nrnivmodl", "/bin/echo"]
     with (
         patch.object(sys, "argv", argv),
-        patch("neurodamus.utils.compile_mods._build_mod_files", return_value={}) as build,
+        patch("neurodamus.utils.compile_mods._build_mod_files") as build,
+        pytest.raises(SystemExit),
     ):
         test_module.compile_mods()
-
-    build.assert_called_once()
-    assert capsys.readouterr().out.strip() == "{}"
+    build.assert_not_called()
 
 
-def test_compile_mods_clear_cache(tmp_path, capsys):
+def test_compile_mods_clear_cache_requires_cache_dir():
+    argv = ["neurodamus-compile-mods", "--clear-cache"]
+    with (
+        patch.object(sys, "argv", argv),
+        patch("neurodamus.utils.compile_mods._build_mod_files") as build,
+        pytest.raises(SystemExit),
+    ):
+        test_module.compile_mods()
+    build.assert_not_called()
+
+
+def test_compile_mods_clear_cache_only(tmp_path, capsys):
     cache_dir = tmp_path / "cache"
     stale = test_module._cache_entry_path(cache_dir, "ccddstale")
     write(stale / "modules.json", b"{}")
@@ -1034,11 +1034,7 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
         "neurodamus-compile-mods",
         "--cache-dir",
         str(cache_dir),
-        "--output-dir",
-        str(tmp_path / "output"),
         "--clear-cache",
-        "--nrnivmodl",
-        "/bin/echo",
     ]
     with (
         patch.object(sys, "argv", argv),
@@ -1047,10 +1043,10 @@ def test_compile_mods_clear_cache(tmp_path, capsys):
         test_module.compile_mods()
 
     assert not stale.exists()
-    build.assert_called_once()
+    build.assert_not_called()
     captured = capsys.readouterr()
     assert "Cleared 1 stale cache path(s)" in captured.err
-    assert captured.out.strip() == "{}"
+    assert captured.out.strip() == ""
 
 
 def test_compile_mods_cache_dir_end_to_end(tmp_path, capsys):
