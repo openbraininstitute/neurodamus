@@ -878,8 +878,8 @@ def test__build_mod_files_shared_across_input_dirs(tmp_path):
     assert first == second
 
 
-def test__build_mod_files_stale_artifacts_do_not_shortcircuit(tmp_path):
-    """Reject stale output after MOD content changes."""
+def test__build_mod_files_without_cache_dir_always_compiles(tmp_path):
+    """Without `--cache-dir`, each run compiles into `--output-dir`."""
     output_dir = tmp_path / "out"
     input_dir = tmp_path / "inputs"
     write(input_dir / "a.mod", b"original")
@@ -890,16 +890,14 @@ def test__build_mod_files_stale_artifacts_do_not_shortcircuit(tmp_path):
     ) as mock_run:
         test_module._build_mod_files([input_dir], output_dir, "echo", opts)
         assert mock_run.call_count == 1
-
-        assert test_module._metadata_path(output_dir).exists()
         assert test_module._get_dynamic_file(output_dir, "libnrnmech").exists()
+
+        test_module._build_mod_files([input_dir], output_dir, "echo", opts)
+        assert mock_run.call_count == 2
 
         write(input_dir / "a.mod", b"edited")
         test_module._build_mod_files([input_dir], output_dir, "echo", opts)
-        assert mock_run.call_count == 2
-
-        test_module._build_mod_files([input_dir], output_dir, "echo", opts)
-        assert mock_run.call_count == 2
+        assert mock_run.call_count == 3
 
 
 def test__build_mod_files_cache_dir_keeps_both_builds(tmp_path):

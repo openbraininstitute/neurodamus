@@ -54,7 +54,8 @@ The former are deduplicated, so there aren't symbol collisions, and the later on
 Caching
 -------
 
-With ``--output-dir``, compiled files are materialized in the requested output directory. Add ``--cache-dir`` to reuse content-addressed builds across output directories:
+With ``--output-dir`` alone, every run compiles into that directory. Add ``--cache-dir`` to
+reuse content-addressed builds across output directories:
 
 .. code-block:: bash
 

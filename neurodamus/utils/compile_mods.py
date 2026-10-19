@@ -45,9 +45,9 @@ class Options:
     toolchain: str
 
 
-def _metadata_path(output_dir: Path):
-    """Return cache metadata path."""
-    return output_dir / "modules.json"
+def _metadata_path(cache_entry: Path):
+    """Return the metadata path inside a cache entry."""
+    return cache_entry / "modules.json"
 
 
 def _md5sum(path: Path) -> str:
@@ -155,71 +155,75 @@ def _cache_entry_path(cache_dir: Path, key: str) -> Path:
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
-def _staging_dir(entry: Path) -> Path:
-    """Directory for an in-progress build of `entry`, on the same filesystem."""
-    return entry.parent / f"{_STAGING_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
+def _staging_dir(cache_entry: Path) -> Path:
+    """Directory for an in-progress build of `cache_entry`, on the same filesystem."""
+    return cache_entry.parent / (
+        f"{_STAGING_PREFIX}{cache_entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
+    )
 
 
-def _to_delete_dir(entry: Path) -> Path:
-    """Sibling path used to atomically take `entry` out of the cache namespace."""
-    return entry.parent / f"{_TO_DELETE_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
+def _to_delete_dir(cache_entry: Path) -> Path:
+    """Sibling path used to atomically take `cache_entry` out of the cache namespace."""
+    return cache_entry.parent / (
+        f"{_TO_DELETE_PREFIX}{cache_entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
+    )
 
 
-def _remove_cache_dir(path: Path) -> bool:
-    """Unpublish `path` via rename, then delete. Returns whether anything was removed."""
-    if not path.exists():
+def _remove_cache_dir(cache_entry: Path) -> bool:
+    """Unpublish `cache_entry` via rename, then delete. Returns whether anything was removed."""
+    if not cache_entry.exists():
         return False
 
-    removed = _to_delete_dir(path)
+    removed = _to_delete_dir(cache_entry)
     try:
-        path.rename(removed)
+        cache_entry.rename(removed)
     except FileNotFoundError:
         return False
     except OSError as error:
-        L.warning("Could not unpublish `%s` for removal: %s", path, error)
+        L.warning("Could not unpublish `%s` for removal: %s", cache_entry, error)
         return False
 
     shutil.rmtree(removed, ignore_errors=True)
     return True
 
 
-def _publish_cache_entry(staging: Path, entry: Path) -> bool:
-    """Atomically publish a complete staging build to `entry`.
+def _publish_cache_entry(staging: Path, cache_entry: Path) -> bool:
+    """Atomically publish a complete staging build to `cache_entry`.
 
-    Returns True if this process published `staging`. Returns False if `entry` already
-    exists; `staging` is left in place for the caller to retry or discard.
+    Returns True if this process published `staging`. Returns False if `cache_entry`
+    already exists; `staging` is left in place for the caller to retry or discard.
     """
-    entry.parent.mkdir(parents=True, exist_ok=True)
+    cache_entry.parent.mkdir(parents=True, exist_ok=True)
     try:
-        staging.rename(entry)
+        staging.rename(cache_entry)
     except OSError as error:
         # Linux: renaming onto an existing directory yields EEXIST / ENOTEMPTY.
-        if error.errno not in {errno.EEXIST, errno.ENOTEMPTY} and not entry.exists():
+        if error.errno not in {errno.EEXIST, errno.ENOTEMPTY} and not cache_entry.exists():
             raise
         return False
     return True
 
 
-def _touch_cache_entry(entry: Path):
-    """Refresh entry mtime for external cache management; failures are logged."""
+def _touch_cache_entry(cache_entry: Path):
+    """Refresh cache-entry mtime for external cache management; failures are logged."""
     try:
         # No Path equivalent that refreshes mtime without creating a missing path.
-        os.utime(entry)
+        os.utime(cache_entry)
     except OSError as error:
-        L.warning("Could not update cache entry mtime for `%s`: %s", entry, error)
+        L.warning("Could not update cache entry mtime for `%s`: %s", cache_entry, error)
 
 
-def _get_dynamic_file(output_dir: Path, name: str) -> Path:
-    """Returns the name of the file with the correct machine directory for NEURON."""
-    base = (output_dir / platform.machine()).absolute()
+def _get_dynamic_file(cache_entry: Path, name: str) -> Path:
+    """Return the path of a compiled library inside a cache entry."""
+    base = (cache_entry / platform.machine()).absolute()
     ext = ".dylib" if sys.platform == "darwin" else ".so"
 
     return base / f"{name}{ext}"
 
 
-def _is_cache_entry_valid(mod_files: dict[Path, str], output_dir: Path, options: Options) -> bool:
-    """Return True if `output_dir` is a complete cache hit for this build."""
-    metadata_path = _metadata_path(output_dir)
+def _is_cache_entry_valid(mod_files: dict[Path, str], cache_entry: Path, options: Options) -> bool:
+    """Return True if `cache_entry` is a complete build for this mod set and options."""
+    metadata_path = _metadata_path(cache_entry)
     if not metadata_path.exists():
         return False
 
@@ -233,22 +237,22 @@ def _is_cache_entry_valid(mod_files: dict[Path, str], output_dir: Path, options:
     if old != new:
         return False
 
-    libnrnmech = _get_dynamic_file(output_dir, "libnrnmech")
+    libnrnmech = _get_dynamic_file(cache_entry, "libnrnmech")
 
     if not libnrnmech.exists():
         return False
 
     if options.simulator == Simulator.coreneuron:
-        coreneuronlib = _get_dynamic_file(output_dir, "libcorenrnmech")
+        coreneuronlib = _get_dynamic_file(cache_entry, "libcorenrnmech")
         if not coreneuronlib.exists():
             return False
 
     return True
 
 
-def _write_cache(mod_files: dict[Path, str], output_dir: Path, options: Options):
-    """Write the cache metadata."""
-    with _metadata_path(output_dir).open("w") as fd:
+def _write_cache(mod_files: dict[Path, str], cache_entry: Path, options: Options):
+    """Write build metadata into `cache_entry`."""
+    with _metadata_path(cache_entry).open("w") as fd:
         json.dump(_generate_mod_metadata(mod_files, options), fd)
 
 
@@ -315,9 +319,9 @@ def _copy_cache_entry(cache_entry: Path, output_dir: Path):
             shutil.copy2(source, destination)
 
 
-def _discard_staging(staging: Path, entry: Path) -> None:
-    """Drop a staging build that lost the publish race to a valid entry."""
-    L.debug("Cache entry already published, discarding staging build: %s", entry)
+def _discard_staging(staging: Path, cache_entry: Path) -> None:
+    """Drop a staging build that lost the publish race to a valid cache entry."""
+    L.debug("Cache entry already published, discarding staging build: %s", cache_entry)
     shutil.rmtree(staging, ignore_errors=True)
 
 
@@ -413,16 +417,13 @@ def _build_mod_files(
     options: Options,
     cache_dir: Path | None = None,
 ) -> dict[str, str]:
-    """Compile MOD files and materialize a matching cache entry."""
+    """Compile MOD files into `output_dir`, optionally via a shared `--cache-dir`."""
     mod_files = _get_mod_files(input_dirs)
     if not mod_files:
         msg = "No mod files selected to be compiled"
         raise RuntimeError(msg)
 
     if cache_dir is None:
-        if _is_cache_entry_valid(mod_files, output_dir, options):
-            L.info("Cache hit, skipping compilation: %s", output_dir)
-            return _output_files(output_dir, options)
         return _compile(mod_files, output_dir, nrnivmodl, options)
 
     cache_entry = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
@@ -432,7 +433,7 @@ def _build_mod_files(
         return _materialize_cache_entry(mod_files, cache_entry, output_dir, nrnivmodl, options)
 
     # Miss: compile under staging, rename into place. Concurrent misses may all compile;
-    # only one rename wins and the others reuse the published entry.
+    # only one rename wins and the others reuse the published cache entry.
     _compile_into_cache(mod_files, cache_entry, nrnivmodl, options)
 
     if not _is_cache_entry_valid(mod_files, cache_entry, options):
