@@ -468,7 +468,7 @@ def _extract_mechanisms_dir(circuit_config_path: Path) -> list[Path]:
     paths = set()
     for name in cc.node_populations:
         properties = cc.node_population_properties(name)
-        # Older libsonata builds omit this attribute.
+        # libsonata < 0.1.37 omits this attribute.
         if d := getattr(properties, "mechanisms_dir", None):
             paths.add(Path(d).absolute())
     return list(paths)
