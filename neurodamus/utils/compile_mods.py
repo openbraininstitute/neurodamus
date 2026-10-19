@@ -2,7 +2,6 @@
 import argparse
 import errno
 import hashlib
-import importlib.metadata
 import json
 import logging
 import os
@@ -27,8 +26,6 @@ MOD_FILES_PATH = "mod_files"
 # Ephemeral dirs live beside entries (same filesystem) so rename publish/delete works.
 _STAGING_PREFIX = ".tmp-"
 _TO_DELETE_PREFIX = ".to-delete-"
-
-NEURON_DISTRIBUTION = "neuron"
 
 
 class Simulator(Enum):
@@ -100,30 +97,31 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
     }
 
 
-def _neuron_version() -> str | None:
-    """Return the installed NEURON version, if available."""
+def _neuron_version() -> str:
+    """Return the installed NEURON version."""
     try:
-        return importlib.metadata.version(NEURON_DISTRIBUTION)
-    except importlib.metadata.PackageNotFoundError:
-        return None
+        import neuron
+    except ImportError as error:
+        msg = "neuron package is required"
+        raise RuntimeError(msg) from error
+    return neuron.__version__
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
     """Return the toolchain identity used in the cache key.
 
     `nrnivmodl` must already exist; call `_resolve_nrnivmodl` first.
+    Versioned identities are shared across virtual environments.
     """
     compiler_path = Path(nrnivmodl).resolve()
-    parts = [platform.machine(), sys.platform, compiler_path.name]
-
-    if version := _neuron_version():
-        # Versioned identities are shared across virtual environments.
-        parts.append(f"neuron-{version}")
-    else:
-        st = compiler_path.stat()
-        parts.append(f"path-{compiler_path}:size-{st.st_size}:mtime-{int(st.st_mtime)}")
-
-    return "|".join(parts)
+    return "|".join(
+        [
+            platform.machine(),
+            sys.platform,
+            compiler_path.name,
+            f"neuron-{_neuron_version()}",
+        ]
+    )
 
 
 def _resolve_nrnivmodl(nrnivmodl_path: str | None) -> str:

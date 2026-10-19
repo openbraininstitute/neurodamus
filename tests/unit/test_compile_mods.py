@@ -1,5 +1,4 @@
 import argparse
-import importlib.metadata
 import json
 import logging
 import os
@@ -8,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+import types
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -267,17 +267,14 @@ def fake_nrnivmodl(cmd, cwd=None, **_kwargs):
 
 
 def test__neuron_version():
-    with patch(
-        "neurodamus.utils.compile_mods.importlib.metadata.version", return_value="8.2.6"
-    ) as version:
-        assert test_module._neuron_version() == "8.2.6"
-        version.assert_called_once_with(test_module.NEURON_DISTRIBUTION)
+    with patch.dict(sys.modules, {"neuron": types.SimpleNamespace(__version__="9.0.1")}):
+        assert test_module._neuron_version() == "9.0.1"
 
-    with patch(
-        "neurodamus.utils.compile_mods.importlib.metadata.version",
-        side_effect=importlib.metadata.PackageNotFoundError,
+    with (
+        patch.dict(sys.modules, {"neuron": None}),
+        pytest.raises(RuntimeError, match="neuron package is required"),
     ):
-        assert test_module._neuron_version() is None
+        test_module._neuron_version()
 
 
 def test__toolchain_id(tmp_path):
@@ -295,17 +292,6 @@ def test__toolchain_id(tmp_path):
     other_compiler_path.chmod(0o755)
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
         assert tid == test_module._toolchain_id(str(other_compiler_path))
-
-    with patch("neurodamus.utils.compile_mods._neuron_version", return_value=None):
-        tid = test_module._toolchain_id(str(compiler_path))
-    assert "size-" in tid
-    assert "mtime-" in tid
-
-    with (
-        patch("neurodamus.utils.compile_mods._neuron_version", return_value=None),
-        pytest.raises(OSError),
-    ):
-        test_module._toolchain_id(str(tmp_path / "does-not-exist"))
 
 
 def test__resolve_nrnivmodl(tmp_path):
