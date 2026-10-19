@@ -40,7 +40,7 @@ class Simulator(Enum):
     coreneuron = "coreneuron"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Options:
     simulator: Simulator
     incflags: str
