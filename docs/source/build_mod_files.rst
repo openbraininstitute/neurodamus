@@ -69,12 +69,8 @@ With ``--output-dir``, compiled files are materialized in the requested output d
 
 A cache entry is keyed by MOD contents, compiler options, simulator, and toolchain. On a hit, its contents are copied into ``output`` and the returned paths point there; a miss compiles into a staging directory beside the final entry (same filesystem), then atomically ``rename``\ s onto the entry path so readers never see a partial build. Staging must live on the cache volume: ``rename`` cannot publish across mounts (for example from local ``/tmp`` onto networked storage). Concurrent misses may compile in parallel; only one publish wins and the others reuse that entry. Compile once before ``mpirun`` rather than from every MPI rank.
 
-Cache eviction is a separate admin step, not part of compiling. Run
-``neurodamus-compile-mods --cache-dir /path/to/mod-cache --clear-cache --max-age-days 30``
-to remove unused entries and orphaned staging / ``.to-delete-*`` directories, then compile with
-``--cache-dir`` as usual. Cleanup unpublishes a path with ``rename`` before deleting it. Age is
-based on directory mtime; a long compile refreshes staging mtime at start, so prefer not to run
-aggressive clears (very small ``--max-age-days``) against a cache that may have in-flight builds.
+Cache eviction is external to this CLI (for example a cron job or volume policy). Entry and
+staging directory mtimes are refreshed on use so age-based cleanup can skip active builds.
 On a shared multi-user cache, directory permissions follow the process umask—ensure the cache
 root is group-writable (or otherwise accessible) for every account that will publish or reuse
 entries.

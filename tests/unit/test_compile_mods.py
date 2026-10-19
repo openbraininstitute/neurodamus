@@ -387,9 +387,6 @@ def test__staging_and_to_delete_dirs_are_beside_entry(tmp_path):
     assert staging.name.startswith(test_module._STAGING_PREFIX + "rest-")
     assert to_delete.name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
     assert staging != entry != to_delete
-    assert test_module._is_ephemeral_cache_dir(staging)
-    assert test_module._is_ephemeral_cache_dir(to_delete)
-    assert not test_module._is_ephemeral_cache_dir(entry)
 
 
 def test__publish_cache_entry(tmp_path):
@@ -450,27 +447,6 @@ def test__touch_cache_entry(tmp_path):
 
     test_module._touch_cache_entry(tmp_path / "missing")
 
-
-def test__clear_cache(tmp_path):
-    cache_dir = tmp_path / "cache"
-    fresh = test_module._cache_entry_path(cache_dir, "aabbfresh")
-    stale = test_module._cache_entry_path(cache_dir, "ccddstale")
-    stale_staging = test_module._staging_dir(stale)
-    fresh_staging = test_module._staging_dir(fresh)
-    for path in (fresh, stale, stale_staging, fresh_staging):
-        write(path / "modules.json", b"{}")
-
-    old_time = time.time() - 60 * 86400
-    os.utime(stale, (old_time, old_time))
-    os.utime(stale_staging, (old_time, old_time))
-
-    removed = test_module._clear_cache(cache_dir, max_age_days=30)
-
-    assert set(removed) == {stale, stale_staging}
-    assert fresh.exists()
-    assert fresh_staging.exists()
-    assert not stale.exists()
-    assert not stale_staging.exists()
 
 
 def test__build_mod_files_compiles_in_staging_then_publishes(tmp_path):
@@ -753,16 +729,6 @@ def test__is_cache_entry_valid_corrupt_metadata(tmp_path):
     assert test_module._is_cache_entry_valid(mod_files, entry, opts)
 
 
-def test__clear_cache_keeps_fresh_staging(tmp_path):
-    cache_dir = tmp_path / "cache"
-    entry = test_module._cache_entry_path(cache_dir, "aabbentry")
-    fresh_staging = test_module._staging_dir(entry)
-    write(fresh_staging / "modules.json", b"{}")
-
-    assert test_module._clear_cache(cache_dir, max_age_days=30) == []
-    assert fresh_staging.exists()
-
-
 def test__materialize_rebuilds_when_entry_disappears_during_copy(tmp_path, caplog):
     cache_dir = tmp_path / "cache"
     input_dir = tmp_path / "inputs"
@@ -808,28 +774,6 @@ def test__discard_staging_logs_at_debug(tmp_path, caplog):
 
     assert not staging.exists()
     assert "already published, discarding staging" in caplog.text
-
-
-def test__clear_cache_keeps_fresh_published_entry(tmp_path):
-    """A newly published entry is kept even if an invalid predecessor was old."""
-    cache_dir = tmp_path / "cache"
-    input_dir = tmp_path / "inputs"
-    write(input_dir / "a.mod", b"mod file")
-    opts = options()
-
-    mod = input_dir / "a.mod"
-    entry = test_module._cache_entry_path(
-        cache_dir, test_module._cache_entry_key({mod: test_module._md5sum(mod)}, opts)
-    )
-    entry.mkdir(parents=True)
-    old_time = time.time() - 60 * 86400
-    os.utime(entry, (old_time, old_time))
-
-    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
-        test_module._build_mod_files([input_dir], tmp_path / "output", "echo", opts, cache_dir)
-
-    assert test_module._clear_cache(cache_dir, max_age_days=30) == []
-    assert entry.exists()
 
 
 def test__cache_entry_key_different_filename_same_content(tmp_path):
@@ -1005,15 +949,11 @@ def test__build_parser_destination():
     assert args.cache_dir == "b"
 
     assert parser.parse_args(["--output-dir", "a"]).output_dir == "a"
-    assert (
-        parser.parse_args(["--cache-dir", "b", "--clear-cache"]).max_age_days
-        == test_module.DEFAULT_MAX_AGE_DAYS
-    )
-    assert test_module.DEFAULT_MAX_AGE_DAYS == 30
+    assert not hasattr(parser.parse_args(["--output-dir", "a"]), "clear_cache")
     assert not hasattr(parser.parse_args(["--output-dir", "a"]), "lock_timeout")
 
 
-def test_compile_mods_requires_output_dir_unless_clearing(tmp_path):
+def test_compile_mods_requires_output_dir():
     argv = ["neurodamus-compile-mods", "--nrnivmodl", "/bin/echo"]
     with (
         patch.object(sys, "argv", argv),
@@ -1022,43 +962,6 @@ def test_compile_mods_requires_output_dir_unless_clearing(tmp_path):
     ):
         test_module.compile_mods()
     build.assert_not_called()
-
-
-def test_compile_mods_clear_cache_requires_cache_dir():
-    argv = ["neurodamus-compile-mods", "--clear-cache"]
-    with (
-        patch.object(sys, "argv", argv),
-        patch("neurodamus.utils.compile_mods._build_mod_files") as build,
-        pytest.raises(SystemExit),
-    ):
-        test_module.compile_mods()
-    build.assert_not_called()
-
-
-def test_compile_mods_clear_cache_only(tmp_path, capsys):
-    cache_dir = tmp_path / "cache"
-    stale = test_module._cache_entry_path(cache_dir, "ccddstale")
-    write(stale / "modules.json", b"{}")
-    old_time = time.time() - 60 * 86400
-    os.utime(stale, (old_time, old_time))
-
-    argv = [
-        "neurodamus-compile-mods",
-        "--cache-dir",
-        str(cache_dir),
-        "--clear-cache",
-    ]
-    with (
-        patch.object(sys, "argv", argv),
-        patch("neurodamus.utils.compile_mods._build_mod_files", return_value={}) as build,
-    ):
-        test_module.compile_mods()
-
-    assert not stale.exists()
-    build.assert_not_called()
-    captured = capsys.readouterr()
-    assert "Cleared 1 stale cache path(s)" in captured.err
-    assert captured.out.strip() == ""
 
 
 def test_compile_mods_cache_dir_end_to_end(tmp_path, capsys):

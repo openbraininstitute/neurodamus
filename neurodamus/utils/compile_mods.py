@@ -11,7 +11,6 @@ import secrets
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
-import time
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -30,9 +29,6 @@ _STAGING_PREFIX = ".tmp-"
 _TO_DELETE_PREFIX = ".to-delete-"
 
 NEURON_DISTRIBUTION = "neuron"
-
-# Default age for `--clear-cache`.
-DEFAULT_MAX_AGE_DAYS = 30.0
 
 
 class Simulator(Enum):
@@ -153,11 +149,6 @@ def _cache_entry_path(cache_dir: Path, key: str) -> Path:
     return cache_dir / key[:2] / key[2:4] / key[4:]
 
 
-def _is_ephemeral_cache_dir(path: Path) -> bool:
-    """Staging and to-delete directories are never published cache entries."""
-    return path.name.startswith((_STAGING_PREFIX, _TO_DELETE_PREFIX))
-
-
 def _staging_dir(entry: Path) -> Path:
     """Directory for an in-progress build of `entry`, on the same filesystem."""
     return entry.parent / f"{_STAGING_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
@@ -204,36 +195,12 @@ def _publish_cache_entry(staging: Path, entry: Path) -> bool:
 
 
 def _touch_cache_entry(entry: Path):
-    """Refresh entry mtime; cleanup bookkeeping is advisory, so failures are logged."""
+    """Refresh entry mtime for external cache management; failures are logged."""
     try:
         # No Path equivalent that refreshes mtime without creating a missing path.
         os.utime(entry)
     except OSError as error:
-        L.warning(
-            "Could not update cache entry mtime for `%s`; cleanup age may be inaccurate: %s",
-            entry,
-            error,
-        )
-
-
-def _clear_cache(cache_dir: Path, max_age_days: float) -> list[Path]:
-    """Remove cache entries (and orphaned staging/to-delete dirs) older than `max_age_days`."""
-    cutoff = time.time() - max_age_days * 86400
-    removed = []
-    for entry in sorted(cache_dir.glob("*/*/*")):
-        if not entry.is_dir():
-            continue
-        try:
-            mtime = entry.stat().st_mtime
-        except OSError:
-            continue
-        if mtime >= cutoff:
-            continue
-        kind = "orphan" if _is_ephemeral_cache_dir(entry) else "cache entry"
-        L.info("Removing %s: %s", kind, entry)
-        if _remove_cache_dir(entry):
-            removed.append(entry)
-    return removed
+        L.warning("Could not update cache entry mtime for `%s`: %s", entry, error)
 
 
 def _get_dynamic_file(output_dir: Path, name: str) -> Path:
@@ -523,10 +490,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
     parser.add_argument("--input-dir", nargs="*", help="Input directory")
-    parser.add_argument(
-        "--output-dir",
-        help="Output path (required to compile; not used with `--clear-cache`)",
-    )
+    parser.add_argument("--output-dir", required=True, help="Output path for compiled mods")
     parser.add_argument(
         "--cache-dir",
         help="Cache root; matching entries are copied into `--output-dir`",
@@ -539,17 +503,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--nrnivmodl", help="Optional path to nrnivmodl")
     parser.add_argument(
         "--output-type", choices=["json", "shell"], default="json", help="Output type"
-    )
-    parser.add_argument(
-        "--clear-cache",
-        action="store_true",
-        help="Only clear stale entries from `--cache-dir` (does not compile)",
-    )
-    parser.add_argument(
-        "--max-age-days",
-        type=float,
-        default=DEFAULT_MAX_AGE_DAYS,
-        help="With `--clear-cache`, the age past which a cache path is removed",
     )
     return parser
 
@@ -568,17 +521,6 @@ def compile_mods():
 
     parser = build_parser()
     args = parser.parse_args()
-
-    if args.clear_cache:
-        if not args.cache_dir:
-            parser.error("--clear-cache requires --cache-dir")
-        cache_dir = Path(args.cache_dir).absolute()
-        removed = _clear_cache(cache_dir, args.max_age_days)
-        L.info("Cleared %d stale cache path(s) from %s", len(removed), cache_dir)
-        return
-
-    if not args.output_dir:
-        parser.error("--output-dir is required unless --clear-cache is set")
 
     cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
     output_dir = Path(args.output_dir)
