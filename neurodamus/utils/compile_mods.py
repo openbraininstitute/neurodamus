@@ -12,8 +12,7 @@ import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import time
-from collections.abc import Generator, Iterable
-from contextlib import contextmanager
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from enum import Enum
 from importlib.util import find_spec
@@ -169,37 +168,22 @@ def _to_delete_dir(entry: Path) -> Path:
     return entry.parent / f"{_TO_DELETE_PREFIX}{entry.name}-{os.getpid()}-{secrets.token_hex(8)}"
 
 
-@contextmanager
-def _rename_then_rmtree(path: Path) -> Generator[Path | None, None, None]:
-    """Rename `path` aside, yield the new path, then delete it.
-
-    Yields `None` if `path` is missing or could not be renamed away.
-    """
+def _remove_cache_dir(path: Path) -> bool:
+    """Unpublish `path` via rename, then delete. Returns whether anything was removed."""
     if not path.exists():
-        yield None
-        return
+        return False
 
     removed = _to_delete_dir(path)
     try:
         path.rename(removed)
     except FileNotFoundError:
-        yield None
-        return
+        return False
     except OSError as error:
         L.warning("Could not unpublish `%s` for removal: %s", path, error)
-        yield None
-        return
+        return False
 
-    try:
-        yield removed
-    finally:
-        shutil.rmtree(removed, ignore_errors=True)
-
-
-def _remove_cache_dir(path: Path) -> bool:
-    """Unpublish `path` via rename, then delete. Returns whether anything was removed."""
-    with _rename_then_rmtree(path) as removed:
-        return removed is not None
+    shutil.rmtree(removed, ignore_errors=True)
+    return True
 
 
 def _publish_cache_entry(staging: Path, entry: Path) -> bool:

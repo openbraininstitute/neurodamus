@@ -403,26 +403,6 @@ def test__publish_cache_entry_loses_race_leaves_staging(tmp_path):
     assert (entry / "modules.json").read_bytes() == b'{"winner": true}'
 
 
-def test__rename_then_rmtree_renames_then_deletes(tmp_path):
-    entry = tmp_path / "ab" / "cd" / "rest"
-    write(entry / "modules.json", b"{}")
-
-    with test_module._rename_then_rmtree(entry) as removed:
-        assert removed is not None
-        assert not entry.exists()
-        assert removed.exists()
-        assert removed.name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
-        assert (removed / "modules.json").read_bytes() == b"{}"
-
-    assert not entry.exists()
-    assert list(entry.parent.glob(f"{test_module._TO_DELETE_PREFIX}*")) == []
-
-
-def test__rename_then_rmtree_missing_path(tmp_path):
-    with test_module._rename_then_rmtree(tmp_path / "missing") as removed:
-        assert removed is None
-
-
 def test__remove_cache_dir_unpublishes_via_rename(tmp_path):
     entry = tmp_path / "ab" / "cd" / "rest"
     write(entry / "modules.json", b"{}")
@@ -442,6 +422,10 @@ def test__remove_cache_dir_unpublishes_via_rename(tmp_path):
     assert len(renamed) == 1
     assert renamed[0][0] == entry
     assert renamed[0][1].name.startswith(test_module._TO_DELETE_PREFIX + "rest-")
+
+
+def test__remove_cache_dir_missing_path(tmp_path):
+    assert test_module._remove_cache_dir(tmp_path / "missing") is False
 
 
 def test__touch_cache_entry(tmp_path):
