@@ -43,10 +43,10 @@ class Simulator(Enum):
 @dataclass
 class Options:
     simulator: Simulator
-    incflags: str = ""
-    loadflags: str = ""
+    incflags: str
+    loadflags: str
     # Included to invalidate ABI-incompatible libraries.
-    toolchain: str = ""
+    toolchain: str
 
 
 def _metadata_path(output_dir: Path):

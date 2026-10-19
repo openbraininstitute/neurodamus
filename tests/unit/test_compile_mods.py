@@ -22,6 +22,15 @@ Simulator = test_module.Simulator
 REPO_ROOT = Path(__file__).parent.parent.parent
 
 
+@pytest.fixture(autouse=True)
+def _reset_compile_mods_logger():
+    """`compile_mods()` installs a non-propagating handler; undo that between tests."""
+    yield
+    test_module.L.handlers.clear()
+    test_module.L.propagate = True
+    test_module.L.setLevel(logging.NOTSET)
+
+
 def write(path, contents):
     path.parent.mkdir(exist_ok=True, parents=True)
     path.write_bytes(contents)
@@ -88,7 +97,7 @@ def test__generate_mod_metadata(tmp_path):
     path = write(tmp_path / "a.mod", b"mod content")
 
     mod_files = {path: "abc123"}
-    options = Options(simulator=Simulator.neuron, incflags="-DFOO", loadflags="")
+    options = Options(simulator=Simulator.neuron, incflags="-DFOO", loadflags="", toolchain="")
 
     meta = test_module._generate_mod_metadata(mod_files, options)
     assert meta["version"] == test_module.VERSION
@@ -128,14 +137,14 @@ def test_compile_mods_normalizes_omitted_flags(tmp_path):
 
 
 def test__is_cache_entry_valid_missing(tmp_path):
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulator=Simulator.neuron, incflags="", loadflags="", toolchain="")
     assert not test_module._is_cache_entry_valid({}, tmp_path, options)
 
 
 def test__write_cache_and_is_cache_entry_valid(tmp_path):
     path = write(tmp_path / "a.mod", b"content")
     mod_files = {path: "hash1"}
-    options0 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="")
+    options0 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="", toolchain="")
 
     test_module._write_cache(mod_files, tmp_path, options0)
     assert test_module._metadata_path(tmp_path).exists()
@@ -145,11 +154,13 @@ def test__write_cache_and_is_cache_entry_valid(tmp_path):
     write(test_module._get_dynamic_file(tmp_path, "libnrnmech"), b"")
     assert test_module._is_cache_entry_valid(mod_files, tmp_path, options0)
 
-    options1 = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="")
+    options1 = Options(simulator=Simulator.coreneuron, incflags="-DX", loadflags="", toolchain="")
     test_module._write_cache(mod_files, tmp_path, options1)
     assert not test_module._is_cache_entry_valid(mod_files, tmp_path, options1)
 
-    options2 = Options(simulator=Simulator.neuron, incflags="-DX", loadflags="-different")
+    options2 = Options(
+        simulator=Simulator.neuron, incflags="-DX", loadflags="-different", toolchain=""
+    )
     assert not test_module._is_cache_entry_valid(mod_files, tmp_path, options2)
 
 
@@ -160,14 +171,14 @@ def test__output_files(tmp_path):
     base.mkdir()
     write(base / f"libnrnmech{ext}", b"")
 
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulator=Simulator.neuron, incflags="", loadflags="", toolchain="")
     res = test_module._output_files(tmp_path, options)
     assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
     assert res["SPECIALS_PATH"] == str(base)
     assert "CORENEURONLIB" not in res
 
     write(base / f"libcorenrnmech{ext}", b"")
-    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="", toolchain="")
     res = test_module._output_files(tmp_path, options)
     assert res["NRNMECH_LIB_PATH"] == str(base / f"libnrnmech{ext}")
     assert res["SPECIALS_PATH"] == str(base)
@@ -182,7 +193,7 @@ def test__output_files_coreneuron(tmp_path):
     write(base / f"libnrnmech{ext}", b"")
     write(base / f"libcorenrnmech{ext}", b"")
 
-    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="")
+    options = Options(simulator=Simulator.coreneuron, incflags="", loadflags="", toolchain="")
     res = test_module._output_files(tmp_path, options)
     assert "CORENEURONLIB" in res
 
@@ -195,7 +206,7 @@ def test__internal_mods_path():
 
 
 def test__build_mod_filess(tmp_path):
-    options = Options(simulator=Simulator.neuron, incflags="", loadflags="")
+    options = Options(simulator=Simulator.neuron, incflags="", loadflags="", toolchain="")
     input_dirs = []
     with patch("neurodamus.utils.compile_mods.subprocess.run") as mock_run:
         with pytest.raises(RuntimeError, match="No mod files selected to be compiled"):
