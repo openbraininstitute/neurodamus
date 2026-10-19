@@ -282,6 +282,7 @@ def test__neuron_version():
 
 def test__toolchain_id(tmp_path):
     compiler_path = write(tmp_path / "nrnivmodl", b"#!/bin/sh\n")
+    compiler_path.chmod(0o755)
 
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
         tid = test_module._toolchain_id(str(compiler_path))
@@ -291,6 +292,7 @@ def test__toolchain_id(tmp_path):
     assert str(compiler_path) not in tid
 
     other_compiler_path = write(tmp_path / "other" / "nrnivmodl", b"different wrapper")
+    other_compiler_path.chmod(0o755)
     with patch("neurodamus.utils.compile_mods._neuron_version", return_value="9.0"):
         assert tid == test_module._toolchain_id(str(other_compiler_path))
 
@@ -299,13 +301,25 @@ def test__toolchain_id(tmp_path):
     assert "size-" in tid
     assert "mtime-" in tid
 
-    with patch("neurodamus.utils.compile_mods._neuron_version", return_value=None):
-        tid = test_module._toolchain_id(str(tmp_path / "does-not-exist"))
-    assert "size-" not in tid
+    with (
+        patch("neurodamus.utils.compile_mods._neuron_version", return_value=None),
+        pytest.raises(OSError),
+    ):
+        test_module._toolchain_id(str(tmp_path / "does-not-exist"))
 
 
-def test__resolve_nrnivmodl():
-    assert test_module._resolve_nrnivmodl("/custom/nrnivmodl") == "/custom/nrnivmodl"
+def test__resolve_nrnivmodl(tmp_path):
+    compiler = write(tmp_path / "nrnivmodl", b"#!/bin/sh\n")
+    compiler.chmod(0o755)
+    assert test_module._resolve_nrnivmodl(str(compiler)) == str(compiler.resolve())
+
+    with pytest.raises(RuntimeError, match="nrnivmodl not found:"):
+        test_module._resolve_nrnivmodl(str(tmp_path / "missing"))
+
+    not_exec = write(tmp_path / "not-exec", b"#!/bin/sh\n")
+    not_exec.chmod(0o644)
+    with pytest.raises(RuntimeError, match="nrnivmodl is not executable:"):
+        test_module._resolve_nrnivmodl(str(not_exec))
 
     with (
         patch("neurodamus.utils.compile_mods.shutil.which", return_value=None),
@@ -313,10 +327,8 @@ def test__resolve_nrnivmodl():
     ):
         test_module._resolve_nrnivmodl(None)
 
-    with patch(
-        "neurodamus.utils.compile_mods.shutil.which", return_value="/a/neurodamus-nrnivmodl"
-    ):
-        assert test_module._resolve_nrnivmodl(None) == "/a/neurodamus-nrnivmodl"
+    with patch("neurodamus.utils.compile_mods.shutil.which", return_value=str(compiler)):
+        assert test_module._resolve_nrnivmodl(None) == str(compiler.resolve())
 
 
 def test__cache_entry_key_varies_with_inputs(tmp_path):

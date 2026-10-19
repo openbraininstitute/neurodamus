@@ -109,7 +109,10 @@ def _neuron_version() -> str | None:
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
-    """Return the toolchain identity used in the cache key."""
+    """Return the toolchain identity used in the cache key.
+
+    `nrnivmodl` must already exist; call `_resolve_nrnivmodl` first.
+    """
     compiler_path = Path(nrnivmodl).resolve()
     parts = [platform.machine(), sys.platform, compiler_path.name]
 
@@ -117,13 +120,8 @@ def _toolchain_id(nrnivmodl: str) -> str:
         # Versioned identities are shared across virtual environments.
         parts.append(f"neuron-{version}")
     else:
-        try:
-            st = compiler_path.stat()
-        except OSError:
-            parts.append(f"path-{compiler_path}")
-            L.warning("Cannot stat `%s`; cache key is based on its path alone", compiler_path)
-        else:
-            parts.append(f"path-{compiler_path}:size-{st.st_size}:mtime-{int(st.st_mtime)}")
+        st = compiler_path.stat()
+        parts.append(f"path-{compiler_path}:size-{st.st_size}:mtime-{int(st.st_mtime)}")
 
     return "|".join(parts)
 
@@ -134,7 +132,15 @@ def _resolve_nrnivmodl(nrnivmodl_path: str | None) -> str:
     if not nrnivmodl:
         msg = "nrnivmodl not found in PATH"
         raise RuntimeError(msg)
-    return nrnivmodl
+
+    path = Path(nrnivmodl)
+    if not path.is_file():
+        msg = f"nrnivmodl not found: {path}"
+        raise RuntimeError(msg)
+    if not os.access(path, os.X_OK):
+        msg = f"nrnivmodl is not executable: {path}"
+        raise RuntimeError(msg)
+    return str(path.resolve())
 
 
 def _cache_entry_key(mod_files: dict[Path, str], options: Options) -> str:
