@@ -98,16 +98,33 @@ def test__generate_mod_metadata(tmp_path):
     assert not meta["toolchain"]
 
 
-def test__options_none_flags_match_empty_string(tmp_path):
+def test_compile_mods_normalizes_omitted_flags(tmp_path):
     """Omitted CLI flags must not fork the cache key from explicit empty strings."""
-    path = write(tmp_path / "a.mod", b"mod content")
-    mod_files = {path: "abc123"}
-    with_none = Options(simulator=Simulator.neuron, incflags=None, loadflags=None, toolchain=None)
-    with_empty = Options(simulator=Simulator.neuron, incflags="", loadflags="", toolchain="")
-    assert with_none == with_empty
-    assert test_module._cache_entry_key(mod_files, with_none) == test_module._cache_entry_key(
-        mod_files, with_empty
-    )
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    captured = {}
+
+    def capture_build(input_dirs, output_dir, nrnivmodl, options, cache_dir=None):
+        captured["options"] = options
+        return {"NRNMECH_LIB_PATH": str(tmp_path / "lib.so"), "SPECIALS_PATH": str(tmp_path)}
+
+    argv = [
+        "neurodamus-compile-mods",
+        "--output-dir",
+        str(tmp_path / "output"),
+        "--input-dir",
+        str(input_dir),
+        "--nrnivmodl",
+        "/bin/echo",
+    ]
+    with (
+        patch.object(sys, "argv", argv),
+        patch("neurodamus.utils.compile_mods._build_mod_files", side_effect=capture_build),
+    ):
+        test_module.compile_mods()
+
+    assert captured["options"].incflags == ""
+    assert captured["options"].loadflags == ""
 
 
 def test__is_cache_entry_valid_missing(tmp_path):

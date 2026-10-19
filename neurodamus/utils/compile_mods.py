@@ -49,12 +49,6 @@ class Options:
     # Included to invalidate ABI-incompatible libraries.
     toolchain: str = ""
 
-    def __post_init__(self):
-        # argparse leaves omitted flags as None; keep cache keys stable.
-        self.incflags = self.incflags or ""
-        self.loadflags = self.loadflags or ""
-        self.toolchain = self.toolchain or ""
-
 
 def _metadata_path(output_dir: Path):
     """Return cache metadata path."""
@@ -614,9 +608,10 @@ def compile_mods():
         input_dirs.extend(_internal_mods_path())
 
     nrnivmodl = _resolve_nrnivmodl(args.nrnivmodl)
+    # argparse leaves omitted string flags as None; normalize so cache keys stay stable.
     options = Options(
-        incflags=args.incflags,
-        loadflags=args.loadflags,
+        incflags=args.incflags or "",
+        loadflags=args.loadflags or "",
         simulator=args.simulator,
         toolchain=_toolchain_id(nrnivmodl),
     )
