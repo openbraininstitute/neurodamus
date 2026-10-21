@@ -268,15 +268,27 @@ def fake_nrnivmodl(cmd, cwd=None, **_kwargs):
 
 def test__neuron_version():
     with patch(
-        "neurodamus.utils.compile_mods.importlib.metadata.version", return_value="9.1.0.dev1"
+        "neurodamus.utils.compile_mods.importlib.metadata.version", return_value="9.0.1"
+    ) as version:
+        assert test_module._neuron_version() == "9.0.1"
+        version.assert_called_once_with("neuron")
+
+    def missing_or_nightly(name):
+        if name == "neuron-nightly":
+            return "9.1.0.dev1"
+        raise importlib.metadata.PackageNotFoundError(name)
+
+    with patch(
+        "neurodamus.utils.compile_mods.importlib.metadata.version",
+        side_effect=missing_or_nightly,
     ) as version:
         assert test_module._neuron_version() == "9.1.0.dev1"
-        version.assert_called_once_with("neuron")
+        assert [c.args[0] for c in version.call_args_list] == ["neuron", "neuron-nightly"]
 
     with (
         patch(
             "neurodamus.utils.compile_mods.importlib.metadata.version",
-            side_effect=importlib.metadata.PackageNotFoundError("neuron"),
+            side_effect=importlib.metadata.PackageNotFoundError,
         ),
         pytest.raises(RuntimeError, match="neuron package is required"),
     ):

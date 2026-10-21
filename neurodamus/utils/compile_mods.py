@@ -102,6 +102,10 @@ def _neuron_version() -> str:
     """Return the installed NEURON version from package metadata (no import)."""
     try:
         return importlib.metadata.version("neuron")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    try:
+        return importlib.metadata.version("neuron-nightly")
     except importlib.metadata.PackageNotFoundError as error:
         msg = "neuron package is required"
         raise RuntimeError(msg) from error
