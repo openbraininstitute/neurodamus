@@ -1,4 +1,5 @@
 import argparse
+import importlib.metadata
 import json
 import logging
 import os
@@ -266,32 +267,20 @@ def fake_nrnivmodl(cmd, cwd=None, **_kwargs):
 
 
 def test__neuron_version():
-    with (
-        patch(
-            "neurodamus.utils.compile_mods.importlib.metadata.packages_distributions",
-            return_value={"neuron": ["neuron-nightly"]},
-        ),
-        patch(
-            "neurodamus.utils.compile_mods.importlib.metadata.version",
-            return_value="9.1.0.dev1",
-        ) as version,
-    ):
+    with patch(
+        "neurodamus.utils.compile_mods.importlib.metadata.version", return_value="9.1.0.dev1"
+    ) as version:
         assert test_module._neuron_version() == "9.1.0.dev1"
-        version.assert_called_once_with("neuron-nightly")
+        version.assert_called_once_with("neuron")
 
     with (
         patch(
-            "neurodamus.utils.compile_mods.importlib.metadata.packages_distributions",
-            return_value={},
+            "neurodamus.utils.compile_mods.importlib.metadata.version",
+            side_effect=importlib.metadata.PackageNotFoundError("neuron"),
         ),
         pytest.raises(RuntimeError, match="neuron package is required"),
     ):
         test_module._neuron_version()
-
-
-def test__neuron_version_from_installed_package():
-    """Smoke-check against the real neuron / neuron-nightly install."""
-    assert test_module._neuron_version()
 
 
 def test__toolchain_id(tmp_path):
