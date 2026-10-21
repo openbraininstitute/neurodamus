@@ -365,7 +365,7 @@ def _compile_into_cache(
     nrnivmodl: str,
     options: Options,
 ) -> None:
-    """Build into a staging directory and atomically publish to `cache_entry`."""
+    """Build into a staging directory and atomically publish a valid `cache_entry`."""
     if cache_entry.exists() and not _is_cache_entry_valid(mod_files, cache_entry, options):
         # Incomplete leftovers cannot be replaced by rename; unpublish first.
         L.info("Removing invalid cache entry before rebuild: %s", cache_entry)
@@ -386,6 +386,13 @@ def _compile_into_cache(
         shutil.rmtree(staging, ignore_errors=True)
         raise RuntimeError(error)
 
+    if not _is_cache_entry_valid(mod_files, cache_entry, options):
+        msg = (
+            f"Cache entry missing or invalid after compile: `{cache_entry}`. "
+            "Another process may have left an incomplete entry that could not be replaced."
+        )
+        raise RuntimeError(msg)
+
 
 def _materialize_cache_entry(
     mod_files: dict[Path, str],
@@ -401,12 +408,6 @@ def _materialize_cache_entry(
     except FileNotFoundError:
         L.warning("Cache entry disappeared while copying; rebuilding: %s", cache_entry)
         _compile_into_cache(mod_files, cache_entry, nrnivmodl, options)
-        if not _is_cache_entry_valid(mod_files, cache_entry, options):
-            msg = (
-                f"Cache entry missing or invalid after compile: `{cache_entry}`. "
-                "Another process may have left an incomplete entry that could not be replaced."
-            )
-            raise RuntimeError(msg) from None
         _touch_cache_entry(cache_entry)
         _copy_cache_entry(cache_entry, output_dir)
     return _output_files(output_dir, options)
@@ -451,14 +452,6 @@ def _build_mod_files(
     # Miss: compile under staging, rename into place. Concurrent misses may all compile;
     # only one rename wins and the others reuse the published cache entry.
     _compile_into_cache(mod_files, cache_entry, nrnivmodl, options)
-
-    if not _is_cache_entry_valid(mod_files, cache_entry, options):
-        msg = (
-            f"Cache entry missing or invalid after compile: `{cache_entry}`. "
-            "Another process may have left an incomplete entry that could not be replaced."
-        )
-        raise RuntimeError(msg)
-
     return _materialize_cache_entry(mod_files, cache_entry, output_dir, nrnivmodl, options)
 
 
