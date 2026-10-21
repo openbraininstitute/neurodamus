@@ -277,6 +277,22 @@ def test__neuron_version():
         test_module._neuron_version()
 
 
+def test__neuron_version_ignores_neuron_init_mpi():
+    """Reading the version must not require MPI even if NEURON_INIT_MPI is set."""
+    env = {**os.environ, "NEURON_INIT_MPI": "1", "PYTHONPATH": str(REPO_ROOT)}
+    script = (
+        "from neurodamus.utils.compile_mods import _neuron_version; print(_neuron_version())"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert out.stdout.strip()
+
+
 def test__toolchain_id(tmp_path):
     compiler_path = write(tmp_path / "nrnivmodl", b"#!/bin/sh\n")
     compiler_path.chmod(0o755)
