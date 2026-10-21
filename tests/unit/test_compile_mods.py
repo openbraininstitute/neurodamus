@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import sys
 import time
-import types
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -267,30 +266,32 @@ def fake_nrnivmodl(cmd, cwd=None, **_kwargs):
 
 
 def test__neuron_version():
-    with patch.dict(sys.modules, {"neuron": types.SimpleNamespace(__version__="9.0.1")}):
-        assert test_module._neuron_version() == "9.0.1"
+    with (
+        patch(
+            "neurodamus.utils.compile_mods.importlib.metadata.packages_distributions",
+            return_value={"neuron": ["neuron-nightly"]},
+        ),
+        patch(
+            "neurodamus.utils.compile_mods.importlib.metadata.version",
+            return_value="9.1.0.dev1",
+        ) as version,
+    ):
+        assert test_module._neuron_version() == "9.1.0.dev1"
+        version.assert_called_once_with("neuron-nightly")
 
     with (
-        patch.dict(sys.modules, {"neuron": None}),
+        patch(
+            "neurodamus.utils.compile_mods.importlib.metadata.packages_distributions",
+            return_value={},
+        ),
         pytest.raises(RuntimeError, match="neuron package is required"),
     ):
         test_module._neuron_version()
 
 
-def test__neuron_version_ignores_neuron_init_mpi():
-    """Reading the version must not require MPI even if NEURON_INIT_MPI is set."""
-    env = {**os.environ, "NEURON_INIT_MPI": "1", "PYTHONPATH": str(REPO_ROOT)}
-    script = (
-        "from neurodamus.utils.compile_mods import _neuron_version; print(_neuron_version())"
-    )
-    out = subprocess.run(
-        [sys.executable, "-c", script],
-        check=True,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    assert out.stdout.strip()
+def test__neuron_version_from_installed_package():
+    """Smoke-check against the real neuron / neuron-nightly install."""
+    assert test_module._neuron_version()
 
 
 def test__toolchain_id(tmp_path):

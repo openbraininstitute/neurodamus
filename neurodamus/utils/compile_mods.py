@@ -2,6 +2,7 @@
 import argparse
 import errno
 import hashlib
+import importlib.metadata
 import json
 import logging
 import os
@@ -98,21 +99,12 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
 
 def _neuron_version() -> str:
-    """Return the installed NEURON version.
-
-    Temporarily clears ``NEURON_INIT_MPI`` so import does not require an MPI library;
-    compile-mods only needs the version string for the cache key.
-    """
-    saved = os.environ.pop("NEURON_INIT_MPI", None)
-    try:
-        import neuron
-    except ImportError as error:
+    """Return the installed NEURON version from package metadata (no import)."""
+    names = importlib.metadata.packages_distributions().get("neuron") or ()
+    if not names:
         msg = "neuron package is required"
-        raise RuntimeError(msg) from error
-    finally:
-        if saved is not None:
-            os.environ["NEURON_INIT_MPI"] = saved
-    return neuron.__version__
+        raise RuntimeError(msg)
+    return importlib.metadata.version(names[0])
 
 
 def _toolchain_id(nrnivmodl: str) -> str:
