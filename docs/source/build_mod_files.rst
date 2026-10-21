@@ -54,8 +54,7 @@ The former are deduplicated, so there aren't symbol collisions, and the later on
 Caching
 -------
 
-With ``--output-dir`` alone, every run compiles into that directory. Add ``--cache-dir`` to
-reuse content-addressed builds across output directories:
+With ``--output-dir`` alone, every run compiles into that directory. Add ``--cache-dir`` to reuse content-addressed builds across output directories:
 
 .. code-block:: bash
 
@@ -70,8 +69,6 @@ reuse content-addressed builds across output directories:
 
 A cache entry is keyed by MOD contents, compiler options, simulator, and toolchain. On a hit, its contents are copied into ``output`` and the returned paths point there; a miss compiles into a staging directory beside the final entry (same filesystem), then atomically ``rename``\ s onto the entry path so readers never see a partial build. Staging must live on the cache volume: ``rename`` cannot publish across mounts (for example from local ``/tmp`` onto networked storage). Concurrent misses may compile in parallel; only one publish wins and the others reuse that entry. Compile once before ``mpirun`` rather than from every MPI rank.
 
-Cache eviction is external to this CLI (for example a cron job or volume policy). Entry and
-staging directory mtimes are refreshed on use so age-based cleanup can skip active builds.
-On a shared multi-user cache, directory permissions follow the process umask—ensure the cache
-root is group-writable (or otherwise accessible) for every account that will publish or reuse
-entries.
+Cache eviction is external to this CLI (for example a cron job or volume policy).
+Entry and staging directory mtimes are refreshed on use so age-based cleanup can skip active builds.
+On a shared multi-user cache, directory permissions follow the process umask—ensure the cache root is group-writable (or otherwise accessible) for every account that will publish or reuse entries.
