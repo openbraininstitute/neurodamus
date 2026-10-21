@@ -857,6 +857,36 @@ def test__build_mod_files_requires_mod_files(tmp_path):
     assert not (tmp_path / "cache").exists()
 
 
+def test__reject_overlapping_output_and_cache(tmp_path):
+    output = tmp_path / "output"
+    cache = tmp_path / "cache"
+    test_module._reject_overlapping_output_and_cache(output, cache)
+
+    with pytest.raises(RuntimeError, match="must not be the same as"):
+        test_module._reject_overlapping_output_and_cache(cache, cache)
+
+    with pytest.raises(RuntimeError, match="must not be the same as"):
+        test_module._reject_overlapping_output_and_cache(cache / "nested", cache)
+
+    with pytest.raises(RuntimeError, match="must not be the same as"):
+        test_module._reject_overlapping_output_and_cache(output, output / "cache-inside")
+
+
+def test__build_mod_files_rejects_overlapping_output_and_cache(tmp_path):
+    input_dir = tmp_path / "inputs"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+    cache = tmp_path / "cache"
+
+    with (
+        patch("neurodamus.utils.compile_mods.subprocess.run") as mock_run,
+        pytest.raises(RuntimeError, match="must not be the same as"),
+    ):
+        test_module._build_mod_files([input_dir], cache / "out", "echo", opts, cache)
+
+    mock_run.assert_not_called()
+
+
 def test__build_mod_files_shared_across_input_dirs(tmp_path):
     """A second consumer with the same mods reuses the entry instead of recompiling."""
     cache_dir = tmp_path / "cache"

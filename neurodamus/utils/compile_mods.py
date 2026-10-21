@@ -412,6 +412,18 @@ def _materialize_cache_entry(
     return _output_files(output_dir, options)
 
 
+def _reject_overlapping_output_and_cache(output_dir: Path, cache_dir: Path) -> None:
+    """Raise if `output_dir` and `cache_dir` are the same path or either nests the other."""
+    output = output_dir.resolve()
+    cache = cache_dir.resolve()
+    if output == cache or output.is_relative_to(cache) or cache.is_relative_to(output):
+        msg = (
+            f"`output_dir` ({output}) must not be the same as, inside, or a parent of "
+            f"`cache_dir` ({cache})"
+        )
+        raise RuntimeError(msg)
+
+
 def _build_mod_files(
     input_dirs: list[Path],
     output_dir: Path,
@@ -427,6 +439,8 @@ def _build_mod_files(
 
     if cache_dir is None:
         return _compile(mod_files, output_dir, nrnivmodl, options)
+
+    _reject_overlapping_output_and_cache(output_dir, cache_dir)
 
     cache_entry = _cache_entry_path(cache_dir, _cache_entry_key(mod_files, options))
 
