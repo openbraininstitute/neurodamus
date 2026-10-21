@@ -309,16 +309,10 @@ def _compile(
 
 
 def _copy_cache_entry(cache_entry: Path, output_dir: Path):
-    """Copy a compiled cache entry into the requested output directory."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for source in cache_entry.iterdir():
-        destination = output_dir / source.name
-        if source.is_dir():
-            if destination.exists():
-                shutil.rmtree(destination)
-            shutil.copytree(source, destination)
-        else:
-            shutil.copy2(source, destination)
+    """Replace `output_dir` with a full copy of the compiled cache entry."""
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    shutil.copytree(cache_entry, output_dir)
 
 
 def _discard_staging(staging: Path, cache_entry: Path) -> None:
