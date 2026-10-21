@@ -54,7 +54,9 @@ The former are deduplicated, so there aren't symbol collisions, and the later on
 Caching
 -------
 
-With ``--output-dir`` alone, every run compiles into that directory. Add ``--cache-dir`` to reuse content-addressed builds across output directories:
+``--output-dir`` is the per-run build directory: it should not be shared with other concurrent runs.
+With ``--output-dir`` alone, every run compiles into that directory.
+Add ``--cache-dir`` to reuse content-addressed builds across runs; that directory is meant to be shared (for example across jobs on the same machine or volume):
 
 .. code-block:: bash
 
