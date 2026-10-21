@@ -100,8 +100,8 @@ def _generate_mod_metadata(mod_files: dict[Path, str], options: Options) -> dict
 
 def _neuron_version() -> str:
     """Return the installed NEURON version from package metadata (no import)."""
-    names = importlib.metadata.packages_distributions().get("neuron") or ()
-    if not names:
+    names = importlib.metadata.packages_distributions().get("neuron")
+    if names is None:
         msg = "neuron package is required"
         raise RuntimeError(msg)
     return importlib.metadata.version(names[0])
