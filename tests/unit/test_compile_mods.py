@@ -481,7 +481,8 @@ def test__build_mod_files_compiles_in_staging_then_publishes(tmp_path):
         cwd_path = Path(cwd)
         seen.append(cwd_path)
         assert cwd_path != entry
-        assert cwd_path.name.startswith(test_module._STAGING_PREFIX)
+        assert cwd_path.parent.name.startswith(test_module._STAGING_PREFIX)
+        assert cwd_path.parent.parent == entry.parent
         assert not entry.exists()
         return fake_nrnivmodl(cmd, cwd=cwd, **kwargs)
 
@@ -614,7 +615,7 @@ def test__build_mod_files_concurrent(tmp_path):
         results = [f.result() for f in futures]
 
     assert 1 <= len(calls) <= 2
-    assert all(Path(cwd).name.startswith(test_module._STAGING_PREFIX) for cwd in calls)
+    assert all(Path(cwd).parent.name.startswith(test_module._STAGING_PREFIX) for cwd in calls)
     assert results[0]["NRNMECH_LIB_PATH"] != results[1]["NRNMECH_LIB_PATH"]
     entry = test_module._cache_entry_path(
         cache_dir, test_module._cache_entry_key(test_module._get_mod_files([input_dir]), opts)
@@ -777,19 +778,6 @@ def test__materialize_rebuilds_when_entry_disappears_during_copy(tmp_path, caplo
     assert run.call_count == 1
     assert "disappeared while copying" in caplog.text
     assert Path(env["NRNMECH_LIB_PATH"]).exists()
-
-
-def test__discard_staging_logs_at_debug(tmp_path, caplog):
-    entry = tmp_path / "entry"
-    staging = tmp_path / f"{test_module._STAGING_PREFIX}entry-1-deadbeef"
-    staging.mkdir()
-    write(staging / "modules.json", b"{}")
-
-    with caplog.at_level(logging.DEBUG, logger=test_module.L.name):
-        test_module._discard_staging(staging, entry)
-
-    assert not staging.exists()
-    assert "already published, discarding staging" in caplog.text
 
 
 def test__cache_entry_key_different_filename_same_content(tmp_path):

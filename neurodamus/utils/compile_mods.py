@@ -11,6 +11,7 @@ import secrets
 import shutil
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
+import tempfile
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -315,23 +316,19 @@ def _copy_cache_entry(cache_entry: Path, output_dir: Path):
     shutil.copytree(cache_entry, output_dir)
 
 
-def _discard_staging(staging: Path, cache_entry: Path) -> None:
-    """Drop a staging build that lost the publish race to a valid cache entry."""
-    L.debug("Cache entry already published, discarding staging build: %s", cache_entry)
-    shutil.rmtree(staging, ignore_errors=True)
-
-
 def _try_publish_staging(
     staging: Path,
     cache_entry: Path,
     mod_files: dict[Path, str],
     options: Options,
 ) -> str | None:
-    """Publish or reuse `cache_entry`. Returns an error message, or None on success."""
+    """Publish or reuse `cache_entry`. Returns an error message, or None on success.
+
+    On a lost publish race, `staging` is left for the caller (TemporaryDirectory) to clean up.
+    """
     if _publish_cache_entry(staging, cache_entry):
         return None
     if _is_cache_entry_valid(mod_files, cache_entry, options):
-        _discard_staging(staging, cache_entry)
         return None
 
     # Occupied by an invalid leftover (remove may have failed earlier); retry once.
@@ -345,7 +342,6 @@ def _try_publish_staging(
     if _publish_cache_entry(staging, cache_entry):
         return None
     if _is_cache_entry_valid(mod_files, cache_entry, options):
-        _discard_staging(staging, cache_entry)
         return None
 
     return (
@@ -368,17 +364,18 @@ def _compile_into_cache(
     if _is_cache_entry_valid(mod_files, cache_entry, options):
         return
 
-    staging = _staging_dir(cache_entry)
-    try:
+    # Compile under TemporaryDirectory/build so a successful rename moves `build` out and the
+    # container cleanup never deletes the published cache entry.
+    cache_entry.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        dir=cache_entry.parent,
+        prefix=f"{_STAGING_PREFIX}{cache_entry.name}-",
+        ignore_cleanup_errors=True,
+    ) as container:
+        staging = Path(container) / "build"
         _compile(mod_files, staging, nrnivmodl, options)
-        error = _try_publish_staging(staging, cache_entry, mod_files, options)
-    except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
-        raise
-
-    if error:
-        shutil.rmtree(staging, ignore_errors=True)
-        raise RuntimeError(error)
+        if error := _try_publish_staging(staging, cache_entry, mod_files, options):
+            raise RuntimeError(error)
 
     if not _is_cache_entry_valid(mod_files, cache_entry, options):
         msg = (
