@@ -113,11 +113,13 @@ class CompartmentMapping:
         """
         gidvec = self.cell_distributor.getGidListForProcessor()
 
-        # Open LFP electrode readers from reports (validates structure upfront)
+        # Open LFP electrode readers from reports (validates structure upfront). CoreNEURON numbers
+        # the LFP reports in the order report.conf lists them, which holds the enabled reports in
+        # the order of SimConfig.reports, so the readers have to follow the same reports.
         readers = [
             LFPFileReader(rep_conf.electrodes_file)
             for rep_conf in SimConfig.reports.values()
-            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp
+            if rep_conf.type == libsonata.SimulationConfig.Report.Type.lfp and rep_conf.enabled
         ]
 
         for gid in gidvec:
