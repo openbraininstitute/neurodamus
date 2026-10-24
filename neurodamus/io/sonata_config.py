@@ -376,7 +376,12 @@ class SonataConfig:
 
     @property
     def parsedReports(self):
-        return {name: self._sim_conf.report(name) for name in self._sim_conf.list_report_names}
+        # Sorted, since libsonata lists the names as a set, which each process iterates in its own
+        # order. Every rank has to see the same one: each lays out its cells' LFP electrode factors
+        # in this order, for CoreNEURON to read in the order of report.conf, written by rank 0.
+        return {
+            name: self._sim_conf.report(name) for name in sorted(self._sim_conf.list_report_names)
+        }
 
     @property
     def parsedModifications(self):
