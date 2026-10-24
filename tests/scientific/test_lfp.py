@@ -175,6 +175,57 @@ def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     npt.assert_allclose(result_data.data[19], t19_data)
 
 
+def _lfp_report(method):
+    return {
+        "type": "lfp",
+        "method": method,
+        "cells": "Mosaic",
+        "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5"),
+        "dt": 0.1,
+        "start_time": 0.0,
+        "end_time": 2.0,
+    }
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "reports": {
+                "lfp_by_cell": _lfp_report("by_cell"),
+                "lfp_sum": _lfp_report("sum"),
+            },
+            "inputs": _COMMON_INPUTS,
+        }
+    },
+], indirect=True)
+@pytest.mark.forked
+def test_ringcircuit_lfp_sum(create_tmp_simulation_config_file):
+    """A summed LFP report holds, per population, the per-cell report summed over its cells."""
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nd.run()
+
+    by_cell = libsonata.ElementReportReader(Path(CoreConfig.output_root) / "lfp_by_cell.h5")
+    summed = libsonata.ElementReportReader(Path(CoreConfig.output_root) / "lfp_sum.h5")
+    assert sorted(summed.get_population_names()) == ["RingA", "RingB"]
+    for population, num_electrodes in (("RingA", 2), ("RingB", 3)):
+        per_cell = by_cell[population].get()
+        electrodes = np.array([element for _node, element in per_cell.ids])
+        expected = np.stack(
+            [per_cell.data[:, electrodes == e].sum(axis=1) for e in range(num_electrodes)], axis=1
+        )
+
+        total = summed[population].get()
+        assert list(summed[population].get_node_ids()) == [0]
+        assert [element for _node, element in total.ids] == list(range(num_electrodes))
+        npt.assert_array_equal(total.times, per_cell.times)
+        # each per-cell value was rounded to float32 before this sum, the summed ones only after
+        npt.assert_allclose(
+            total.data, expected, rtol=1e-5, atol=1e-6 * np.abs(per_cell.data).max()
+        )
+
+
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
     {
         "simconfig_fixture": "ringtest_baseconfig",
