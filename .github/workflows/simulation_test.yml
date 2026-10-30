@@ -85,11 +85,16 @@ jobs:
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
         brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
 
-    - name: sccache build cache
+    - name: sccache and uv caches
       id: cache-sccache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
-        path: ${{ github.workspace }}/cache
+        # Do not cache cache/build: CMake embeds absolute Homebrew/MPI paths that break
+        # after cellar bumps. sccache hashes the compiler and args, so stale entries miss
+        # cleanly instead of failing the configure step.
+        path: |
+          ${{ github.workspace }}/cache/sccache
+          ${{ github.workspace }}/cache/uv
         key: sccache-${{ runner.os }}-${{ github.run_id }}
         restore-keys: sccache-${{ runner.os }}-
 
