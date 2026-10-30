@@ -90,11 +90,8 @@ jobs:
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
         path: ${{ github.workspace }}/cache
-        # Include NEURON_COMMIT so OpenMPI/Homebrew cellar bumps cannot reuse a cache whose
-        # CMake FindMPI paths still point at an uninstalled Cellar version (e.g. 5.0.10 vs 5.0.11).
-        # Do not fall back to bare `sccache-${{ runner.os }}-` — that is how the stale MPI paths return.
-        key: sccache-${{ runner.os }}-${{ env.NEURON_COMMIT }}-${{ github.run_id }}
-        restore-keys: sccache-${{ runner.os }}-${{ env.NEURON_COMMIT }}-
+        key: sccache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: sccache-${{ runner.os }}-
 
     - name: Install sccache
       run: |
