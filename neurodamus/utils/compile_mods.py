@@ -309,11 +309,27 @@ def _compile(
     return _output_files(output_dir, options)
 
 
+def _merge_tree_into(src: Path, dest: Path) -> None:
+    """Copy `src` contents into `dest`, replacing only colliding names.
+
+    Existing files/directories under `dest` that are not present in `src` are kept.
+    Colliding directories from a previous build are replaced wholesale so stale
+    build products cannot linger.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    for item in src.iterdir():
+        target = dest / item.name
+        if item.is_dir():
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
+
+
 def _copy_cache_entry(cache_entry: Path, output_dir: Path):
-    """Replace `output_dir` with a full copy of the compiled cache entry."""
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    shutil.copytree(cache_entry, output_dir)
+    """Materialize compiled cache contents into `output_dir` without deleting it."""
+    _merge_tree_into(cache_entry, output_dir)
 
 
 def _try_publish_staging(
