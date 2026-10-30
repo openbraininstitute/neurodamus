@@ -11,35 +11,52 @@ CONFIG_FILE_MINI = "simulation_config_mini.json"
 CIRCUIT_DIR = "sub_mini5"
 
 
+def _run_neurodamus(tmp_path, *args):
+    """Run neurodamus in `tmp_path` and fail with captured output on non-zero exit."""
+    result = subprocess.run(
+        ["neurodamus", CONFIG_FILE_MINI, *args],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"neurodamus {' '.join(args)} exited {result.returncode}\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    return result
+
+
+def _report_path(tmp_path, sc, name):
+    path = Path(sc.report(name).file_name)
+    return path if path.is_absolute() else tmp_path / path
+
+
 def test_cli_disable_reports(tmp_path):
     with open(SIM_DIR / CONFIG_FILE_MINI, encoding="utf-8") as fd:
         sim_config_data = json.load(fd)
 
     sim_config_data["network"] = str(SIM_DIR / CIRCUIT_DIR / "circuit_config.json")
-    with open(tmp_path / CONFIG_FILE_MINI, "w", encoding="utf-8") as fd:
+    config_path = tmp_path / CONFIG_FILE_MINI
+    with open(config_path, "w", encoding="utf-8") as fd:
         json.dump(sim_config_data, fd)
 
-    subprocess.run(
-        ["neurodamus", CONFIG_FILE_MINI, "--disable-reports"],
-        check=True,
-        capture_output=True,
-        cwd=tmp_path
-    )
+    _run_neurodamus(tmp_path, "--disable-reports")
 
-    sc = libsonata.SimulationConfig.from_file(CONFIG_FILE_MINI)
+    sc = libsonata.SimulationConfig.from_file(str(config_path))
     spikes_path = tmp_path / sc.output.output_dir / "out.h5"
 
     # Spikes are present even if we disable reports
     assert spikes_path.is_file()
 
     for name in sc.list_report_names:
-        report_path = Path(sc.report(name).file_name)
+        report_path = _report_path(tmp_path, sc, name)
         assert not report_path.is_file(), f"File '{report_path}' should NOT exist."
 
-    subprocess.run(["neurodamus", CONFIG_FILE_MINI], cwd=tmp_path, check=True)
+    _run_neurodamus(tmp_path)
     assert spikes_path.is_file()
     for name in sc.list_report_names:
-        report_path = Path(sc.report(name).file_name)
+        report_path = _report_path(tmp_path, sc, name)
         assert report_path.is_file(), f"File '{report_path}' not found."
 
 
