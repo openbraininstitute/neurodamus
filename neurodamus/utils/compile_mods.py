@@ -310,10 +310,21 @@ def _compile(
 
 
 def _copy_cache_entry(cache_entry: Path, output_dir: Path):
-    """Replace `output_dir` with a full copy of the compiled cache entry."""
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    shutil.copytree(cache_entry, output_dir)
+    """Materialize compiled cache contents into `output_dir` without deleting it.
+
+    Existing files/directories under `output_dir` that are not in the cache entry
+    are kept. Colliding directories from a previous build are replaced wholesale
+    so stale build products cannot linger.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for item in cache_entry.iterdir():
+        target = output_dir / item.name
+        if item.is_dir():
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
 
 
 def _try_publish_staging(

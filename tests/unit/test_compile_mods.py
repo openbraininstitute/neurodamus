@@ -973,6 +973,31 @@ def test__cache_hit_rematerializes_removed_output(tmp_path):
         assert Path(env["NRNMECH_LIB_PATH"]).exists()
 
 
+def test__cache_hit_preserves_unrelated_output_files(tmp_path):
+    """Materialize must not delete co-located files (e.g. staged circuit_config.json)."""
+    cache_dir = tmp_path / "cache"
+    input_dir = tmp_path / "inputs"
+    output_dir = tmp_path / "circuit"
+    write(input_dir / "a.mod", b"mod file")
+    opts = options()
+
+    with patch("neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl):
+        test_module._build_mod_files([input_dir], output_dir, "echo", opts, cache_dir)
+
+    staged = write(output_dir / "circuit_config.json", b'{"network": "x"}')
+    sibling = write(output_dir / "morphologies" / "cell.swc", b"1 1 0 0 0 1 -1")
+
+    with patch(
+        "neurodamus.utils.compile_mods.subprocess.run", side_effect=fake_nrnivmodl
+    ) as mock_run:
+        test_module._build_mod_files([input_dir], output_dir, "echo", opts, cache_dir)
+        mock_run.assert_not_called()
+
+    assert staged.read_bytes() == b'{"network": "x"}'
+    assert sibling.read_bytes() == b"1 1 0 0 0 1 -1"
+    assert test_module._get_dynamic_file(output_dir, "libnrnmech").exists()
+
+
 def test__build_parser_destination():
     parser = test_module.build_parser()
 
