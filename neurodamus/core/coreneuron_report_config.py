@@ -39,6 +39,8 @@ class CoreReportConfigEntry:
     end_time: float
     buffer_size: int
     scaling: str
+    # last, and with a default, since lines written before it existed end with the scaling
+    method: str = "by_cell"
 
     # public lists
     gids: list[int] = field(default_factory=list, init=False)
@@ -168,6 +170,7 @@ class CoreReportConfigEntry:
             end_time=rep_params.end,
             buffer_size=rep_params.buffer_size,
             scaling=rep_params.scaling.name,
+            method=rep_params.method.name,
         )
         if rep_params.type == libsonata.SimulationConfig.Report.Type.compartment_set:
             gids = [i.gid for i in rep_params.points for _section_id, _sec, _x in i]
