@@ -28,6 +28,29 @@ pytest.register_assert_rewrite("tests.utils")
 # AssertError 3 =/= 4
 
 
+def pytest_configure(config):
+    """Make pytest-forked work with pytest >= 9.2.
+
+    pytest 9.2 stores a NodeId in TestReport._id (nodeid is a property). That object
+    is not marshalable, so stock pytest-forked 1.7.5 exits every forked child with
+    status 3. Same fix as https://github.com/pytest-dev/pytest-forked/pull/112.
+    """
+    try:
+        import pytest_forked
+    except ImportError:
+        return
+
+    _orig = pytest_forked.serialize_report
+
+    def serialize_report(rep):
+        d = _orig(rep)
+        if "_id" in d:
+            d["nodeid"] = str(d.pop("_id"))
+        return d
+
+    pytest_forked.serialize_report = serialize_report
+
+
 SIM_DIR = Path(__file__).parent.absolute() / "simulations"
 USECASE3 = SIM_DIR / "usecase3"
 V5_SONATA = SIM_DIR / "v5_sonata"
