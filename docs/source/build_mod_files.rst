@@ -48,17 +48,14 @@ If ``neurodamus-nrnivmodl`` is on the PATH, `neurodamus-compile-mods` will use t
 
 It is assumed that ``neurodamus-nrnivmodl`` provides the same interface as ``nrnivmodl``, but adds any custom requirements for extra libraries (ie: `libsonatareport`.)
 
-The tool can handle files with the same content, and ones with duplicate names.
-The former are deduplicated, so there aren't symbol collisions.
-For files with duplicate names, the following precedence applies (highest first); on a
-collision the higher-precedence source wins:
+Files with identical content are deduplicated so there aren't symbol collisions.
+When two files share a name, the following precedence applies (highest first), and on a collision the higher-precedence source wins:
 
 1. ``--input-dir`` (if given, wins)
 2. circuit ``mechanisms_dir`` (specific to the circuit, via ``--circuit-config``)
 3. ``--with-internal-mods`` (specific to the tool)
 
-When multiple ``--input-dir`` directories are given, earlier ones on the command line
-win over later ones.
+When multiple ``--input-dir`` directories are given, earlier ones on the command line win over later ones.
 
 Caching
 -------
