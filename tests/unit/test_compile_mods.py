@@ -74,7 +74,7 @@ def test__get_mod_files(tmp_path, caplog):
 
     write(d1 / "x.mod", b"content_x")
     write(d2 / "y.mod", b"content_y")
-    write(d2 / "x.mod", b"content_x_override")  # same name in d2 overrides d1
+    write(d2 / "x.mod", b"content_x_override")  # same name in d2 is ignored; d1 wins
     write(d2 / "z.mod", b"content_y")  # same content as `y.mod`
 
     with caplog.at_level(logging.WARNING):
@@ -82,15 +82,13 @@ def test__get_mod_files(tmp_path, caplog):
 
     assert "Already seen `x.mod`" in caplog.text
     assert f"Already seen `x.mod` ({d1.absolute() / 'x.mod'})" in caplog.text
-    assert f"overriding with `{d2.absolute() / 'x.mod'}`" in caplog.text
-    assert (
-        "Already added a file with the same contents: 531ba6ac24a2ebde442987529f07e697"
-        in caplog.text
-    )
+    assert f"ignoring `{d2.absolute() / 'x.mod'}`" in caplog.text
+    assert "Already added a file with the same contents" in caplog.text
     names = {p.name for p in res}
     assert "x.mod" in names
     assert "y.mod" in names
-    assert next(p for p in res if p.name == "x.mod").parent == d2.absolute()
+    # First directory wins on a basename collision.
+    assert next(p for p in res if p.name == "x.mod").parent == d1.absolute()
 
 
 def test__generate_mod_metadata(tmp_path):
@@ -221,6 +219,193 @@ def test__build_mod_filess(tmp_path):
         test_module._build_mod_files([input_dir], tmp_path, "echo", options)
 
         test_module._build_mod_files([input_dir], tmp_path, "echo", options)
+
+
+def _run_compile_mods_capture(tmp_path, *, input_dirs, circuit_dirs, internal_dirs):
+    """Drive `compile_mods()` with stubbed discovery and capture the selected mod files.
+
+    `input_dirs` are passed as repeated `--input-dir` arguments (order preserved).
+    `circuit_dirs` / `internal_dirs` are injected via the discovery helpers, mirroring
+    what `--circuit-config` and `--with-internal-mods` would contribute.
+    """
+    captured = {}
+
+    def capture_build(resolved_dirs, output_dir, nrnivmodl, options, cache_dir=None):
+        captured["input_dirs"] = resolved_dirs
+        captured["mod_files"] = test_module._get_mod_files(resolved_dirs)
+        return {"NRNMECH_LIB_PATH": str(tmp_path / "lib.so"), "SPECIALS_PATH": str(tmp_path)}
+
+    argv = ["neurodamus-compile-mods", "--output-dir", str(tmp_path / "output")]
+    if input_dirs:
+        # `--input-dir` uses nargs="*", so pass all directories after a single flag;
+        # repeating the flag would keep only the last occurrence.
+        argv += ["--input-dir", *[str(d) for d in input_dirs]]
+    if circuit_dirs:
+        argv += ["--circuit-config", str(tmp_path / "circuit_config.json")]
+    if internal_dirs:
+        argv += ["--with-internal-mods"]
+    argv += ["--nrnivmodl", "/bin/echo"]
+
+    with (
+        patch.object(sys, "argv", argv),
+        patch("neurodamus.utils.compile_mods._resolve_nrnivmodl", return_value="/bin/echo"),
+        patch("neurodamus.utils.compile_mods._toolchain_id", return_value="toolchain-a"),
+        patch(
+            "neurodamus.utils.compile_mods._extract_mechanisms_dir",
+            return_value=list(circuit_dirs),
+        ),
+        patch(
+            "neurodamus.utils.compile_mods._internal_mods_path", return_value=list(internal_dirs)
+        ),
+        patch("neurodamus.utils.compile_mods._build_mod_files", side_effect=capture_build),
+    ):
+        test_module.compile_mods()
+
+    return {p.name: p for p in captured["mod_files"]}, captured["input_dirs"]
+
+
+def test_compile_mods_three_way_collision_input_dir_wins(tmp_path):
+    """On a three-way collision, `--input-dir` wins over circuit and internal."""
+    input_dir = tmp_path / "input"
+    circuit_dir = tmp_path / "circuit"
+    internal_dir = tmp_path / "internal"
+    write(input_dir / "common.mod", b"from-input")
+    write(circuit_dir / "common.mod", b"from-circuit")
+    write(internal_dir / "common.mod", b"from-internal")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path,
+        input_dirs=[input_dir],
+        circuit_dirs=[circuit_dir],
+        internal_dirs=[internal_dir],
+    )
+
+    assert selected["common.mod"].parent == input_dir.absolute()
+
+
+def test_compile_mods_input_dir_wins_over_circuit(tmp_path):
+    """Pairwise: `--input-dir` wins over circuit `mechanisms_dir`."""
+    input_dir = tmp_path / "input"
+    circuit_dir = tmp_path / "circuit"
+    write(input_dir / "a.mod", b"from-input")
+    write(circuit_dir / "a.mod", b"from-circuit")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path, input_dirs=[input_dir], circuit_dirs=[circuit_dir], internal_dirs=[]
+    )
+
+    assert selected["a.mod"].parent == input_dir.absolute()
+
+
+def test_compile_mods_input_dir_wins_over_internal(tmp_path):
+    """Pairwise: `--input-dir` wins over `--with-internal-mods`."""
+    input_dir = tmp_path / "input"
+    internal_dir = tmp_path / "internal"
+    write(input_dir / "a.mod", b"from-input")
+    write(internal_dir / "a.mod", b"from-internal")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path, input_dirs=[input_dir], circuit_dirs=[], internal_dirs=[internal_dir]
+    )
+
+    assert selected["a.mod"].parent == input_dir.absolute()
+
+
+def test_compile_mods_circuit_wins_over_internal(tmp_path):
+    """Pairwise: circuit `mechanisms_dir` wins over `--with-internal-mods`."""
+    circuit_dir = tmp_path / "circuit"
+    internal_dir = tmp_path / "internal"
+    write(circuit_dir / "a.mod", b"from-circuit")
+    write(internal_dir / "a.mod", b"from-internal")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path, input_dirs=[], circuit_dirs=[circuit_dir], internal_dirs=[internal_dir]
+    )
+
+    assert selected["a.mod"].parent == circuit_dir.absolute()
+
+
+def test_compile_mods_earlier_input_dir_wins_over_later(tmp_path):
+    """Among multiple `--input-dir` directories, the earlier one wins a collision."""
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    write(first / "a.mod", b"first")
+    write(second / "a.mod", b"second")
+
+    selected, resolved = _run_compile_mods_capture(
+        tmp_path, input_dirs=[first, second], circuit_dirs=[], internal_dirs=[]
+    )
+
+    # `--input-dir` entries keep their command-line order (highest precedence first).
+    assert resolved[:2] == [first.absolute(), second.absolute()]
+    assert selected["a.mod"].parent == first.absolute()
+
+
+def test_compile_mods_non_colliding_files_all_retained(tmp_path):
+    """Distinct basenames from every source are all kept, regardless of precedence."""
+    input_dir = tmp_path / "input"
+    circuit_dir = tmp_path / "circuit"
+    internal_dir = tmp_path / "internal"
+    write(input_dir / "sci.mod", b"scientific")
+    write(circuit_dir / "circ.mod", b"circuit")
+    write(internal_dir / "intern.mod", b"internal")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path,
+        input_dirs=[input_dir],
+        circuit_dirs=[circuit_dir],
+        internal_dirs=[internal_dir],
+    )
+
+    assert selected["sci.mod"].parent == input_dir.absolute()
+    assert selected["circ.mod"].parent == circuit_dir.absolute()
+    assert selected["intern.mod"].parent == internal_dir.absolute()
+
+
+def test_compile_mods_input_dir_precedence_over_circuit_and_internal(tmp_path):
+    """`--input-dir` wins over circuit `mechanisms_dir`, which wins over internal mods."""
+    input_dir = tmp_path / "input"
+    circuit_dir = tmp_path / "circuit"
+    internal_dir = tmp_path / "internal"
+    # Same basename in all three sources with distinct contents.
+    write(input_dir / "common.mod", b"from-input")
+    write(circuit_dir / "common.mod", b"from-circuit")
+    write(internal_dir / "common.mod", b"from-internal")
+    # A basename shared only by circuit and internal.
+    write(circuit_dir / "circuit_only.mod", b"circuit-only")
+    write(internal_dir / "circuit_only.mod", b"internal-common")
+
+    selected, _ = _run_compile_mods_capture(
+        tmp_path,
+        input_dirs=[input_dir],
+        circuit_dirs=[circuit_dir],
+        internal_dirs=[internal_dir],
+    )
+
+    # --input-dir wins the three-way collision.
+    assert selected["common.mod"].parent == input_dir.absolute()
+    # circuit wins over internal when --input-dir has no such file.
+    assert selected["circuit_only.mod"].parent == circuit_dir.absolute()
+
+
+def test__get_mod_files_precedence_is_first_wins(tmp_path):
+    """Earlier directories override later ones on a basename collision."""
+    high = tmp_path / "high"
+    mid = tmp_path / "mid"
+    low = tmp_path / "low"
+    write(high / "a.mod", b"high")
+    write(mid / "a.mod", b"mid")
+    write(mid / "b.mod", b"mid-b")
+    write(low / "a.mod", b"low")
+    write(low / "b.mod", b"low-b")
+    write(low / "c.mod", b"low-c")
+
+    res = test_module._get_mod_files([high, mid, low])
+    selected = {p.name: p for p in res}
+
+    assert selected["a.mod"].parent == high.absolute()
+    assert selected["b.mod"].parent == mid.absolute()
+    assert selected["c.mod"].parent == low.absolute()
 
 
 def test__build_parser():
