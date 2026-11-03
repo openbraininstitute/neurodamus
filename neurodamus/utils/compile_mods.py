@@ -61,18 +61,22 @@ def _md5sum(path: Path) -> str:
 def _get_mod_files(input_dirs: list[Path]) -> dict[Path, str]:
     """Get all the mod files, with their md5_sum.
 
-    Note: files with the same names; the last one "wins"
+    `input_dirs` is ordered from highest to lowest precedence. On a basename
+    collision the first directory "wins", so earlier directories override later
+    ones. Callers must pass directories in precedence order, e.g.:
+    `--input-dir` > circuit `mechanisms_dir` > `--with-internal-mods`.
     """
     files = {}
     for d in input_dirs:
         for f in d.glob("*.mod"):
             if f.name in files:
                 L.warning(
-                    "Already seen `%s` (%s), overriding with `%s`",
+                    "Already seen `%s` (%s); keeping it and ignoring `%s`",
                     f.name,
                     files[f.name],
                     f.absolute(),
                 )
+                continue
             files[f.name] = f.absolute()
 
     hashed_files = {}
@@ -504,10 +508,29 @@ def _internal_mods_path() -> list[Path]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--with-internal-mods", action="store_true", help="Include neurodamus internal mods"
+        "--with-internal-mods",
+        action="store_true",
+        help=(
+            "Include neurodamus internal mods. Lowest precedence: on a filename "
+            "collision, `--input-dir` and circuit `mechanisms_dir` mods win over these."
+        ),
     )
-    parser.add_argument("--circuit-config", help="Circuit config for `mechanisms_dir` discovery")
-    parser.add_argument("--input-dir", nargs="*", help="Input directory")
+    parser.add_argument(
+        "--circuit-config",
+        help=(
+            "Circuit config for `mechanisms_dir` discovery. Middle precedence: on a "
+            "filename collision, `--input-dir` mods win over these, and these win over "
+            "`--with-internal-mods`."
+        ),
+    )
+    parser.add_argument(
+        "--input-dir",
+        nargs="*",
+        help=(
+            "Input directory. Highest precedence: on a filename collision, mods here win "
+            "over circuit `mechanisms_dir` and `--with-internal-mods`."
+        ),
+    )
     parser.add_argument("--output-dir", required=True, help="Output path for compiled mods")
     parser.add_argument(
         "--cache-dir",
@@ -543,6 +566,11 @@ def compile_mods():
     cache_dir = Path(args.cache_dir).absolute() if args.cache_dir else None
     output_dir = Path(args.output_dir)
 
+    # `input_dirs` is assembled in precedence order (highest first); `_get_mod_files`
+    # is first-wins, so on a filename collision the earlier source overrides later ones:
+    #   1. --input-dir            (if given, wins)
+    #   2. circuit mechanisms_dir (specific to the circuit)
+    #   3. --with-internal-mods   (specific to the tool)
     input_dirs = [Path(d).absolute() for d in args.input_dir] if args.input_dir else []
 
     if args.circuit_config:
