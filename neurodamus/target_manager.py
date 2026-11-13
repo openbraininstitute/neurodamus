@@ -243,6 +243,11 @@ class TargetManager:
 
         raise ConfigurationError(f"Target {target_name} can't be loaded. Check target sources")
 
+    def has_whole_population(self, target_name, population) -> bool:
+        """Whether a target holds every node of a population"""
+        size = self._nodeset_reader and self._nodeset_reader.population_size(population)
+        return bool(size) and self.get_target(target_name, population).gid_count() == size
+
     @lru_cache  # ruff: ignore[cached-instance-method]
     def intersecting(self, target1_spec: TargetSpec, target2_spec: TargetSpec):
         """Checks whether two targets intersect"""
@@ -378,6 +383,11 @@ class NodeSetReader:
 
     def __contains__(self, nodeset_name):
         return nodeset_name in self.nodesets.names
+
+    def population_size(self, pop_name):
+        """Number of nodes in a population, or None if no node file holds it"""
+        storage = self._population_stores.get(pop_name)
+        return storage and storage.open_population(pop_name).size
 
     @property
     def names(self):

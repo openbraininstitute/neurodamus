@@ -12,7 +12,7 @@ from scipy.signal import find_peaks
 
 from tests import utils
 
-from neurodamus.core.configuration import ConfigurationError
+from neurodamus.core.configuration import SimConfig
 from neurodamus import Neurodamus
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.connection import NetConType
@@ -370,17 +370,57 @@ def test_override_globals(create_tmp_simulation_config_file):
             "target_simulator": "NEURON",
             "node_set": "Mosaic",
             "connection_overrides": [
-                {"name": "All->All", "source": "Mosaic", "target": "Mosaic", "weight": 0},
-                {"name": "RingA->RingA", "source": "Mosaic",
-                 "target": "RingA", "weight": 0.1, "delay": 10},
+                {"name": "off", "source": "Mosaic", "target": "Mosaic", "weight": 0},
+                {"name": "on", "source": "RingA_Cell0", "target": "RingA", "weight": 0.5,
+                 "delay": 5},
             ],
         },
     },
 ], indirect=True)
-def test_no_partial_weight0_override(create_tmp_simulation_config_file):
-    with pytest.raises(ConfigurationError,
-                       match="Partial Weight=0 override is not supported: Conn All->All"):
-        Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+def test_partial_reconnect_after_a_full_disconnect(create_tmp_simulation_config_file):
+    """Only the reconnected edge, RingA 0->1, is created: no other edge ever gets a weight"""
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+
+    def netcons(src_pop, src_raw_gid, tgt_pop, tgt_raw_gid):
+        src_gid, tgt_gid, edges, selection = utils.get_edge_data(
+            nd, src_pop, src_raw_gid, tgt_pop, tgt_raw_gid)
+        src_cell = nd._pc.gid2cell(src_gid)
+        nclist = Nd.cvode.netconlist(src_cell, nd._pc.gid2cell(tgt_gid), "")
+        return src_gid, src_cell, nclist, edges, selection
+
+    for pathway in (("RingA", 1, "RingA", 2), ("RingA", 2, "RingA", 0),
+                    ("RingB", 1, "RingB", 0), ("RingB", 0, "RingB", 1), ("RingA", 0, "RingB", 0)):
+        assert len(netcons(*pathway)[2]) == 0, pathway
+
+    src_gid, _, nclist, edges, selection = netcons("RingA", 0, "RingA", 1)
+    utils.check_netcons(src_gid, nclist, edges, selection, weight=0)
+    nd.solve(6.0)
+    src_gid, src_cell, nclist, edges, selection = netcons("RingA", 0, "RingA", 1)
+    utils.check_netcons(src_gid, nclist, edges, selection, weight=0.5,
+                        v_init=src_cell.soma[0](0.5).v)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "A2B", "source": "RingA", "target": "RingB", "modoverride": "GABAAB"},
+                {"name": "off", "source": "Mosaic", "target": "Mosaic", "weight": 0},
+                {"name": "on", "source": "RingA", "target": "RingB", "weight": 1, "delay": 5},
+            ],
+        },
+    },
+], indirect=True)
+def test_reconnected_synapses_keep_their_modoverride(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    src_gid, tgt_gid, edges, selection = utils.get_edge_data(nd, "RingA", 0, "RingB", 0)
+    nclist = Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")
+    utils.check_netcons(src_gid, nclist, edges, selection, weight=0)
+    for nc in nclist:
+        utils.check_synapse(nc.syn(), edges, selection, hname="ProbGABAAB_EMS")
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -518,3 +558,63 @@ def test_overriding_chain_warning2(create_tmp_simulation_config_file, monkeypatc
     captured = "\n".join(record.getMessage() for record in captured)
 
     assert all(msg in captured for msg in required_messages)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [override],
+        },
+    }
+    for override in (
+        {"name": "A0->A", "source": "RingA_Cell0", "target": "RingA", "weight": 0},
+        {"name": "A->A", "source": "RingA", "target": "RingA", "weight": 0, "delay": 5},
+        {"name": "A0->A", "source": "RingA_Cell0", "target": "RingA",
+         "synapse_configure": "%s.Fac = 1001.1"},
+    )
+], indirect=True)
+def test_edges_outside_overrides_are_created(create_tmp_simulation_config_file):
+    """Overrides only adjust the edges they match, so all of RingA's ring 0->1->2->0 is created"""
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    conf = SimConfig.connections[0]
+    for src_raw_gid, tgt_raw_gid in ((0, 1), (1, 2), (2, 0)):
+        src_gid, tgt_gid, edges, selection = utils.get_edge_data(
+            nd, "RingA", src_raw_gid, "RingA", tgt_raw_gid)
+        nclist = Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")
+        zero = src_raw_gid == 0 and conf.weight == 0 and not conf.delay
+        utils.check_netcons(src_gid, nclist, edges, selection, weight=0 if zero else 1)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", [
+    {
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": [
+                {"name": "off", "source": "RingA", "target": "RingA", "weight": 0},
+                {"name": "on", "source": "RingA", "target": "RingA", "weight": 1, "delay": 5},
+            ],
+        },
+    }
+], indirect=True)
+def test_disconnect_then_reconnect_creates_the_whole_pathway(create_tmp_simulation_config_file):
+    """The whole ring is created at weight 0, and its weights come back at the reconnect"""
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    ring = ((0, 1), (1, 2), (2, 0))
+
+    def check(weight, after_run=False):
+        for src_raw_gid, tgt_raw_gid in ring:
+            src_gid, tgt_gid, edges, selection = utils.get_edge_data(
+                nd, "RingA", src_raw_gid, "RingA", tgt_raw_gid)
+            src_cell = nd._pc.gid2cell(src_gid)
+            nclist = Nd.cvode.netconlist(src_cell, nd._pc.gid2cell(tgt_gid), "")
+            v_init = {"v_init": src_cell.soma[0](0.5).v} if after_run else {}
+            utils.check_netcons(src_gid, nclist, edges, selection, weight=weight, **v_init)
+
+    check(0)
+    nd.solve(6.0)
+    check(1, after_run=True)

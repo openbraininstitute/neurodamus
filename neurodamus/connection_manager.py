@@ -370,17 +370,17 @@ class ConnectionManagerBase:
             yield from pop.get_connections(post_gids, pre_gids)
 
     def create_connections(self, src_target=None, dst_target=None, get_conn_stats=False):
-        """Creates connections according to loaded parameters in 'Connection'
-        blocks of the config in the currently active ConnectionSet.
+        """Creates the connections of the currently active ConnectionSet.
 
-        If no Connection block relates to the current population, then load all
-        edges. If a single blocks exists with Weight=0, skip creation entirely.
+        Every edge is created: Connection blocks only adjust the edges they match.
+        Matching blocks without delay create their pathways first, so that their
+        modoverride applies. The exception is a block setting weight=0 from t=0 on
+        every edge: then only the edges that a later block gives a weight back are
+        created, and none if no block does.
 
-        NOTE: All connections respecting the src_target are retrieved
-        and created, even if they use src cells which are NOT instantiated.
-        This is to support replay and other stimulus which dont need the src cell.
-        If only a subset of connections is wanted, they can be filtered by specifying
-        the "source" attribute of the respective connection blocks.
+        NOTE: Connections are created even if they use src cells which are NOT
+        instantiated. This is to support replay and other stimulus which dont need
+        the src cell.
 
         Args:
             src_target: Target name to restrict creating connections coming from it
@@ -405,9 +405,15 @@ class ConnectionManagerBase:
             self.connect_all(get_conn_stats=get_conn_stats)
             return
 
-        # if we have a single connect block with weight=0, skip synapse creation entirely
-        if len(matching_conns) == 1 and np.isclose(matching_conns[0].weight, 0.0):
-            logging.warning("SKIPPING Connection create since they have invariably weight=0")
+        disconnects = [
+            i for i, conn in enumerate(matching_conns) if self._zero_weight_on_all_edges(conn)
+        ]
+        if disconnects:
+            self._create_reconnected(matching_conns, disconnects[-1], get_conn_stats)
+            return
+
+        if get_conn_stats:
+            self.connect_all(get_conn_stats=True)
             return
 
         logging.info("Creating group connections (%d groups match)", len(matching_conns))
@@ -420,9 +426,50 @@ class ConnectionManagerBase:
             conn_dst = conn_conf.destination
             synapse_id = None
             modoverride = conn_conf.modoverride
+            self.connect_group(conn_src, conn_dst, synapse_id, modoverride)
+
+        logging.info("Creating the connections no group matched")
+        self.connect_all()
+
+    def _create_reconnected(self, matching_conns, disconnect_index, get_conn_stats):
+        """Create only the edges that can carry a weight after a disconnect of every edge.
+
+        Those are the edges of the blocks that set a weight after the disconnect, and of
+        the delayed blocks, which apply at their time whatever their position.
+        """
+        reconnects = [
+            conn
+            for i, conn in enumerate(matching_conns)
+            if not np.isclose(conn.weight, 0.0) and (conn.delay or i > disconnect_index)
+        ]
+        if not reconnects:
+            logging.warning("SKIPPING Connection create since they have invariably weight=0")
+            return
+
+        # Delayed blocks only change weights, so the synapses keep the modoverride of the
+        # blocks without delay, whose parameters must be read when the synapses are created
+        for conn in matching_conns:
+            if not conn.delay and conn.modoverride:
+                self._synapse_reader.configure_override(conn.modoverride)
+
+        logging.info("Creating the connections of %d groups after a disconnect", len(reconnects))
+        for conn in reconnects:
+            modoverride = None if conn.delay else conn.modoverride
             self.connect_group(
-                conn_src, conn_dst, synapse_id, modoverride, get_conn_stats=get_conn_stats
+                conn.source, conn.destination, None, modoverride, get_conn_stats=get_conn_stats
             )
+
+    def _zero_weight_on_all_edges(self, conn_conf):
+        """Whether a Connection block sets weight=0 from t=0 on every edge of the population"""
+        if conn_conf.delay or not np.isclose(conn_conf.weight, 0.0):
+            return False
+        pop = self.current_population
+        dst_target = self._target_manager.get_target(conn_conf.destination, pop.dst_pop_name)
+        covered = self._target_manager.has_whole_population(
+            conn_conf.source, pop.src_pop_name
+        ) and np.all(dst_target.contains(self._raw_gids, raw_gids=True))
+        # All ranks must agree, since creating connections is collective
+        return MPI.allreduce(int(not covered), MPI.SUM) == 0
 
     def configure_connections(self, conn_conf):
         """Configure-only circuit connections according to a config Connection block
@@ -478,6 +525,8 @@ class ConnectionManagerBase:
                 conn_options["synapses_offset"] = extra_params["synapse_index"][0]
             # Create all synapses. No need to lock since the whole file is consumed
             cur_conn = pop.get_or_create_connection(sgid, tgid, **conn_options)
+            if cur_conn.locked:  # Already created by connect_group
+                continue
             self._add_synapses(cur_conn, syns_params, None, offset)
 
     def connect_group(
@@ -983,7 +1032,7 @@ class SynapseRuleManager(ConnectionManagerBase):
     """The SynapseRuleManager is designed to encapsulate the creation of
     synapses for BlueBrain simulations, handling the data coming from
     the circuit file. If the config file provides any Connection
-    Rules, those override which synapses are created.
+    Rules, those adjust the synapses they match.
 
     Note that the Connection rules are processed with the assumption
     that they come in the config file from more general to more specific.
