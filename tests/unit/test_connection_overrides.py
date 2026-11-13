@@ -4,8 +4,10 @@ Reference:
 https://sonata-extension.readthedocs.io/en/latest/sonata_simulation.html#connection-overrides
 """
 
+import json
 import logging
 
+import libsonata
 import numpy as np
 import pytest
 from scipy.signal import find_peaks
@@ -16,6 +18,20 @@ from neurodamus.core.configuration import SimConfig
 from neurodamus import Neurodamus
 from neurodamus.core import NeuronWrapper as Nd
 from neurodamus.connection import NetConType
+
+
+def _unset_weight_is_none():
+    config = {
+        "run": {"tstop": 1, "dt": 0.1, "random_seed": 1},
+        "connection_overrides": [{"name": "x", "source": "a", "target": "b"}],
+    }
+    overrides = libsonata.SimulationConfig(json.dumps(config), "/").connection_overrides()
+    return overrides[0].weight is None
+
+
+needs_unset_weight = pytest.mark.skipif(
+    not _unset_weight_is_none(), reason="libsonata gives an unset override weight the value 1"
+)
 
 
 @pytest.mark.parametrize("create_tmp_simulation_config_file", [
@@ -618,3 +634,87 @@ def test_disconnect_then_reconnect_creates_the_whole_pathway(create_tmp_simulati
     check(0)
     nd.solve(6.0)
     check(1, after_run=True)
+
+
+def _ringtest_overrides(*overrides):
+    return [{
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "NEURON",
+            "node_set": "Mosaic",
+            "connection_overrides": list(overrides),
+        },
+    }]
+
+
+FAC_A2A = {"name": "fac", "source": "RingA", "target": "RingA",
+           "synapse_configure": "%s.Fac = 1002.1"}
+
+
+@needs_unset_weight
+@pytest.mark.parametrize("create_tmp_simulation_config_file", _ringtest_overrides(
+    {"name": "half", "source": "RingA", "target": "RingA", "weight": 0.5}, FAC_A2A,
+), indirect=True)
+def test_an_override_without_weight_keeps_the_earlier_weight(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    src_gid, tgt_gid, edges, selection = utils.get_edge_data(nd, "RingA", 0, "RingA", 1)
+    nclist = Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")
+    utils.check_netcons(src_gid, nclist, edges, selection, weight=0.5)
+    for nc in nclist:
+        utils.check_synapse(nc.syn(), edges, selection, facilitation_time=1002.1)
+
+
+@needs_unset_weight
+@pytest.mark.parametrize("create_tmp_simulation_config_file", _ringtest_overrides(
+    {"name": "off", "source": "Mosaic", "target": "Mosaic", "weight": 0}, FAC_A2A,
+), indirect=True)
+def test_an_override_without_weight_does_not_reconnect(create_tmp_simulation_config_file):
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    for src_raw_gid, tgt_raw_gid in ((0, 1), (1, 2), (2, 0)):
+        src_gid, tgt_gid, _, _ = utils.get_edge_data(nd, "RingA", src_raw_gid, "RingA", tgt_raw_gid)
+        assert len(Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")) == 0
+
+
+@needs_unset_weight
+@pytest.mark.parametrize("create_tmp_simulation_config_file", _ringtest_overrides(
+    {"name": "late", "source": "RingA", "target": "RingA", "delay": 5,
+     "synapse_configure": "%s.Fac = 1002.1"},
+), indirect=True)
+def test_a_delayed_override_without_weight_is_ignored(
+    create_tmp_simulation_config_file, monkeypatch
+):
+    captured = []
+    monkeypatch.setattr(logging.Logger, "handle", lambda _self, record: captured.append(record))
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    messages = [record.getMessage() for record in captured]
+    assert "Connection late has a delay but no weight: ignored" in messages
+    src_gid, tgt_gid, edges, selection = utils.get_edge_data(nd, "RingA", 0, "RingA", 1)
+    nclist = Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")
+    nd.solve(6.0)
+    utils.check_netcons(src_gid, nclist, edges, selection, weight=1,
+                        v_init=nd._pc.gid2cell(src_gid).soma[0](0.5).v)
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", _ringtest_overrides(
+    {"name": "minis", "source": "RingA", "target": "RingB", "spont_minis": 200},
+    {"name": "fac", "source": "RingA", "target": "RingB", "synapse_configure": "%s.Fac = 1002.1"},
+), indirect=True)
+def test_an_override_without_spont_minis_keeps_the_earlier_rate(
+    create_tmp_simulation_config_file,
+):
+    nd = Neurodamus(create_tmp_simulation_config_file)
+    nclist = Nd.cvode.netconlist("", nd._pc.gid2cell(1000), "")
+    assert [nc.srcgid() for nc in nclist] == [0, 1001, -1]
+
+
+@pytest.mark.parametrize("create_tmp_simulation_config_file", _ringtest_overrides(
+    {"name": "slow", "source": "RingA", "target": "RingA", "synapse_delay_override": 1004.1},
+    FAC_A2A,
+), indirect=True)
+def test_an_override_without_delay_override_keeps_the_earlier_one(
+    create_tmp_simulation_config_file,
+):
+    nd = Neurodamus(create_tmp_simulation_config_file, disable_reports=True)
+    src_gid, tgt_gid, edges, selection = utils.get_edge_data(nd, "RingA", 0, "RingA", 1)
+    nclist = Nd.cvode.netconlist(nd._pc.gid2cell(src_gid), nd._pc.gid2cell(tgt_gid), "")
+    utils.check_netcons(src_gid, nclist, edges, selection, delay=1004.1)

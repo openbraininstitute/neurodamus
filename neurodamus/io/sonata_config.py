@@ -26,7 +26,7 @@ class ConnectionOverride:
     name: str
     source: str
     destination: str
-    weight: float
+    weight: float | None
     spont_minis: float | None = None
     synapse_configure: dict | None = None
     modoverride: str | None = None

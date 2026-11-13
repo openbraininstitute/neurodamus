@@ -440,7 +440,9 @@ class ConnectionManagerBase:
         reconnects = [
             conn
             for i, conn in enumerate(matching_conns)
-            if not np.isclose(conn.weight, 0.0) and (conn.delay or i > disconnect_index)
+            if conn.weight is not None
+            and not np.isclose(conn.weight, 0.0)
+            and (conn.delay or i > disconnect_index)
         ]
         if not reconnects:
             logging.warning("SKIPPING Connection create since they have invariably weight=0")
@@ -461,7 +463,7 @@ class ConnectionManagerBase:
 
     def _zero_weight_on_all_edges(self, conn_conf):
         """Whether a Connection block sets weight=0 from t=0 on every edge of the population"""
-        if conn_conf.delay or not np.isclose(conn_conf.weight, 0.0):
+        if conn_conf.delay or conn_conf.weight is None or not np.isclose(conn_conf.weight, 0.0):
             return False
         pop = self.current_population
         dst_target = self._target_manager.get_target(conn_conf.destination, pop.dst_pop_name)
@@ -480,6 +482,10 @@ class ConnectionManagerBase:
         log_msg = f" * Pathway {conn_conf.source:s} -> {conn_conf.destination:s}"
 
         if conn_conf.delay is not None and conn_conf.delay > 0:
+            if conn_conf.weight is None:
+                # A delay only applies the weight, so there is nothing to apply
+                logging.warning("Connection %s has a delay but no weight: ignored", conn_conf.name)
+                return
             log_msg += f":\t[DELAYED] t={conn_conf.delay:g}, weight={conn_conf.weight:g}"
             configured_conns = self.setup_delayed_connection(conn_conf)
         else:
@@ -910,10 +916,14 @@ class ConnectionManagerBase:
             )
 
         configured_conns = 0
+        # A block changes only the fields it sets, so later blocks refine earlier ones
         for conn in self.get_target_connections(src_target, dst_target, gidvec):
-            conn.weight_factor = conn_config.weight
-            conn.minis_spont_rate = conn_config.spont_minis
-            conn.syndelay_override = conn_config.synapse_delay_override
+            if conn_config.weight is not None:
+                conn.weight_factor = conn_config.weight
+            if conn_config.spont_minis is not None:
+                conn.minis_spont_rate = conn_config.spont_minis
+            if conn_config.synapse_delay_override is not None:
+                conn.syndelay_override = conn_config.synapse_delay_override
             if conn_config.neuromodulation_strength is not None:
                 conn.neuromod_strength = conn_config.neuromodulation_strength
             if conn_config.neuromodulation_dtc is not None:
