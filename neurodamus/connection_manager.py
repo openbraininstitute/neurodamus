@@ -16,6 +16,7 @@ from .core import MPI, NeuronWrapper as Nd, ProgressBarRank0 as ProgressBar, run
 from .core.configuration import ConfigurationError, GlobalConfig, SimConfig
 from .io.sonata_config import ConnectionTypes
 from .io.synapse_reader import SonataReader
+from .replay import SpikeManager
 from .target_manager import TargetManager, TargetSpec
 from .utils import compat
 from .utils.logging import VERBOSE_LOGLEVEL, log_all, log_verbose
@@ -38,6 +39,7 @@ class ConnectionSet:
         self.src_pop_name = None
         self.dst_pop_name = None
         self.virtual_source = False
+        self.replayed_srcs = None  # Raw gids of the replayed sources. None: keep all connections
         self._conn_factory = conn_factory
         self._connections_map = defaultdict(list)
         self._conn_count = 0
@@ -606,6 +608,20 @@ class ConnectionManagerBase:
             return {"synapse_index": syn_index}
         return {}
 
+    def _drop_silent_ranges(self, ranges, sgids, tgid):
+        """Drop the connections that nothing can activate.
+
+        These are the connections from a source that is not replayed, into a cell without minis.
+        """
+        replayed_srcs = self._cur_population.replayed_srcs
+        if replayed_srcs is None:
+            return ranges
+        cell = self._cell_manager.get_cell(tgid)
+        if cell.inh_mini_frequency or cell.exc_mini_frequency:
+            return ranges
+        replayed = np.isin(sgids[[start for start, _ in ranges]], replayed_srcs)
+        return [rng for rng, is_replayed in zip(ranges, replayed, strict=True) if is_replayed]
+
     def _iterate_conn_params(  # ruff: ignore[too-many-locals]
         self,
         src_target,
@@ -666,6 +682,7 @@ class ConnectionManagerBase:
             n_yielded_conns, allowed_ranges = self._get_allowed_ranges(
                 src_target, sgids, sgids_ranges, conn_count
             )
+            allowed_ranges = self._drop_silent_ranges(allowed_ranges, sgids, tgid)
 
             for range_start, range_end in allowed_ranges:
                 sgid = int(sgids[range_start])
@@ -1040,6 +1057,23 @@ class SynapseRuleManager(ConnectionManagerBase):
             conn.add_delayed_weight(delay, new_weight)
             configured_conns += 1
         return configured_conns
+
+    def skip_unreplayed_connections(self, stimuli):
+        """Create only the connections from sources that a SynapseReplay stimulus spikes.
+
+        Applies to the population opened last. Call before `create_connections`.
+        The Source and Target of the stimuli are ignored: it keeps a superset of what `replay` uses.
+        """
+        pop = self._cur_population
+        spiking = [
+            SpikeManager.read_spiking_gids(stim["SpikeFile"], pop.src_pop_name)
+            for stim in stimuli
+            if stim["Pattern"] == "SynapseReplay"
+        ]
+        pop.replayed_srcs = np.concatenate([np.empty(0, dtype="int64"), *spiking])
+        logging.info(
+            " * Creating connections only from %d replayed sources", len(pop.replayed_srcs)
+        )
 
     @timeit(name="Replay inject")
     def replay(self, spike_manager, src_target_name, dst_target_name, start_delay=0.0):

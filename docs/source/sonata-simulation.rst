@@ -106,6 +106,28 @@ Notice that, by default the filtering rules or node IDs try to match against all
 populations, and therefore specifying which population the rules should apply is generally required.
 
 
+Replay and the connections of virtual populations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The edges whose source is a virtual node population can only transmit if a ``synapse_replay`` input spikes their source.
+Neurodamus therefore only creates the connections of the sources that spike in the spikes files of the ``synapse_replay`` inputs.
+This saves the memory of the synapses that would stay silent, e.g. about 20 times fewer synapses when 5% of the sources are replayed.
+The edges of a virtual population that no input replays are not created at all.
+The ``Source`` and ``Target`` of the inputs are not considered, so the connections created are a superset of the ones that the replay activates, and the results of the simulation do not change.
+
+A cell with ``exc_mini_frequency`` or ``inh_mini_frequency`` greater than zero in its node population keeps all of its connections, because spontaneous minis fire in all the synapses of the cell, replayed or not.
+
+All the connections are created, as if the replay was not considered, when any of these applies:
+
+- Any ``connection_overrides`` block sets a ``spont_minis`` rate other than zero, for any pathway.
+- The simulation has a report of type ``synapse``, which records every synapse of the cell.
+- The model is built in more than one cycle (CoreNEURON).
+- The Replay feature is disabled.
+
+The log shows ``Creating connections only from N replayed sources`` for each projection where connections are skipped.
+The dry run (``--dry-run``) does not skip connections, so it overestimates the memory of these simulations.
+
+
 Additional Examples
 -------------------
 

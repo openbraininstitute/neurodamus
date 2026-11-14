@@ -772,11 +772,29 @@ class Node:
                 logging.debug("Using connection manager: %s", conn_manager)
                 proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
+                if self._can_skip_unreplayed_connections(ptype, conn_manager):
+                    conn_manager.skip_unreplayed_connections(SimConfig.stimuli)
                 conn_manager.create_connections(
                     source_t.name,
                     dest_t.name,
                     get_conn_stats=kw.get("get_conn_stats", SimConfig.dry_run),
                 )
+
+    def _can_skip_unreplayed_connections(self, ptype, conn_manager):
+        """Whether connections from a virtual source that no replay drives can be left out"""
+        return (
+            ptype == ConnectionTypes.Synaptic
+            and conn_manager.current_population.virtual_source
+            and self._n_cycles == 1
+            and Feature.Replay in SimConfig.cli_options.restrict_features
+            # Connection blocks can set spont minis on a connection after it is created
+            and not any(conn.spont_minis for conn in SimConfig.connections)
+            # Synapse reports record every synapse of the cell
+            and all(
+                rep.type != libsonata.SimulationConfig.Report.Type.synapse
+                for rep in SimConfig.reports.values()
+            )
+        )
 
     @mpi_no_errors
     @timeit(name="Enable Stimulus")
