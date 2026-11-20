@@ -20,10 +20,10 @@ on:
 
 env:
   H5PY_VERSION: 3.16.0
-  LIBSONATAREPORT_COMMIT: 2.0.0
-  LIBSONATA_COMMIT: v0.2.2
-  NEURON_COMMIT: 2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
-  NEURON_VERSION: 9.0.0
+  LIBSONATAREPORT_COMMIT: 2.1.0
+  LIBSONATA_COMMIT: v0.2.4
+  NEURON_COMMIT: 1a6d545679d19d5223e3f0158186f41a315e5f6f
+  NEURON_VERSION: 9.1.0.dev0
 
   RDMAV_FORK_SAFE: '1'
   BUILD_DIR: ${{ github.workspace }}/cache/build
@@ -43,8 +43,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04
-            python-version: '3.10'
           - os: ubuntu-24.04
             python-version: '3.11'
           - os: ubuntu-24.04

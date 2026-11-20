@@ -63,7 +63,7 @@ RUN --mount=type=bind,source=ci/scripts/install-h5py.sh,target=/tmp/install-h5py
     && source $USER_VENV/bin/activate \
     && PIP='uv pip' install-h5py $H5PY_VERSION
 
-ARG LIBSONATAREPORT_COMMIT=2.0.0
+ARG LIBSONATAREPORT_COMMIT=2.1.0
 
 RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/build-libsonatareport.sh \
     --mount=type=cache,target=/var/cache/sccache \
@@ -72,7 +72,7 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonatareport.sh,target=/tmp/bui
     && build-libsonatareport $LIBSONATAREPORT_COMMIT \
     && rm -rf /$BUILD_DIR/libsonatareport
 
-ARG LIBSONATA_COMMIT=v0.2.2
+ARG LIBSONATA_COMMIT=v0.2.4
 
 RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-libsonata.sh \
     --mount=type=cache,target=/root/.cache/uv \
@@ -81,9 +81,9 @@ RUN --mount=type=bind,source=ci/scripts/build-libsonata.sh,target=/tmp/build-lib
     && PIP='uv pip' build-libsonata $LIBSONATA_COMMIT \
     && rm -rf /$BUILD_DIR/libsonata
 
-ARG NEURON_COMMIT=2ac5cc7191e44805cdf40abf0ad6d3fac1481d49
+ARG NEURON_COMMIT=1a6d545679d19d5223e3f0158186f41a315e5f6f
 # Version the build is published as; bump together with NEURON_COMMIT.
-ARG NEURON_VERSION=9.0.0
+ARG NEURON_VERSION=9.1.0.dev0
 
 RUN --mount=type=bind,source=ci/scripts/build-neuron.sh,target=/tmp/build-neuron.sh \
     --mount=type=cache,target=/var/cache/sccache \
