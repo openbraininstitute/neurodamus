@@ -42,8 +42,6 @@ build-neuron() {
     $PIP install tomli tomli_w
     grep -q neuron-nightly $NRN/pyproject.toml && python3 $NRN/packaging/python/change_name.py $NRN/pyproject.toml neuron
 
-    # No CMAKE_BUILD_TYPE: scikit-build-core builds NEURON as Release, and before 1.0 it
-    # ignored the one in CMAKE_ARGS.
     local CMAKE_ARGS=(
       -DNRN_ENABLE_MPI_DYNAMIC=OFF
       -DNRN_ENABLE_MPI=ON
@@ -80,6 +78,9 @@ build-neuron() {
     REVISION=$(git -C $NRN rev-parse HEAD)
     local VERSION=$NEURON_VERSION+g$REVISION
 
+    # NEURON is built as Release, as scikit-build-core before 1.0 always did. Since 1.0 it
+    # takes CMAKE_BUILD_TYPE from the environment, and NEURON rejects RelWithDebugInfo.
+    SKBUILD_CMAKE_BUILD_TYPE=Release \
     SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION \
       CMAKE_ARGS="${CMAKE_ARGS[@]}" \
       $PIP install -v $NRN
