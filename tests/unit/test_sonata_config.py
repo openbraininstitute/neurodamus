@@ -319,3 +319,17 @@ def test_neurodamus_accepts_simulation_config_object():
     nd = Neurodamus(sim_conf, disable_reports=True)
 
     assert len(nd.circuits.node_managers) > 0
+
+
+def test_parsed_reports_are_sorted():
+    """Every rank has to see the reports in the same order, whatever its Python hash seed."""
+    names = ["soma", "lfp_b", "compartment", "lfp_a", "summation", "abc"]
+    report = {"type": "compartment", "variable_name": "v", "dt": 0.1, "start_time": 0,
+              "end_time": 1}
+    contents = {
+        "network": str(RINGTEST_DIR / "circuit_config.json"),
+        "run": {"tstop": 1, "dt": 0.1, "random_seed": 1},
+        "reports": {name: report for name in names},
+    }
+    raw_conf = SonataConfig(libsonata.SimulationConfig(json.dumps(contents), str(RINGTEST_DIR)))
+    assert list(raw_conf.parsedReports) == sorted(names)
