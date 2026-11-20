@@ -145,7 +145,35 @@ def test_v5_sonata_lfp(test_weights_file, create_simulation_config_file_factory,
             }
         }
     },
-], indirect=True)
+    {
+        # a disabled LFP report, listed before the enabled one, must not shift its electrodes
+        "simconfig_fixture": "ringtest_baseconfig",
+        "extra_config": {
+            "target_simulator": "CORENEURON",
+            "reports": {
+                "a_disabled_lfp_report": {
+                    "type": "lfp",
+                    "cells": "RingA",
+                    "electrodes_file": LFP_3ELEC_RINGA_FILE,
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0,
+                    "enabled": False
+                },
+                "lfp_report": {
+                    "type": "lfp",
+                    "cells": "Mosaic",
+                    "electrodes_file": str(RINGTEST_DIR / "lfp_file.h5"),
+                    "dt": 0.1,
+                    "start_time": 0.0,
+                    "end_time": 2.0
+                }
+            },
+            "inputs": _COMMON_INPUTS,
+        }
+    },
+], indirect=True, ids=["one_report", "after_a_disabled_one"])
+@pytest.mark.forked
 def test_ringcircuit_lfp(create_tmp_simulation_config_file):
     nd = Neurodamus(create_tmp_simulation_config_file)
     nd.run()

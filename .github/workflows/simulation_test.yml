@@ -85,11 +85,16 @@ jobs:
         brew install hdf5-mpi openmpi  # macOS hdf5-mpi requires openmpi
         brew install ccache coreutils doxygen flex bison ninja xz autoconf automake libtool
 
-    - name: sccache build cache
+    - name: sccache and uv caches
       id: cache-sccache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
-        path: ${{ github.workspace }}/cache
+        # Do not cache cache/build: CMake embeds absolute Homebrew/MPI paths that break
+        # after cellar bumps. sccache hashes the compiler and args, so stale entries miss
+        # cleanly instead of failing the configure step.
+        path: |
+          ${{ github.workspace }}/cache/sccache
+          ${{ github.workspace }}/cache/uv
         key: sccache-${{ runner.os }}-${{ github.run_id }}
         restore-keys: sccache-${{ runner.os }}-
 
@@ -99,11 +104,13 @@ jobs:
         && source $BASE_DIR/ci/scripts/install-sccache.sh \
         && SUDO=sudo install-sccache
 
+    # pytest 9.2+ breaks pytest-forked report marshal (nodeid is a NodeId object):
+    # https://github.com/pytest-dev/pytest-forked/pull/112
     - name: Upgrade pip and install base python packages
       run: |
         uv venv --managed-python --clear --python ${{ matrix.python-version }} venv \
         && source venv/bin/activate \
-        && uv pip install --upgrade pip cmake ninja pytest pytest-coverage mpi4py \
+        && uv pip install --upgrade pip cmake ninja 'pytest<9.2' pytest-coverage mpi4py \
         && uv pip list
 
     - name: Install HDF5 (parallel, from source)
