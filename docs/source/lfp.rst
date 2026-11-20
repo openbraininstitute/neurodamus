@@ -49,7 +49,6 @@ Now that we have an electrode file for our simulation to get the LFP report foll
         "lfp_report": {
             "type": "lfp",
             "cells": "Mosaic",
-            "variable_name": "v",
             "electrodes_file": "/path/to/electrodes_file.h5",
             "dt": 0.1,
             "start_time": 0.0,
@@ -58,6 +57,8 @@ Now that we have an electrode file for our simulation to get the LFP report foll
     }
 
 Replace "/path/to/electrodes_file.h5" with the actual path to your electrodes file. Each LFP report can reference its own electrodes file, allowing multiple LFP reports with different electrode configurations in a single simulation.
+
+By default the report holds each cell's contribution to each electrode. Add ``"method": "sum"`` to the report block to sum the contributions over the cells of each population instead: one trace per electrode and population. When the cells come from several populations, the signal at an electrode is the sum of the populations' traces. The layout of a summed report is described in the `SONATA specification <https://github.com/openbraininstitute/sonata-extension/blob/master/source/sonata_report.rst#per-cell-and-summed-lfp-reports>`_.
 
 Key considerations
 ------------------

@@ -4,12 +4,12 @@ import json
 import logging
 import os.path
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 import libsonata
 
 
-class ConnectionTypes(str, Enum):
+class ConnectionTypes(StrEnum):
     Synaptic = "Synaptic"
     GapJunction = "GapJunction"
     NeuroModulation = "NeuroModulation"

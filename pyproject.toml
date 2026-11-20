@@ -20,12 +20,12 @@ dynamic = ["version"]
 dependencies = [
     "h5py",
     "docopt-ng",
-    "libsonata>=0.2.2",
+    "libsonata>=0.2.4",
     "psutil",
     "packaging",
     "scipy"
 ]
-requires-python=">=3.10"
+requires-python=">=3.11"
 
 [project.optional-dependencies]
 plotting=['matplotlib'] # only for Neurodamus HL API

@@ -6,7 +6,6 @@
 #   PRE              called on function entry
 #   BUILD_DIR        Directory for cloning/building source (e.g. /tmp)
 #   INSTALL_DIR      Prefix where dependencies are installed (e.g. /opt/obi)
-#   CMAKE_BUILD_TYPE CMake build type (e.g. RelWithDebugInfo)
 #   PIP              pip command to use (e.g. "uv pip")
 #   SCCACHE_DIR      If set, enables sccache for compilation
 #   NEURON_VERSION   Version the build is published as (e.g. 9.0.0)
@@ -52,7 +51,6 @@ build-neuron() {
       -DNMODL_ENABLE_PYTHON_BINDINGS=OFF
       -DCORENRN_ENABLE_REPORTING=ON
       -DCMAKE_PREFIX_PATH=$INSTALL_DIR
-      -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
     )
 
     if [[ $(uname) == Darwin ]]; then
@@ -80,6 +78,9 @@ build-neuron() {
     REVISION=$(git -C $NRN rev-parse HEAD)
     local VERSION=$NEURON_VERSION+g$REVISION
 
+    # NEURON is built as Release, as scikit-build-core before 1.0 always did. Since 1.0 it
+    # takes CMAKE_BUILD_TYPE from the environment, and NEURON rejects RelWithDebugInfo.
+    SKBUILD_CMAKE_BUILD_TYPE=Release \
     SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION \
       CMAKE_ARGS="${CMAKE_ARGS[@]}" \
       $PIP install -v $NRN

@@ -1,3 +1,4 @@
+import struct
 from logging import config
 from types import SimpleNamespace
 
@@ -206,6 +207,7 @@ def _report_params(name, target_name):
         end=10.0,
         buffer_size=8,
         scaling=report.Scaling.area,
+        method=report.Method.by_cell,
     )
 
 
@@ -226,4 +228,35 @@ def test_names_holding_whitespace_survive_a_dump_and_load(tmp_path):
     assert report.report_name == "Recording_0.h5"
     assert report.target_name == "Default:_All_Cells"
     assert report.report_type == "compartment"
+    assert report.gids == [1, 2]
+
+
+def test_method_survives_a_dump_and_load(tmp_path):
+    file_path = tmp_path / "report.conf"
+    report_config = CoreReportConfig()
+    params = _report_params("lfp", "Mosaic")
+    params.type = libsonata.SimulationConfig.Report.Type.lfp
+    params.method = libsonata.SimulationConfig.Report.Method.sum
+    report_config.add_entry(CoreReportConfigEntry.from_report_params(params))
+    report_config.set_pop_offsets({"pop1": 0})
+    report_config.dump(file_path)
+
+    assert file_path.read_bytes().splitlines()[1].endswith(b" area sum")
+    (report,) = CoreReportConfig.load(file_path).reports.values()
+    assert report.method == "sum"
+
+
+def test_line_without_method_loads_as_by_cell(tmp_path):
+    """A report.conf written before the method field existed ends each line with the scaling."""
+    file_path = tmp_path / "report.conf"
+    file_path.write_bytes(
+        b"1\n"
+        b"lfp Mosaic lfp _lfp_placeholder_ mV SONATA Soma Center 0.1 0.0 10.0 2 8 Area\n"
+        + struct.pack("2i", 1, 2)
+        + b"\n1\npop1 0\n"
+    )
+
+    (report,) = CoreReportConfig.load(file_path).reports.values()
+    assert report.method == "by_cell"
+    assert report.scaling == "Area"
     assert report.gids == [1, 2]
