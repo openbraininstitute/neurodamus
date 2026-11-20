@@ -437,6 +437,7 @@ class DryRunStats:
         logging.info("| {:<40s} | {:>12s} |".format("GRAND TOTAL", grand_total))
         logging.info("+{:-^57}+".format(""))
 
+    @staticmethod
     def total_memory_available():
         """Returns the total memory available in the system in MB"""
         try:
