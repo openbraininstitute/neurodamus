@@ -275,6 +275,21 @@ class CircuitManager:
         del self.node_managers
 
 
+def _report_reads_synapses(rep):
+    """Whether a report records synapses: the synapse type, or a variable of a point process"""
+    if rep.type == libsonata.SimulationConfig.Report.Type.synapse:
+        return True
+    selector = Nd.MechanismType(1)  # Point processes: synapses and clamps
+    name = Nd.ref("")
+    point_processes = set()
+    for i in range(int(selector.count())):
+        selector.select(i)
+        selector.selected(name)
+        point_processes.add(name[0])
+    mechanisms = (token.strip().split(".", 1)[0] for token in rep.variable_name.split(","))
+    return any(mechanism in point_processes for mechanism in mechanisms)
+
+
 class Node:
     """The Node class is the main entity for a distributed Neurodamus execution.
 
@@ -772,11 +787,26 @@ class Node:
                 logging.debug("Using connection manager: %s", conn_manager)
                 proj_source = ":".join([ppath, *pop_name])
                 conn_manager.open_edge_location(proj_source, projection, src_name=src_pop)
+                if self._can_skip_unreplayed_connections(ptype, conn_manager):
+                    conn_manager.skip_unreplayed_connections(SimConfig.stimuli)
                 conn_manager.create_connections(
                     source_t.name,
                     dest_t.name,
                     get_conn_stats=kw.get("get_conn_stats", SimConfig.dry_run),
                 )
+
+    def _can_skip_unreplayed_connections(self, ptype, conn_manager):
+        """Whether connections from a virtual source that no replay drives can be left out"""
+        return (
+            ptype == ConnectionTypes.Synaptic
+            and conn_manager.current_population.virtual_source
+            and self._n_cycles == 1
+            and Feature.Replay in SimConfig.cli_options.restrict_features
+            # Connection blocks can set spont minis on a connection after it is created
+            and not any(conn.spont_minis for conn in SimConfig.connections)
+            # Reports that record the synapses need all of them
+            and not any(_report_reads_synapses(rep) for rep in SimConfig.reports.values())
+        )
 
     @mpi_no_errors
     @timeit(name="Enable Stimulus")

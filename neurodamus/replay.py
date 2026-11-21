@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import libsonata
+import numpy as np
 
 from .core.configuration import ConfigurationError
 from .utils.multimap import GroupedMultiMap
@@ -58,6 +59,15 @@ class SpikeManager:
         spikes = spikes_file[population]
         spike_dict = spikes.get_dict()
         return spike_dict["timestamps"], spike_dict["node_ids"]
+
+    @classmethod
+    def read_spiking_gids(cls, filename, population):
+        """The gids that spike in a SONATA spikes file. Empty if it has no such population"""
+        try:
+            _, gidvec = cls._read_spikes_sonata(filename, population)
+        except MissingSpikesPopulationError:
+            return np.empty(0, dtype="int64")
+        return np.unique(gidvec.astype("int64"))
 
     def _store_events(self, tvec, gidvec):
         """Stores the events in the _gid_fire_events GroupedMultiMap.
