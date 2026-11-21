@@ -125,36 +125,39 @@ def test_connections_of_all_ranks(circuit_factory, replayed, mpi_ranks):
     assert set(merge(bio)) == set(BIO_TO_BIO)
 
 
-@pytest.mark.mpi(ranks=[4, 5])
+@pytest.mark.mpi(ranks=2)
 def test_ranks_without_cells_do_not_block(circuit_factory, mpi_ranks):
-    """With more ranks than cells, some ranks are empty and still take part in the collectives"""
+    """With more ranks than cells, a rank is empty and still takes part in the collectives"""
     circuit = circuit_factory()
-    spikes_file = shared_spikes_file(circuit, "spikes", "Virt", [3, 4])
-    nd = Neurodamus(shared_config(circuit, [spikes_file]), disable_reports=True)
+    spikes_file = shared_spikes_file(circuit, "spikes", "Virt", [0, 5])
+    nd = Neurodamus(
+        shared_config(circuit, [spikes_file], node_set="BioCell1"), disable_reports=True
+    )
     virt = connections_by_rank(nd, "Virt")
     targets = comm.allgather(local_targets(nd))
 
     assert size == mpi_ranks
-    assert sum(1 for rank_targets in targets if not rank_targets) == mpi_ranks - N_BIO
-    for rank_targets, connections in zip(targets, virt, strict=True):
-        assert connections == virt_connections([3, 4], rank_targets)
-    assert merge(virt) == virt_connections([3, 4], range(N_BIO))
+    assert targets == [[1], []]
+    # The rank of the cell 1 keeps its connection from the replayed source 0, and not the ones
+    # from source 3, which is silent. The empty rank has none
+    assert virt == [virt_connections([0, 5], [1]), {}]
+    assert virt[0] == {(0, 1): 1}
 
 
-@pytest.mark.mpi(ranks=3)
-def test_one_cell_per_rank_with_minis_on_a_single_rank(circuit_factory, mpi_ranks):
+@pytest.mark.mpi(ranks=2)
+def test_minis_on_the_cell_of_a_single_rank(circuit_factory, mpi_ranks):
     """Only the rank of the cell with minis keeps all of its connections"""
     circuit = circuit_factory(exc_minis=[0.0, 4.0, 0.0], inh_minis=[0.0, 0.0, 0.0])
     spikes_file = shared_spikes_file(circuit, "spikes", "Virt", [3])
     nd = Neurodamus(shared_config(circuit, [spikes_file]), disable_reports=True)
     virt = connections_by_rank(nd, "Virt")
 
-    assert local_targets(nd) == [rank]
-    # The cell 1 has minis and keeps both its connections. The other cells only the ones from the
-    # replayed source 3, and none of them has any
-    assert virt[0] == virt[2] == {}
-    assert virt[1] == virt_connections([0, 1, 2, 3, 4, 5], [1])
-    assert merge(virt) == virt_connections([0, 1, 2, 3, 4, 5], [1])
+    # Round robin: the rank 0 owns the cells 0 and 2, and the rank 1 the cell 1, which has minis
+    assert local_targets(nd) == [[0, 2], [1]][rank]
+    # The cells 0 and 2 only keep the connections from the replayed source 3, and it has none
+    assert virt[0] == {}
+    assert virt[1] == virt_connections(range(6), [1])
+    assert merge(virt) == virt_connections(range(6), [1])
 
 
 @pytest.mark.mpi(ranks=2)

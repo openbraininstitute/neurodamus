@@ -275,6 +275,21 @@ class CircuitManager:
         del self.node_managers
 
 
+def _report_reads_synapses(rep):
+    """Whether a report records synapses: the synapse type, or a variable of a point process"""
+    if rep.type == libsonata.SimulationConfig.Report.Type.synapse:
+        return True
+    selector = Nd.MechanismType(1)  # Point processes: synapses and clamps
+    name = Nd.ref("")
+    point_processes = set()
+    for i in range(int(selector.count())):
+        selector.select(i)
+        selector.selected(name)
+        point_processes.add(name[0])
+    mechanisms = (token.strip().split(".", 1)[0] for token in rep.variable_name.split(","))
+    return any(mechanism in point_processes for mechanism in mechanisms)
+
+
 class Node:
     """The Node class is the main entity for a distributed Neurodamus execution.
 
@@ -789,11 +804,8 @@ class Node:
             and Feature.Replay in SimConfig.cli_options.restrict_features
             # Connection blocks can set spont minis on a connection after it is created
             and not any(conn.spont_minis for conn in SimConfig.connections)
-            # Synapse reports record every synapse of the cell
-            and all(
-                rep.type != libsonata.SimulationConfig.Report.Type.synapse
-                for rep in SimConfig.reports.values()
-            )
+            # Reports that record the synapses need all of them
+            and not any(_report_reads_synapses(rep) for rep in SimConfig.reports.values())
         )
 
     @mpi_no_errors

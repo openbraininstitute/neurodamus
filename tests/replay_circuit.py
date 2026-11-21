@@ -205,6 +205,7 @@ def make_replay_circuit(directory, exc_minis=None, inh_minis=None):
         json.dumps(
             {
                 "Bio": {"population": "Bio"},
+                "BioCell1": {"population": "Bio", "node_id": [1]},
                 "Virt": {"population": "Virt"},
                 "Ext": {"population": "Ext"},
             }

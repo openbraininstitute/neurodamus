@@ -411,17 +411,39 @@ def test_no_connection_overrides(predicate_env):
 @pytest.mark.parametrize("report_type", ["compartment", "summation", "lfp"])
 def test_reports_that_do_not_disable_skipping(predicate_env, report_type):
     kind = getattr(libsonata.SimulationConfig.Report.Type, report_type)
-    SimConfig.reports = {"report": SimpleNamespace(type=kind)}
+    SimConfig.reports = {"report": SimpleNamespace(type=kind, variable_name="")}
     assert can_skip(predicate_env)
 
 
 def test_synapse_report_disables_skipping_among_others(predicate_env):
     types = libsonata.SimulationConfig.Report.Type
     SimConfig.reports = {
-        "soma": SimpleNamespace(type=types.compartment),
-        "syn": SimpleNamespace(type=types.synapse),
+        "soma": SimpleNamespace(type=types.compartment, variable_name="v"),
+        "syn": SimpleNamespace(type=types.synapse, variable_name="g"),
     }
     assert not can_skip(predicate_env)
+
+
+@pytest.mark.parametrize("report_type", ["compartment", "summation"])
+@pytest.mark.parametrize(
+    "variable_name", ["ProbAMPANMDA_EMS.g", "ProbGABAAB_EMS", "v, ProbAMPANMDA_EMS.i", "IClamp.i"]
+)
+def test_reports_of_point_process_variables_disable_skipping(
+    predicate_env, report_type, variable_name
+):
+    """The synapses are point processes: a report on a variable of one needs them all"""
+    kind = getattr(libsonata.SimulationConfig.Report.Type, report_type)
+    SimConfig.reports = {"report": SimpleNamespace(type=kind, variable_name=variable_name)}
+    assert not can_skip(predicate_env)
+
+
+@pytest.mark.parametrize("variable_name", ["v", "i_membrane", "hh.ina", "pas.i, v", " v "])
+def test_reports_of_other_variables_do_not_disable_skipping(predicate_env, variable_name):
+    types = libsonata.SimulationConfig.Report.Type
+    SimConfig.reports = {
+        "report": SimpleNamespace(type=types.compartment, variable_name=variable_name)
+    }
+    assert can_skip(predicate_env)
 
 
 # ----------------------------------------------------------------------
