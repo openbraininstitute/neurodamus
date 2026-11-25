@@ -1171,15 +1171,10 @@ def _check_global_vars(conn_configure_global_vars: dict[str, list[str]]) -> None
 
 
 def _check_weight0_overrides(zero_weight_conns: list[_ConnCtx]) -> None:
-    """Phase 3c: Warn about or raise errors for weight=0 overrides."""
-    not_overridden_weight_0 = []
-    for conn_ctx in zero_weight_conns:
-        if conn_ctx.full_override is None:
-            not_overridden_weight_0.append(conn_ctx)
-        elif conn_ctx.full_override is False:
-            raise ConfigurationError(
-                f"Partial Weight=0 override is not supported: Conn {conn_ctx.conf.name}"
-            )
+    """Phase 3c: Warn about weight=0 overrides that no later block overrides."""
+    not_overridden_weight_0 = [
+        conn_ctx for conn_ctx in zero_weight_conns if conn_ctx.full_override is None
+    ]
 
     if not_overridden_weight_0:
         logging.warning(
@@ -1197,8 +1192,7 @@ def check_connections_configure(config: _SimConfig, target_manager) -> None:
     1. Global variables should be set in the Conditions block
     2. Connection overriding chains (t=0)
     3. Connections with Weight=0 not overridden by delayed (not instantiated)
-    4. Partial connection overriding -> Error
-    5. Connections with delay > 0 not overriding anything
+    4. Connections with delay > 0 not overriding anything
     """
     logging.info("Checking Connection Configurations")
 

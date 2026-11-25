@@ -123,13 +123,23 @@ def test_synapses_params():
 
     # 2) get values from NEURON
     post_cell = n.circuits.global_manager.get_cellref(post_L5_PC)
-    # here we collect all synapses for the post cell
+    # The post cell also gets synapses from cells no Connection block names: skip those
+    pre_gids = [int(pre_L5_BC), int(pre_L5_PC)]
+    tested_syns = {
+        syn.hname()
+        for syn_manager in n._circuits.all_synapse_managers()
+        for conn in syn_manager.get_connections(int(post_L5_PC), pre_gids)
+        for syn in conn._synapses
+    }
+    # here we collect the synapses of the two pathways for the post cell
     match_index = re.compile(r"\[[0-9]+\]$")
     synlist = {}
     for nc in Nd.h.cvode.netconlist("", post_cell, ""):
         if nc.precell() is not None:  # minis netcons only
             continue
         syn = nc.syn()
+        if syn.hname() not in tested_syns:
+            continue
         syntype = match_index.sub("", syn.hname())
         d = {"weight": nc.weight[0]}
         for v in vars(syn):

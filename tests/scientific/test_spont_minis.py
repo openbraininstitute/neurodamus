@@ -41,7 +41,8 @@ def test_spont_minis(create_tmp_simulation_config_file):
 
     edges_a: SynapseRuleManager = nd.circuits.get_edge_manager("NodeA", "NodeA")
     # Note: Before #198 we would instantiate a projection conn as being internal
-    assert len(list(edges_a.all_connections())) == 1
+    # 1->0 goes into l4pc, and 0->1 is created even though no override matches it
+    assert len(list(edges_a.all_connections())) == 2
     conn_1_0 = next(edges_a.get_connections(0, 1))
     assert conn_1_0._spont_minis.rate == SPONT_RATE
 
