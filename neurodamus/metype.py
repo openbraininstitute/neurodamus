@@ -9,6 +9,7 @@ import numpy as np
 
 from .core import NeuronWrapper as Nd
 from .core.configuration import ConfigurationError, SimConfig
+from .morphio_wrapper import register_legacy_module_alias
 
 
 class SectionIdError(Exception):
@@ -272,6 +273,8 @@ class Cell_V6(METype):  # ruff: ignore[invalid-class-name]
         add_params = meinfos_v6.add_params or (keep_axon,)  # Keep axon incompatible with add_params
 
         logging.debug("Loading Gid %d: emodel: %s, Morphology: %s", gid, emodel, morpho_file)
+        # v6 templates read h5 morphologies through a bare `import morphio_wrapper`
+        register_legacy_module_alias()
         try:
             # For this step, do not call mpi_abort in neuron and let neurodamus handle and abort,
             # NB: Do not re-raise as ConfigurationError, neurodamus doesn't call mpi_abort so hangs
