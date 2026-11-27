@@ -2,8 +2,10 @@
 features on top of MorphIO basic morphology handling.
 """
 
+import importlib.util
 import logging
 import os
+import sys
 from dataclasses import dataclass
 
 import numpy as np
@@ -448,3 +450,30 @@ class MorphIOWrapper:
 
         tstr1 = f'forsec "{type_name}" {tstr}.append'
         return tstr1
+
+
+LEGACY_MODULE_NAME = "morphio_wrapper"
+
+
+def register_legacy_module_alias():
+    """Make this module importable under its legacy top-level name, ``morphio_wrapper``.
+
+    The v6 e-model hoc template (BluePyEModel's ``cell_template_neurodamus_sbo.jinja2``, see the
+    sonata-extension "HOC E-Model Templates" documentation) loads h5 morphologies with a bare
+    import::
+
+        nrnpython("from morphio_wrapper import MorphIOWrapper")
+
+    and calls ``quit()`` when it fails, terminating the simulation before any output is written.
+    neurodamus ships the reader only as ``neurodamus.morphio_wrapper``, so the bare import fails
+    whenever such a template is given an h5 morphology (neurodamus selects the ``h5v1``
+    alternate morphology when no ``neurolucida-asc`` one is declared).
+
+    Called before every v6 cell is instantiated. A real top-level ``morphio_wrapper`` module,
+    already imported or merely installed, takes precedence and is left untouched.
+    """
+    if LEGACY_MODULE_NAME in sys.modules:
+        return
+    if importlib.util.find_spec(LEGACY_MODULE_NAME) is not None:
+        return
+    sys.modules[LEGACY_MODULE_NAME] = sys.modules[__name__]

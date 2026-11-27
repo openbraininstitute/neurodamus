@@ -187,3 +187,23 @@ def test_get_segment_points(create_tmp_simulation_config_file):
         ],
         rtol=1e-6
     )
+
+
+@pytest.mark.parametrize(
+    "create_tmp_simulation_config_file",
+    [{"simconfig_fixture": "ringtest_baseconfig"}],
+    indirect=True,
+)
+def test_v6_cells_register_legacy_morphio_wrapper(create_tmp_simulation_config_file, monkeypatch):
+    """Instantiating v6 cells exposes `morphio_wrapper`, which v6 templates import for h5."""
+    import sys
+
+    import neurodamus.morphio_wrapper
+
+    monkeypatch.delitem(sys.modules, "morphio_wrapper", raising=False)
+    n = Node(create_tmp_simulation_config_file)
+    n.load_targets()
+    n.create_cells()
+
+    assert isinstance(next(iter(n.circuits.get_node_manager("RingA").cells)), Cell_V6)
+    assert sys.modules["morphio_wrapper"] is neurodamus.morphio_wrapper
